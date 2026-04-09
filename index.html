@@ -571,23 +571,28 @@ async function fetchDaySmart({ company, sportId }) {
 
   return (data?.data ?? [])
     .filter(ev => {
-      const name = (ev.attributes?.name ?? ev.attributes?.title ?? "").toLowerCase();
-      return name.includes("stick") || name.includes("s&p") || name.includes("s & p");
+      // DaySmart uses best_description, desc, or name depending on event type
+      const text = [
+        ev.attributes?.best_description,
+        ev.attributes?.desc,
+        ev.attributes?.name,
+        ev.attributes?.title,
+      ].filter(Boolean).join(" ").toLowerCase().replace(/<[^>]+>/g, "");
+      return text.includes("stick") || text.includes("s&p") || text.includes("s & p");
     })
     .map(ev => {
       const a = ev.attributes ?? {};
-      const start = a.startTime ?? a.start_time ?? a.start;
-      const end   = a.endTime   ?? a.end_time   ?? a.end;
-      const spots = a.spotsAvailable ?? a.spots_available;
+      const start = a.start ?? a.startTime ?? a.start_time;
+      const end   = a.end   ?? a.endTime   ?? a.end_time;
       return {
-        id: ev.id,
-        start: start ? new Date(start) : null,
-        end:   end   ? new Date(end)   : null,
-        title: a.name ?? "Stick & Puck",
-        spots,
-        price: fmtPrice(a.price ?? a.cost),
-        soldOut: spots === 0,
-        bookUrl: a.bookingUrl ?? null,
+        id:      ev.id,
+        start:   start ? new Date(start) : null,
+        end:     end   ? new Date(end)   : null,
+        title:   "Stick & Puck",
+        spots:   null,
+        price:   null,
+        soldOut: false,
+        bookUrl: null,
       };
     })
     .filter(s => s.start && s.start > now)
