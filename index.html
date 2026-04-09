@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seattle S&P — Stick & Puck Ice Times</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ice: #E8F4FD;
+  --ice-mid: #B8D8F0;
+  --ice-deep: #7FB8DE;
+  --rink-blue: #0D3B6E;
+  --rink-dark: #071E38;
+  --puck: #1A1A1A;
+  --accent: #E63946;
+  --accent-glow: rgba(230, 57, 70, 0.3);
+  --amber: #F4A261;
+  --green: #2DC653;
+  --text-primary: #0D1B2A;
+  --text-secondary: #3D5470;
+  --text-muted: #7B95B0;
+  --border: rgba(13, 59, 110, 0.12);
+  --surface: #F7FAFE;
+  --card-bg: #ffffff;
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  /* rink colors */
+  --kraken: #003F5F;
+  --snoking: #1B4F72;
+  --ova: #154360;
+  --lynnwood: #1A5276;
+  --kent: #0E3460;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Barlow', system-ui, sans-serif;
+  background: var(--rink-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  background: var(--rink-dark);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  gap: 16px;
+}
+
+.logo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.logo span { color: var(--accent); }
+
+.header-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  line-height: 1.4;
+}
+.header-meta strong { color: rgba(255,255,255,0.7); }
+
+/* ── Controls bar ── */
+.controls-bar {
+  background: var(--ice);
+  border-bottom: 1px solid var(--border);
+  padding: 10px clamp(1rem, 4vw, 3rem);
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+}
+
+.controls-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+
+.filter-btn {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--rink-blue); color: var(--rink-blue); }
+.filter-btn.active {
+  background: var(--rink-blue);
+  border-color: var(--rink-blue);
+  color: white;
+}
+
+.spacer { flex: 1; }
+
+.refresh-btn {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--rink-blue);
+  background: transparent;
+  color: var(--rink-blue);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.refresh-btn:hover { background: var(--rink-blue); color: white; }
+.refresh-btn.spinning .spin-icon { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Main ── */
+main {
+  background: var(--surface);
+  min-height: calc(100vh - 108px);
+  padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 3rem);
+}
+
+.main-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Status Banner ── */
+.status-banner {
+  background: var(--rink-blue);
+  color: rgba(255,255,255,0.85);
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-banner.error { background: #7B1A1A; }
+.status-banner.success { background: #1A4731; }
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+.status-banner.success .status-dot { animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Day sections ── */
+.day-section { margin-bottom: 28px; }
+.day-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ice-mid);
+}
+.day-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--rink-dark);
+  letter-spacing: 0.5px;
+}
+.day-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.day-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--ice-mid);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ── Session Grid ── */
+.session-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+/* ── Session Card ── */
+.session-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+.session-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--rink-color, var(--rink-blue));
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.session-card:hover:not(.sold-out) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 59, 110, 0.12);
+}
+.session-card.sold-out {
+  opacity: 0.6;
+}
+
+.card-rink {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rink-color, var(--rink-blue));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-rink .city-tag {
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.card-time {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--rink-dark);
+  line-height: 1;
+}
+.card-time .duration {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.badge-price {
+  background: var(--ice);
+  color: var(--rink-blue);
+}
+.badge-spots {
+  background: #EAF9EE;
+  color: #1A4731;
+}
+.badge-spots.low {
+  background: #FFF4E3;
+  color: #7A3900;
+}
+.badge-sold-out {
+  background: #FFEAEA;
+  color: #8B0000;
+}
+.badge-book {
+  margin-left: auto;
+  background: var(--rink-blue);
+  color: white;
+  padding: 3px 12px;
+}
+.session-card.sold-out .badge-book { display: none; }
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+.empty-state .big-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+.empty-state h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* ── Fallback rink cards (venues without live API data) ── */
+.fallback-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.fallback-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.fallback-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--rink-color, var(--rink-blue));
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.fallback-card .fc-rink {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rink-color, var(--rink-blue));
+  margin-bottom: 6px;
+}
+.fallback-card .fc-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--rink-dark);
+  margin-bottom: 4px;
+}
+.fallback-card .fc-reason {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.fallback-card .fc-link {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--rink-color, var(--rink-blue));
+  color: white;
+  text-decoration: none;
+}
+.fallback-card .fc-link:hover { opacity: 0.85; }
+
+/* ── Error card (hard failures) ── */
+.rink-error {
+  background: #FFF9F9;
+  border: 1px dashed #FFCDD2;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #7B1A1A;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* ── Rink legend ── */
+.rink-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .controls-inner { gap: 6px; }
+  .session-grid { grid-template-columns: 1fr; }
+  .card-time { font-size: 24px; }
+}
+
+/* ── Loading skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, #eef2f6 25%, #e4ebf2 50%, #eef2f6 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+@keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
+
+.skeleton-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Footer ── */
+footer {
+  background: var(--rink-dark);
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+footer a:hover { color: rgba(255,255,255,0.8); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Seattle <span>S&P</span></div>
+    <div id="headerMeta" class="header-meta">Loading...</div>
+  </div>
+</header>
+
+<div class="controls-bar">
+  <div class="controls-inner">
+    <span class="filter-label">View</span>
+    <button class="filter-btn active" data-filter="all">All rinks</button>
+    <button class="filter-btn" data-filter="available">Available only</button>
+    <button class="filter-btn" data-filter="today">Today</button>
+    <button class="filter-btn" data-filter="thisweek">This week</button>
+
+    <span class="spacer"></span>
+
+    <button class="refresh-btn" id="refreshBtn">
+      <span class="spin-icon">↻</span> Refresh
+    </button>
+  </div>
+</div>
+
+<main>
+  <div class="main-inner">
+    <div id="statusBanner" class="status-banner" style="display:none"></div>
+    <div id="rinkLegend" class="rink-legend"></div>
+    <div id="content"></div>
+  </div>
+</main>
+
+<footer>
+  <p>Data pulled live from Kraken/Sno-King (DaySmart), Olympic View Arena (FareHarbor), Kent Valley (web), and more. &nbsp;·&nbsp; Not affiliated with any venue. &nbsp;·&nbsp; <a href="https://github.com/" id="ghLink">GitHub</a></p>
+</footer>
+
+<script type="module">
+// ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
+
+const RINKS = {
+  kraken: {
+    name: "Kraken Community Iceplex",
+    city: "Seattle",
+    url: "https://www.krakencommunityiceplex.com/stick-puck/",
+    color: "#005B8E",
+    system: "daysmart",
+    config: { company: "kraken", sportId: 20 },
+  },
+  snoking: {
+    name: "Sno-King Ice Arena",
+    city: "Renton",
+    url: "https://sno-king.com/programs/stick-and-puck/",
+    color: "#1B6CA8",
+    system: "daysmart",
+    config: { company: "snoking", sportId: 20 },
+  },
+  olympicview: {
+    name: "Olympic View Arena",
+    city: "Mountlake Terrace",
+    url: "https://www.olympicviewarena.com/",
+    color: "#0D6B7A",
+    system: "fareharbor",
+    config: { company: "olympicviewarena", itemPk: 313860 },
+  },
+  lynnwood: {
+    name: "Lynnwood Ice Center",
+    city: "Lynnwood",
+    url: "https://www.lynnwoodicecenter.com/",
+    color: "#1565A8",
+    system: "fareharbor",
+    // Slug confirmed: lynnwoodicecenter
+    // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
+    config: { company: "lynnwoodicecenter", itemPk: 245296 },
+  },
+  kentvalley: {
+    name: "Kent Valley Ice Centre",
+    city: "Kent",
+    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
+    color: "#0A4D8B",
+    system: "kentvalley",
+    config: { scrapeUrl: "https://kentvalleyicecentre.net/stick-and-pucks/" },
+  },
+};
+
+// DaySmart ─────────────────────────────────────────────────────────────────────
+async function fetchDaySmart({ company, sportId }) {
+  const url = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  const now = new Date();
+
+  return (data?.data ?? [])
+    .filter(ev => {
+      const name = (ev.attributes?.name ?? ev.attributes?.title ?? "").toLowerCase();
+      return name.includes("stick") || name.includes("s&p") || name.includes("s & p");
+    })
+    .map(ev => {
+      const a = ev.attributes ?? {};
+      const start = a.startTime ?? a.start_time ?? a.start;
+      const end   = a.endTime   ?? a.end_time   ?? a.end;
+      const spots = a.spotsAvailable ?? a.spots_available;
+      return {
+        id: ev.id,
+        start: start ? new Date(start) : null,
+        end:   end   ? new Date(end)   : null,
+        title: a.name ?? "Stick & Puck",
+        spots,
+        price: fmtPrice(a.price ?? a.cost),
+        soldOut: spots === 0,
+        bookUrl: a.bookingUrl ?? null,
+      };
+    })
+    .filter(s => s.start && s.start > now)
+    .sort((a, b) => a.start - b.start);
+}
+
+// FareHarbor ───────────────────────────────────────────────────────────────────
+async function fetchFareHarbor({ company, itemPk }) {
+  if (!itemPk) return [];
+  const now = new Date();
+  const months = [
+    [now.getFullYear(), now.getMonth() + 1],
+    now.getMonth() === 11
+      ? [now.getFullYear() + 1, 1]
+      : [now.getFullYear(), now.getMonth() + 2],
+  ];
+  const pages = await Promise.all(months.map(async ([y, m]) => {
+    const mm = String(m).padStart(2, "0");
+    const r = await fetch(`https://fareharbor.com/api/v1/companies/${company}/items/${itemPk}/calendar/${y}/${mm}/`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }));
+
+  return pages.flatMap(data => {
+    // Two possible schemas:
+    // OVA-style:      { dates: [ { availabilities: [...] } ] }
+    // Lynnwood-style: { calendar: { weeks: [ { days: [ { availabilities: [...] } ] } ] } }
+    let avails = [];
+    if (data?.dates) {
+      avails = data.dates.flatMap(day => day?.availabilities ?? []);
+    } else if (data?.calendar?.weeks) {
+      avails = data.calendar.weeks.flatMap(w => w.days ?? []).flatMap(day => day?.availabilities ?? []);
+    }
+    return avails
+      .filter(av => new Date(av.start_at) > now)
+      .map(av => {
+        const rate = av.customer_type_rates?.[0];
+        // Lynnwood uses approximate_available_capacity; OVA uses rate.availability.capacity_remaining
+        const spots = av.approximate_available_capacity ?? rate?.availability?.capacity_remaining ?? null;
+        const price = rate?.total_including_tax != null ? fmtPrice(rate.total_including_tax / 100) : null;
+        return {
+          id: `fh-${av.pk}`,
+          start: new Date(av.start_at),
+          end:   new Date(av.end_at),
+          title: "Stick & Puck",
+          spots: spots > 0 ? spots : (spots === 0 ? 0 : null),
+          price,
+          soldOut: av.is_sold_out || !av.is_bookable,
+          bookUrl: av.book_url ?? `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
+        };
+      });
+  }).sort((a, b) => a.start - b.start);
+}
+
+// Kent Valley — try server proxy first, then CORS notice ─────────────────────
+// Server proxy at /api/sessions/kentvalley avoids CORS (run server.js locally).
+async function fetchKentValley({ scrapeUrl }) {
+  // Try same-origin proxy first (works when server.js is running)
+  try {
+    const r = await fetch("/api/sessions/kentvalley", { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.ok && d.sessions?.length) return d.sessions.map(s => ({
+        ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null,
+      }));
+    }
+  } catch { /* proxy not running — fall through */ }
+  // No proxy: direct fetch blocked by CORS. Surface as a "visit site" link.
+  throw new Error("CORS — open site to book");
+}
+
+// Aggregate ────────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  const tasks = {
+    kraken:      fetchDaySmart(RINKS.kraken.config),
+    snoking:     fetchDaySmart(RINKS.snoking.config),
+    olympicview: fetchFareHarbor(RINKS.olympicview.config),
+    lynnwood:    fetchFareHarbor(RINKS.lynnwood.config),
+    kentvalley:  fetchKentValley(RINKS.kentvalley.config),
+  };
+  const settled = await Promise.allSettled(Object.values(tasks));
+  const results = {};
+  Object.keys(tasks).forEach((key, i) => {
+    const r = settled[i];
+    results[key] = r.status === "fulfilled"
+      ? { ok: true,  sessions: r.value, rink: RINKS[key] }
+      : { ok: false, error: r.reason?.message ?? "Unknown error", sessions: [], rink: RINKS[key] };
+  });
+  return results;
+}
+
+// ─── Formatting helpers ───────────────────────────────────────────────────────
+
+function fmtPrice(v) {
+  if (v == null) return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : `$${n.toFixed(2)}`;
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function fmtDuration(start, end) {
+  if (!end) return "";
+  const mins = Math.round((end - start) / 60000);
+  return mins >= 60
+    ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}`
+    : `${mins}m`;
+}
+
+function dayKey(d) {
+  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+}
+
+function fmtDayLabel(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff === 0) return { name: "Today", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
+  if (diff === 1) return { name: "Tomorrow", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
+  return {
+    name: d.toLocaleDateString("en-US", { weekday: "long" }),
+    full: d.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+  };
+}
+
+// ─── DOM rendering ───────────────────────────────────────────────────────────
+
+let allData = null;
+let activeFilter = "all";
+
+function showStatus(msg, type = "loading") {
+  const el = document.getElementById("statusBanner");
+  el.style.display = "flex";
+  el.className = `status-banner ${type}`;
+  el.innerHTML = `<div class="status-dot"></div><span>${msg}</span>`;
+  if (type === "success") setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+function hideStatus() {
+  document.getElementById("statusBanner").style.display = "none";
+}
+
+function showSkeletons(n = 6) {
+  const grid = Array.from({ length: n }, () => `
+    <div class="skeleton-card">
+      <div class="skeleton" style="height:12px;width:40%"></div>
+      <div class="skeleton" style="height:32px;width:65%"></div>
+      <div class="skeleton" style="height:12px;width:55%"></div>
+    </div>`).join("");
+  document.getElementById("content").innerHTML = `
+    <div class="session-grid">${grid}</div>`;
+}
+
+function renderLegend(data) {
+  const legend = document.getElementById("rinkLegend");
+  legend.innerHTML = Object.entries(data).map(([key, r]) =>
+    `<span class="legend-item" data-rink="${key}" title="${r.rink.name}">
+      <span class="legend-dot" style="background:${r.rink.color}"></span>
+      ${r.rink.city}${!r.ok ? " ⚠️" : ""}
+    </span>`
+  ).join("");
+
+  legend.querySelectorAll(".legend-item").forEach(el => {
+    el.addEventListener("click", () => {
+      const rinkKey = el.dataset.rink;
+      // Toggle rink filter — cycles through: all → specific → all
+      if (activeFilter === rinkKey) {
+        activeFilter = "all";
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
+      } else {
+        activeFilter = rinkKey;
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      }
+      renderSessions(data);
+    });
+  });
+}
+
+function renderSessions(data) {
+  const content = document.getElementById("content");
+  const now = new Date();
+  const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
+
+  // Flatten all sessions with rink info
+  let all = [];
+  const errors = [];
+
+  for (const [key, r] of Object.entries(data)) {
+    if (!r.ok) {
+      errors.push({ key, ...r });
+    }
+    r.sessions.forEach(s => all.push({ ...s, rinkKey: key, rink: r.rink }));
+  }
+
+  // Apply filter
+  const isRinkFilter = !["all", "available", "today", "thisweek"].includes(activeFilter);
+
+  all = all.filter(s => {
+    if (isRinkFilter) return s.rinkKey === activeFilter;
+    if (activeFilter === "available") return !s.soldOut;
+    if (activeFilter === "today") {
+      const d = s.start; const t = new Date();
+      return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+    }
+    if (activeFilter === "thisweek") return s.start <= weekEnd;
+    return true;
+  });
+
+  // Group by day
+  const byDay = {};
+  all.forEach(s => {
+    const k = dayKey(s.start);
+    if (!byDay[k]) byDay[k] = [];
+    byDay[k].push(s);
+  });
+
+  const sortedDays = Object.keys(byDay).sort();
+
+  // Separate "expected no-data" (CORS/LeagueApps) from real errors
+  const fallbacks = errors.filter(e =>
+    e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
+    e.error?.includes("directly") || e.error?.includes("book directly")
+  );
+  const hardErrors = errors.filter(e => !fallbacks.includes(e));
+
+  // Render fallback rink cards (venues that require direct booking)
+  let html = "";
+  if (fallbacks.length && (activeFilter === "all" || fallbacks.some(e => e.key === activeFilter))) {
+    const visibleFallbacks = activeFilter === "all" ? fallbacks : fallbacks.filter(e => e.key === activeFilter);
+    if (visibleFallbacks.length) {
+      html += `<div class="fallback-grid">` +
+        visibleFallbacks.map(e => {
+          const r = e.rink;
+          const reason = e.error?.includes("LeagueApps")
+            ? "Sessions require login to book"
+            : "Live data unavailable — book online";
+          return `<div class="fallback-card" style="--rink-color:${r.color}">
+            <div class="fc-rink">${r.city}</div>
+            <div class="fc-name">${r.name}</div>
+            <div class="fc-reason">${reason}</div>
+            <a class="fc-link" href="${r.url}" target="_blank" rel="noopener">View schedule ↗</a>
+          </div>`;
+        }).join("") +
+      `</div>`;
+    }
+  }
+
+  // Hard failures (unexpected errors)
+  hardErrors.forEach(e => {
+    html += `<div class="rink-error">
+      <span>⚠️</span>
+      <span><strong>${e.rink.name}</strong> failed to load: ${e.error}</span>
+    </div>`;
+  });
+
+  if (sortedDays.length === 0) {
+    html += `<div class="empty-state">
+      <div class="big-icon">🏒</div>
+      <h3>No sessions found</h3>
+      <p>Try a different filter, or check back later.</p>
+    </div>`;
+  } else {
+    sortedDays.forEach(day => {
+      const sessions = byDay[day].sort((a, b) => a.start - b.start);
+      const { name, full } = fmtDayLabel(day);
+      html += `<div class="day-section">
+        <div class="day-header">
+          <span class="day-name">${name}</span>
+          <span class="day-date">${full}</span>
+          <span class="day-count">${sessions.length} session${sessions.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div class="session-grid">
+          ${sessions.map(s => sessionCard(s)).join("")}
+        </div>
+      </div>`;
+    });
+  }
+
+  content.innerHTML = html;
+
+  // Update header meta
+  const total = all.filter(s => !s.soldOut).length;
+  const liveRinks = new Set(all.map(s => s.rinkKey)).size;
+  const totalRinks = liveRinks + fallbacks.length;
+  const lastUpdated = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  document.getElementById("headerMeta").innerHTML =
+    `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
+}
+
+function sessionCard(s) {
+  const timeStr = fmtTime(s.start);
+  const dur = fmtDuration(s.start, s.end);
+  const spotsStr = s.spots != null
+    ? s.spots <= 3
+      ? `<span class="badge badge-spots low">${s.spots} spot${s.spots !== 1 ? "s" : ""} left</span>`
+      : `<span class="badge badge-spots">${s.spots} spots</span>`
+    : "";
+  const priceStr = s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
+  const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
+  const bookBadge = s.bookUrl && !s.soldOut
+    ? `<a class="badge badge-book" href="${s.bookUrl}" target="_blank" rel="noopener">Book →</a>`
+    : "";
+
+  return `<div class="session-card${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}">
+    <div class="card-rink">
+      ${s.rink.name}
+      <span class="city-tag">· ${s.rink.city}</span>
+    </div>
+    <div class="card-time">
+      ${timeStr}
+      ${dur ? `<span class="duration">${dur}</span>` : ""}
+    </div>
+    <div class="card-footer">
+      ${priceStr}${spotsStr}${soldOutBadge}${bookBadge}
+    </div>
+  </div>`;
+}
+
+// ─── App bootstrap ────────────────────────────────────────────────────────────
+
+async function loadData() {
+  const btn = document.getElementById("refreshBtn");
+  btn.classList.add("spinning");
+  showSkeletons();
+  showStatus("Fetching sessions from all rinks…");
+
+  try {
+    allData = await fetchAll();
+    const totalSessions = Object.values(allData).reduce((n, r) => n + r.sessions.length, 0);
+    showStatus(`Loaded ${totalSessions} sessions`, "success");
+    renderLegend(allData);
+    renderSessions(allData);
+  } catch (err) {
+    showStatus("Failed to load session data — " + err.message, "error");
+    document.getElementById("content").innerHTML = `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Load failed</h3><p>${err.message}</p></div>`;
+  } finally {
+    btn.classList.remove("spinning");
+  }
+}
+
+// Filter buttons
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.filter;
+    if (allData) renderSessions(allData);
+  });
+});
+
+// Refresh button
+document.getElementById("refreshBtn").addEventListener("click", loadData);
+
+// Auto-refresh every 10 minutes
+setInterval(loadData, 10 * 60 * 1000);
+
+// Initial load
+loadData();
+
+// ─── Dev helpers (run from browser console) ──────────────────────────────────
+// To find the Lynnwood S&P item PK (already set to 245296, but for reference):
+//   await window.discoverLynnwoodPKs()
+
+window.discoverLynnwoodPKs = async () => {
+  console.log("Fetching Lynnwood FareHarbor items...");
+  try {
+    const r = await fetch("https://fareharbor.com/api/v1/companies/lynnwoodicecenter/items/");
+    const d = await r.json();
+    const items = d.items ?? [];
+    console.table(items.map(i => ({ pk: i.pk, name: i.name, description: i.description?.substring(0, 60) })));
+    const snp = items.filter(i => /stick|puck|hockey/i.test(i.name + " " + i.description));
+    console.log("\n🏒 Likely Stick & Puck items:");
+    snp.forEach(i => console.log(`  PK: ${i.pk}  →  ${i.name}`));
+    return snp;
+  } catch(e) {
+    console.error("Failed:", e.message);
+  }
+};
+
+window.setLynnwoodPK = (pk) => {
+  RINKS.lynnwood.config.itemPk = pk;
+  console.log(`✅ Lynnwood item PK set to ${pk}. Call loadData() to refresh.`);
+};
+</script>
+</body>
+</html>
