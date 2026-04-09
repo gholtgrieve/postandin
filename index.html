@@ -675,7 +675,9 @@ async function fetchFareHarbor({ company, itemPk }) {
           spots: spots > 0 ? spots : (spots === 0 ? 0 : null),
           price,
           soldOut: av.is_sold_out || !av.is_bookable,
-          bookUrl: av.book_url ?? `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
+          bookUrl: av.book_url
+            ? (av.book_url.startsWith('http') ? av.book_url : `https://fareharbor.com${av.book_url}`)
+            : `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
         };
       });
   });
