@@ -563,7 +563,8 @@ const RINKS = {
 
 // DaySmart ─────────────────────────────────────────────────────────────────────
 async function fetchDaySmart({ company, sportId }) {
-  const url = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const url = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}&filter[start__gte]=${today}&page[size]=200`;
   const r = await fetch(url);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const data = await r.json();
@@ -571,7 +572,6 @@ async function fetchDaySmart({ company, sportId }) {
 
   return (data?.data ?? [])
     .filter(ev => {
-      // DaySmart uses best_description, desc, or name depending on event type
       const text = [
         ev.attributes?.best_description,
         ev.attributes?.desc,
@@ -624,7 +624,7 @@ async function fetchFareHarbor({ company, itemPk }) {
     throw new Error(`FareHarbor fetch failed for ${company}/${itemPk}`);
   }));
 
-  return pages.flatMap(data => {
+  const all = pages.flatMap(data => {
     // Two possible schemas:
     // OVA-style:      { dates: [ { availabilities: [...] } ] }
     // Lynnwood-style: { calendar: { weeks: [ { days: [ { availabilities: [...] } ] } ] } }
@@ -652,6 +652,13 @@ async function fetchFareHarbor({ company, itemPk }) {
           bookUrl: av.book_url ?? `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
         };
       });
+  });
+  // Dedup by availability pk (can appear in both month fetches near month boundaries)
+  const seen = new Set();
+  return all.filter(s => {
+    if (seen.has(s.id)) return false;
+    seen.add(s.id);
+    return true;
   }).sort((a, b) => a.start - b.start);
 }
 
