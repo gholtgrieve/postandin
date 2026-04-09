@@ -564,11 +564,23 @@ const RINKS = {
 // DaySmart ─────────────────────────────────────────────────────────────────────
 async function fetchDaySmart({ company, sportId }) {
   const today = new Date().toISOString().slice(0, 10);
-  const url = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}&filter[start__gte]=${today}&page[size]=200`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const data = await r.json();
+  const [eventsResp, resourcesResp] = await Promise.all([
+    fetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}&filter[start__gte]=${today}&page[size]=200`),
+    fetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/resources?company=${company}`),
+  ]);
+  if (!eventsResp.ok) throw new Error(`HTTP ${eventsResp.status}`);
+  const data = await eventsResp.json();
   const now = new Date();
+
+  // Build resource_id → name lookup
+  const resourceMap = {};
+  if (resourcesResp.ok) {
+    const rdata = await resourcesResp.json();
+    (rdata.data ?? []).forEach(r => { resourceMap[r.id] = r.attributes?.name?.trim(); });
+  }
+
+  // Ice surface resource IDs (filter out locker rooms, gear rooms, etc.)
+  const iceNames = /ice|rink|sheet|olympic|cascade|rainier/i;
 
   return (data?.data ?? [])
     .filter(ev => {
@@ -584,11 +596,14 @@ async function fetchDaySmart({ company, sportId }) {
       const a = ev.attributes ?? {};
       const start = a.start ?? a.startTime ?? a.start_time;
       const end   = a.end   ?? a.endTime   ?? a.end_time;
+      const resourceName = resourceMap[String(a.resource_id)];
+      // Only append resource name if it looks like an ice surface
+      const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
       return {
         id:      ev.id,
         start:   start ? new Date(start) : null,
         end:     end   ? new Date(end)   : null,
-        title:   "Stick & Puck",
+        title:   location ? `Stick & Puck — ${location}` : "Stick & Puck",
         spots:   null,
         price:   null,
         soldOut: false,
