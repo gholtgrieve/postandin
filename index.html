@@ -33,7 +33,7 @@
   --radius-lg: 12px;
 
   /* rink colors */
-  --kraken: #003F5F;
+  --kci: #003F5F;
   --snoking: #1B4F72;
   --ova: #154360;
   --lynnwood: #1A5276;
@@ -517,7 +517,7 @@ footer a:hover { color: rgba(255,255,255,0.8); }
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
 const RINKS = {
-  kraken: {
+  kci: {
     name: "Kraken Community Iceplex",
     city: "Seattle",
     url: "https://www.krakencommunityiceplex.com/stick-puck/",
@@ -525,13 +525,29 @@ const RINKS = {
     system: "daysmart",
     config: { company: "kraken", sportId: 20 },
   },
-  snoking: {
+  snokingRenton: {
     name: "Sno-King Ice Arena",
     city: "Renton",
-    url: "https://sno-king.com/programs/stick-and-puck/",
+    url: "https://www.snokingicearenas.com/",
     color: "#1B6CA8",
     system: "daysmart",
-    config: { company: "snoking", sportId: 20 },
+    config: { company: "snoking", sportId: 20, resourceIds: [11, 12] }, // Renton Large + Small Ice
+  },
+  snokingKirkland: {
+    name: "Sno-King Ice Arena",
+    city: "Kirkland",
+    url: "https://www.snokingicearenas.com/",
+    color: "#2980B9",
+    system: "daysmart",
+    config: { company: "snoking", sportId: 20, resourceIds: [1] }, // Kirkland Ice
+  },
+  snokingSnoqualmie: {
+    name: "Sno-King Ice Arena",
+    city: "Snoqualmie",
+    url: "https://www.snokingicearenas.com/",
+    color: "#3498DB",
+    system: "daysmart",
+    config: { company: "snoking", sportId: 20, resourceIds: [13, 14] }, // Rink A + Rink B
   },
   olympicview: {
     name: "Olympic View Arena",
@@ -562,7 +578,7 @@ const RINKS = {
 };
 
 // DaySmart ─────────────────────────────────────────────────────────────────────
-async function fetchDaySmart({ company, sportId }) {
+async function fetchDaySmart({ company, sportId, resourceIds }) {
   const today = new Date().toISOString().slice(0, 10);
   const [eventsResp, resourcesResp] = await Promise.all([
     fetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}&filter[start__gte]=${today}&page[size]=200`),
@@ -579,11 +595,15 @@ async function fetchDaySmart({ company, sportId }) {
     (rdata.data ?? []).forEach(r => { resourceMap[r.id] = r.attributes?.name?.trim(); });
   }
 
-  // Ice surface resource IDs (filter out locker rooms, gear rooms, etc.)
   const iceNames = /ice|rink|sheet|olympic|cascade|rainier/i;
 
   return (data?.data ?? [])
     .filter(ev => {
+      // Filter by resource IDs if specified (to separate rink locations)
+      if (resourceIds?.length) {
+        const rid = Number(ev.attributes?.resource_id);
+        if (!resourceIds.includes(rid)) return false;
+      }
       const text = [
         ev.attributes?.best_description,
         ev.attributes?.desc,
@@ -597,7 +617,6 @@ async function fetchDaySmart({ company, sportId }) {
       const start = a.start ?? a.startTime ?? a.start_time;
       const end   = a.end   ?? a.endTime   ?? a.end_time;
       const resourceName = resourceMap[String(a.resource_id)];
-      // Only append resource name if it looks like an ice surface
       const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
       return {
         id:      ev.id,
@@ -697,11 +716,13 @@ async function fetchKentValley({ scrapeUrl }) {
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
   const tasks = {
-    kraken:      fetchDaySmart(RINKS.kraken.config),
-    snoking:     fetchDaySmart(RINKS.snoking.config),
-    olympicview: fetchFareHarbor(RINKS.olympicview.config),
-    lynnwood:    fetchFareHarbor(RINKS.lynnwood.config),
-    kentvalley:  fetchKentValley(RINKS.kentvalley.config),
+    kci:              fetchDaySmart(RINKS.kci.config),
+    snokingRenton:    fetchDaySmart(RINKS.snokingRenton.config),
+    snokingKirkland:  fetchDaySmart(RINKS.snokingKirkland.config),
+    snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
+    olympicview:      fetchFareHarbor(RINKS.olympicview.config),
+    lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
+    kentvalley:       fetchKentValley(RINKS.kentvalley.config),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
