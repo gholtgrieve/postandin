@@ -664,17 +664,18 @@ async function fetchFareHarbor({ company, itemPk }) {
       .filter(av => new Date(av.start_at) > now)
       .map(av => {
         const rate = av.customer_type_rates?.[0];
-        // Lynnwood uses approximate_available_capacity; OVA uses rate.availability.capacity_remaining
-        const spots = av.approximate_available_capacity ?? rate?.availability?.capacity_remaining ?? null;
+        // approximate_available_capacity is unreliable on the calendar endpoint (always 0)
+        // Only use capacity_remaining from customer_type_rates if present
+        const spots = rate?.availability?.capacity_remaining ?? null;
         const price = rate?.total_including_tax != null ? fmtPrice(rate.total_including_tax / 100) : null;
         return {
           id: `fh-${av.pk}`,
           start: new Date(av.start_at),
           end:   new Date(av.end_at),
           title: "Stick & Puck",
-          spots: spots > 0 ? spots : (spots === 0 ? 0 : null),
+          spots: spots > 0 ? spots : null, // hide 0 — means "unknown" not "full"
           price,
-          soldOut: av.is_sold_out || !av.is_bookable,
+          soldOut: av.is_sold_out === true,
           bookUrl: av.book_url
             ? (av.book_url.startsWith('http') ? av.book_url : `https://fareharbor.com${av.book_url}`)
             : `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
