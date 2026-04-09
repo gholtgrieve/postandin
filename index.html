@@ -606,9 +606,17 @@ async function fetchFareHarbor({ company, itemPk }) {
   ];
   const pages = await Promise.all(months.map(async ([y, m]) => {
     const mm = String(m).padStart(2, "0");
-    const r = await fetch(`https://fareharbor.com/api/v1/companies/${company}/items/${itemPk}/calendar/${y}/${mm}/`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
+    // Use Netlify proxy function to avoid FareHarbor CORS block
+    const proxyUrl = `/api/fareharbor?company=${company}&itemPk=${itemPk}&year=${y}&month=${mm}`;
+    // Fall back to direct fetch for local dev (file:// or localhost without functions)
+    const urls = [proxyUrl, `https://fareharbor.com/api/v1/companies/${company}/items/${itemPk}/calendar/${y}/${mm}/`];
+    for (const url of urls) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) return r.json();
+      } catch { continue; }
+    }
+    throw new Error(`FareHarbor fetch failed for ${company}/${itemPk}`);
   }));
 
   return pages.flatMap(data => {
