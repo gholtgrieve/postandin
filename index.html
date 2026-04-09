@@ -37,7 +37,6 @@
   --snoking: #1B4F72;
   --ova: #154360;
   --lynnwood: #1A5276;
-  --kent: #0E3460;
 }
 
 html { scroll-behavior: smooth; }
@@ -491,6 +490,7 @@ footer a:hover { color: rgba(255,255,255,0.8); }
     <button class="filter-btn active" data-filter="all">All rinks</button>
     <button class="filter-btn" data-filter="available">Available only</button>
     <button class="filter-btn" data-filter="today">Today</button>
+    <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
     <button class="filter-btn" data-filter="thisweek">This week</button>
 
     <span class="spacer"></span>
@@ -510,7 +510,7 @@ footer a:hover { color: rgba(255,255,255,0.8); }
 </main>
 
 <footer>
-  <p>Data pulled live from Kraken/Sno-King (DaySmart), Olympic View Arena (FareHarbor), Kent Valley (web), and more. &nbsp;·&nbsp; Not affiliated with any venue. &nbsp;·&nbsp; <a href="https://github.com/" id="ghLink">GitHub</a></p>
+  <p>Data pulled live from KCI &amp; Sno-King (DaySmart) and Olympic View &amp; Lynnwood (FareHarbor). &nbsp;·&nbsp; Not affiliated with any venue. &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin" id="ghLink">GitHub</a></p>
 </footer>
 
 <script type="module">
@@ -566,14 +566,6 @@ const RINKS = {
     // Slug confirmed: lynnwoodicecenter
     // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
     config: { company: "lynnwoodicecenter", itemPk: 245296 },
-  },
-  kentvalley: {
-    name: "Kent Valley Ice Centre",
-    city: "Kent",
-    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
-    color: "#0A4D8B",
-    system: "kentvalley",
-    config: { scrapeUrl: "https://kentvalleyicecentre.net/stick-and-pucks/" },
   },
 };
 
@@ -696,23 +688,6 @@ async function fetchFareHarbor({ company, itemPk }) {
   }).sort((a, b) => a.start - b.start);
 }
 
-// Kent Valley — try server proxy first, then CORS notice ─────────────────────
-// Server proxy at /api/sessions/kentvalley avoids CORS (run server.js locally).
-async function fetchKentValley({ scrapeUrl }) {
-  // Try same-origin proxy first (works when server.js is running)
-  try {
-    const r = await fetch("/api/sessions/kentvalley", { signal: AbortSignal.timeout(4000) });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.ok && d.sessions?.length) return d.sessions.map(s => ({
-        ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null,
-      }));
-    }
-  } catch { /* proxy not running — fall through */ }
-  // No proxy: direct fetch blocked by CORS. Surface as a "visit site" link.
-  throw new Error("CORS — open site to book");
-}
-
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
   const tasks = {
@@ -722,7 +697,6 @@ async function fetchAll() {
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
-    kentvalley:       fetchKentValley(RINKS.kentvalley.config),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
@@ -841,13 +815,17 @@ function renderSessions(data) {
   }
 
   // Apply filter
-  const isRinkFilter = !["all", "available", "today", "thisweek"].includes(activeFilter);
+  const isRinkFilter = !["all", "available", "today", "tomorrow", "thisweek"].includes(activeFilter);
 
   all = all.filter(s => {
     if (isRinkFilter) return s.rinkKey === activeFilter;
     if (activeFilter === "available") return !s.soldOut;
     if (activeFilter === "today") {
       const d = s.start; const t = new Date();
+      return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+    }
+    if (activeFilter === "tomorrow") {
+      const d = s.start; const t = new Date(); t.setDate(t.getDate() + 1);
       return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
     }
     if (activeFilter === "thisweek") return s.start <= weekEnd;
