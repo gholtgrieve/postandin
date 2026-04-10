@@ -34,14 +34,47 @@ body {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  /* Halftone dots */
-  background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
-  background-size: 24px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hero image */
+.hero-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: url('hero.png') center center / cover no-repeat;
+  filter: brightness(0.28) contrast(1.15) saturate(1.2);
+}
+
+/* Halftone overlay */
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.55) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Gradient — heavier at top so logo is always readable, lighter at center to show the image */
+.hero-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(10,10,10,0.7) 0%,
+    rgba(10,10,10,0.2) 40%,
+    rgba(10,10,10,0.2) 60%,
+    rgba(10,10,10,0.92) 100%
+  );
 }
 
 .container {
   width: 100%;
   max-width: 440px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Top rule */
@@ -178,6 +211,9 @@ body {
 </style>
 </head>
 <body>
+
+<div class="hero-bg"></div>
+<div class="hero-fade"></div>
 
 <div class="container">
 
