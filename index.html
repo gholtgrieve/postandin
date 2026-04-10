@@ -6,121 +6,234 @@
 <title>Post & In — Seattle Ice Hockey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --cream:      #F2E8D9;
+  --oxblood:    #6B1F1F;
+  --oxblood-lt: #8B3030;
+  --rose:       #C4726A;
+  --teal:       #3D6B65;
+  --charcoal:   #2C2416;
+  --tan:        #B8996A;
+  --tan-lt:     #D4B896;
+  --muted:      #8C7B65;
+  --ink:        #1A140A;
+}
+
+html, body {
+  height: 100%;
+}
+
 body {
-  font-family: 'Barlow', system-ui, sans-serif;
-  background: #0D1B2A;
-  color: #ffffff;
+  font-family: 'Jost', system-ui, sans-serif;
+  background: var(--charcoal);
+  color: var(--cream);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 3rem 2rem;
+  /* Subtle grain */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
 }
 
+/* Outer frame */
+.frame {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid rgba(184,153,106,0.2);
+  padding: 3rem 2.5rem;
+  position: relative;
+  text-align: center;
+}
+
+/* Corner marks */
+.frame::before, .frame::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--tan);
+  border-style: solid;
+  opacity: 0.4;
+}
+.frame::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.frame::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* Top ornament */
+.ornament {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--tan);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.ornament::before, .ornament::after {
+  content: '';
+  flex: 1;
+  max-width: 40px;
+  height: 1px;
+  background: var(--tan);
+  opacity: 0.4;
+}
+
+/* Logo */
 .logo {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(48px, 10vw, 96px);
-  font-weight: 800;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(52px, 12vw, 80px);
+  font-weight: 700;
   font-style: italic;
   letter-spacing: -1px;
-  line-height: 1;
-  text-align: center;
-  margin-bottom: 0.25em;
+  line-height: 0.95;
+  color: var(--cream);
+  margin-bottom: 0.15em;
 }
-.logo span { color: #E63946; }
+.logo .amp {
+  color: var(--rose);
+  font-style: normal;
+}
 
+/* Tagline */
 .tagline {
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.4);
-  text-align: center;
-  margin-bottom: 4rem;
+  color: var(--muted);
+  margin-bottom: 2.5rem;
 }
 
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(184,153,106,0.25);
+}
+.divider-diamond {
+  width: 6px;
+  height: 6px;
+  background: var(--tan);
+  transform: rotate(45deg);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Nav */
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 340px;
+  gap: 8px;
+  margin-bottom: 2rem;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
+  padding: 14px 20px;
+  background: rgba(242,232,217,0.04);
+  border: 1px solid rgba(184,153,106,0.18);
   text-decoration: none;
-  color: white;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  color: var(--cream);
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.02em;
   transition: background 0.15s, border-color 0.15s;
 }
 .nav-link:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.18);
-}
-.nav-link .badge {
-  font-size: 10px;
-  font-weight: 600;
-  font-family: 'Barlow', sans-serif;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 10px;
-  background: #E63946;
-  color: white;
+  background: rgba(242,232,217,0.08);
+  border-color: rgba(184,153,106,0.45);
 }
 .nav-link.coming-soon {
-  opacity: 0.35;
-  cursor: default;
+  opacity: 0.3;
   pointer-events: none;
 }
+
+.nav-link-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge {
+  font-family: 'Jost', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: var(--oxblood);
+  color: var(--cream);
+  font-style: normal;
+}
 .nav-link.coming-soon .badge {
-  background: rgba(255,255,255,0.15);
+  background: rgba(242,232,217,0.1);
+}
+.nav-arrow {
+  font-style: normal;
+  font-size: 14px;
+  opacity: 0.4;
 }
 
-footer {
-  margin-top: 4rem;
-  font-size: 12px;
-  color: rgba(255,255,255,0.2);
-  letter-spacing: 0.05em;
+/* Footer note */
+.footer-note {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(184,153,106,0.3);
 }
 </style>
 </head>
 <body>
 
-<div class="logo">Post <span>&</span> In</div>
-<p class="tagline">Seattle Area Ice Hockey</p>
+<div class="frame">
+  <div class="ornament">Est. 2026</div>
 
-<nav class="nav">
-  <a class="nav-link" href="/stick-and-puck/">
-    <span>Stick &amp; Puck</span>
-    <span class="badge">Live</span>
-  </a>
-  <a class="nav-link coming-soon" href="#">
-    <span>Open Skate</span>
-    <span class="badge">Soon</span>
-  </a>
-  <a class="nav-link coming-soon" href="#">
-    <span>Drop-in Hockey</span>
-    <span class="badge">Soon</span>
-  </a>
-</nav>
+  <div class="logo">Post <span class="amp">&</span> In</div>
+  <p class="tagline">Seattle Area Ice Hockey</p>
 
-<footer>postandin.com &nbsp;·&nbsp; not affiliated with any venue</footer>
+  <div class="divider"><div class="divider-diamond"></div></div>
+
+  <nav class="nav">
+    <a class="nav-link" href="/stick-and-puck/">
+      <span>Stick &amp; Puck</span>
+      <span class="nav-link-right">
+        <span class="badge">Live</span>
+        <span class="nav-arrow">→</span>
+      </span>
+    </a>
+    <a class="nav-link coming-soon" href="#">
+      <span>Open Skate</span>
+      <span class="nav-link-right">
+        <span class="badge">Soon</span>
+      </span>
+    </a>
+    <a class="nav-link coming-soon" href="#">
+      <span>Drop-in Hockey</span>
+      <span class="nav-link-right">
+        <span class="badge">Soon</span>
+      </span>
+    </a>
+  </nav>
+
+  <p class="footer-note">postandin.com &nbsp;·&nbsp; not affiliated with any venue</p>
+</div>
 
 </body>
 </html>

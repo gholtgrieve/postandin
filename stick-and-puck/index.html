@@ -3,459 +3,538 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seattle S&P — Stick & Puck Ice Times</title>
+<title>Stick & Puck — Post & In</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <style>
-/* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ice: #E8F4FD;
-  --ice-mid: #B8D8F0;
-  --ice-deep: #7FB8DE;
-  --rink-blue: #0D3B6E;
-  --rink-dark: #071E38;
-  --puck: #1A1A1A;
-  --accent: #E63946;
-  --accent-glow: rgba(230, 57, 70, 0.3);
-  --amber: #F4A261;
-  --green: #2DC653;
-  --text-primary: #0D1B2A;
-  --text-secondary: #3D5470;
-  --text-muted: #7B95B0;
-  --border: rgba(13, 59, 110, 0.12);
-  --surface: #F7FAFE;
-  --card-bg: #ffffff;
-  --radius: 6px;
-  --radius-lg: 12px;
+  --cream:       #F2E8D9;
+  --cream-dark:  #E8D9C0;
+  --cream-deep:  #D4C4A8;
+  --oxblood:     #6B1F1F;
+  --oxblood-lt:  #8B3030;
+  --rose:        #C4726A;
+  --teal:        #3D6B65;
+  --teal-lt:     #5A8B84;
+  --charcoal:    #2C2416;
+  --charcoal-lt: #4A3F30;
+  --tan:         #B8996A;
+  --tan-lt:      #D4B896;
+  --ink:         #1A140A;
+  --muted:       #8C7B65;
+  --pale:        #F8F2E8;
 
-  /* rink colors */
-  --kci: #003F5F;
-  --snoking: #1B4F72;
-  --ova: #154360;
-  --lynnwood: #1A5276;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Jost', system-ui, sans-serif;
+
+  --rule: 1px solid var(--tan);
+  --rule-dark: 1px solid var(--charcoal-lt);
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Barlow', system-ui, sans-serif;
-  background: var(--rink-dark);
-  color: var(--text-primary);
+  font-family: var(--font-body);
+  background: var(--cream);
+  color: var(--charcoal);
   min-height: 100vh;
+  /* Subtle grain texture */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
 }
 
 /* ── Header ── */
 header {
-  background: var(--rink-dark);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 0 clamp(1rem, 4vw, 3rem);
+  background: var(--oxblood);
   position: sticky;
   top: 0;
   z-index: 100;
+  border-bottom: 3px solid var(--charcoal);
 }
 
 .header-inner {
-  max-width: 1200px;
+  max-width: 960px;
   margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
   gap: 16px;
 }
 
 .logo {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  font-style: italic;
-  color: #ffffff;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.logo span { color: var(--accent); }
+.logo::before,
+.logo::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--tan-lt);
+  opacity: 0.6;
+}
 
 .header-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: right;
-  line-height: 1.4;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(242, 232, 217, 0.55);
 }
-.header-meta strong { color: rgba(255,255,255,0.7); }
+.header-meta strong { color: var(--cream); font-weight: 600; }
+
+/* ── Page title ── */
+.page-title-block {
+  background: var(--oxblood);
+  padding: 28px clamp(1rem, 4vw, 2.5rem) 32px;
+  border-bottom: 3px double var(--charcoal);
+  text-align: center;
+}
+.page-title-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.page-eyebrow {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--tan-lt);
+  margin-bottom: 8px;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.page-title em {
+  font-style: italic;
+  color: var(--rose);
+}
+.page-subtitle {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(242,232,217,0.4);
+}
 
 /* ── Controls bar ── */
 .controls-bar {
-  background: var(--ice);
-  border-bottom: 1px solid var(--border);
-  padding: 10px clamp(1rem, 4vw, 3rem);
+  background: var(--charcoal);
+  border-bottom: 2px solid var(--ink);
+  padding: 10px clamp(1rem, 4vw, 2.5rem);
   position: sticky;
-  top: 56px;
+  top: 60px;
   z-index: 90;
 }
 
 .controls-inner {
-  max-width: 1200px;
+  max-width: 960px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .filter-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
+  color: var(--muted);
   margin-right: 4px;
 }
 
 .filter-btn {
-  font-family: 'Barlow', sans-serif;
-  font-size: 12px;
+  font-family: var(--font-body);
+  font-size: 10px;
   font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1.5px solid var(--border);
-  background: white;
-  color: var(--text-secondary);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 0;
+  border: 1px solid rgba(184, 153, 106, 0.25);
+  background: transparent;
+  color: rgba(242, 232, 217, 0.5);
   cursor: pointer;
   transition: all 0.15s;
-  white-space: nowrap;
 }
-.filter-btn:hover { border-color: var(--rink-blue); color: var(--rink-blue); }
+.filter-btn:hover {
+  border-color: var(--tan);
+  color: var(--cream);
+}
 .filter-btn.active {
-  background: var(--rink-blue);
-  border-color: var(--rink-blue);
-  color: white;
+  background: var(--oxblood);
+  border-color: var(--oxblood);
+  color: var(--cream);
 }
 
 .spacer { flex: 1; }
 
 .refresh-btn {
-  font-family: 'Barlow', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   padding: 5px 14px;
-  border-radius: 20px;
-  border: 1.5px solid var(--rink-blue);
+  border: 1px solid rgba(184, 153, 106, 0.25);
   background: transparent;
-  color: var(--rink-blue);
+  color: rgba(242, 232, 217, 0.5);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.refresh-btn:hover { background: var(--rink-blue); color: white; }
+.refresh-btn:hover { border-color: var(--tan); color: var(--cream); }
 .refresh-btn.spinning .spin-icon { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Main ── */
 main {
-  background: var(--surface);
-  min-height: calc(100vh - 108px);
-  padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 3rem);
+  min-height: calc(100vh - 160px);
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2.5rem);
 }
 
 .main-inner {
-  max-width: 1200px;
+  max-width: 960px;
   margin: 0 auto;
 }
 
 /* ── Status Banner ── */
 .status-banner {
-  background: var(--rink-blue);
-  color: rgba(255,255,255,0.85);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   padding: 10px 16px;
-  border-radius: var(--radius);
   margin-bottom: 20px;
+  border: 1px solid var(--tan);
+  background: var(--cream-dark);
+  color: var(--charcoal-lt);
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.status-banner.error { background: #7B1A1A; }
-.status-banner.success { background: #1A4731; }
+.status-banner.error { border-color: var(--oxblood); background: #f5e8e8; color: var(--oxblood); }
+.status-banner.success { border-color: var(--teal); background: #e8f0ef; color: var(--teal); }
 .status-dot {
-  width: 8px; height: 8px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;
   animation: pulse 2s ease-in-out infinite;
 }
 .status-banner.success .status-dot { animation: none; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── Rink legend ── */
+.rink-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: var(--rule);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.legend-item:hover { border-color: var(--tan-lt); color: var(--charcoal); }
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
 /* ── Day sections ── */
-.day-section { margin-bottom: 28px; }
+.day-section { margin-bottom: 32px; }
+
 .day-header {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--ice-mid);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
 }
+.day-header::before,
+.day-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--tan);
+  opacity: 0.5;
+}
+.day-header-text { text-align: center; flex-shrink: 0; }
 .day-name {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 700;
-  font-size: 22px;
-  color: var(--rink-dark);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--charcoal);
 }
 .day-date {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-top: 1px;
 }
 .day-count {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--ice-mid);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--tan);
+  background: var(--charcoal);
   padding: 2px 8px;
-  border-radius: 10px;
 }
 
 /* ── Session Grid ── */
 .session-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
 }
 
 /* ── Session Card ── */
 .session-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  display: grid;
-  grid-template-rows: auto auto auto;
-  gap: 8px;
-  transition: transform 0.12s, box-shadow 0.12s;
-  position: relative;
-  overflow: hidden;
+  background: var(--pale);
+  border: 1px solid var(--cream-deep);
+  border-top: 3px solid var(--rink-color, var(--tan));
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.1s, box-shadow 0.1s;
   text-decoration: none;
   color: inherit;
+  position: relative;
 }
-.session-card::before {
+.session-card::after {
   content: '';
   position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 4px;
-  background: var(--rink-color, var(--rink-blue));
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  bottom: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: var(--cream-deep);
 }
 .session-card:hover:not(.sold-out) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 59, 110, 0.12);
+  box-shadow: 0 4px 16px rgba(44, 36, 22, 0.1);
 }
-.session-card.sold-out {
-  opacity: 0.6;
-}
+.session-card.sold-out { opacity: 0.5; }
 
 .card-rink {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--rink-color, var(--rink-blue));
+  color: var(--rink-color, var(--teal));
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .card-rink .city-tag {
-  color: var(--text-muted);
+  color: var(--muted);
   font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: 0.1em;
 }
 
 .card-time {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-size: 30px;
   font-weight: 700;
-  color: var(--rink-dark);
+  color: var(--charcoal);
   line-height: 1;
+  letter-spacing: -0.5px;
 }
 .card-time .duration {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.1em;
   margin-left: 6px;
 }
 
 .card-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .badge {
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: 9px;
   font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 12px;
-  white-space: nowrap;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 3px 8px;
 }
 .badge-price {
-  background: var(--ice);
-  color: var(--rink-blue);
+  background: var(--cream-dark);
+  color: var(--charcoal-lt);
+  border: 1px solid var(--cream-deep);
 }
 .badge-spots {
-  background: #EAF9EE;
-  color: #1A4731;
+  background: #e8f0ef;
+  color: var(--teal);
+  border: 1px solid #c4d8d5;
 }
 .badge-spots.low {
-  background: #FFF4E3;
-  color: #7A3900;
+  background: #f5ede8;
+  color: var(--oxblood-lt);
+  border: 1px solid #e4c4bc;
 }
 .badge-sold-out {
-  background: #FFEAEA;
-  color: #8B0000;
+  background: #f5e8e8;
+  color: var(--oxblood);
+  border: 1px solid #e4bcbc;
 }
 .badge-book {
   margin-left: auto;
-  background: var(--rink-blue);
-  color: white;
-  padding: 3px 12px;
+  background: var(--oxblood);
+  color: var(--cream);
+  border: 1px solid var(--oxblood);
+  text-decoration: none;
+  cursor: pointer;
 }
+.badge-book:hover { background: var(--oxblood-lt); }
 .session-card.sold-out .badge-book { display: none; }
 
-/* ── Empty State ── */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-secondary);
-}
-.empty-state .big-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.4;
-}
-.empty-state h3 {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-/* ── Fallback rink cards (venues without live API data) ── */
+/* ── Fallback cards ── */
 .fallback-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-bottom: 28px;
 }
 .fallback-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--pale);
+  border: 1px solid var(--cream-deep);
+  border-top: 3px solid var(--rink-color, var(--tan));
   padding: 14px 16px;
-  position: relative;
-  overflow: hidden;
-}
-.fallback-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 4px;
-  background: var(--rink-color, var(--rink-blue));
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 .fallback-card .fc-rink {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--rink-color, var(--rink-blue));
+  color: var(--rink-color, var(--teal));
   margin-bottom: 6px;
 }
 .fallback-card .fc-name {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 700;
-  color: var(--rink-dark);
+  color: var(--charcoal);
   margin-bottom: 4px;
 }
 .fallback-card .fc-reason {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
   margin-bottom: 10px;
 }
 .fallback-card .fc-link {
   display: inline-block;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   padding: 4px 12px;
-  border-radius: 12px;
-  background: var(--rink-color, var(--rink-blue));
-  color: white;
+  background: var(--charcoal);
+  color: var(--cream);
   text-decoration: none;
 }
-.fallback-card .fc-link:hover { opacity: 0.85; }
+.fallback-card .fc-link:hover { background: var(--oxblood); }
 
-/* ── Error card (hard failures) ── */
+/* ── Error card ── */
 .rink-error {
-  background: #FFF9F9;
-  border: 1px dashed #FFCDD2;
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #7B1A1A;
+  background: #f5e8e8;
+  border: 1px solid #e4bcbc;
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--oxblood);
   margin-bottom: 10px;
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  letter-spacing: 0.05em;
 }
 
-/* ── Rink legend ── */
-.rink-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 0 4px;
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
 }
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.empty-state .big-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+.empty-state h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: var(--charcoal-lt);
+}
+.empty-state p {
   font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.legend-dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .controls-inner { gap: 6px; }
-  .session-grid { grid-template-columns: 1fr; }
-  .card-time { font-size: 24px; }
-}
-
-/* ── Loading skeleton ── */
+/* ── Skeleton ── */
 .skeleton {
-  background: linear-gradient(90deg, #eef2f6 25%, #e4ebf2 50%, #eef2f6 75%);
+  background: linear-gradient(90deg, var(--cream-dark) 25%, var(--cream-deep) 50%, var(--cream-dark) 75%);
   background-size: 400% 100%;
-  animation: shimmer 1.2s ease-in-out infinite;
-  border-radius: var(--radius);
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 @keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
-
 .skeleton-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--pale);
+  border: 1px solid var(--cream-deep);
+  border-top: 3px solid var(--cream-deep);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -464,37 +543,69 @@ main {
 
 /* ── Footer ── */
 footer {
-  background: var(--rink-dark);
-  color: rgba(255,255,255,0.4);
-  font-size: 12px;
+  background: var(--charcoal);
+  color: rgba(242, 232, 217, 0.3);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   text-align: center;
   padding: 20px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--ink);
 }
-footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
-footer a:hover { color: rgba(255,255,255,0.8); }
+footer a { color: rgba(242,232,217,0.45); text-decoration: none; }
+footer a:hover { color: var(--tan-lt); }
+footer .footer-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+footer .footer-inner::before,
+footer .footer-inner::after {
+  content: '—';
+  opacity: 0.3;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .session-grid { grid-template-columns: 1fr 1fr; }
+  .card-time { font-size: 24px; }
+  .controls-inner { gap: 4px; }
+}
+@media (max-width: 400px) {
+  .session-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <div class="logo">Seattle <span>S&P</span></div>
-    <div id="headerMeta" class="header-meta">Loading...</div>
+    <div class="logo">Post &amp; In</div>
+    <div id="headerMeta" class="header-meta">Loading&hellip;</div>
   </div>
 </header>
 
+<div class="page-title-block">
+  <div class="page-title-inner">
+    <p class="page-eyebrow">Seattle Area Rinks</p>
+    <h1 class="page-title"><em>Stick &amp; Puck</em> Times</h1>
+    <p class="page-subtitle">Open ice &nbsp;·&nbsp; All rinks &nbsp;·&nbsp; Updated live</p>
+  </div>
+</div>
+
 <div class="controls-bar">
   <div class="controls-inner">
-    <span class="filter-label">View</span>
-    <button class="filter-btn active" data-filter="all">All rinks</button>
-    <button class="filter-btn" data-filter="available">Available only</button>
+    <span class="filter-label">Show</span>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="available">Available</button>
     <button class="filter-btn" data-filter="today">Today</button>
     <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
     <button class="filter-btn" data-filter="thisweek">This week</button>
-
     <span class="spacer"></span>
-
     <button class="refresh-btn" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
     </button>
@@ -510,7 +621,9 @@ footer a:hover { color: rgba(255,255,255,0.8); }
 </main>
 
 <footer>
-  <p>Data pulled live from KCI &amp; Sno-King (DaySmart) and Olympic View &amp; Lynnwood (FareHarbor). &nbsp;·&nbsp; Not affiliated with any venue. &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin" id="ghLink">GitHub</a></p>
+  <div class="footer-inner">
+    Data from DaySmart &amp; FareHarbor &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
+  </div>
 </footer>
 
 <script type="module">
@@ -897,9 +1010,11 @@ function renderSessions(data) {
       const { name, full } = fmtDayLabel(day);
       html += `<div class="day-section">
         <div class="day-header">
-          <span class="day-name">${name}</span>
-          <span class="day-date">${full}</span>
-          <span class="day-count">${sessions.length} session${sessions.length !== 1 ? "s" : ""}</span>
+          <div class="day-header-text">
+            <span class="day-name">${name}</span>
+            <span class="day-date">${full}</span>
+          </div>
+          <span class="day-count">${sessions.length}</span>
         </div>
         <div class="session-grid">
           ${sessions.map(s => sessionCard(s)).join("")}
@@ -1014,5 +1129,6 @@ window.setLynnwoodPK = (pk) => {
   console.log(`✅ Lynnwood item PK set to ${pk}. Call loadData() to refresh.`);
 };
 </script>
+-e 
 </body>
 </html>
