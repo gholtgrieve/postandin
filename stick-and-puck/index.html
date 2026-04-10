@@ -6,60 +6,52 @@
 <title>Stick & Puck — Post & In</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --cream:       #F2E8D9;
-  --cream-dark:  #E8D9C0;
-  --cream-deep:  #D4C4A8;
-  --oxblood:     #6B1F1F;
-  --oxblood-lt:  #8B3030;
-  --rose:        #C4726A;
-  --teal:        #3D6B65;
-  --teal-lt:     #5A8B84;
-  --charcoal:    #2C2416;
-  --charcoal-lt: #4A3F30;
-  --tan:         #B8996A;
-  --tan-lt:      #D4B896;
-  --ink:         #1A140A;
-  --muted:       #8C7B65;
-  --pale:        #F8F2E8;
-
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'Jost', system-ui, sans-serif;
-
-  --rule: 1px solid var(--tan);
-  --rule-dark: 1px solid var(--charcoal-lt);
+  --black:    #0A0A0A;
+  --black-2:  #111111;
+  --black-3:  #1A1A1A;
+  --black-4:  #222222;
+  --white:    #E8E4DC;
+  --white-2:  #C8C4BC;
+  --white-3:  #989490;
+  --yellow:   #F0D44A;
+  --yellow-dk:#C4AA28;
+  --red:      #CC2200;
+  --red-lt:   #E83318;
+  --rule:     1px solid #2A2A2A;
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: var(--font-body);
-  background: var(--cream);
-  color: var(--charcoal);
+  font-family: 'IBM Plex Mono', monospace;
+  background-color: var(--black);
+  color: var(--white);
   min-height: 100vh;
-  /* Subtle grain texture */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  /* Halftone dot texture */
+  background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ── Header ── */
 header {
-  background: var(--oxblood);
+  background: var(--black);
+  border-bottom: 2px solid var(--yellow);
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 3px solid var(--charcoal);
 }
 
 .header-inner {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2.5rem);
-  height: 60px;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,329 +59,331 @@ header {
 }
 
 .logo {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--cream);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  color: var(--white);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
-.logo::before,
-.logo::after {
-  content: '';
-  display: block;
-  width: 24px;
-  height: 1px;
-  background: var(--tan-lt);
+.logo a {
+  color: inherit;
+  text-decoration: none;
+}
+.logo .slash {
+  color: var(--yellow);
+  font-size: 20px;
   opacity: 0.6;
+}
+.logo .section {
+  color: var(--yellow);
 }
 
 .header-meta {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(242, 232, 217, 0.55);
-}
-.header-meta strong { color: var(--cream); font-weight: 600; }
-
-/* ── Page title ── */
-.page-title-block {
-  background: var(--oxblood);
-  padding: 28px clamp(1rem, 4vw, 2.5rem) 32px;
-  border-bottom: 3px double var(--charcoal);
-  text-align: center;
-}
-.page-title-inner {
-  max-width: 960px;
-  margin: 0 auto;
-}
-.page-eyebrow {
-  font-family: var(--font-body);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--tan-lt);
-  margin-bottom: 8px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--white-3);
+  text-align: right;
 }
+.header-meta strong { color: var(--yellow); font-weight: 700; }
+
+/* Live indicator */
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--red-lt);
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: blink 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── Page banner ── */
+.page-banner {
+  background: var(--black-2);
+  border-bottom: var(--rule);
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.page-banner-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
 .page-title {
-  font-family: var(--font-display);
-  font-size: clamp(32px, 5vw, 52px);
-  font-weight: 700;
-  color: var(--cream);
-  letter-spacing: 0.02em;
-  line-height: 1;
-  margin-bottom: 6px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 10vw, 96px);
+  letter-spacing: 0.04em;
+  line-height: 0.9;
+  color: var(--white);
 }
-.page-title em {
-  font-style: italic;
-  color: var(--rose);
-}
-.page-subtitle {
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(242,232,217,0.4);
+.page-title .accent { color: var(--yellow); }
+
+.page-meta {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--white-3);
+  text-align: right;
+  line-height: 2;
+  padding-bottom: 4px;
+  border-left: 2px solid var(--red);
+  padding-left: 12px;
 }
 
 /* ── Controls bar ── */
 .controls-bar {
-  background: var(--charcoal);
-  border-bottom: 2px solid var(--ink);
-  padding: 10px clamp(1rem, 4vw, 2.5rem);
+  background: var(--black-3);
+  border-bottom: var(--rule);
   position: sticky;
-  top: 60px;
+  top: 52px;
   z-index: 90;
 }
 
 .controls-inner {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.filter-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-right: 4px;
+  gap: 0;
 }
 
 .filter-btn {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 5px 14px;
-  border-radius: 0;
-  border: 1px solid rgba(184, 153, 106, 0.25);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  padding: 0 16px;
+  height: 44px;
+  border: none;
+  border-right: var(--rule);
   background: transparent;
-  color: rgba(242, 232, 217, 0.5);
+  color: var(--white-3);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.1s;
+  white-space: nowrap;
 }
-.filter-btn:hover {
-  border-color: var(--tan);
-  color: var(--cream);
-}
+.filter-btn:first-of-type { border-left: var(--rule); }
+.filter-btn:hover { background: var(--black-4); color: var(--white); }
 .filter-btn.active {
-  background: var(--oxblood);
-  border-color: var(--oxblood);
-  color: var(--cream);
+  background: var(--yellow);
+  color: var(--black);
+  border-right-color: var(--yellow-dk);
+}
+.filter-btn.active + .filter-btn { border-left-color: var(--yellow-dk); }
+
+.filter-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-right: 12px;
+  padding-right: 12px;
+  border-right: var(--rule);
+  height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .spacer { flex: 1; }
 
 .refresh-btn {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 5px 14px;
-  border: 1px solid rgba(184, 153, 106, 0.25);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  padding: 0 16px;
+  height: 44px;
+  border: none;
+  border-left: var(--rule);
   background: transparent;
-  color: rgba(242, 232, 217, 0.5);
+  color: var(--white-3);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.1s;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.refresh-btn:hover { border-color: var(--tan); color: var(--cream); }
-.refresh-btn.spinning .spin-icon { animation: spin 0.8s linear infinite; }
+.refresh-btn:hover { background: var(--black-4); color: var(--white); }
+.refresh-btn.spinning .spin-icon { animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Main ── */
 main {
-  min-height: calc(100vh - 160px);
-  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2.5rem);
+  min-height: calc(100vh - 148px);
+  padding: clamp(1.5rem, 3vw, 2rem) clamp(1rem, 4vw, 2rem);
 }
 
 .main-inner {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 /* ── Status Banner ── */
 .status-banner {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   padding: 10px 16px;
   margin-bottom: 20px;
-  border: 1px solid var(--tan);
-  background: var(--cream-dark);
-  color: var(--charcoal-lt);
+  background: var(--black-3);
+  border-left: 3px solid var(--yellow);
+  color: var(--white-2);
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.status-banner.error { border-color: var(--oxblood); background: #f5e8e8; color: var(--oxblood); }
-.status-banner.success { border-color: var(--teal); background: #e8f0ef; color: var(--teal); }
+.status-banner.error { border-left-color: var(--red); }
+.status-banner.success { border-left-color: #44AA44; }
 .status-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
+  animation: blink 1.4s ease-in-out infinite;
 }
 .status-banner.success .status-dot { animation: none; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
 /* ── Rink legend ── */
 .rink-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: var(--rule);
+  gap: 0;
+  margin-bottom: 28px;
+  border: var(--rule);
+  border-bottom: 2px solid var(--black-4);
 }
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
+  gap: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--white-3);
   cursor: pointer;
-  padding: 4px 10px;
-  border: 1px solid transparent;
-  transition: all 0.15s;
+  padding: 8px 14px;
+  border-right: var(--rule);
+  transition: all 0.1s;
 }
-.legend-item:hover { border-color: var(--tan-lt); color: var(--charcoal); }
+.legend-item:hover { background: var(--black-3); color: var(--white); }
 .legend-dot {
   width: 8px; height: 8px;
-  border-radius: 50%;
   flex-shrink: 0;
+  /* Square instead of circle — more punk */
 }
 
 /* ── Day sections ── */
-.day-section { margin-bottom: 32px; }
+.day-section { margin-bottom: 2px; }
 
 .day-header {
+  background: var(--black-3);
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+  padding: 0 0;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: stretch;
+}
+
+.day-name-block {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--black);
+  background: var(--yellow);
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
+  white-space: nowrap;
 }
-.day-header::before,
-.day-header::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--tan);
-  opacity: 0.5;
-}
-.day-header-text { text-align: center; flex-shrink: 0; }
-.day-name {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--charcoal);
-}
-.day-date {
+.day-name-block.today-block { background: var(--red); color: var(--white); }
+
+.day-date-block {
   font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-  display: block;
-  margin-top: 1px;
+  letter-spacing: 0.1em;
+  color: var(--white-3);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  border-right: var(--rule);
 }
-.day-count {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--tan);
-  background: var(--charcoal);
-  padding: 2px 8px;
+
+.day-count-block {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--white-3);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  border-left: var(--rule);
 }
 
 /* ── Session Grid ── */
 .session-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 2px;
+  margin-bottom: 2px;
 }
 
 /* ── Session Card ── */
 .session-card {
-  background: var(--pale);
-  border: 1px solid var(--cream-deep);
-  border-top: 3px solid var(--rink-color, var(--tan));
+  background: var(--black-2);
+  border-left: 3px solid var(--rink-color, var(--yellow));
   padding: 14px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: transform 0.1s, box-shadow 0.1s;
+  gap: 8px;
+  transition: background 0.1s;
   text-decoration: none;
   color: inherit;
   position: relative;
 }
-.session-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 16px; right: 16px;
-  height: 1px;
-  background: var(--cream-deep);
-}
 .session-card:hover:not(.sold-out) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(44, 36, 22, 0.1);
+  background: var(--black-3);
 }
-.session-card.sold-out { opacity: 0.5; }
+.session-card.sold-out { opacity: 0.4; }
 
 .card-rink {
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--rink-color, var(--teal));
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--rink-color, var(--yellow));
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
 }
 .card-rink .city-tag {
-  color: var(--muted);
+  color: var(--white-3);
   font-weight: 400;
-  letter-spacing: 0.1em;
 }
 
 .card-time {
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--charcoal);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 44px;
+  letter-spacing: 0.02em;
+  color: var(--white);
   line-height: 1;
-  letter-spacing: -0.5px;
 }
 .card-time .duration {
-  font-family: var(--font-body);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   font-weight: 400;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  margin-left: 6px;
+  color: var(--white-3);
+  letter-spacing: 0.06em;
+  display: block;
+  margin-top: 2px;
 }
 
 .card-footer {
@@ -400,141 +394,115 @@ main {
 }
 
 .badge {
-  font-family: var(--font-body);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   padding: 3px 8px;
+  border: 1px solid;
 }
-.badge-price {
-  background: var(--cream-dark);
-  color: var(--charcoal-lt);
-  border: 1px solid var(--cream-deep);
-}
-.badge-spots {
-  background: #e8f0ef;
-  color: var(--teal);
-  border: 1px solid #c4d8d5;
-}
-.badge-spots.low {
-  background: #f5ede8;
-  color: var(--oxblood-lt);
-  border: 1px solid #e4c4bc;
-}
-.badge-sold-out {
-  background: #f5e8e8;
-  color: var(--oxblood);
-  border: 1px solid #e4bcbc;
-}
+.badge-price { border-color: var(--black-4); color: var(--white-3); }
+.badge-spots { border-color: #1E4A1E; color: #44AA44; }
+.badge-spots.low { border-color: #4A2A1E; color: var(--red-lt); }
+.badge-sold-out { border-color: #4A1A1A; color: var(--red); }
 .badge-book {
   margin-left: auto;
-  background: var(--oxblood);
-  color: var(--cream);
-  border: 1px solid var(--oxblood);
+  border-color: var(--yellow);
+  color: var(--yellow);
   text-decoration: none;
   cursor: pointer;
+  transition: all 0.1s;
 }
-.badge-book:hover { background: var(--oxblood-lt); }
+.badge-book:hover {
+  background: var(--yellow);
+  color: var(--black);
+}
 .session-card.sold-out .badge-book { display: none; }
 
 /* ── Fallback cards ── */
 .fallback-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2px;
+  margin-bottom: 20px;
 }
 .fallback-card {
-  background: var(--pale);
-  border: 1px solid var(--cream-deep);
-  border-top: 3px solid var(--rink-color, var(--tan));
+  background: var(--black-2);
+  border-left: 3px solid var(--rink-color, #444);
   padding: 14px 16px;
 }
 .fallback-card .fc-rink {
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--rink-color, var(--teal));
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--rink-color, var(--white-3));
   margin-bottom: 6px;
 }
 .fallback-card .fc-name {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--charcoal);
-  margin-bottom: 4px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  margin-bottom: 6px;
 }
 .fallback-card .fc-reason {
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--white-3);
   margin-bottom: 10px;
 }
 .fallback-card .fc-link {
   display: inline-block;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.15em;
-  text-transform: uppercase;
   padding: 4px 12px;
-  background: var(--charcoal);
-  color: var(--cream);
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
   text-decoration: none;
+  transition: all 0.1s;
 }
-.fallback-card .fc-link:hover { background: var(--oxblood); }
+.fallback-card .fc-link:hover { background: var(--yellow); color: var(--black); }
 
 /* ── Error card ── */
 .rink-error {
-  background: #f5e8e8;
-  border: 1px solid #e4bcbc;
+  background: var(--black-2);
+  border-left: 3px solid var(--red);
   padding: 10px 14px;
-  font-size: 11px;
-  color: var(--oxblood);
-  margin-bottom: 10px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #AA4444;
+  margin-bottom: 2px;
   display: flex;
   gap: 10px;
-  align-items: flex-start;
-  letter-spacing: 0.05em;
 }
 
 /* ── Empty state ── */
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
-  color: var(--muted);
+  padding: 80px 20px;
+  color: var(--white-3);
 }
-.empty-state .big-icon {
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.3;
-}
+.empty-state .big-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.2; }
 .empty-state h3 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  margin-bottom: 6px;
-  color: var(--charcoal-lt);
-}
-.empty-state p {
-  font-size: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--white-2);
+  margin-bottom: 8px;
 }
+.empty-state p { font-size: 11px; letter-spacing: 0.1em; color: var(--white-3); }
 
 /* ── Skeleton ── */
 .skeleton {
-  background: linear-gradient(90deg, var(--cream-dark) 25%, var(--cream-deep) 50%, var(--cream-dark) 75%);
+  background: linear-gradient(90deg, var(--black-3) 25%, var(--black-4) 50%, var(--black-3) 75%);
   background-size: 400% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  animation: shimmer 1.2s ease-in-out infinite;
 }
 @keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
 .skeleton-card {
-  background: var(--pale);
-  border: 1px solid var(--cream-deep);
-  border-top: 3px solid var(--cream-deep);
+  background: var(--black-2);
+  border-left: 3px solid var(--black-4);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -543,37 +511,23 @@ main {
 
 /* ── Footer ── */
 footer {
-  background: var(--charcoal);
-  color: rgba(242, 232, 217, 0.3);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  background: var(--black);
+  border-top: 2px solid var(--yellow);
+  color: var(--white-3);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-align: center;
-  padding: 20px;
-  border-top: 3px solid var(--ink);
+  padding: 16px;
 }
-footer a { color: rgba(242,232,217,0.45); text-decoration: none; }
-footer a:hover { color: var(--tan-lt); }
-footer .footer-inner {
-  max-width: 960px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-footer .footer-inner::before,
-footer .footer-inner::after {
-  content: '—';
-  opacity: 0.3;
-}
+footer a { color: var(--white-3); text-decoration: none; }
+footer a:hover { color: var(--yellow); }
 
 /* ── Responsive ── */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .session-grid { grid-template-columns: 1fr 1fr; }
-  .card-time { font-size: 24px; }
-  .controls-inner { gap: 4px; }
+  .card-time { font-size: 36px; }
+  .page-meta { display: none; }
 }
 @media (max-width: 400px) {
   .session-grid { grid-template-columns: 1fr; }
@@ -584,27 +538,36 @@ footer .footer-inner::after {
 
 <header>
   <div class="header-inner">
-    <div class="logo">Post &amp; In</div>
-    <div id="headerMeta" class="header-meta">Loading&hellip;</div>
+    <div class="logo">
+      <a href="/">Post &amp; In</a>
+      <span class="slash">/</span>
+      <span class="section">Stick &amp; Puck</span>
+    </div>
+    <div id="headerMeta" class="header-meta">
+      <span class="live-dot"></span>Loading&hellip;
+    </div>
   </div>
 </header>
 
-<div class="page-title-block">
-  <div class="page-title-inner">
-    <p class="page-eyebrow">Seattle Area Rinks</p>
-    <h1 class="page-title"><em>Stick &amp; Puck</em> Times</h1>
-    <p class="page-subtitle">Open ice &nbsp;·&nbsp; All rinks &nbsp;·&nbsp; Updated live</p>
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <h1 class="page-title">Stick &amp;<br><span class="accent">Puck</span></h1>
+    <div class="page-meta">
+      Seattle area open ice<br>
+      All rinks &nbsp;·&nbsp; Updated live<br>
+      postandin.com
+    </div>
   </div>
 </div>
 
 <div class="controls-bar">
   <div class="controls-inner">
-    <span class="filter-label">Show</span>
+    <span class="filter-label">Filter</span>
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="available">Available</button>
     <button class="filter-btn" data-filter="today">Today</button>
     <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
-    <button class="filter-btn" data-filter="thisweek">This week</button>
+    <button class="filter-btn" data-filter="thisweek">This Week</button>
     <span class="spacer"></span>
     <button class="refresh-btn" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
@@ -621,9 +584,7 @@ footer .footer-inner::after {
 </main>
 
 <footer>
-  <div class="footer-inner">
-    Data from DaySmart &amp; FareHarbor &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
-  </div>
+  Data from DaySmart &amp; FareHarbor &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
 </footer>
 
 <script type="module">
@@ -634,7 +595,7 @@ const RINKS = {
     name: "Kraken Community Iceplex",
     city: "Seattle",
     url: "https://www.krakencommunityiceplex.com/stick-puck/",
-    color: "#005B8E",
+    color: "#F0D44A",
     system: "daysmart",
     config: { company: "kraken", sportId: 20 },
   },
@@ -642,7 +603,7 @@ const RINKS = {
     name: "Sno-King Ice Arena",
     city: "Renton",
     url: "https://www.snokingicearenas.com/",
-    color: "#1B6CA8",
+    color: "#CC2200",
     system: "daysmart",
     config: { company: "snoking", sportId: 20, resourceIds: [11, 12] }, // Renton Large + Small Ice
   },
@@ -650,7 +611,7 @@ const RINKS = {
     name: "Sno-King Ice Arena",
     city: "Kirkland",
     url: "https://www.snokingicearenas.com/",
-    color: "#2980B9",
+    color: "#E83318",
     system: "daysmart",
     config: { company: "snoking", sportId: 20, resourceIds: [1] }, // Kirkland Ice
   },
@@ -658,7 +619,7 @@ const RINKS = {
     name: "Sno-King Ice Arena",
     city: "Snoqualmie",
     url: "https://www.snokingicearenas.com/",
-    color: "#3498DB",
+    color: "#FF6644",
     system: "daysmart",
     config: { company: "snoking", sportId: 20, resourceIds: [13, 14] }, // Rink A + Rink B
   },
@@ -666,7 +627,7 @@ const RINKS = {
     name: "Olympic View Arena",
     city: "Mountlake Terrace",
     url: "https://www.olympicviewarena.com/",
-    color: "#0D6B7A",
+    color: "#44BBAA",
     system: "fareharbor",
     config: { company: "olympicviewarena", itemPk: 313860 },
   },
@@ -896,8 +857,8 @@ function renderLegend(data) {
   const legend = document.getElementById("rinkLegend");
   legend.innerHTML = Object.entries(data).map(([key, r]) =>
     `<span class="legend-item" data-rink="${key}" title="${r.rink.name}">
-      <span class="legend-dot" style="background:${r.rink.color}"></span>
-      ${r.rink.city}${!r.ok ? " ⚠️" : ""}
+      <span class="legend-dot" style="background:${r.rink.color};width:8px;height:8px;display:inline-block;"></span>
+      ${r.rink.city}${!r.ok ? " !" : ""}
     </span>`
   ).join("");
 
@@ -1010,11 +971,9 @@ function renderSessions(data) {
       const { name, full } = fmtDayLabel(day);
       html += `<div class="day-section">
         <div class="day-header">
-          <div class="day-header-text">
-            <span class="day-name">${name}</span>
-            <span class="day-date">${full}</span>
-          </div>
-          <span class="day-count">${sessions.length}</span>
+          <div class="day-name-block${name === 'Today' ? ' today-block' : ''}">${name}</div>
+          <div class="day-date-block">${full}</div>
+          <div class="day-count-block">${sessions.length} session${sessions.length !== 1 ? 's' : ''}</div>
         </div>
         <div class="session-grid">
           ${sessions.map(s => sessionCard(s)).join("")}
