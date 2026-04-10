@@ -2,7 +2,14 @@
   publish = "."
   functions = "netlify/functions"
 
+# FareHarbor proxy
 [[redirects]]
   from = "/api/fareharbor"
   to = "/.netlify/functions/fareharbor"
   status = 200
+
+# The S&P page previously lived at / — redirect old links
+[[redirects]]
+  from = "/stick-and-puck"
+  to = "/stick-and-puck/"
+  status = 301
