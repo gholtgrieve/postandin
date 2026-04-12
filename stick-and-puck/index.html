@@ -33,7 +33,6 @@ body {
   background-color: var(--black);
   color: var(--white);
   min-height: 100vh;
-  /* Halftone dot texture */
   background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
   background-size: 24px 24px;
 }
@@ -65,7 +64,7 @@ header {
   color: var(--white);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .logo a {
   color: inherit;
@@ -80,8 +79,18 @@ header {
   color: var(--yellow);
 }
 
+/* Space Needle */
+.space-needle {
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+  margin-left: 4px;
+  transition: opacity 0.2s;
+}
+.space-needle:hover { opacity: 0.9; }
+
 .header-meta {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--white-3);
@@ -89,7 +98,6 @@ header {
 }
 .header-meta strong { color: var(--yellow); font-weight: 700; }
 
-/* Live indicator */
 .live-dot {
   display: inline-block;
   width: 6px;
@@ -129,14 +137,23 @@ header {
 .page-title .accent { color: var(--yellow); }
 
 .page-meta {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   color: var(--white-3);
   text-align: right;
-  line-height: 2;
+  line-height: 2.2;
   padding-bottom: 4px;
   border-left: 2px solid var(--red);
-  padding-left: 12px;
+  padding-left: 14px;
+}
+.page-meta .city-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  color: var(--white);
+  display: block;
+  line-height: 1.2;
+  margin-bottom: 4px;
 }
 
 /* ── Controls bar ── */
@@ -152,7 +169,7 @@ header {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 clamp(1rem, 4vw, 2rem);
-  height: 44px;
+  height: 48px;
   display: flex;
   align-items: center;
   gap: 0;
@@ -160,14 +177,14 @@ header {
 
 .filter-btn {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
+  font-size: 17px;
   letter-spacing: 0.1em;
-  padding: 0 16px;
-  height: 44px;
+  padding: 0 18px;
+  height: 48px;
   border: none;
   border-right: var(--rule);
   background: transparent;
-  color: var(--white-3);
+  color: var(--white-2);
   cursor: pointer;
   transition: all 0.1s;
   white-space: nowrap;
@@ -182,14 +199,14 @@ header {
 .filter-btn.active + .filter-btn { border-left-color: var(--yellow-dk); }
 
 .filter-label {
-  font-size: 9px;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
   letter-spacing: 0.2em;
   color: var(--white-3);
   margin-right: 12px;
   padding-right: 12px;
   border-right: var(--rule);
-  height: 44px;
+  height: 48px;
   display: flex;
   align-items: center;
 }
@@ -198,14 +215,14 @@ header {
 
 .refresh-btn {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
+  font-size: 17px;
   letter-spacing: 0.1em;
-  padding: 0 16px;
-  height: 44px;
+  padding: 0 18px;
+  height: 48px;
   border: none;
   border-left: var(--rule);
   background: transparent;
-  color: var(--white-3);
+  color: var(--white-2);
   cursor: pointer;
   transition: all 0.1s;
   display: flex;
@@ -229,7 +246,7 @@ main {
 
 /* ── Status Banner ── */
 .status-banner {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.15em;
   padding: 10px 16px;
@@ -265,12 +282,12 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--white-3);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--white-2);
   cursor: pointer;
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-right: var(--rule);
   transition: all 0.1s;
 }
@@ -278,7 +295,6 @@ main {
 .legend-dot {
   width: 8px; height: 8px;
   flex-shrink: 0;
-  /* Square instead of circle — more punk */
 }
 
 /* ── Day sections ── */
@@ -296,11 +312,11 @@ main {
 
 .day-name-block {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.15em;
   color: var(--black);
   background: var(--yellow);
-  padding: 8px 16px;
+  padding: 10px 18px;
   display: flex;
   align-items: center;
   white-space: nowrap;
@@ -308,10 +324,10 @@ main {
 .day-name-block.today-block { background: var(--red); color: var(--white); }
 
 .day-date-block {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--white-3);
-  padding: 8px 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   border-right: var(--rule);
@@ -319,10 +335,10 @@ main {
 
 .day-count-block {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.1em;
   color: var(--white-3);
-  padding: 8px 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   margin-left: auto;
@@ -350,13 +366,11 @@ main {
   color: inherit;
   position: relative;
 }
-.session-card:hover:not(.sold-out) {
-  background: var(--black-3);
-}
+.session-card:hover:not(.sold-out) { background: var(--black-3); }
 .session-card.sold-out { opacity: 0.4; }
 
 .card-rink {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--rink-color, var(--yellow));
@@ -413,10 +427,7 @@ main {
   cursor: pointer;
   transition: all 0.1s;
 }
-.badge-book:hover {
-  background: var(--yellow);
-  color: var(--black);
-}
+.badge-book:hover { background: var(--yellow); color: var(--black); }
 .session-card.sold-out .badge-book { display: none; }
 
 /* ── Fallback cards ── */
@@ -528,6 +539,7 @@ footer a:hover { color: var(--yellow); }
   .session-grid { grid-template-columns: 1fr 1fr; }
   .card-time { font-size: 36px; }
   .page-meta { display: none; }
+  .filter-btn { font-size: 15px; padding: 0 12px; }
 }
 @media (max-width: 400px) {
   .session-grid { grid-template-columns: 1fr; }
@@ -542,6 +554,26 @@ footer a:hover { color: var(--yellow); }
       <a href="/">Post &amp; In</a>
       <span class="slash">/</span>
       <span class="section">Stick &amp; Puck</span>
+      <!-- Space Needle SVG -->
+      <span class="space-needle" title="Seattle Area">
+        <svg width="18" height="36" viewBox="0 0 18 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Spire -->
+          <line x1="9" y1="0" x2="9" y2="10" stroke="#F0D44A" stroke-width="1.5"/>
+          <!-- Observation deck / saucer -->
+          <rect x="3" y="10" width="12" height="5" rx="1" fill="#F0D44A" opacity="0.9"/>
+          <!-- Upper legs -->
+          <line x1="9" y1="15" x2="5" y2="22" stroke="#E8E4DC" stroke-width="1.5"/>
+          <line x1="9" y1="15" x2="13" y2="22" stroke="#E8E4DC" stroke-width="1.5"/>
+          <!-- Lower platform -->
+          <rect x="4" y="22" width="10" height="3" rx="0.5" fill="#E8E4DC" opacity="0.6"/>
+          <!-- Legs down -->
+          <line x1="6" y1="25" x2="4" y2="36" stroke="#E8E4DC" stroke-width="1.5"/>
+          <line x1="12" y1="25" x2="14" y2="36" stroke="#E8E4DC" stroke-width="1.5"/>
+          <line x1="9" y1="25" x2="9" y2="36" stroke="#E8E4DC" stroke-width="1.2" opacity="0.5"/>
+          <!-- Cross brace -->
+          <line x1="5" y1="30" x2="13" y2="30" stroke="#E8E4DC" stroke-width="1" opacity="0.4"/>
+        </svg>
+      </span>
     </div>
     <div id="headerMeta" class="header-meta">
       <span class="live-dot"></span>Loading&hellip;
@@ -553,7 +585,8 @@ footer a:hover { color: var(--yellow); }
   <div class="page-banner-inner">
     <h1 class="page-title">Stick &amp;<br><span class="accent">Puck</span></h1>
     <div class="page-meta">
-      Seattle area open ice<br>
+      <span class="city-name">Seattle Area</span>
+      Open ice sessions<br>
       All rinks &nbsp;·&nbsp; Updated live<br>
       postandin.com
     </div>
@@ -1089,5 +1122,6 @@ window.setLynnwoodPK = (pk) => {
 };
 </script>
 -e 
+
 </body>
 </html>
