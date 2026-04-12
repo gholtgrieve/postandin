@@ -43,8 +43,8 @@ body {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: url('hero.png') center center / cover no-repeat;
-  filter: brightness(0.28) contrast(1.15) saturate(1.2);
+  background: url('hero.png') center 30% / cover no-repeat;
+  filter: brightness(0.32) contrast(1.1) saturate(1.1);
 }
 
 /* Halftone overlay */
@@ -52,21 +52,21 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.55) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.5) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
-/* Gradient — heavier at top so logo is always readable, lighter at center to show the image */
+/* Gradient — dark at top for readability, open in middle to show the image */
 .hero-fade {
   position: fixed;
   inset: 0;
   z-index: 1;
   background: linear-gradient(
     to bottom,
-    rgba(10,10,10,0.7) 0%,
-    rgba(10,10,10,0.2) 40%,
-    rgba(10,10,10,0.2) 60%,
-    rgba(10,10,10,0.92) 100%
+    rgba(10,10,10,0.75) 0%,
+    rgba(10,10,10,0.15) 35%,
+    rgba(10,10,10,0.15) 65%,
+    rgba(10,10,10,0.95) 100%
   );
 }
 
