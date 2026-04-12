@@ -8,7 +8,13 @@
   to = "/.netlify/functions/fareharbor"
   status = 200
 
-# The S&P page previously lived at / — redirect old links
+# Kent Valley proxy
+[[redirects]]
+  from = "/api/kentvalley"
+  to = "/.netlify/functions/kentvalley"
+  status = 200
+
+# Redirect /stick-and-puck (no trailing slash) to folder
 [[redirects]]
   from = "/stick-and-puck"
   to = "/stick-and-puck/"
