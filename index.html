@@ -3,1101 +3,151 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stick & Puck — Post & In</title>
+<title>Post & In — Seattle Ice Hockey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  --black:    #0A0A0A;
-  --black-2:  #111111;
-  --black-3:  #1A1A1A;
-  --black-4:  #222222;
-  --white:    #E8E4DC;
-  --white-2:  #C8C4BC;
-  --white-3:  #989490;
-  --yellow:   #F0D44A;
-  --yellow-dk:#C4AA28;
-  --red:      #CC2200;
-  --red-lt:   #E83318;
-  --rule:     1px solid #2A2A2A;
+  --black:   #0A0A0A;
+  --black-2: #111111;
+  --black-3: #1A1A1A;
+  --white:   #E8E4DC;
+  --white-2: #C8C4BC;
+  --white-3: #989490;
+  --yellow:  #F0D44A;
+  --red:     #CC2200;
+  --red-lt:  #E83318;
 }
-
-html { scroll-behavior: smooth; }
-
+html, body { height: 100%; }
 body {
   font-family: 'IBM Plex Mono', monospace;
   background-color: var(--black);
   color: var(--white);
   min-height: 100vh;
-  background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* ── Header ── */
-header {
-  background: var(--black);
-  border-bottom: 2px solid var(--yellow);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2rem);
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 0.08em;
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logo a {
-  color: inherit;
-  text-decoration: none;
-}
-.logo .slash {
-  color: var(--yellow);
-  font-size: 20px;
-  opacity: 0.6;
-}
-.logo .section {
-  color: var(--yellow);
-}
-
-
-.header-meta {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--white-3);
-  text-align: right;
-}
-.header-meta strong { color: var(--yellow); font-weight: 700; }
-
-.live-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--red-lt);
-  border-radius: 50%;
-  margin-right: 6px;
-  animation: blink 1.4s ease-in-out infinite;
-  vertical-align: middle;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-/* ── Page banner ── */
-.page-banner {
-  background: var(--black-2);
-  border-bottom: var(--rule);
-  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2rem);
-}
-
-.page-banner-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.page-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(56px, 10vw, 96px);
-  letter-spacing: 0.04em;
-  line-height: 0.9;
-  color: var(--white);
-}
-.page-title .accent { color: var(--yellow); }
-
-.page-meta {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--white-3);
-  text-align: right;
-  line-height: 2.2;
-  padding-bottom: 4px;
-  border-left: 2px solid var(--red);
-  padding-left: 14px;
-}
-.page-meta .city-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  letter-spacing: 0.12em;
-  color: var(--white);
-  display: block;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-/* ── Controls bar ── */
-.controls-bar {
-  background: var(--black-3);
-  border-bottom: var(--rule);
-  position: sticky;
-  top: 52px;
-  z-index: 90;
-}
-
-.controls-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2rem);
-  height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-.filter-btn {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.1em;
-  padding: 0 18px;
-  height: 48px;
-  border: none;
-  border-right: var(--rule);
-  background: transparent;
-  color: var(--white-2);
-  cursor: pointer;
-  transition: all 0.1s;
-  white-space: nowrap;
-}
-.filter-btn:first-of-type { border-left: var(--rule); }
-.filter-btn:hover { background: var(--black-4); color: var(--white); }
-.filter-btn.active {
-  background: var(--yellow);
-  color: var(--black);
-  border-right-color: var(--yellow-dk);
-}
-.filter-btn.active + .filter-btn { border-left-color: var(--yellow-dk); }
-
-.filter-label {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.2em;
-  color: var(--white-3);
-  margin-right: 12px;
-  padding-right: 12px;
-  border-right: var(--rule);
-  height: 48px;
-  display: flex;
-  align-items: center;
-}
-
-.spacer { flex: 1; }
-
-.refresh-btn {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.1em;
-  padding: 0 18px;
-  height: 48px;
-  border: none;
-  border-left: var(--rule);
-  background: transparent;
-  color: var(--white-2);
-  cursor: pointer;
-  transition: all 0.1s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.refresh-btn:hover { background: var(--black-4); color: var(--white); }
-.refresh-btn.spinning .spin-icon { animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Main ── */
-main {
-  min-height: calc(100vh - 148px);
-  padding: clamp(1.5rem, 3vw, 2rem) clamp(1rem, 4vw, 2rem);
-}
-
-.main-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-/* ── Status Banner ── */
-.status-banner {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  padding: 10px 16px;
-  margin-bottom: 20px;
-  background: var(--black-3);
-  border-left: 3px solid var(--yellow);
-  color: var(--white-2);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.status-banner.error { border-left-color: var(--red); }
-.status-banner.success { border-left-color: #44AA44; }
-.status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-  animation: blink 1.4s ease-in-out infinite;
-}
-.status-banner.success .status-dot { animation: none; }
-
-/* ── Rink legend ── */
-.rink-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  margin-bottom: 28px;
-  border: var(--rule);
-  border-bottom: 2px solid var(--black-4);
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.12em;
-  color: var(--white-2);
-  cursor: pointer;
-  padding: 10px 16px;
-  border-right: var(--rule);
-  transition: all 0.1s;
-}
-.legend-item:hover { background: var(--black-3); color: var(--white); }
-.legend-dot {
-  width: 8px; height: 8px;
-  flex-shrink: 0;
-}
-
-/* ── Day sections ── */
-.day-section { margin-bottom: 2px; }
-
-.day-header {
-  background: var(--black-3);
-  border-top: var(--rule);
-  border-bottom: var(--rule);
-  padding: 0 0;
-  margin-bottom: 2px;
-  display: flex;
-  align-items: stretch;
-}
-
-.day-name-block {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.15em;
-  color: var(--black);
-  background: var(--yellow);
-  padding: 10px 18px;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
-.day-name-block.today-block { background: var(--red); color: var(--white); }
-
-.day-date-block {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--white-3);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  border-right: var(--rule);
-}
-
-.day-count-block {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  color: var(--white-3);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  border-left: var(--rule);
-}
-
-/* ── Session Grid ── */
-.session-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 2px;
-  margin-bottom: 2px;
-}
-
-/* ── Session Card ── */
-.session-card {
-  background: var(--black-2);
-  border-left: 3px solid var(--rink-color, var(--yellow));
-  padding: 14px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: background 0.1s;
-  text-decoration: none;
-  color: inherit;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
   position: relative;
+  overflow: hidden;
 }
-.session-card:hover:not(.sold-out) { background: var(--black-3); }
-.session-card.sold-out { opacity: 0.4; }
-
-.card-rink {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--rink-color, var(--yellow));
+.hero-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: url('hero.png') center 30% / cover no-repeat;
+  filter: brightness(0.32) contrast(1.1) saturate(1.1);
+}
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.5) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.hero-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(10,10,10,0.75) 0%, rgba(10,10,10,0.15) 35%, rgba(10,10,10,0.15) 65%, rgba(10,10,10,0.95) 100%);
+}
+.container {
+  width: 100%;
+  max-width: 440px;
+  position: relative;
+  z-index: 2;
+}
+.top-rule { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
+.top-rule-line { flex: 1; height: 2px; background: var(--yellow); }
+.top-rule-center { width: 8px; height: 8px; background: var(--yellow); transform: rotate(45deg); margin: 0 12px; flex-shrink: 0; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: clamp(72px, 18vw, 112px); letter-spacing: 0.04em; line-height: 0.88; margin-bottom: 0; }
+.logo-post { color: var(--white); display: block; }
+.logo-amp  { color: var(--yellow); display: block; font-size: 0.65em; line-height: 0.9; }
+.logo-in   { color: var(--white); display: block; }
+.tagline {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--white-2);
+  margin-top: 12px;
+  margin-bottom: 2.5rem;
+  border-left: 2px solid var(--red);
+  padding-left: 12px;
+}
+.nav { display: flex; flex-direction: column; gap: 0; border: 1px solid #2A2A2A; margin-bottom: 2rem; }
+.nav-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-.card-rink .city-tag {
-  color: var(--white-3);
-  font-weight: 400;
-}
-
-.card-time {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 44px;
-  letter-spacing: 0.02em;
+  padding: 16px 20px;
+  background: var(--black-2);
+  border-bottom: 1px solid #2A2A2A;
+  text-decoration: none;
   color: var(--white);
-  line-height: 1;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  transition: background 0.1s;
+  border-left: 3px solid transparent;
 }
-.card-time .duration {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--white-3);
-  letter-spacing: 0.06em;
-  display: block;
-  margin-top: 2px;
-}
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
+.nav-link:last-child { border-bottom: none; }
+.nav-link:hover { background: var(--black-3); border-left-color: var(--yellow); }
+.nav-link-right { display: flex; align-items: center; gap: 10px; }
 .badge {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 3px 8px;
-  border: 1px solid;
-}
-.badge-price { border-color: var(--black-4); color: var(--white-3); }
-.badge-spots { border-color: #1E4A1E; color: #44AA44; }
-.badge-spots.low { border-color: #4A2A1E; color: var(--red-lt); }
-.badge-sold-out { border-color: #4A1A1A; color: var(--red); }
-.badge-book {
-  margin-left: auto;
-  border-color: var(--yellow);
-  color: var(--yellow);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-.badge-book:hover { background: var(--yellow); color: var(--black); }
-.session-card.sold-out .badge-book { display: none; }
-
-/* ── Fallback cards ── */
-.fallback-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 2px;
-  margin-bottom: 20px;
-}
-.fallback-card {
-  background: var(--black-2);
-  border-left: 3px solid var(--rink-color, #444);
-  padding: 14px 16px;
-}
-.fallback-card .fc-rink {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: var(--rink-color, var(--white-3));
-  margin-bottom: 6px;
-}
-.fallback-card .fc-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  letter-spacing: 0.04em;
-  color: var(--white);
-  margin-bottom: 6px;
-}
-.fallback-card .fc-reason {
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  color: var(--white-3);
-  margin-bottom: 10px;
-}
-.fallback-card .fc-link {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  padding: 4px 12px;
+  padding: 3px 8px;
   border: 1px solid var(--yellow);
   color: var(--yellow);
-  text-decoration: none;
-  transition: all 0.1s;
 }
-.fallback-card .fc-link:hover { background: var(--yellow); color: var(--black); }
-
-/* ── Error card ── */
-.rink-error {
-  background: var(--black-2);
-  border-left: 3px solid var(--red);
-  padding: 10px 14px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: #AA4444;
-  margin-bottom: 2px;
-  display: flex;
-  gap: 10px;
+.nav-arrow { font-size: 16px; color: var(--yellow); opacity: 0.7; }
+.live-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--red-lt);
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: blink 1.4s ease-in-out infinite;
 }
-
-/* ── Empty state ── */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: var(--white-3);
-}
-.empty-state .big-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.2; }
-.empty-state h3 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
-  letter-spacing: 0.1em;
-  color: var(--white-2);
-  margin-bottom: 8px;
-}
-.empty-state p { font-size: 11px; letter-spacing: 0.1em; color: var(--white-3); }
-
-/* ── Skeleton ── */
-.skeleton {
-  background: linear-gradient(90deg, var(--black-3) 25%, var(--black-4) 50%, var(--black-3) 75%);
-  background-size: 400% 100%;
-  animation: shimmer 1.2s ease-in-out infinite;
-}
-@keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
-.skeleton-card {
-  background: var(--black-2);
-  border-left: 3px solid var(--black-4);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ── Footer ── */
-footer {
-  background: var(--black);
-  border-top: 2px solid var(--yellow);
-  color: var(--white-3);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-align: center;
-  padding: 16px;
-}
-footer a { color: var(--white-3); text-decoration: none; }
-footer a:hover { color: var(--yellow); }
-
-/* ── Responsive ── */
-@media (max-width: 640px) {
-  .session-grid { grid-template-columns: 1fr 1fr; }
-  .card-time { font-size: 36px; }
-  .page-meta { display: none; }
-  .filter-btn { font-size: 15px; padding: 0 12px; }
-}
-@media (max-width: 400px) {
-  .session-grid { grid-template-columns: 1fr; }
-}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.bottom-rule { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: #333; display: flex; align-items: center; gap: 12px; }
+.bottom-rule::before, .bottom-rule::after { content: ''; flex: 1; height: 1px; background: #222; }
+.bottom-rule a { color: #444; text-decoration: none; }
+.bottom-rule a:hover { color: var(--yellow); }
 </style>
 </head>
 <body>
-
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <a href="/">Post &amp; In</a>
-      <span class="slash">/</span>
-      <span class="section">Stick &amp; Puck</span>
-      </div>
-    <div id="headerMeta" class="header-meta">
-      <span class="live-dot"></span>Loading&hellip;
-    </div>
+<div class="hero-bg"></div>
+<div class="hero-fade"></div>
+<div class="container">
+  <div class="top-rule">
+    <div class="top-rule-line"></div>
+    <div class="top-rule-center"></div>
+    <div class="top-rule-line"></div>
   </div>
-</header>
-
-<div class="page-banner">
-  <div class="page-banner-inner">
-    <h1 class="page-title">Stick &amp;<br><span class="accent">Puck</span></h1>
-    <div class="page-meta">
-      <span class="city-name">Seattle Area</span>
-      Open ice sessions<br>
-      All rinks &nbsp;·&nbsp; Updated live<br>
-      postandin.com
-    </div>
+  <div class="logo">
+    <span class="logo-post">Post</span>
+    <span class="logo-amp">&amp;</span>
+    <span class="logo-in">In</span>
   </div>
-</div>
-
-<div class="controls-bar">
-  <div class="controls-inner">
-    <span class="filter-label">Filter</span>
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="available">Available</button>
-    <button class="filter-btn" data-filter="today">Today</button>
-    <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
-    <button class="filter-btn" data-filter="thisweek">This Week</button>
-    <span class="spacer"></span>
-    <button class="refresh-btn" id="refreshBtn">
-      <span class="spin-icon">↻</span> Refresh
-    </button>
+  <p class="tagline">Seattle hockey, all in one place</p>
+  <nav class="nav">
+    <a class="nav-link" href="/stick-and-puck/">
+      <span><span class="live-dot"></span>Stick &amp; Puck</span>
+      <span class="nav-link-right">
+        <span class="badge">Live</span>
+        <span class="nav-arrow">→</span>
+      </span>
+    </a>
+  </nav>
+  <div class="bottom-rule">
+    <a href="https://github.com/gholtgrieve/postandin">postandin.com</a>
   </div>
 </div>
-
-<main>
-  <div class="main-inner">
-    <div id="statusBanner" class="status-banner" style="display:none"></div>
-    <div id="rinkLegend" class="rink-legend"></div>
-    <div id="content"></div>
-  </div>
-</main>
-
-<footer>
-  Data from DaySmart &amp; FareHarbor &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
-</footer>
-
-<script type="module">
-// ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
-
-const RINKS = {
-  kci: {
-    name: "Kraken Community Iceplex",
-    city: "Seattle",
-    url: "https://www.krakencommunityiceplex.com/stick-puck/",
-    color: "#F0D44A",
-    system: "daysmart",
-    config: { company: "kraken", sportId: 20 },
-  },
-  snokingRenton: {
-    name: "Sno-King Ice Arena",
-    city: "Renton",
-    url: "https://www.snokingicearenas.com/",
-    color: "#CC2200",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [11, 12] }, // Renton Large + Small Ice
-  },
-  snokingKirkland: {
-    name: "Sno-King Ice Arena",
-    city: "Kirkland",
-    url: "https://www.snokingicearenas.com/",
-    color: "#E83318",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [1] }, // Kirkland Ice
-  },
-  snokingSnoqualmie: {
-    name: "Sno-King Ice Arena",
-    city: "Snoqualmie",
-    url: "https://www.snokingicearenas.com/",
-    color: "#FF6644",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [13, 14] }, // Rink A + Rink B
-  },
-  olympicview: {
-    name: "Olympic View Arena",
-    city: "Mountlake Terrace",
-    url: "https://www.olympicviewarena.com/",
-    color: "#44BBAA",
-    system: "fareharbor",
-    config: { company: "olympicviewarena", itemPk: 313860 },
-  },
-  lynnwood: {
-    name: "Lynnwood Ice Center",
-    city: "Lynnwood",
-    url: "https://www.lynnwoodicecenter.com/",
-    color: "#1565A8",
-    system: "fareharbor",
-    // Slug confirmed: lynnwoodicecenter
-    // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
-    config: { company: "lynnwoodicecenter", itemPk: 245296 },
-  },
-};
-
-// DaySmart ─────────────────────────────────────────────────────────────────────
-// Cache DaySmart API responses so multiple rinks sharing the same company
-// slug (e.g. all three Sno-King locations) only make one network request each.
-const _dsCache = {};
-async function _dsFetch(url) {
-  if (_dsCache[url]) return _dsCache[url];
-  _dsCache[url] = fetch(url).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)));
-  return _dsCache[url];
-}
-
-async function fetchDaySmart({ company, sportId, resourceIds }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const [data, rdata] = await Promise.all([
-    _dsFetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?filter[homeTeam.sport_id__in]=${sportId}&company=${company}&filter[start__gte]=${today}&page[size]=200`),
-    _dsFetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/resources?company=${company}`),
-  ]);
-  const now = new Date();
-
-  // Build resource_id → name lookup
-  const resourceMap = {};
-  (rdata?.data ?? []).forEach(r => { resourceMap[r.id] = r.attributes?.name?.trim(); });
-
-  const iceNames = /ice|rink|sheet|olympic|cascade|rainier/i;
-
-  return (data?.data ?? [])
-    .filter(ev => {
-      if (resourceIds?.length) {
-        const rid = Number(ev.attributes?.resource_id);
-        if (!resourceIds.includes(rid)) return false;
-      }
-      const text = [
-        ev.attributes?.best_description,
-        ev.attributes?.desc,
-        ev.attributes?.name,
-        ev.attributes?.title,
-      ].filter(Boolean).join(" ").toLowerCase().replace(/<[^>]+>/g, "");
-      return text.includes("stick") || text.includes("s&p") || text.includes("s & p");
-    })
-    .map(ev => {
-      const a = ev.attributes ?? {};
-      const start = a.start ?? a.startTime ?? a.start_time;
-      const end   = a.end   ?? a.endTime   ?? a.end_time;
-      const resourceName = resourceMap[String(a.resource_id)];
-      const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
-      // Build date-filtered DaySmart booking URL for this specific day
-      const dateStr = start ? new Date(start).toISOString().slice(0, 10) : null;
-      const bookUrl = dateStr
-        ? `https://apps.daysmartrecreation.com/dash/x/#/online/${company}/event-registration?date=${dateStr}`
-        : null;
-      return {
-        id:      ev.id,
-        start:   start ? new Date(start) : null,
-        end:     end   ? new Date(end)   : null,
-        title:   location ? `Stick & Puck — ${location}` : "Stick & Puck",
-        spots:   null,
-        price:   null,
-        soldOut: false,
-        bookUrl,
-      };
-    })
-    .filter(s => s.start && s.start > now)
-    .sort((a, b) => a.start - b.start);
-}
-
-// FareHarbor ───────────────────────────────────────────────────────────────────
-async function fetchFareHarbor({ company, itemPk }) {
-  if (!itemPk) return [];
-  const now = new Date();
-  const months = [
-    [now.getFullYear(), now.getMonth() + 1],
-    now.getMonth() === 11
-      ? [now.getFullYear() + 1, 1]
-      : [now.getFullYear(), now.getMonth() + 2],
-  ];
-  const pages = await Promise.all(months.map(async ([y, m]) => {
-    const mm = String(m).padStart(2, "0");
-    // Use Netlify proxy function to avoid FareHarbor CORS block
-    const proxyUrl = `/api/fareharbor?company=${company}&itemPk=${itemPk}&year=${y}&month=${mm}`;
-    // Fall back to direct fetch for local dev (file:// or localhost without functions)
-    const urls = [proxyUrl, `https://fareharbor.com/api/v1/companies/${company}/items/${itemPk}/calendar/${y}/${mm}/`];
-    for (const url of urls) {
-      try {
-        const r = await fetch(url);
-        if (r.ok) return r.json();
-      } catch { continue; }
-    }
-    throw new Error(`FareHarbor fetch failed for ${company}/${itemPk}`);
-  }));
-
-  const all = pages.flatMap(data => {
-    // Two possible schemas:
-    // OVA-style:      { dates: [ { availabilities: [...] } ] }
-    // Lynnwood-style: { calendar: { weeks: [ { days: [ { availabilities: [...] } ] } ] } }
-    let avails = [];
-    if (data?.dates) {
-      avails = data.dates.flatMap(day => day?.availabilities ?? []);
-    } else if (data?.calendar?.weeks) {
-      avails = data.calendar.weeks.flatMap(w => w.days ?? []).flatMap(day => day?.availabilities ?? []);
-    }
-    return avails
-      .filter(av => new Date(av.start_at) > now)
-      .map(av => {
-        const rate = av.customer_type_rates?.[0];
-        // approximate_available_capacity is unreliable on the calendar endpoint (always 0)
-        // Only use capacity_remaining from customer_type_rates if present
-        const spots = rate?.availability?.capacity_remaining ?? null;
-        const price = rate?.total_including_tax != null ? fmtPrice(rate.total_including_tax / 100) : null;
-        return {
-          id: `fh-${av.pk}`,
-          start: new Date(av.start_at),
-          end:   new Date(av.end_at),
-          title: "Stick & Puck",
-          spots: spots > 0 ? spots : null, // hide 0 — means "unknown" not "full"
-          price,
-          soldOut: av.is_sold_out === true,
-          bookUrl: av.book_url
-            ? (av.book_url.startsWith('http') ? av.book_url : `https://fareharbor.com${av.book_url}`)
-            : `https://fareharbor.com/embeds/book/${company}/items/${itemPk}/availability/${av.pk}/book/`,
-        };
-      });
-  });
-  // Dedup by availability pk (can appear in both month fetches near month boundaries)
-  const seen = new Set();
-  return all.filter(s => {
-    if (seen.has(s.id)) return false;
-    seen.add(s.id);
-    return true;
-  }).sort((a, b) => a.start - b.start);
-}
-
-// Aggregate ────────────────────────────────────────────────────────────────────
-async function fetchAll() {
-  const tasks = {
-    kci:              fetchDaySmart(RINKS.kci.config),
-    snokingRenton:    fetchDaySmart(RINKS.snokingRenton.config),
-    snokingKirkland:  fetchDaySmart(RINKS.snokingKirkland.config),
-    snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
-    olympicview:      fetchFareHarbor(RINKS.olympicview.config),
-    lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
-  };
-  const settled = await Promise.allSettled(Object.values(tasks));
-  const results = {};
-  Object.keys(tasks).forEach((key, i) => {
-    const r = settled[i];
-    results[key] = r.status === "fulfilled"
-      ? { ok: true,  sessions: r.value, rink: RINKS[key] }
-      : { ok: false, error: r.reason?.message ?? "Unknown error", sessions: [], rink: RINKS[key] };
-  });
-  return results;
-}
-
-// ─── Formatting helpers ───────────────────────────────────────────────────────
-
-function fmtPrice(v) {
-  if (v == null) return null;
-  const n = parseFloat(v);
-  return isNaN(n) ? null : `$${n.toFixed(2)}`;
-}
-
-function fmtTime(d) {
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-}
-
-function fmtDuration(start, end) {
-  if (!end) return "";
-  const mins = Math.round((end - start) / 60000);
-  return mins >= 60
-    ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}`
-    : `${mins}m`;
-}
-
-function dayKey(d) {
-  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
-}
-
-function fmtDayLabel(dateStr) {
-  const d = new Date(dateStr + "T12:00:00");
-  const today = new Date(); today.setHours(12, 0, 0, 0);
-  const diff = Math.round((d - today) / 86400000);
-  if (diff === 0) return { name: "Today", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
-  if (diff === 1) return { name: "Tomorrow", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
-  return {
-    name: d.toLocaleDateString("en-US", { weekday: "long" }),
-    full: d.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
-  };
-}
-
-// ─── DOM rendering ───────────────────────────────────────────────────────────
-
-let allData = null;
-let activeFilter = "all";
-
-function showStatus(msg, type = "loading") {
-  const el = document.getElementById("statusBanner");
-  el.style.display = "flex";
-  el.className = `status-banner ${type}`;
-  el.innerHTML = `<div class="status-dot"></div><span>${msg}</span>`;
-  if (type === "success") setTimeout(() => { el.style.display = "none"; }, 3000);
-}
-
-function hideStatus() {
-  document.getElementById("statusBanner").style.display = "none";
-}
-
-function showSkeletons(n = 6) {
-  const grid = Array.from({ length: n }, () => `
-    <div class="skeleton-card">
-      <div class="skeleton" style="height:12px;width:40%"></div>
-      <div class="skeleton" style="height:32px;width:65%"></div>
-      <div class="skeleton" style="height:12px;width:55%"></div>
-    </div>`).join("");
-  document.getElementById("content").innerHTML = `
-    <div class="session-grid">${grid}</div>`;
-}
-
-function renderLegend(data) {
-  const legend = document.getElementById("rinkLegend");
-  legend.innerHTML = Object.entries(data).map(([key, r]) =>
-    `<span class="legend-item" data-rink="${key}" title="${r.rink.name}">
-      <span class="legend-dot" style="background:${r.rink.color};width:8px;height:8px;display:inline-block;"></span>
-      ${r.rink.city}${!r.ok ? " !" : ""}
-    </span>`
-  ).join("");
-
-  legend.querySelectorAll(".legend-item").forEach(el => {
-    el.addEventListener("click", () => {
-      const rinkKey = el.dataset.rink;
-      // Toggle rink filter — cycles through: all → specific → all
-      if (activeFilter === rinkKey) {
-        activeFilter = "all";
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
-      } else {
-        activeFilter = rinkKey;
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-      }
-      renderSessions(data);
-    });
-  });
-}
-
-function renderSessions(data) {
-  const content = document.getElementById("content");
-  const now = new Date();
-  const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
-
-  // Flatten all sessions with rink info
-  let all = [];
-  const errors = [];
-
-  for (const [key, r] of Object.entries(data)) {
-    if (!r.ok) {
-      errors.push({ key, ...r });
-    }
-    r.sessions.forEach(s => all.push({ ...s, rinkKey: key, rink: r.rink }));
-  }
-
-  // Apply filter
-  const isRinkFilter = !["all", "available", "today", "tomorrow", "thisweek"].includes(activeFilter);
-
-  all = all.filter(s => {
-    if (isRinkFilter) return s.rinkKey === activeFilter;
-    if (activeFilter === "available") return !s.soldOut;
-    if (activeFilter === "today") {
-      const d = s.start; const t = new Date();
-      return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
-    }
-    if (activeFilter === "tomorrow") {
-      const d = s.start; const t = new Date(); t.setDate(t.getDate() + 1);
-      return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
-    }
-    if (activeFilter === "thisweek") return s.start <= weekEnd;
-    return true;
-  });
-
-  // Group by day
-  const byDay = {};
-  all.forEach(s => {
-    const k = dayKey(s.start);
-    if (!byDay[k]) byDay[k] = [];
-    byDay[k].push(s);
-  });
-
-  const sortedDays = Object.keys(byDay).sort();
-
-  // Separate "expected no-data" (CORS/LeagueApps) from real errors
-  const fallbacks = errors.filter(e =>
-    e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
-    e.error?.includes("directly") || e.error?.includes("book directly")
-  );
-  const hardErrors = errors.filter(e => !fallbacks.includes(e));
-
-  // Render fallback rink cards (venues that require direct booking)
-  let html = "";
-  if (fallbacks.length && (activeFilter === "all" || fallbacks.some(e => e.key === activeFilter))) {
-    const visibleFallbacks = activeFilter === "all" ? fallbacks : fallbacks.filter(e => e.key === activeFilter);
-    if (visibleFallbacks.length) {
-      html += `<div class="fallback-grid">` +
-        visibleFallbacks.map(e => {
-          const r = e.rink;
-          const reason = e.error?.includes("LeagueApps")
-            ? "Sessions require login to book"
-            : "Live data unavailable — book online";
-          return `<div class="fallback-card" style="--rink-color:${r.color}">
-            <div class="fc-rink">${r.city}</div>
-            <div class="fc-name">${r.name}</div>
-            <div class="fc-reason">${reason}</div>
-            <a class="fc-link" href="${r.url}" target="_blank" rel="noopener">View schedule ↗</a>
-          </div>`;
-        }).join("") +
-      `</div>`;
-    }
-  }
-
-  // Hard failures (unexpected errors)
-  hardErrors.forEach(e => {
-    html += `<div class="rink-error">
-      <span>⚠️</span>
-      <span><strong>${e.rink.name}</strong> failed to load: ${e.error}</span>
-    </div>`;
-  });
-
-  if (sortedDays.length === 0) {
-    html += `<div class="empty-state">
-      <div class="big-icon">🏒</div>
-      <h3>No sessions found</h3>
-      <p>Try a different filter, or check back later.</p>
-    </div>`;
-  } else {
-    sortedDays.forEach(day => {
-      const sessions = byDay[day].sort((a, b) => a.start - b.start);
-      const { name, full } = fmtDayLabel(day);
-      html += `<div class="day-section">
-        <div class="day-header">
-          <div class="day-name-block${name === 'Today' ? ' today-block' : ''}">${name}</div>
-          <div class="day-date-block">${full}</div>
-          <div class="day-count-block">${sessions.length} session${sessions.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="session-grid">
-          ${sessions.map(s => sessionCard(s)).join("")}
-        </div>
-      </div>`;
-    });
-  }
-
-  content.innerHTML = html;
-
-  // Update header meta
-  const total = all.filter(s => !s.soldOut).length;
-  const liveRinks = new Set(all.map(s => s.rinkKey)).size;
-  const totalRinks = liveRinks + fallbacks.length;
-  const lastUpdated = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  document.getElementById("headerMeta").innerHTML =
-    `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
-}
-
-function sessionCard(s) {
-  const timeStr = fmtTime(s.start);
-  const dur = fmtDuration(s.start, s.end);
-  const spotsStr = s.spots != null
-    ? s.spots <= 3
-      ? `<span class="badge badge-spots low">${s.spots} spot${s.spots !== 1 ? "s" : ""} left</span>`
-      : `<span class="badge badge-spots">${s.spots} spots</span>`
-    : "";
-  const priceStr = s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
-  const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
-  const bookBadge = s.bookUrl && !s.soldOut
-    ? `<a class="badge badge-book" href="${s.bookUrl}" target="_blank" rel="noopener">Book →</a>`
-    : "";
-
-  return `<div class="session-card${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}">
-    <div class="card-rink">
-      ${s.rink.name}
-      <span class="city-tag">· ${s.rink.city}</span>
-    </div>
-    <div class="card-time">
-      ${timeStr}
-      ${dur ? `<span class="duration">${dur}</span>` : ""}
-    </div>
-    <div class="card-footer">
-      ${priceStr}${spotsStr}${soldOutBadge}${bookBadge}
-    </div>
-  </div>`;
-}
-
-// ─── App bootstrap ────────────────────────────────────────────────────────────
-
-async function loadData() {
-  const btn = document.getElementById("refreshBtn");
-  btn.classList.add("spinning");
-  showSkeletons();
-  showStatus("Fetching sessions from all rinks…");
-
-  try {
-    allData = await fetchAll();
-    const totalSessions = Object.values(allData).reduce((n, r) => n + r.sessions.length, 0);
-    showStatus(`Loaded ${totalSessions} sessions`, "success");
-    renderLegend(allData);
-    renderSessions(allData);
-  } catch (err) {
-    showStatus("Failed to load session data — " + err.message, "error");
-    document.getElementById("content").innerHTML = `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Load failed</h3><p>${err.message}</p></div>`;
-  } finally {
-    btn.classList.remove("spinning");
-  }
-}
-
-// Filter buttons
-document.querySelectorAll(".filter-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activeFilter = btn.dataset.filter;
-    if (allData) renderSessions(allData);
-  });
-});
-
-// Refresh button
-document.getElementById("refreshBtn").addEventListener("click", loadData);
-
-// Auto-refresh every 10 minutes
-setInterval(loadData, 10 * 60 * 1000);
-
-// Initial load
-loadData();
-
-// ─── Dev helpers (run from browser console) ──────────────────────────────────
-// To find the Lynnwood S&P item PK (already set to 245296, but for reference):
-//   await window.discoverLynnwoodPKs()
-
-window.discoverLynnwoodPKs = async () => {
-  console.log("Fetching Lynnwood FareHarbor items...");
-  try {
-    const r = await fetch("https://fareharbor.com/api/v1/companies/lynnwoodicecenter/items/");
-    const d = await r.json();
-    const items = d.items ?? [];
-    console.table(items.map(i => ({ pk: i.pk, name: i.name, description: i.description?.substring(0, 60) })));
-    const snp = items.filter(i => /stick|puck|hockey/i.test(i.name + " " + i.description));
-    console.log("\n🏒 Likely Stick & Puck items:");
-    snp.forEach(i => console.log(`  PK: ${i.pk}  →  ${i.name}`));
-    return snp;
-  } catch(e) {
-    console.error("Failed:", e.message);
-  }
-};
-
-window.setLynnwoodPK = (pk) => {
-  RINKS.lynnwood.config.itemPk = pk;
-  console.log(`✅ Lynnwood item PK set to ${pk}. Call loadData() to refresh.`);
-};
-</script>
--e 
-
 </body>
 </html>
