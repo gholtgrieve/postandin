@@ -13,34 +13,47 @@ export async function handler() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const html = await res.text();
 
-    // Extract product links — date/time is encoded in the slug
-    const linkRe = /href="(https:\/\/kentvalleyicecentre\.net\/product\/([^"]+))\/"/g;
-    const outOfStockRe = /"([^"]*stick[^"]*)"[^]*?class="[^"]*outofstock/gi;
-    const soldOutSlugs = new Set();
-    let m;
-    while ((m = outOfStockRe.exec(html)) !== null) soldOutSlugs.add(m[1]);
-
-    const now = new Date();
+    // Extract all unique product slugs from href attributes
+    const seen = new Set();
     const sessions = [];
+    const now = new Date();
 
-    while ((m = linkRe.exec(html)) !== null) {
-      const url = m[1];
-      const slug = m[2];
+    // Match all product links — use a simple string scan to avoid regex global issues
+    const marker = 'kentvalleyicecentre.net/product/';
+    let pos = 0;
+    while ((pos = html.indexOf(marker, pos)) !== -1) {
+      const slugStart = pos + marker.length;
+      const slugEnd = html.indexOf('/', slugStart);
+      if (slugEnd === -1) { pos++; continue; }
+      const slug = html.slice(slugStart, slugEnd);
+      pos = slugEnd + 1;
+
+      if (!slug.includes('stick-and-puck')) continue;
+      if (seen.has(slug)) continue;
+      seen.add(slug);
 
       // Parse slug: 2026-04-13-mon-1230pm-145pm-stick-and-puck
       const dateMatch = slug.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (!dateMatch) continue;
-
       const [, year, month, day] = dateMatch;
 
-      // Extract start time: e.g. 1230pm, 430pm, 930am
+      // Extract times: e.g. 1230pm-145pm or 430pm-545pm
       const timeMatch = slug.match(/(\d{1,4})(am|pm)-(\d{1,4})(am|pm)/);
       if (!timeMatch) continue;
 
       const parseTime = (t, ampm) => {
-        const padded = t.padStart(4, "0");
-        let h = parseInt(padded.slice(0, -2), 10);
-        const min = parseInt(padded.slice(-2), 10);
+        // t could be "1230" (12h30m) or "145" (1h45m) or "930" (9h30m)
+        let h, min;
+        if (t.length === 4) {
+          h = parseInt(t.slice(0, 2), 10);
+          min = parseInt(t.slice(2), 10);
+        } else if (t.length === 3) {
+          h = parseInt(t.slice(0, 1), 10);
+          min = parseInt(t.slice(1), 10);
+        } else {
+          h = parseInt(t, 10);
+          min = 0;
+        }
         if (ampm === "pm" && h !== 12) h += 12;
         if (ampm === "am" && h === 12) h = 0;
         return { h, min };
@@ -49,23 +62,24 @@ export async function handler() {
       const st = parseTime(timeMatch[1], timeMatch[2]);
       const et = parseTime(timeMatch[3], timeMatch[4]);
 
-      const start = new Date(year, month - 1, day, st.h, st.min);
-      const end   = new Date(year, month - 1, day, et.h, et.min);
-      if (start <= now) continue;
+      // Build ISO strings in Pacific time (America/Los_Angeles)
+      // Use a fixed UTC offset approach: PST=-8, PDT=-7
+      // Netlify runs in UTC — emit as a local datetime string without Z
+      // so the browser interprets it in the user's local timezone
+      const pad = n => String(n).padStart(2, "0");
+      const startStr = `${year}-${month}-${day}T${pad(st.h)}:${pad(st.min)}:00`;
+      const endStr   = `${year}-${month}-${day}T${pad(et.h)}:${pad(et.min)}:00`;
 
-      sessions.push({
-        id: slug,
-        start: start.toISOString(),
-        end:   end.toISOString(),
-        title: "Stick & Puck",
-        spots: null,
-        price: null,
-        soldOut: false,
-        bookUrl: url,
-      });
+      // Check if session is in the past (compare date string only for now filter)
+      const sessionDate = new Date(`${year}-${month}-${day}T23:59:00`);
+      if (sessionDate < now) continue;
+
+      const bookUrl = "https://kentvalleyicecentre.net/product/" + slug + "/";
+
+      sessions.push({ id: slug, start: startStr, end: endStr, title: "Stick & Puck", spots: null, price: null, soldOut: false, bookUrl });
     }
 
-    sessions.sort((a, b) => new Date(a.start) - new Date(b.start));
+    sessions.sort((a, b) => a.start.localeCompare(b.start));
 
     return {
       statusCode: 200,
