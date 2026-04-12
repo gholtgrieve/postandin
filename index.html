@@ -112,10 +112,10 @@ body {
 
 /* Tagline */
 .tagline {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  color: var(--white-3);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--white-2);
   margin-top: 12px;
   margin-bottom: 2.5rem;
   border-left: 2px solid var(--red);
@@ -148,29 +148,6 @@ body {
 }
 .nav-link:last-child { border-bottom: none; }
 .nav-link:hover { background: var(--black-3); border-left-color: var(--yellow); }
-.nav-link.coming-soon {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-.nav-link-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  padding: 3px 8px;
-  border: 1px solid var(--yellow);
-  color: var(--yellow);
-}
-.nav-link.coming-soon .badge {
-  border-color: #333;
-  color: #555;
-}
 .nav-arrow {
   font-size: 16px;
   color: var(--yellow);
@@ -229,7 +206,7 @@ body {
     <span class="logo-in">In</span>
   </div>
 
-  <p class="tagline">Seattle Area Ice Hockey</p>
+  <p class="tagline">Seattle hockey, all in one place</p>
 
   <nav class="nav">
     <a class="nav-link" href="/stick-and-puck/">
@@ -237,18 +214,6 @@ body {
       <span class="nav-link-right">
         <span class="badge">Live</span>
         <span class="nav-arrow">→</span>
-      </span>
-    </a>
-    <a class="nav-link coming-soon" href="#">
-      <span>Open Skate</span>
-      <span class="nav-link-right">
-        <span class="badge">Soon</span>
-      </span>
-    </a>
-    <a class="nav-link coming-soon" href="#">
-      <span>Drop-in Hockey</span>
-      <span class="nav-link-right">
-        <span class="badge">Soon</span>
       </span>
     </a>
   </nav>
