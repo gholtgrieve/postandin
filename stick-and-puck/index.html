@@ -635,6 +635,14 @@ const RINKS = {
     system: "fareharbor",
     config: { company: "olympicviewarena", itemPk: 313860 },
   },
+  kentvalley: {
+    name: "Kent Valley Ice Centre",
+    city: "Kent",
+    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
+    color: "#22AADD",
+    system: "kentvalley",
+    config: {},
+  },
   lynnwood: {
     name: "Lynnwood Ice Center",
     city: "Lynnwood",
@@ -772,6 +780,16 @@ async function fetchFareHarbor({ company, itemPk }) {
   }).sort((a, b) => a.start - b.start);
 }
 
+// Kent Valley ─────────────────────────────────────────────────────────────────────
+async function fetchKentValley() {
+  // Netlify function fetches KV page server-side and parses sessions from product URL slugs
+  const r = await fetch('/api/kentvalley');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  if (!d.ok) throw new Error(d.error || 'Kent Valley fetch failed');
+  return d.sessions.map(s => ({ ...s, start: new Date(s.start), end: new Date(s.end) }));
+}
+
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
   const tasks = {
@@ -781,6 +799,7 @@ async function fetchAll() {
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
+    kentvalley:       fetchKentValley(),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
