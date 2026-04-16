@@ -782,11 +782,16 @@ async function fetchFareHarbor({ company, itemPk }) {
 
 // Kent Valley ─────────────────────────────────────────────────────────────────────
 async function fetchKentValley() {
-  // Netlify function fetches KV page server-side and parses sessions from product URL slugs
+  // Cloudflare Pages Function fetches KV page server-side and parses sessions from product URL slugs
+  // If KV's server blocks the request, fall back gracefully (show link-out card)
   const r = await fetch('/api/kentvalley');
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  const d = await r.json();
-  if (!d.ok) throw new Error(d.error || 'Kent Valley fetch failed');
+  const d = await r.json().catch(() => ({ ok: false, error: 'Parse error', sessions: [] }));
+  if (!d.ok) {
+    // Treat as "book directly" fallback — not a hard error
+    const err = new Error(d.error || 'book directly');
+    err.isFallback = true;
+    throw err;
+  }
   return d.sessions.map(s => ({ ...s, start: new Date(s.start), end: new Date(s.end) }));
 }
 
@@ -948,7 +953,8 @@ function renderSessions(data) {
   // Separate "expected no-data" (CORS/LeagueApps) from real errors
   const fallbacks = errors.filter(e =>
     e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
-    e.error?.includes("directly") || e.error?.includes("book directly")
+    e.error?.includes("directly") || e.error?.includes("book directly") ||
+    e.key === "kentvalley"
   );
   const hardErrors = errors.filter(e => !fallbacks.includes(e));
 
