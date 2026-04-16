@@ -635,14 +635,6 @@ const RINKS = {
     system: "fareharbor",
     config: { company: "olympicviewarena", itemPk: 313860 },
   },
-  kentvalley: {
-    name: "Kent Valley Ice Centre",
-    city: "Kent",
-    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
-    color: "#22AADD",
-    system: "kentvalley",
-    config: {},
-  },
   lynnwood: {
     name: "Lynnwood Ice Center",
     city: "Lynnwood",
@@ -657,8 +649,16 @@ const RINKS = {
     name: "Everett Community Ice Rink",
     city: "Everett",
     url: "https://aotw-arena.web.app/",
-    color: "#005A9B",
+    color: "#2E7D4F",
     system: "everett",
+    config: {},
+  },
+  kentvalley: {
+    name: "Kent Valley Ice Centre",
+    city: "Kent",
+    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
+    color: "#C47B00",
+    system: "kentvalley",
     config: {},
   },
 };
@@ -843,8 +843,8 @@ async function fetchAll() {
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
-    kentvalley:       fetchKentValley(),
     everett:          fetchEverett(),
+    kentvalley:       fetchKentValley(),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
