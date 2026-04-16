@@ -653,6 +653,14 @@ const RINKS = {
     // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
     config: { company: "lynnwoodicecenter", itemPk: 245296 },
   },
+  everett: {
+    name: "Everett Community Ice Rink",
+    city: "Everett",
+    url: "https://aotw-arena.web.app/",
+    color: "#005A9B",
+    system: "everett",
+    config: {},
+  },
 };
 
 // DaySmart ─────────────────────────────────────────────────────────────────────
@@ -795,6 +803,37 @@ async function fetchKentValley() {
   return d.sessions.map(s => ({ ...s, start: new Date(s.start), end: new Date(s.end) }));
 }
 
+// Everett Community Ice Rink (Angel of the Winds) ──────────────────────────────
+async function fetchEverett() {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date();
+  future.setDate(future.getDate() + 14);
+  const endDate = future.toISOString().slice(0, 10);
+  const r = await fetch(`/api/everett?startDate=${today}&endDate=${endDate}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  const now = new Date();
+  const sessions = [];
+  for (const rink of data) {
+    if (rink.name !== 'Community Rink') continue;
+    for (const slot of rink.slots) {
+      if (!slot.title.toLowerCase().includes('stick')) continue;
+      const dateStr = slot.startDate.slice(0, 10);
+      const start = new Date(`${dateStr}T${slot.startTime}`);
+      const end   = new Date(`${dateStr}T${slot.endTime}`);
+      if (start <= now) continue;
+      sessions.push({
+        id: `everett-${slot.id}`,
+        start, end,
+        title: slot.title,
+        spots: null, price: null, soldOut: false,
+        bookUrl: 'https://aotw-arena.web.app/',
+      });
+    }
+  }
+  return sessions.sort((a, b) => a.start - b.start);
+}
+
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
   const tasks = {
@@ -805,6 +844,7 @@ async function fetchAll() {
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
     kentvalley:       fetchKentValley(),
+    everett:          fetchEverett(),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
