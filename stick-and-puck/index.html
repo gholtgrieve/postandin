@@ -649,16 +649,8 @@ const RINKS = {
     name: "Everett Community Ice Rink",
     city: "Everett",
     url: "https://aotw-arena.web.app/",
-    color: "#2E7D4F",
+    color: "#005A9B",
     system: "everett",
-    config: {},
-  },
-  kentvalley: {
-    name: "Kent Valley Ice Centre",
-    city: "Kent",
-    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
-    color: "#C47B00",
-    system: "kentvalley",
     config: {},
   },
 };
@@ -788,21 +780,6 @@ async function fetchFareHarbor({ company, itemPk }) {
   }).sort((a, b) => a.start - b.start);
 }
 
-// Kent Valley ─────────────────────────────────────────────────────────────────────
-async function fetchKentValley() {
-  // Cloudflare Pages Function fetches KV page server-side and parses sessions from product URL slugs
-  // If KV's server blocks the request, fall back gracefully (show link-out card)
-  const r = await fetch('/api/kentvalley');
-  const d = await r.json().catch(() => ({ ok: false, error: 'Parse error', sessions: [] }));
-  if (!d.ok) {
-    // Treat as "book directly" fallback — not a hard error
-    const err = new Error(d.error || 'book directly');
-    err.isFallback = true;
-    throw err;
-  }
-  return d.sessions.map(s => ({ ...s, start: new Date(s.start), end: new Date(s.end) }));
-}
-
 // Everett Community Ice Rink (Angel of the Winds) ──────────────────────────────
 async function fetchEverett() {
   const today = new Date().toISOString().slice(0, 10);
@@ -844,7 +821,6 @@ async function fetchAll() {
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
     everett:          fetchEverett(),
-    kentvalley:       fetchKentValley(),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
   const results = {};
@@ -993,8 +969,7 @@ function renderSessions(data) {
   // Separate "expected no-data" (CORS/LeagueApps) from real errors
   const fallbacks = errors.filter(e =>
     e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
-    e.error?.includes("directly") || e.error?.includes("book directly") ||
-    e.key === "kentvalley"
+    e.error?.includes("directly") || e.error?.includes("book directly")
   );
   const hardErrors = errors.filter(e => !fallbacks.includes(e));
 
