@@ -688,6 +688,8 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
 
   return (data?.data ?? [])
     .filter(ev => {
+      // Skip locker room sub-events (type "L") — they duplicate the parent session
+      if (ev.attributes?.event_type_id === 'L') return false;
       if (resourceIds?.length) {
         const rid = Number(ev.attributes?.resource_id);
         if (!resourceIds.includes(rid)) return false;
@@ -714,11 +716,6 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const subtitle = rawDesc
         .replace(/^Stick\s*&\s*Puck(\s+at\s+KCI)?[!.]?\s*/i, '')
         .replace(/^Players must be in full hockey gear.*$/i, '')
-        .replace(/^Price per session.*$/i, '')
-        .replace(/^Price per player.*$/i, '')
-        .replace(/^Skating across.*$/i, '')
-        .replace(/^Prerequisites:.*$/i, '')
-        .replace(/^Tues.*$/i, '')
         .trim() || null;
       return {
         id:       ev.id,
