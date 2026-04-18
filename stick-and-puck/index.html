@@ -688,7 +688,6 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
 
   return (data?.data ?? [])
     .filter(ev => {
-      // Skip locker room sub-events (type "L") — they duplicate the parent session
       if (ev.attributes?.event_type_id === 'L') return false;
       if (resourceIds?.length) {
         const rid = Number(ev.attributes?.resource_id);
@@ -716,6 +715,10 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const subtitle = rawDesc
         .replace(/^Stick\s*&\s*Puck(\s+at\s+KCI)?[!.]?\s*/i, '')
         .replace(/^Players must be in full hockey gear.*$/i, '')
+        .replace(/^Price per session.*$/i, '')
+        .replace(/^Price per player.*$/i, '')
+        .replace(/^Skating across.*$/i, '')
+        .replace(/^Prerequisites:.*$/i, '')
         .trim() || null;
       return {
         id:       ev.id,
@@ -781,6 +784,7 @@ async function fetchFareHarbor({ company, itemPk }) {
           start: new Date(av.start_at),
           end:   new Date(av.end_at),
           title: "Stick & Puck",
+          subtitle: null,
           spots: spots > 0 ? spots : null, // hide 0 — means "unknown" not "full"
           price,
           soldOut: av.is_sold_out === true,
@@ -822,6 +826,7 @@ async function fetchEverett() {
         id: `everett-${slot.id}`,
         start, end,
         title: slot.title,
+        subtitle: null,
         spots: null, price: null, soldOut: false,
         bookUrl: 'https://aotw-arena.web.app/',
       });
