@@ -684,6 +684,16 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
   const resourceMap = {};
   (rdata?.data ?? []).forEach(r => { resourceMap[r.id] = r.attributes?.name?.trim(); });
 
+  // Fetch league names for all unique league_ids in this batch
+  const leagueIds = [...new Set((data?.data ?? []).map(ev => ev.attributes?.league_id).filter(Boolean))];
+  const leagueMap = {};
+  await Promise.all(leagueIds.map(async id => {
+    try {
+      const ld = await _dsFetch(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/leagues/${id}?company=${company}`);
+      leagueMap[id] = ld?.data?.attributes?.name ?? null;
+    } catch { leagueMap[id] = null; }
+  }));
+
   const iceNames = /ice|rink|sheet|olympic|cascade|rainier/i;
 
   return (data?.data ?? [])
@@ -699,7 +709,7 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
         ev.attributes?.name,
         ev.attributes?.title,
       ].filter(Boolean).join(" ").toLowerCase().replace(/<[^>]+>/g, "");
-      return text.includes("stick") || text.includes("s&p") || text.includes("s & p");
+      return text.includes("stick") || text.includes("s&p") || text.includes("s & p") || text.includes("full hockey gear");
     })
     .map(ev => {
       const a = ev.attributes ?? {};
@@ -707,19 +717,11 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const end   = a.end   ?? a.endTime   ?? a.end_time;
       const resourceName = resourceMap[String(a.resource_id)];
       const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
-      const rawDesc = (a.best_description || '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&amp;/g, '&')
-        .replace(/&nbsp;/g, ' ')
-        .trim();
-      const subtitle = rawDesc
-        .replace(/^Stick\s*&\s*Puck(\s+at\s+KCI)?[!.]?\s*/i, '')
-        .replace(/^Players must be in full hockey gear.*$/i, '')
-        .replace(/^Price per session.*$/i, '')
-        .replace(/^Price per player.*$/i, '')
-        .replace(/^Skating across.*$/i, '')
-        .replace(/^Prerequisites:.*$/i, '')
-        .trim() || null;
+      // Derive subtitle from league name (strips generic prefix and parens)
+      const leagueName = leagueMap[a.league_id] ?? null;
+      const subtitle = leagueName
+        ? leagueName.replace(/^(LTP\s+Family\s+)?Stick\s*&\s*Puck\s*/i, '').replace(/^\(|\)$/g, '').trim() || null
+        : null;
       return {
         id:       ev.id,
         start:    start ? new Date(start) : null,
