@@ -717,10 +717,13 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const end   = a.end   ?? a.endTime   ?? a.end_time;
       const resourceName = resourceMap[String(a.resource_id)];
       const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
-      // Derive subtitle from league name (strips generic prefix and parens)
+      // Subtitle from league name — only show if it conveys age/gender info
       const leagueName = leagueMap[a.league_id] ?? null;
-      const subtitle = leagueName
-        ? leagueName.replace(/^(LTP\s+Family\s+)?Stick\s*&\s*Puck\s*/i, '').replace(/^\(|\)$/g, '').trim() || null
+      const _leagueStripped = leagueName
+        ? leagueName.replace(/^(LTP\s+Family\s+)?Stick\s*[&n]\s*(Puck\s*)?/i, '').replace(/^\(|\)$/g, '').trim()
+        : '';
+      const subtitle = _leagueStripped && /under|over|\d+[u+]|female|non-binary|women|adult|family/i.test(_leagueStripped)
+        ? _leagueStripped
         : null;
       return {
         id:       ev.id,
