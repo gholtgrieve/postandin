@@ -642,14 +642,6 @@ const RINKS = {
     system: "fareharbor",
     config: { company: "olympicviewarena", itemPk: 313860 },
   },
-  kentvalley: {
-    name: "Kent Valley Ice Centre",
-    city: "Kent",
-    url: "https://kentvalleyicecentre.net/stick-and-pucks/",
-    color: "#22AADD",
-    system: "kentvalley",
-    config: {},
-  },
   lynnwood: {
     name: "Lynnwood Ice Center",
     city: "Lynnwood",
@@ -664,7 +656,7 @@ const RINKS = {
     name: "Everett Community Ice Rink",
     city: "Everett",
     url: "https://aotw-arena.web.app/",
-    color: "#005A9B",
+    color: "#2E7D4F",
     system: "everett",
     config: {},
   },
@@ -714,7 +706,6 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const end   = a.end   ?? a.endTime   ?? a.end_time;
       const resourceName = resourceMap[String(a.resource_id)];
       const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
-      // Extract qualifier from best_description, stripping generic boilerplate
       const rawDesc = (a.best_description || '')
         .replace(/<[^>]+>/g, '')
         .replace(/&amp;/g, '&')
@@ -806,21 +797,6 @@ async function fetchFareHarbor({ company, itemPk }) {
   }).sort((a, b) => a.start - b.start);
 }
 
-// Kent Valley ─────────────────────────────────────────────────────────────────────
-async function fetchKentValley() {
-  // Cloudflare Pages Function fetches KV page server-side and parses sessions from product URL slugs
-  // If KV's server blocks the request, fall back gracefully (show link-out card)
-  const r = await fetch('/api/kentvalley');
-  const d = await r.json().catch(() => ({ ok: false, error: 'Parse error', sessions: [] }));
-  if (!d.ok) {
-    // Treat as "book directly" fallback — not a hard error
-    const err = new Error(d.error || 'book directly');
-    err.isFallback = true;
-    throw err;
-  }
-  return d.sessions.map(s => ({ ...s, start: new Date(s.start), end: new Date(s.end) }));
-}
-
 // Everett Community Ice Rink (Angel of the Winds) ──────────────────────────────
 async function fetchEverett() {
   const today = new Date().toISOString().slice(0, 10);
@@ -861,7 +837,6 @@ async function fetchAll() {
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
-    kentvalley:       fetchKentValley(),
     everett:          fetchEverett(),
   };
   const settled = await Promise.allSettled(Object.values(tasks));
@@ -1011,8 +986,7 @@ function renderSessions(data) {
   // Separate "expected no-data" (CORS/LeagueApps) from real errors
   const fallbacks = errors.filter(e =>
     e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
-    e.error?.includes("directly") || e.error?.includes("book directly") ||
-    e.key === "kentvalley"
+    e.error?.includes("directly") || e.error?.includes("book directly")
   );
   const hardErrors = errors.filter(e => !fallbacks.includes(e));
 
