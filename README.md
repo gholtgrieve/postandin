@@ -1,96 +1,94 @@
-# Seattle Stick & Puck
+# Seattle Stick & Puck — Post & In
 
-Aggregates open stick & puck ice times across Seattle-area rinks.
+Aggregates open stick & puck ice times across Seattle-area rinks into a single live page.
 
-## Status
-
-| Rink | System | Config | Live data |
-|------|--------|--------|-----------|
-| Kraken Community Iceplex | DaySmart JSON | `company=kraken` | ✅ |
-| Sno-King Ice Arena | DaySmart JSON | `company=snoking` | ✅ |
-| Olympic View Arena | FareHarbor | `company=olympicviewarena, itemPk=313860` | ✅ |
-| Lynnwood Ice Center | FareHarbor | `company=lynnwoodicecenter, itemPk=245312`* | ⚠️ |
-| Kent Valley Ice Centre | WooCommerce scrape | server proxy required | ✅ (with server) |
-| Tacoma Twin Rinks | LeagueApps | programId=17615 | ⚠️ |
-
-\* Item 245312 = public sessions. Run `/api/discover` (see below) to find the S&P-specific PK.
+Live at **[postandin.com/stick-and-puck](https://postandin.com/stick-and-puck/)**
 
 ---
 
-## Quick start
+## Rinks
 
-### Static only (4 rinks live, 2 as booking links)
-```bash
-open index.html
-# or: npx serve .
-```
-Kraken, Sno-King, OVA, and Lynnwood (public sessions) fetch live.
-Kent Valley and Tacoma show as direct booking links.
-
-### Full server (all 6 rinks)
-```bash
-npm install
-npm start
-open http://localhost:3000
-```
-
----
-
-## Finding the Lynnwood S&P item PK
-
-Run the server, then visit:
-```
-http://localhost:3000/api/discover
-```
-
-This hits `fareharbor.com/api/v1/companies/lynnwoodicecenter/items/` and prints all items.
-Look for one with "stick" or "puck" in the name. Then update in `index.html`:
-
-```js
-lynnwood: { config: { company: "lynnwoodicecenter", itemPk: <NEW_PK> } }
-```
-
-Or from the command line without the server:
-```bash
-node discover-pks.js
-```
-
-Or from the browser console on the page:
-```js
-await window.discoverLynnwoodPKs()
-// Then once you have the PK:
-window.setLynnwoodPK(123456)
-loadData()
-```
-
----
-
-## Tacoma Twin Rinks
-
-Tacoma uses **LeagueApps**, which requires user login — no public API.
-
-- Direct S&P booking: https://tacomatwinrinks.leagueapps.com/bookings?filters={"programId":"17615"}
-- The server (`server.js`) probes several WordPress REST endpoints on `psicesports.com`
-  in case a public calendar feed exists. If any endpoint returns data, Tacoma will
-  show inline sessions automatically. Otherwise it shows as a "book directly" link.
+| Rink | City | System | Notes |
+|------|------|--------|-------|
+| Kraken Community Iceplex | Seattle | DaySmart | Direct API, no proxy needed |
+| Sno-King Ice Arena | Renton | DaySmart | Resources 11, 12 (Large + Small Ice) |
+| Sno-King Ice Arena | Kirkland | DaySmart | Resource 1 |
+| Sno-King Ice Arena | Snoqualmie | DaySmart | Resources 13, 14 (Rink A + B) |
+| Olympic View Arena | Mountlake Terrace | FareHarbor | itemPk 313860, proxied via `/api/fareharbor` |
+| Lynnwood Ice Center | Lynnwood | FareHarbor | itemPk 245296, proxied via `/api/fareharbor` |
+| Everett Community Ice Rink | Everett | Custom (Angel of the Winds) | Proxied via `/api/everett` |
+| Kent Valley Ice Centre | Kent | Google Calendar iCal | Proxied via `/api/kentvalley` |
 
 ---
 
 ## Architecture
 
+All session data is fetched client-side from `stick-and-puck/index.html`. Sources that require a CORS proxy are routed through serverless functions.
+
 ```
-Browser
-  ├─ DaySmart API (Kraken, Sno-King)      direct fetch, no CORS issue
-  ├─ FareHarbor API (OVA, Lynnwood)       direct fetch, no CORS issue
-  ├─ /api/sessions/kentvalley  ─────┐
-  └─ /api/sessions/tacoma      ─────┤
-                                    └── server.js (Express proxy, 10-min cache)
-                                            ├── Kent Valley HTML scrape
-                                            └── Tacoma WP REST probe
+Browser (stick-and-puck/index.html)
+  ├─ DaySmart API (Kraken, Sno-King ×3)   direct fetch — no CORS issue
+  ├─ FareHarbor API (OVA, Lynnwood)        direct fetch — no CORS issue
+  ├─ /api/fareharbor  ────────────────┐
+  ├─ /api/everett     ────────────────┤
+  └─ /api/kentvalley  ────────────────┴── serverless functions (see below)
 ```
 
-## Deployment
+### Serverless functions
 
-Simplest path: deploy `server.js` to [Railway](https://railway.app) or [Render](https://render.com) (both free tier), then set `API_BASE` in `index.html` to point to the deployed URL.
+Two identical implementations are maintained:
 
-Or just open `index.html` locally — Kraken, Sno-King, OVA, and Lynnwood work without a server.
+| Path | Platform |
+|------|----------|
+| `functions/api/` | Cloudflare Pages (primary deployment) |
+| `netlify/functions/` | Netlify (secondary / legacy) |
+
+Functions:
+- **`fareharbor.js`** — proxies FareHarbor calendar API to avoid CORS
+- **`everett.js`** — proxies Angel of the Winds schedule API
+- **`kentvalley.js`** — fetches and parses Kent Valley's public Google Calendar iCal feed
+
+---
+
+## Local development
+
+### Static only (DaySmart + FareHarbor rinks)
+```bash
+open stick-and-puck/index.html
+```
+Kraken, Sno-King, OVA, and Lynnwood fetch live. Everett and Kent Valley will error without their proxy functions running.
+
+### With Cloudflare Pages (all rinks)
+```bash
+npx wrangler pages dev . --compatibility-flag=nodejs_compat
+```
+
+### With Netlify CLI (all rinks)
+```bash
+npx netlify dev
+```
+
+---
+
+## Finding a FareHarbor item PK
+
+From the browser console on the page:
+```js
+await window.discoverLynnwoodPKs()
+// Returns a table of all Lynnwood FareHarbor items
+// Once you have the PK:
+window.setLynnwoodPK(123456)
+loadData()
+```
+
+Then update `itemPk` in the `RINKS` config in `stick-and-puck/index.html`.
+
+---
+
+## Kent Valley iCal notes
+
+Kent Valley's Google Calendar (`kentvalleyicecentre.com@gmail.com`) exports events in two forms:
+- **Expanded instances** — individual VEVENT blocks with a specific DTSTART datetime
+- **Series definitions** — VEVENT blocks with RRULE; the parser captures the first future occurrence only
+
+The feed is fetched server-side to avoid CORS. Events are filtered to those with `stick` in the summary and a DTSTART that includes a time component (all-day events are skipped).
