@@ -12,18 +12,18 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --black:    #0A0A0A;
-  --black-2:  #111111;
-  --black-3:  #1A1A1A;
-  --black-4:  #222222;
-  --white:    #E8E4DC;
-  --white-2:  #C8C4BC;
-  --white-3:  #989490;
-  --yellow:   #F0D44A;
-  --yellow-dk:#C4AA28;
+  --black:    #E8E3D8;
+  --black-2:  #EFEBE2;
+  --black-3:  #DED9CD;
+  --black-4:  #D0CABC;
+  --white:    #141210;
+  --white-2:  #3D3A34;
+  --white-3:  #6E6A61;
+  --yellow:   #9A7B00;
+  --yellow-dk:#7C6300;
   --red:      #CC2200;
   --red-lt:   #E83318;
-  --rule:     1px solid #2A2A2A;
+  --rule:     1px solid #B8B2A4;
 }
 
 html { scroll-behavior: smooth; }
@@ -33,8 +33,6 @@ body {
   background-color: var(--black);
   color: var(--white);
   min-height: 100vh;
-  background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
-  background-size: 24px 24px;
 }
 
 /* ── Header ── */
@@ -66,19 +64,9 @@ header {
   align-items: center;
   gap: 10px;
 }
-.logo a {
-  color: inherit;
-  text-decoration: none;
-}
-.logo .slash {
-  color: var(--yellow);
-  font-size: 20px;
-  opacity: 0.6;
-}
-.logo .section {
-  color: var(--yellow);
-}
-
+.logo a { color: inherit; text-decoration: none; }
+.logo .slash { color: var(--yellow); font-size: 20px; opacity: 0.6; }
+.logo .section { color: var(--yellow); }
 
 .header-meta {
   font-size: 11px;
@@ -91,8 +79,7 @@ header {
 
 .live-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 6px; height: 6px;
   background: var(--red-lt);
   border-radius: 50%;
   margin-right: 6px;
@@ -250,7 +237,7 @@ main {
   gap: 10px;
 }
 .status-banner.error { border-left-color: var(--red); }
-.status-banner.success { border-left-color: #44AA44; }
+.status-banner.success { border-left-color: #2A6E2A; }
 .status-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
@@ -260,33 +247,55 @@ main {
 }
 .status-banner.success .status-dot { animation: none; }
 
-/* ── Rink legend ── */
+/* ── Rink legend (chip filter) ── */
 .rink-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
-  margin-bottom: 28px;
-  border: var(--rule);
-  border-bottom: 2px solid var(--black-4);
-}
-.legend-item {
-  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
   align-items: center;
-  gap: 8px;
+}
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: 0.12em;
   color: var(--white-2);
   cursor: pointer;
-  padding: 10px 16px;
-  border-right: var(--rule);
+  padding: 6px 12px;
+  border: 1px solid var(--black-4);
+  background: var(--black-2);
   transition: all 0.1s;
+  user-select: none;
 }
-.legend-item:hover { background: var(--black-3); color: var(--white); }
+.legend-chip:hover { border-color: var(--white-3); color: var(--white); }
+.legend-chip.selected {
+  background: var(--white);
+  color: var(--black);
+  border-color: var(--white-2);
+}
 .legend-dot {
   width: 8px; height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
+  display: inline-block;
 }
+.legend-clear {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--white-3);
+  cursor: pointer;
+  padding: 6px 10px;
+  border: 1px solid var(--black-4);
+  transition: all 0.1s;
+  display: none;
+}
+.legend-clear.visible { display: inline-flex; align-items: center; }
+.legend-clear:hover { color: var(--white); border-color: var(--white-3); }
 
 /* ── Day sections ── */
 .day-section { margin-bottom: 2px; }
@@ -295,7 +304,6 @@ main {
   background: var(--black-3);
   border-top: var(--rule);
   border-bottom: var(--rule);
-  padding: 0 0;
   margin-bottom: 2px;
   display: flex;
   align-items: stretch;
@@ -312,7 +320,7 @@ main {
   align-items: center;
   white-space: nowrap;
 }
-.day-name-block.today-block { background: var(--red); color: var(--white); }
+.day-name-block.today-block { background: var(--red); color: var(--black); }
 
 .day-date-block {
   font-size: 11px;
@@ -336,68 +344,81 @@ main {
   border-left: var(--rule);
 }
 
-/* ── Session Grid ── */
-.session-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+/* ── Session Rows ── */
+.session-rows {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   margin-bottom: 2px;
 }
 
-/* ── Session Card ── */
-.session-card {
+.session-row {
   background: var(--black-2);
   border-left: 3px solid var(--rink-color, var(--yellow));
-  padding: 14px 16px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: background 0.1s;
-  text-decoration: none;
-  color: inherit;
-  position: relative;
-}
-.session-card:hover:not(.sold-out) { background: var(--black-3); }
-.session-card.sold-out { opacity: 0.4; }
-
-.card-rink {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--rink-color, var(--yellow));
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s;
 }
-.card-rink .city-tag {
-  color: var(--white-3);
-  font-weight: 400;
-}
+.session-row:hover:not(.sold-out) { background: var(--black-3); }
+.session-row.sold-out { opacity: 0.4; cursor: default; }
 
-.card-time {
+.row-time {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 44px;
+  font-size: 26px;
   letter-spacing: 0.02em;
   color: var(--white);
-  line-height: 1;
+  white-space: nowrap;
+  min-width: 96px;
 }
-.card-time .duration {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  font-weight: 400;
+
+.row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-rink {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--rink-color, var(--yellow));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-city {
+  font-size: 9px;
+  letter-spacing: 0.1em;
   color: var(--white-3);
-  letter-spacing: 0.06em;
-  display: block;
   margin-top: 2px;
 }
 
-.card-footer {
+.row-right {
+  text-align: right;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
+.row-duration {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--white-3);
+}
+
+.row-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ── Badges ── */
 .badge {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
@@ -407,9 +428,9 @@ main {
   border: 1px solid;
 }
 .badge-price { border-color: var(--black-4); color: var(--white-3); }
-.badge-spots { border-color: #1E4A1E; color: #44AA44; }
-.badge-spots.low { border-color: #4A2A1E; color: var(--red-lt); }
-.badge-sold-out { border-color: #4A1A1A; color: var(--red); }
+.badge-spots { border-color: #2A5C2A; color: #1A5C1A; }
+.badge-spots.low { border-color: #7A3020; color: var(--red-lt); }
+.badge-sold-out { border-color: #7A2020; color: var(--red); }
 .badge-subtitle {
   border-color: var(--black-4);
   color: var(--white-2);
@@ -417,16 +438,6 @@ main {
   font-style: italic;
   letter-spacing: 0.06em;
 }
-.badge-book {
-  margin-left: auto;
-  border-color: var(--yellow);
-  color: var(--yellow);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-.badge-book:hover { background: var(--yellow); color: var(--black); }
-.session-card.sold-out .badge-book { display: none; }
 
 /* ── Fallback cards ── */
 .fallback-grid {
@@ -437,7 +448,7 @@ main {
 }
 .fallback-card {
   background: var(--black-2);
-  border-left: 3px solid var(--rink-color, #444);
+  border-left: 3px solid var(--rink-color, #999);
   padding: 14px 16px;
 }
 .fallback-card .fc-rink {
@@ -492,7 +503,7 @@ main {
   padding: 80px 20px;
   color: var(--white-3);
 }
-.empty-state .big-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.2; }
+.empty-state .big-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.4; }
 .empty-state h3 {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 32px;
@@ -512,10 +523,10 @@ main {
 .skeleton-card {
   background: var(--black-2);
   border-left: 3px solid var(--black-4);
-  padding: 14px 16px;
+  padding: 12px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 16px;
 }
 
 /* ── Footer ── */
@@ -534,13 +545,13 @@ footer a:hover { color: var(--yellow); }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .session-grid { grid-template-columns: 1fr 1fr; }
-  .card-time { font-size: 36px; }
   .page-meta { display: none; }
   .filter-btn { font-size: 15px; padding: 0 12px; }
+  .row-time { font-size: 22px; min-width: 76px; }
+  .row-rink { font-size: 9px; }
 }
 @media (max-width: 400px) {
-  .session-grid { grid-template-columns: 1fr; }
+  .row-time { min-width: 64px; }
 }
 </style>
 </head>
@@ -606,7 +617,7 @@ const RINKS = {
     name: "Kraken Community Iceplex",
     city: "Seattle",
     url: "https://www.krakencommunityiceplex.com/stick-puck/",
-    color: "#F0D44A",
+    color: "#9A7B00",
     system: "daysmart",
     config: { company: "kraken", sportId: 20 },
   },
@@ -671,8 +682,6 @@ const RINKS = {
 };
 
 // DaySmart ─────────────────────────────────────────────────────────────────────
-// Cache DaySmart API responses so multiple rinks sharing the same company
-// slug (e.g. all three Sno-King locations) only make one network request each.
 const _dsCache = {};
 async function _dsFetch(url) {
   if (_dsCache[url]) return _dsCache[url];
@@ -688,11 +697,9 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
   ]);
   const now = new Date();
 
-  // Build resource_id → name lookup
   const resourceMap = {};
   (rdata?.data ?? []).forEach(r => { resourceMap[r.id] = r.attributes?.name?.trim(); });
 
-  // Fetch league names for all unique league_ids in this batch
   const leagueIds = [...new Set((data?.data ?? []).map(ev => ev.attributes?.league_id).filter(Boolean))];
   const leagueMap = {};
   await Promise.all(leagueIds.map(async id => {
@@ -725,7 +732,6 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
       const end   = a.end   ?? a.endTime   ?? a.end_time;
       const resourceName = resourceMap[String(a.resource_id)];
       const location = resourceName && iceNames.test(resourceName) ? resourceName : null;
-      // Subtitle from league name — only show if it conveys age/gender info
       const leagueName = leagueMap[a.league_id] ?? null;
       const _leagueStripped = leagueName
         ? leagueName.replace(/^(LTP\s+Family\s+)?Stick\s*[&n]\s*(Puck\s*)?/i, '').replace(/^\(|\)$/g, '').trim()
@@ -761,9 +767,7 @@ async function fetchFareHarbor({ company, itemPk }) {
   ];
   const pages = await Promise.all(months.map(async ([y, m]) => {
     const mm = String(m).padStart(2, "0");
-    // Use Netlify proxy function to avoid FareHarbor CORS block
     const proxyUrl = `/api/fareharbor?company=${company}&itemPk=${itemPk}&year=${y}&month=${mm}`;
-    // Fall back to direct fetch for local dev (file:// or localhost without functions)
     const urls = [proxyUrl, `https://fareharbor.com/api/v1/companies/${company}/items/${itemPk}/calendar/${y}/${mm}/`];
     for (const url of urls) {
       try {
@@ -775,9 +779,6 @@ async function fetchFareHarbor({ company, itemPk }) {
   }));
 
   const all = pages.flatMap(data => {
-    // Two possible schemas:
-    // OVA-style:      { dates: [ { availabilities: [...] } ] }
-    // Lynnwood-style: { calendar: { weeks: [ { days: [ { availabilities: [...] } ] } ] } }
     let avails = [];
     if (data?.dates) {
       avails = data.dates.flatMap(day => day?.availabilities ?? []);
@@ -788,8 +789,6 @@ async function fetchFareHarbor({ company, itemPk }) {
       .filter(av => new Date(av.start_at) > now)
       .map(av => {
         const rate = av.customer_type_rates?.[0];
-        // approximate_available_capacity is unreliable on the calendar endpoint (always 0)
-        // Only use capacity_remaining from customer_type_rates if present
         const spots = rate?.availability?.capacity_remaining ?? null;
         const price = rate?.total_including_tax != null ? fmtPrice(rate.total_including_tax / 100) : null;
         return {
@@ -798,7 +797,7 @@ async function fetchFareHarbor({ company, itemPk }) {
           end:   new Date(av.end_at),
           title: "Stick & Puck",
           subtitle: null,
-          spots: spots > 0 ? spots : null, // hide 0 — means "unknown" not "full"
+          spots: spots > 0 ? spots : null,
           price,
           soldOut: av.is_sold_out === true,
           bookUrl: av.book_url
@@ -807,7 +806,6 @@ async function fetchFareHarbor({ company, itemPk }) {
         };
       });
   });
-  // Dedup by availability pk (can appear in both month fetches near month boundaries)
   const seen = new Set();
   return all.filter(s => {
     if (seen.has(s.id)) return false;
@@ -924,6 +922,7 @@ function fmtDayLabel(dateStr) {
 
 let allData = null;
 let activeFilter = "all";
+let selectedRinks = new Set();
 
 function showStatus(msg, type = "loading") {
   const el = document.getElementById("statusBanner");
@@ -937,40 +936,48 @@ function hideStatus() {
   document.getElementById("statusBanner").style.display = "none";
 }
 
-function showSkeletons(n = 6) {
-  const grid = Array.from({ length: n }, () => `
+function showSkeletons(n = 8) {
+  const rows = Array.from({ length: n }, () => `
     <div class="skeleton-card">
-      <div class="skeleton" style="height:12px;width:40%"></div>
-      <div class="skeleton" style="height:32px;width:65%"></div>
-      <div class="skeleton" style="height:12px;width:55%"></div>
+      <div class="skeleton" style="height:26px;width:80px;flex-shrink:0"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="skeleton" style="height:11px;width:140px"></div>
+        <div class="skeleton" style="height:9px;width:80px"></div>
+      </div>
+      <div class="skeleton" style="height:11px;width:50px;flex-shrink:0"></div>
     </div>`).join("");
-  document.getElementById("content").innerHTML = `
-    <div class="session-grid">${grid}</div>`;
+  document.getElementById("content").innerHTML = `<div class="session-rows">${rows}</div>`;
 }
 
 function renderLegend(data) {
   const legend = document.getElementById("rinkLegend");
-  legend.innerHTML = Object.entries(data).map(([key, r]) =>
-    `<span class="legend-item" data-rink="${key}" title="${r.rink.name}">
-      <span class="legend-dot" style="background:${r.rink.color};width:8px;height:8px;display:inline-block;"></span>
-      ${r.rink.city}${!r.ok ? " !" : ""}
+  let html = Object.entries(data).map(([key, r]) =>
+    `<span class="legend-chip${selectedRinks.has(key) ? ' selected' : ''}" data-rink="${key}">
+      <span class="legend-dot" style="background:${r.rink.color}"></span>
+      ${r.rink.city.toUpperCase()}${!r.ok ? ' !' : ''}
     </span>`
   ).join("");
+  html += `<span class="legend-clear${selectedRinks.size > 0 ? ' visible' : ''}" id="legendClear">Clear ✕</span>`;
+  legend.innerHTML = html;
 
-  legend.querySelectorAll(".legend-item").forEach(el => {
+  legend.querySelectorAll(".legend-chip").forEach(el => {
     el.addEventListener("click", () => {
-      const rinkKey = el.dataset.rink;
-      // Toggle rink filter — cycles through: all → specific → all
-      if (activeFilter === rinkKey) {
-        activeFilter = "all";
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
-      } else {
-        activeFilter = rinkKey;
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-      }
+      const key = el.dataset.rink;
+      if (selectedRinks.has(key)) selectedRinks.delete(key);
+      else selectedRinks.add(key);
+      renderLegend(data);
       renderSessions(data);
     });
   });
+
+  const clearBtn = document.getElementById("legendClear");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      selectedRinks.clear();
+      renderLegend(data);
+      renderSessions(data);
+    });
+  }
 }
 
 function renderSessions(data) {
@@ -978,22 +985,17 @@ function renderSessions(data) {
   const now = new Date();
   const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
 
-  // Flatten all sessions with rink info
   let all = [];
   const errors = [];
 
   for (const [key, r] of Object.entries(data)) {
-    if (!r.ok) {
-      errors.push({ key, ...r });
-    }
+    if (!r.ok) errors.push({ key, ...r });
     r.sessions.forEach(s => all.push({ ...s, rinkKey: key, rink: r.rink }));
   }
 
-  // Apply filter
-  const isRinkFilter = !["all", "available", "today", "tomorrow", "thisweek"].includes(activeFilter);
-
+  // Apply rink filter (multi-select union) then time filter
   all = all.filter(s => {
-    if (isRinkFilter) return s.rinkKey === activeFilter;
+    if (selectedRinks.size > 0 && !selectedRinks.has(s.rinkKey)) return false;
     if (activeFilter === "available") return !s.soldOut;
     if (activeFilter === "today") {
       const d = s.start; const t = new Date();
@@ -1007,7 +1009,6 @@ function renderSessions(data) {
     return true;
   });
 
-  // Group by day
   const byDay = {};
   all.forEach(s => {
     const k = dayKey(s.start);
@@ -1017,17 +1018,16 @@ function renderSessions(data) {
 
   const sortedDays = Object.keys(byDay).sort();
 
-  // Separate "expected no-data" (CORS/LeagueApps) from real errors
   const fallbacks = errors.filter(e =>
     e.error?.includes("CORS") || e.error?.includes("LeagueApps") ||
     e.error?.includes("directly") || e.error?.includes("book directly")
   );
   const hardErrors = errors.filter(e => !fallbacks.includes(e));
 
-  // Render fallback rink cards (venues that require direct booking)
   let html = "";
-  if (fallbacks.length && (activeFilter === "all" || fallbacks.some(e => e.key === activeFilter))) {
-    const visibleFallbacks = activeFilter === "all" ? fallbacks : fallbacks.filter(e => e.key === activeFilter);
+
+  if (fallbacks.length && (selectedRinks.size === 0 || fallbacks.some(e => selectedRinks.has(e.key)))) {
+    const visibleFallbacks = selectedRinks.size === 0 ? fallbacks : fallbacks.filter(e => selectedRinks.has(e.key));
     if (visibleFallbacks.length) {
       html += `<div class="fallback-grid">` +
         visibleFallbacks.map(e => {
@@ -1046,7 +1046,6 @@ function renderSessions(data) {
     }
   }
 
-  // Hard failures (unexpected errors)
   hardErrors.forEach(e => {
     html += `<div class="rink-error">
       <span>⚠️</span>
@@ -1070,8 +1069,8 @@ function renderSessions(data) {
           <div class="day-date-block">${full}</div>
           <div class="day-count-block">${sessions.length} session${sessions.length !== 1 ? 's' : ''}</div>
         </div>
-        <div class="session-grid">
-          ${sessions.map(s => sessionCard(s)).join("")}
+        <div class="session-rows">
+          ${sessions.map(s => sessionRow(s)).join("")}
         </div>
       </div>`;
     });
@@ -1079,7 +1078,6 @@ function renderSessions(data) {
 
   content.innerHTML = html;
 
-  // Update header meta
   const total = all.filter(s => !s.soldOut).length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
   const totalRinks = liveRinks + fallbacks.length;
@@ -1088,7 +1086,7 @@ function renderSessions(data) {
     `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
 }
 
-function sessionCard(s) {
+function sessionRow(s) {
   const timeStr = fmtTime(s.start);
   const dur = fmtDuration(s.start, s.end);
   const spotsStr = s.spots != null
@@ -1099,23 +1097,22 @@ function sessionCard(s) {
   const priceStr = s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
   const subtitleBadge = s.subtitle ? `<span class="badge badge-subtitle">${s.subtitle}</span>` : "";
   const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
-  const bookBadge = s.bookUrl && !s.soldOut
-    ? `<a class="badge badge-book" href="${s.bookUrl}" target="_blank" rel="noopener">Book →</a>`
-    : "";
 
-  return `<div class="session-card${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}">
-    <div class="card-rink">
-      ${s.rink.name}
-      <span class="city-tag">· ${s.rink.city}</span>
+  const linkAttrs = s.bookUrl && !s.soldOut
+    ? `href="${s.bookUrl}" target="_blank" rel="noopener"`
+    : '';
+
+  return `<a class="session-row${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
+    <div class="row-time">${timeStr}</div>
+    <div class="row-info">
+      <div class="row-rink">${s.rink.name}</div>
+      <div class="row-city">${s.rink.city}</div>
     </div>
-    <div class="card-time">
-      ${timeStr}
-      ${dur ? `<span class="duration">${dur}</span>` : ""}
+    <div class="row-right">
+      ${dur ? `<div class="row-duration">${dur}</div>` : ''}
+      <div class="row-badges">${subtitleBadge}${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
-    <div class="card-footer">
-      ${subtitleBadge}${priceStr}${spotsStr}${soldOutBadge}${bookBadge}
-    </div>
-  </div>`;
+  </a>`;
 }
 
 // ─── App bootstrap ────────────────────────────────────────────────────────────
@@ -1140,7 +1137,7 @@ async function loadData() {
   }
 }
 
-// Filter buttons
+// Filter buttons (time/availability only)
 document.querySelectorAll(".filter-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
@@ -1160,9 +1157,6 @@ setInterval(loadData, 10 * 60 * 1000);
 loadData();
 
 // ─── Dev helpers (run from browser console) ──────────────────────────────────
-// To find the Lynnwood S&P item PK (already set to 245296, but for reference):
-//   await window.discoverLynnwoodPKs()
-
 window.discoverLynnwoodPKs = async () => {
   console.log("Fetching Lynnwood FareHarbor items...");
   try {
@@ -1184,7 +1178,6 @@ window.setLynnwoodPK = (pk) => {
   console.log(`✅ Lynnwood item PK set to ${pk}. Call loadData() to refresh.`);
 };
 </script>
--e 
 
 </body>
 </html>
