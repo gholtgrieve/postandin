@@ -76,8 +76,4 @@ Then update `itemPk` in the `RINKS` config in `stick-and-puck/index.html`.
 
 ## Kent Valley iCal notes
 
-Kent Valley's Google Calendar (`kentvalleyicecentre.com@gmail.com`) exports events in two forms:
-- **Expanded instances** — individual VEVENT blocks with a specific DTSTART datetime
-- **Series definitions** — VEVENT blocks with RRULE; the parser captures the first future occurrence only
-
-The feed is fetched server-side to avoid CORS. Events are filtered to those with `stick` in the summary and a DTSTART that includes a time component (all-day events are skipped).
+Kent Valley's Google Calendar (`kentvalleyicecentre.com@gmail.com`) is fetched as iCal server-side to avoid CORS. Google Calendar pre-expands recurring events into individual VEVENT blocks, so no RRULE handling is needed. Events are filtered to those with `stick` in the summary and a DTSTART that includes a time component (all-day events are skipped). The last good response is cached in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error.
