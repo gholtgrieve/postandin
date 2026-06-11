@@ -36,17 +36,11 @@ Browser (stick-and-puck/index.html)
 
 ### Serverless functions
 
-Two identical implementations are maintained:
+Cloudflare Pages Functions in `functions/api/`:
 
-| Path | Platform |
-|------|----------|
-| `functions/api/` | Cloudflare Pages (primary deployment) |
-| `netlify/functions/` | Netlify (secondary / legacy) |
-
-Functions:
 - **`fareharbor.js`** — proxies FareHarbor calendar API to avoid CORS
 - **`everett.js`** — proxies Angel of the Winds schedule API
-- **`kentvalley.js`** — fetches and parses Kent Valley's public Google Calendar iCal feed
+- **`kentvalley.js`** — fetches and parses Kent Valley's public Google Calendar iCal feed; caches last good response in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error
 
 ---
 
@@ -61,11 +55,6 @@ Kraken, Sno-King, OVA, and Lynnwood fetch live. Everett and Kent Valley will err
 ### With Cloudflare Pages (all rinks)
 ```bash
 npx wrangler pages dev . --compatibility-flag=nodejs_compat
-```
-
-### With Netlify CLI (all rinks)
-```bash
-npx netlify dev
 ```
 
 ---
