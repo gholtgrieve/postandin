@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seattle Hockey Pathway — Post & In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper:   #E8E3D8;
+    --panel:   #EFEBE2;
+    --card:    #DED9CD;
+    --hover:   #D0CABC;
+    --rule:    #B8B2A4;
+    --ink:     #141210;
+    --ink2:    #3D3A34;
+    --ink3:    #6E6A61;
+    --mustard: #9A7B00;
+    --mustard2:#7C6300;
+    --red:     #CC2200;
+    --red2:    #E83318;
+    --road:    #C8B8A0;
+    --road-dk: #A89880;
+  }
+
+  body {
+    background: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  .site-header {
+    background: var(--panel);
+    border-top: 4px solid var(--mustard);
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .site-header .brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+  }
+  .site-header .brand span { color: var(--mustard); }
+  .site-header a { color: var(--ink3); font-size: 11px; text-decoration: none; letter-spacing: 0.06em; }
+  .site-header a:hover { color: var(--mustard); }
+
+  /* ── Page hero ───────────────────────────────────────────────── */
+  .page-hero {
+    text-align: center;
+    padding: 56px 32px 32px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--mustard);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 9vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .page-title .accent { color: var(--mustard); }
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--ink3);
+    line-height: 1.6;
+    max-width: 520px;
+    margin: 18px auto 0;
+  }
+
+  /* ── Divider ─────────────────────────────────────────────────── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--rule);
+    margin: 32px 0;
+  }
+
+  /* ── Road diagram ────────────────────────────────────────────── */
+  .diagram-wrap {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  .road-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ── Stop labels (positioned absolutely over SVG) ────────────── */
+  .stops {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+  }
+
+  /* ── Stop cards (below diagram, full width) ──────────────────── */
+  .stop-cards {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .stop-card {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    border: 1px solid var(--rule);
+    border-top: none;
+    background: var(--card);
+    transition: background 0.1s;
+  }
+  .stop-card:first-child { border-top: 1px solid var(--rule); }
+  .stop-card:hover { background: var(--hover); }
+
+  .stop-num {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.04em;
+    border-right: 1px solid var(--rule);
+  }
+
+  .stop-body {
+    padding: 18px 22px 20px;
+  }
+
+  .stop-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+
+  .stop-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  .stop-age {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    padding: 3px 8px;
+    border: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+
+  .stop-programs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .prog-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid;
+  }
+
+  .stop-desc {
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.65;
+    max-width: 620px;
+  }
+
+  .stop-tip {
+    margin-top: 8px;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--mustard2);
+  }
+
+  /* Tier color coding */
+  .tier-entry  .stop-num { color: var(--ink3); }
+  .tier-entry  .stop-label { color: var(--ink); }
+  .tier-entry  .prog-tag { border-color: var(--rule); color: var(--ink2); }
+
+  .tier-rec    .stop-num { color: #154B7D; }
+  .tier-rec    .stop-label { color: #154B7D; }
+  .tier-rec    .prog-tag { border-color: #154B7D88; color: #154B7D; }
+
+  .tier-select .stop-num { color: #2E7D4F; }
+  .tier-select .stop-label { color: #2E7D4F; }
+  .tier-select .prog-tag { border-color: #2E7D4F88; color: #2E7D4F; }
+
+  .tier-aaa    .stop-num { color: var(--mustard); }
+  .tier-aaa    .stop-label { color: var(--mustard2); }
+  .tier-aaa    .prog-tag { border-color: var(--mustard); color: var(--mustard2); background: #F0E8C820; }
+
+  .tier-junior .stop-num { color: var(--red); }
+  .tier-junior .stop-label { color: var(--red); }
+  .tier-junior .prog-tag { border-color: var(--red); color: var(--red); }
+
+  .tier-college .stop-num { color: #5B3E96; }
+  .tier-college .stop-label { color: #5B3E96; }
+  .tier-college .prog-tag { border-color: #5B3E9688; color: #5B3E96; }
+
+  .tier-pro    .stop-num { color: var(--ink); }
+  .tier-pro    .stop-label { color: var(--ink); }
+  .tier-pro    { background: var(--ink); color: var(--paper); }
+  .tier-pro    .stop-body { border-left: none; }
+  .tier-pro    .stop-num { color: var(--mustard); border-right-color: #3D3A34; }
+  .tier-pro    .stop-label { color: var(--mustard); }
+  .tier-pro    .stop-age { color: #B8B2A4; border-color: #3D3A34; }
+  .tier-pro    .stop-desc { color: #C8C4BC; }
+  .tier-pro    .prog-tag { border-color: var(--mustard); color: var(--mustard); }
+  .tier-pro    .stop-tip { color: #B8B2A4; font-style: normal; }
+  .tier-pro:hover { background: #222226; }
+  .tier-pro .stop-desc { color: #C8C4BC; }
+
+  /* ── Road SVG ────────────────────────────────────────────────── */
+  /* Rendered inline below */
+
+  /* ── Legend ──────────────────────────────────────────────────── */
+  .legend {
+    max-width: 900px;
+    margin: 0 auto 0;
+    padding: 24px 24px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    border-top: 1px solid var(--rule);
+  }
+  .legend-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-right: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────── */
+  .page-footer {
+    background: var(--panel);
+    border-top: 1px solid var(--rule);
+    padding: 20px 32px;
+    font-size: 11px;
+    color: var(--ink3);
+    text-align: center;
+    margin-top: 48px;
+  }
+  .page-footer a { color: var(--mustard2); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .stop-card { grid-template-columns: 48px 1fr; }
+    .stop-num { font-size: 26px; padding-top: 18px; }
+    .stop-label { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="brand">POST &amp; IN &nbsp;/&nbsp; <span>SEATTLE HOCKEY PATHWAY</span></div>
+  <a href="/stick-and-puck/">← Stick &amp; Puck →</a>
+</header>
+
+<!-- Hero -->
+<div class="page-hero">
+  <div class="eyebrow">Seattle Area · Youth &amp; Junior Hockey</div>
+  <h1 class="page-title">SEATTLE<br><span class="accent">HOCKEY</span><br>PATHWAY</h1>
+  <p class="page-subtitle">
+    From first skate to the NHL — the real development ladder for players in the Seattle area.
+    Every level, every league, every program. Know where you are and where you're going.
+  </p>
+</div>
+
+<!-- Road diagram -->
+<div class="diagram-wrap">
+  <svg class="road-svg" viewBox="0 0 860 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Road shadow/base -->
+    <path d="M 120 490
+             C 120 490, 120 420, 180 400
+             C 280 370, 460 390, 520 360
+             C 600 320, 580 260, 520 230
+             C 460 200, 280 220, 220 185
+             C 160 150, 160 90, 220 60
+             C 280 32, 500 30, 620 45
+             C 720 58, 760 80, 780 95"
+          stroke="#C0B090" stroke-width="52" stroke-linecap="round" fill="none"/>
+
+    <!-- Road surface -->
+    <path d="M 120 490
+             C 120 490, 120 420, 180 400
+             C 280 370, 460 390, 520 360
+             C 600 320, 580 260, 520 230
+             C 460 200, 280 220, 220 185
+             C 160 150, 160 90, 220 60
+             C 280 32, 500 30, 620 45
+             C 720 58, 760 80, 780 95"
+          stroke="#D5C9B5" stroke-width="44" stroke-linecap="round" fill="none"/>
+
+    <!-- Road center dashes -->
+    <path d="M 120 490
+             C 120 490, 120 420, 180 400
+             C 280 370, 460 390, 520 360
+             C 600 320, 580 260, 520 230
+             C 460 200, 280 220, 220 185
+             C 160 150, 160 90, 220 60
+             C 280 32, 500 30, 620 45
+             C 720 58, 760 80, 780 95"
+          stroke="#B8B2A4" stroke-width="2" stroke-linecap="round"
+          stroke-dasharray="16 12" fill="none"/>
+
+    <!-- STOP 1 — Try Hockey Free ● bottom left -->
+    <circle cx="120" cy="490" r="22" fill="#141210" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="120" y="496" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">1</text>
+
+    <!-- STOP 2 — Learn to Play ● lower mid -->
+    <circle cx="340" cy="400" r="22" fill="#141210" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="340" y="406" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">2</text>
+
+    <!-- STOP 3 — Recreational/House ● right side -->
+    <circle cx="520" cy="360" r="22" fill="#154B7D" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="520" y="366" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">3</text>
+
+    <!-- STOP 4 — Select/Rep ● upper left bend -->
+    <circle cx="220" cy="185" r="22" fill="#2E7D4F" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="220" y="191" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">4</text>
+
+    <!-- STOP 5 — AAA/Tier 1 ● upper center -->
+    <circle cx="520" cy="228" r="22" fill="#9A7B00" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="520" y="234" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">5</text>
+
+    <!-- STOP 6 — Junior ● top right -->
+    <circle cx="710" cy="62" r="22" fill="#CC2200" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="710" y="68" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">6</text>
+
+    <!-- STOP 7 — College ● far right -->
+    <circle cx="786" cy="95" r="22" fill="#5B3E96" stroke="#E8E3D8" stroke-width="3"/>
+    <text x="786" y="101" font-family="'Bebas Neue',sans-serif" font-size="20" fill="#E8E3D8" text-anchor="middle">7</text>
+
+    <!-- Stop labels on road -->
+    <!-- 1 -->
+    <rect x="12" y="455" width="76" height="22" fill="#141210" rx="2"/>
+    <text x="50" y="469" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">TRY HOCKEY</text>
+
+    <!-- 2 -->
+    <rect x="256" y="366" width="68" height="22" fill="#141210" rx="2"/>
+    <text x="290" y="380" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">LEARN TO PLAY</text>
+
+    <!-- 3 -->
+    <rect x="444" y="328" width="52" height="22" fill="#154B7D" rx="2"/>
+    <text x="470" y="342" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">REC HOCKEY</text>
+
+    <!-- 4 -->
+    <rect x="136" y="152" width="60" height="22" fill="#2E7D4F" rx="2"/>
+    <text x="166" y="166" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">SELECT</text>
+
+    <!-- 5 -->
+    <rect x="440" y="194" width="60" height="22" fill="#9A7B00" rx="2"/>
+    <text x="470" y="208" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">AAA / TIER 1</text>
+
+    <!-- 6 -->
+    <rect x="638" y="28" width="46" height="22" fill="#CC2200" rx="2"/>
+    <text x="661" y="42" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">JUNIOR</text>
+
+    <!-- 7 -->
+    <rect x="726" y="62" width="52" height="22" fill="#5B3E96" rx="2"/>
+    <text x="752" y="76" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#E8E3D8" text-anchor="middle" letter-spacing="1">COLLEGE</text>
+
+    <!-- Pro star at top right corner -->
+    <polygon points="840,30 847,48 866,48 851,59 857,77 840,66 823,77 829,59 814,48 833,48"
+             fill="#9A7B00" stroke="#E8E3D8" stroke-width="1.5"/>
+    <text x="840" y="96" font-family="'Bebas Neue',sans-serif" font-size="11" fill="#141210" text-anchor="middle" letter-spacing="1">NHL / PRO</text>
+
+    <!-- Skates icon at bottom -->
+    <text x="90" y="510" font-size="26" text-anchor="middle" font-family="serif">⛸️</text>
+
+    <!-- Arrow up at top indicating "keep going" -->
+    <path d="M 840 18 L 840 6 M 836 10 L 840 4 L 844 10" stroke="#9A7B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Age markers along road -->
+    <text x="135" y="488" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 4–8</text>
+    <text x="264" y="430" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 5–9</text>
+    <text x="540" y="388" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 6–18</text>
+    <text x="136" y="214" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 8–18</text>
+    <text x="440" y="256" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 12–18</text>
+    <text x="598" y="48" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 16–20</text>
+    <text x="726" y="116" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#6E6A61" letter-spacing="0.5">AGES 18+</text>
+
+  </svg>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <span class="legend-label">Tier</span>
+  <div class="legend-item"><div class="legend-dot" style="background:#141210"></div> Entry</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#154B7D"></div> Recreational</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2E7D4F"></div> Select / Rep</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9A7B00"></div> AAA / Tier 1</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#CC2200"></div> Junior</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#5B3E96"></div> College</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#141210"></div> Professional</div>
+</div>
+
+<div style="height:32px"></div>
+
+<!-- Stop cards -->
+<div class="stop-cards">
+
+  <!-- 1 -->
+  <div class="stop-card tier-entry">
+    <div class="stop-num">1</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Try Hockey Free / Learn to Skate</span>
+        <span class="stop-age">Ages 4–8 · No experience needed</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">USA Hockey Try Hockey Free</span>
+        <span class="prog-tag">KCI Learn to Skate</span>
+        <span class="prog-tag">Sno-King Beginner</span>
+        <span class="prog-tag">Lynnwood Ice Center</span>
+      </div>
+      <p class="stop-desc">
+        The starting point for every hockey player. Free or low-cost sessions introduce kids to skating
+        and basic puck handling in a no-pressure environment. USA Hockey runs free Try Hockey events
+        at rinks throughout the Seattle area several times per year — no gear required, rentals provided.
+        Learn to Skate programs run in multi-week sessions at every major rink.
+      </p>
+      <p class="stop-tip">↳ Gear: Rentals provided at free events. First purchase: helmet, gloves, and skates.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="stop-card tier-entry">
+    <div class="stop-num">2</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Learn to Play Hockey</span>
+        <span class="stop-age">Ages 5–9 · Basic skating ability required</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">Jr. Squid (KCI)</span>
+        <span class="prog-tag">Jr. Silvertips Beginner</span>
+        <span class="prog-tag">Jr. Metropolitans Beginner</span>
+        <span class="prog-tag">SJHA Intro Hockey</span>
+      </div>
+      <p class="stop-desc">
+        Structured introduction to the full game: skating, puck skills, shooting, and positional basics.
+        Small-area games, no goalie required early on. Programs run through association clubs at KCI,
+        Sno-King rinks, and Lynnwood. Kids move through Initiation and Mite Squirt levels.
+        Sessions run Sep–Mar with summer camps available.
+      </p>
+      <p class="stop-tip">↳ Gear: Full hockey equipment required. Association loaner programs often available.</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="stop-card tier-rec">
+    <div class="stop-num">3</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Recreational / House Hockey</span>
+        <span class="stop-age">Ages 6–18 · U8 through U18</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">Jr. Kraken Rec (MHL)</span>
+        <span class="prog-tag">Jr. Silvertips Rec</span>
+        <span class="prog-tag">Jr. Metropolitans Rec</span>
+        <span class="prog-tag">Metropolitan Hockey League</span>
+      </div>
+      <p class="stop-desc">
+        Balanced, intra-association league play across the Puget Sound area. The Metropolitan Hockey League
+        (MHL) serves recreational players from U8 through U18 with balanced rosters — every kid gets equal
+        ice time regardless of ability. Typical week includes 1–2 practices and 1 game. Excellent
+        environment for players building confidence and love of the game. No tryouts required.
+        Season runs September through March with an optional state festival.
+      </p>
+      <p class="stop-tip">↳ Cost: Most affordable competitive option. Financial aid available through One Roof Foundation at KCI.</p>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="stop-card tier-select">
+    <div class="stop-num">4</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Select / Rep Hockey (Tier 3)</span>
+        <span class="stop-age">Ages 8–18 · Tryouts required</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">Jr. Kraken Select A/B (PNAHA)</span>
+        <span class="prog-tag">Jr. Silvertips Select</span>
+        <span class="prog-tag">Jr. Metropolitans Select</span>
+        <span class="prog-tag">PNAHA State Festival</span>
+      </div>
+      <p class="stop-desc">
+        The first competitive level with tryouts. Select (A/B) teams play in the Pacific Northwest Amateur
+        Hockey Association (PNAHA) league — the highest level within USA Hockey's sanctioned structure for
+        Washington state. Teams practice 2–3× per week and travel regionally. Season culminates in the
+        PNAHA State Festival in March. Jr. Kraken hold open tryouts for U12, U14, and U16 in late April/May;
+        U10 tryouts in August. Strong players here begin attracting attention from AAA scouts by U13–14.
+      </p>
+      <p class="stop-tip">↳ Key tryout dates: U10 — August. U12/14/16 — late April or early May.</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="stop-card tier-aaa">
+    <div class="stop-num">5</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">AAA / Tier 1 Elite</span>
+        <span class="stop-age">Ages 12–18 · Highly competitive tryouts</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">Jr. Kraken AAA</span>
+        <span class="prog-tag">Jr. Silvertips AAA</span>
+        <span class="prog-tag">Seattle Selects</span>
+        <span class="prog-tag">PNAHA Development Camp</span>
+        <span class="prog-tag">USA Hockey National Tournaments</span>
+      </div>
+      <p class="stop-desc">
+        The highest level of amateur youth hockey and the gateway to junior programs. AAA teams compete
+        at the national level — USA Hockey Nationals and elite invitational tournaments. Practice load
+        increases significantly (3–4× per week plus dryland). The PNAHA selects top-rated players
+        annually for a development camp (ages 15–17, held at Tacoma Twin Rinks). This level is where
+        scouts from WHL, BCHL, NAHL, and college programs actively watch players. Roster spots are
+        extremely competitive. Players typically commit significant travel budgets.
+      </p>
+      <p class="stop-tip">↳ Visibility tip: Tournament exposure and game film matter here. Update your Hockey Canada / USA Hockey profile.</p>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="stop-card tier-junior">
+    <div class="stop-num">6</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Junior Hockey</span>
+        <span class="stop-age">Ages 16–20 · Draft / tryout</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">WHL — Everett Silvertips</span>
+        <span class="prog-tag">WHL — Seattle Thunderbirds</span>
+        <span class="prog-tag">BCHL (Tier 1 Junior A)</span>
+        <span class="prog-tag">NAHL (Tier 2 Junior A)</span>
+        <span class="prog-tag">USPHL — Seattle Totems</span>
+        <span class="prog-tag">NA3HL (Tier 3 Junior A)</span>
+      </div>
+      <p class="stop-desc">
+        The bridge between youth and professional or college hockey. The WHL (Western Hockey League)
+        is the premier junior league in the Western U.S. and Canada — both the Everett Silvertips
+        (2026 WHL Champions) and Seattle Thunderbirds play in the region. WHL players are drafted
+        from Bantam (U15). BCHL is the top college-prep route (Tier 1 Junior A). NAHL is an excellent
+        Tier 2 path with strong NCAA placement. The Seattle Totems (USPHL) play at Olympic View Arena
+        in Mountlake Terrace. Players at this level are competing for NCAA or pro contracts.
+      </p>
+      <p class="stop-tip">↳ WHL Bantam Draft: typically held in spring, players are ~14–15. Key showcase: Pacific District events.</p>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="stop-card tier-college">
+    <div class="stop-num">7</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">College Hockey</span>
+        <span class="stop-age">Ages 18–23 · Recruited</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">NCAA Division I</span>
+        <span class="prog-tag">NCAA Division III</span>
+        <span class="prog-tag">ACHA (Club)</span>
+        <span class="prog-tag">Hockey East · Big Ten · NCHC</span>
+      </div>
+      <p class="stop-desc">
+        College hockey recruits start as early as U14–15 in today's environment. The Pacific Northwest
+        does not have an NCAA D1 program, meaning Seattle players looking at D1 typically commit to
+        programs in the Upper Midwest (Minnesota, Michigan, Wisconsin, North Dakota) or the Northeast
+        (Boston, Harvard, Providence). D3 programs offer excellent hockey with strong academics and
+        are increasingly competitive. ACHA Division 1 club hockey is another serious option.
+        Junior hockey years are primarily about recruiting visibility and development.
+      </p>
+      <p class="stop-tip">↳ Recruiting timeline: First contact from D1 programs typically happens at 14–16. Game film is essential.</p>
+    </div>
+  </div>
+
+  <!-- 8 — Pro -->
+  <div class="stop-card tier-pro">
+    <div class="stop-num">⭑</div>
+    <div class="stop-body">
+      <div class="stop-meta">
+        <span class="stop-label">Professional Hockey</span>
+        <span class="stop-age">Ages 18+ · NHL Draft / Free Agent</span>
+      </div>
+      <div class="stop-programs">
+        <span class="prog-tag">NHL — Seattle Kraken</span>
+        <span class="prog-tag">AHL — Coachella Valley Firebirds</span>
+        <span class="prog-tag">PWHL — Seattle Torrent</span>
+        <span class="prog-tag">ECHL — Kansas City Mavericks</span>
+      </div>
+      <p class="stop-desc">
+        The Seattle Kraken made the Pacific Northwest an NHL city in 2021. The Kraken's AHL affiliate
+        is the Coachella Valley Firebirds. The Seattle Torrent (PWHL) began play in 2025–26, providing
+        a professional women's pathway. The NHL Draft typically selects players at 18 (first eligible year).
+        The vast majority of professional players reach the NHL through the AHL or European leagues first —
+        the journey rarely ends with a draft pick.
+      </p>
+      <p class="stop-tip">The path is long. The ones who make it combine extraordinary talent with extraordinary work ethic — and a lot of extra ice time.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer class="page-footer">
+  <p>
+    Post &amp; In &nbsp;·&nbsp; Seattle hockey, all in one place &nbsp;·&nbsp;
+    <a href="/stick-and-puck/">Stick &amp; Puck sessions →</a> &nbsp;·&nbsp;
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank">Report an issue</a>
+  </p>
+  <p style="margin-top:6px; color: var(--rule);">Program details change — always confirm with associations directly.</p>
+</footer>
+
+</body>
+</html>
