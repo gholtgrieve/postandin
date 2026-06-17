@@ -14,7 +14,7 @@ const EXCLUDE_HINTS = /gift card|lesson|figure|freestyle|speed skat|curling|broo
 const KNOWN = {
   fareharbor: {
     lynnwoodicecenter: [245296, 737473],
-    olympicviewarena: [313860],
+    olympicviewarena: [313860, 283939], // 283939 = Lunch Hockey (intentionally excluded)
   },
   daysmart: {
     // DaySmart filters on description text ("stick", "full hockey gear"),
