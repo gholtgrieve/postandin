@@ -93,6 +93,12 @@ Then update `itemPk` in the `RINKS` config in `stick-and-puck/index.html`.
 
 ---
 
+## Maintenance
+
+Periodically run `node scripts/audit-rinks.js` to check for new session types across all rinks. The script scans FareHarbor item lists, DaySmart league names, and iCal summaries for anything hockey-related that isn't already in `KNOWN` (the allowlist at the top of the script). When you add a new session to `stick-and-puck/index.html`, update `KNOWN` in the audit script to keep it in sync.
+
+---
+
 ## Kent Valley iCal notes
 
 Kent Valley's Google Calendar (`kentvalleyicecentre.com@gmail.com`) is fetched as iCal server-side to avoid CORS. Google Calendar pre-expands recurring events into individual VEVENT blocks, so no RRULE handling is needed. Events are filtered to those with `stick` in the summary and a DTSTART that includes a time component (all-day events are skipped). The last good response is cached in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error.
