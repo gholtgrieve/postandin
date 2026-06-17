@@ -44,6 +44,25 @@ Cloudflare Pages Functions in `functions/api/`:
 
 ---
 
+## UI filters
+
+The controls bar exposes these filters (mutually exclusive; the rink legend chips are a separate independent multi-select):
+
+| Filter | Shows |
+|--------|-------|
+| All | Every upcoming session |
+| Available | Sessions not marked sold out |
+| Today | Sessions starting today |
+| Tomorrow | Sessions starting tomorrow |
+| This Week | Sessions starting within 7 days |
+| Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` — currently Lynnwood Female Stick & Puck and any DaySmart sessions with a qualifying league name |
+
+## Rink legend and grouping
+
+The legend renders one chip per rink, using city name as the label. Rinks with a `legendKey` field in `RINKS` are hidden from the legend and instead fold into the chip for the rink they reference. Clicking that chip shows sessions from all rinks in the group. Currently `lynnwoodFemale` groups under `lynnwood` so both Lynnwood items appear under a single LYNNWOOD chip.
+
+---
+
 ## Local development
 
 ### Static only (DaySmart + FareHarbor rinks)
