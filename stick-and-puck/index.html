@@ -663,6 +663,15 @@ const RINKS = {
     // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
     config: { company: "lynnwoodicecenter", itemPk: 245296 },
   },
+  lynnwoodFemale: {
+    name: "Lynnwood Ice Center",
+    city: "Lynnwood",
+    label: "Lynnwood (F)",
+    url: "https://www.lynnwoodicecenter.com/",
+    color: "#1565A8",
+    system: "fareharbor",
+    config: { company: "lynnwoodicecenter", itemPk: 737473, subtitle: "Female only" },
+  },
   everett: {
     name: "Everett Community Ice Rink",
     city: "Everett",
@@ -756,7 +765,7 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
 }
 
 // FareHarbor ───────────────────────────────────────────────────────────────────
-async function fetchFareHarbor({ company, itemPk }) {
+async function fetchFareHarbor({ company, itemPk, subtitle: fixedSubtitle = null }) {
   if (!itemPk) return [];
   const now = new Date();
   const months = [
@@ -796,7 +805,7 @@ async function fetchFareHarbor({ company, itemPk }) {
           start: new Date(av.start_at),
           end:   new Date(av.end_at),
           title: "Stick & Puck",
-          subtitle: null,
+          subtitle: fixedSubtitle,
           spots: spots > 0 ? spots : null,
           price,
           soldOut: av.is_sold_out === true,
@@ -868,6 +877,7 @@ async function fetchAll() {
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
     olympicview:      fetchFareHarbor(RINKS.olympicview.config),
     lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
+    lynnwoodFemale:   fetchFareHarbor(RINKS.lynnwoodFemale.config),
     everett:          fetchEverett(),
     kentValley:       fetchKentValley(),
   };
@@ -954,7 +964,7 @@ function renderLegend(data) {
   let html = Object.entries(data).map(([key, r]) =>
     `<span class="legend-chip${selectedRinks.has(key) ? ' selected' : ''}" data-rink="${key}">
       <span class="legend-dot" style="background:${r.rink.color}"></span>
-      ${r.rink.city.toUpperCase()}${!r.ok ? ' !' : ''}
+      ${(r.rink.label ?? r.rink.city).toUpperCase()}${!r.ok ? ' !' : ''}
     </span>`
   ).join("");
   html += `<span class="legend-clear${selectedRinks.size > 0 ? ' visible' : ''}" id="legendClear">Clear ✕</span>`;
