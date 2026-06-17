@@ -15,7 +15,7 @@ Live at **[postandin.com/stick-and-puck](https://postandin.com/stick-and-puck/)*
 | Sno-King Ice Arena | Kirkland | DaySmart | Resource 1 |
 | Sno-King Ice Arena | Snoqualmie | DaySmart | Resources 13, 14 (Rink A + B) |
 | Olympic View Arena | Mountlake Terrace | FareHarbor | itemPk 313860, proxied via `/api/fareharbor` |
-| Lynnwood Ice Center | Lynnwood | FareHarbor | itemPk 245296, proxied via `/api/fareharbor` |
+| Lynnwood Ice Center | Lynnwood | FareHarbor | itemPk 245296 (general), 737473 (Female Stick & Puck), proxied via `/api/fareharbor` |
 | Everett Community Ice Rink | Everett | Custom (Angel of the Winds) | Proxied via `/api/everett` |
 | Kent Valley Ice Centre | Kent | Google Calendar iCal | Proxied via `/api/kentvalley` |
 
@@ -38,7 +38,7 @@ Browser (stick-and-puck/index.html)
 
 Cloudflare Pages Functions in `functions/api/`:
 
-- **`fareharbor.js`** — proxies FareHarbor calendar API to avoid CORS
+- **`fareharbor.js`** — proxies FareHarbor calendar API to avoid CORS; used for both Lynnwood items (general + female)
 - **`everett.js`** — proxies Angel of the Winds schedule API
 - **`kentvalley.js`** — fetches and parses Kent Valley's public Google Calendar iCal feed; caches last good response in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error
 

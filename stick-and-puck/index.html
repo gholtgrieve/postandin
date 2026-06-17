@@ -397,6 +397,8 @@ main {
   margin-top: 2px;
 }
 
+.row-subtitle { margin-top: 4px; }
+
 .row-right {
   text-align: right;
   display: flex;
@@ -590,6 +592,7 @@ footer a:hover { color: var(--yellow); }
     <button class="filter-btn" data-filter="today">Today</button>
     <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
     <button class="filter-btn" data-filter="thisweek">This Week</button>
+    <button class="filter-btn" data-filter="female">Female/Non-Binary</button>
     <span class="spacer"></span>
     <button class="refresh-btn" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
@@ -666,7 +669,7 @@ const RINKS = {
   lynnwoodFemale: {
     name: "Lynnwood Ice Center",
     city: "Lynnwood",
-    label: "Lynnwood (F)",
+    legendKey: "lynnwood",
     url: "https://www.lynnwoodicecenter.com/",
     color: "#1565A8",
     system: "fareharbor",
@@ -961,10 +964,12 @@ function showSkeletons(n = 8) {
 
 function renderLegend(data) {
   const legend = document.getElementById("rinkLegend");
-  let html = Object.entries(data).map(([key, r]) =>
+  let html = Object.entries(data)
+    .filter(([, r]) => !r.rink.legendKey)
+    .map(([key, r]) =>
     `<span class="legend-chip${selectedRinks.has(key) ? ' selected' : ''}" data-rink="${key}">
       <span class="legend-dot" style="background:${r.rink.color}"></span>
-      ${(r.rink.label ?? r.rink.city).toUpperCase()}${!r.ok ? ' !' : ''}
+      ${r.rink.city.toUpperCase()}${!r.ok ? ' !' : ''}
     </span>`
   ).join("");
   html += `<span class="legend-clear${selectedRinks.size > 0 ? ' visible' : ''}" id="legendClear">Clear ✕</span>`;
@@ -1005,8 +1010,10 @@ function renderSessions(data) {
 
   // Apply rink filter (multi-select union) then time filter
   all = all.filter(s => {
-    if (selectedRinks.size > 0 && !selectedRinks.has(s.rinkKey)) return false;
+    const effectiveRinkKey = s.rink.legendKey ?? s.rinkKey;
+    if (selectedRinks.size > 0 && !selectedRinks.has(effectiveRinkKey)) return false;
     if (activeFilter === "available") return !s.soldOut;
+    if (activeFilter === "female") return !!(s.subtitle && /female|non.binary|women/i.test(s.subtitle));
     if (activeFilter === "today") {
       const d = s.start; const t = new Date();
       return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
@@ -1036,8 +1043,9 @@ function renderSessions(data) {
 
   let html = "";
 
-  if (fallbacks.length && (selectedRinks.size === 0 || fallbacks.some(e => selectedRinks.has(e.key)))) {
-    const visibleFallbacks = selectedRinks.size === 0 ? fallbacks : fallbacks.filter(e => selectedRinks.has(e.key));
+  const effectiveKey = (e) => e.rink.legendKey ?? e.key;
+  if (fallbacks.length && (selectedRinks.size === 0 || fallbacks.some(e => selectedRinks.has(effectiveKey(e))))) {
+    const visibleFallbacks = selectedRinks.size === 0 ? fallbacks : fallbacks.filter(e => selectedRinks.has(effectiveKey(e)));
     if (visibleFallbacks.length) {
       html += `<div class="fallback-grid">` +
         visibleFallbacks.map(e => {
@@ -1105,7 +1113,7 @@ function sessionRow(s) {
       : `<span class="badge badge-spots">${s.spots} spots</span>`
     : "";
   const priceStr = s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
-  const subtitleBadge = s.subtitle ? `<span class="badge badge-subtitle">${s.subtitle}</span>` : "";
+  const subtitleBadge = s.subtitle ? `<div class="row-subtitle"><span class="badge badge-subtitle">${s.subtitle}</span></div>` : "";
   const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
 
   const linkAttrs = s.bookUrl && !s.soldOut
@@ -1117,10 +1125,11 @@ function sessionRow(s) {
     <div class="row-info">
       <div class="row-rink">${s.rink.name}</div>
       <div class="row-city">${s.rink.city}</div>
+      ${subtitleBadge}
     </div>
     <div class="row-right">
       ${dur ? `<div class="row-duration">${dur}</div>` : ''}
-      <div class="row-badges">${subtitleBadge}${priceStr}${spotsStr}${soldOutBadge}</div>
+      <div class="row-badges">${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
   </a>`;
 }
