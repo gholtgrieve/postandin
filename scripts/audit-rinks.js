@@ -19,14 +19,27 @@ const KNOWN = {
   daysmart: {
     // DaySmart filters on description text ("stick", "full hockey gear"),
     // not league IDs, so just list league names already accounted for.
-    kraken: ['Stick & Puck', 'LTP Family Stick & Puck (14 and under)',
-             'Stick & Puck for female and non-binary identifying players only.'],
-    snoking: [], // currently matched generically via sport filter + text
+    kraken: [
+      'Stick & Puck',
+      'LTP Family Stick & Puck (14 and under)',
+      'Stick & Puck for female and non-binary identifying players only.',
+      'Stick & Puck (Female only)',
+    ],
+    snoking: [], // matched generically via sport filter + text; see KNOWN_PATTERNS below
   },
   ical: {
-    kentvalley: ['Stick & Puck'],
     everett: ['Stick & Puck'],
+    // Kent Valley excluded: KVIC uses freeform time-embedded SUMMARY strings
+    // that are unique per event, making exact-match auditing impractical.
   },
+};
+
+// Regex patterns for league names that are already captured but vary over time
+// (e.g. monthly-named Sno-King leagues). Checked in addition to KNOWN.daysmart.
+const KNOWN_PATTERNS = {
+  snoking: [
+    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - stick n puck$/i,
+  ],
 };
 
 async function fetchJson(url) {
@@ -74,12 +87,14 @@ async function auditDaySmart(companySlug) {
   )];
 
   const known = new Set(KNOWN.daysmart[companySlug] ?? []);
+  const patterns = KNOWN_PATTERNS[companySlug] ?? [];
   const flagged = [];
   for (const id of leagueIds) {
     try {
       const ld = await fetchJson(`https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/leagues/${id}?company=${companySlug}`);
       const name = ld?.data?.attributes?.name ?? '';
       if (known.has(name)) continue;
+      if (patterns.some(re => re.test(name))) continue;
       if (EXCLUDE_HINTS.test(name)) continue;
       if (HOCKEY_HINTS.test(name)) {
         flagged.push({ leagueId: id, name });
@@ -149,10 +164,9 @@ async function main() {
   }
 
   // iCal feeds
+  // (Kent Valley removed — freeform time-embedded SUMMARY strings make exact-match auditing impractical)
   const icalFeeds = {
-    kentvalley: 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics',
-    // Everett goes through the Cloudflare proxy normally, but for audit purposes
-    // hit the upstream Cloud Function directly with a wide date range:
+    // Everett goes through the Cloudflare proxy normally; add URL here if direct audit is needed.
   };
   for (const [key, url] of Object.entries(icalFeeds)) {
     console.log(`── iCal: ${key} ──`);
