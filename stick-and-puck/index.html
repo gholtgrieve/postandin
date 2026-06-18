@@ -1337,7 +1337,12 @@ function fmtDuration(start, end) {
 }
 
 function dayKey(d) {
-  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  // Build YYYY-MM-DD from local date components so a UTC Date like
+  // new Date("2026-06-21T01:00:00Z") correctly yields "2026-06-20" in PT.
+  const y  = d.getFullYear();
+  const m  = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dy}`;
 }
 
 function fmtDayLabel(dateStr) {

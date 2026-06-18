@@ -81,7 +81,7 @@ function parseIcal(ical) {
     const startStr = fmtDt(dtstart);
     const endStr   = dtend?.val?.includes('T') ? fmtDt(dtend) : null;
 
-    if (startStr.slice(0, 10) < cutoffStr) continue;
+    if (new Date(startStr) < new Date(cutoffStr)) continue;
 
     const uid    = props['UID']?.val ?? startStr;
     const urlVal = props['URL']?.val ?? '';
