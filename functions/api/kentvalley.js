@@ -17,8 +17,8 @@ export async function onRequest(ctx) {
     const res = await fetch(ICAL_URL, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
-    const sessions = parseIcal(await res.text());
-    const body = JSON.stringify({ ok: true, sessions });
+    const { sessions, rawEventCount } = parseIcal(await res.text());
+    const body = JSON.stringify({ ok: true, sessions, rawEventCount });
 
     // Persist the good response; don't block the reply waiting for the write.
     ctx.waitUntil(cache.put(CACHE_KEY, new Response(body, {
@@ -49,13 +49,14 @@ function parseIcal(ical) {
   // Unfold continuation lines (RFC 5545 line folding)
   const text = ical.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
 
-  // Filter against yesterday (UTC) so client-side filtering handles the exact cutoff
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const cutoffStr = yesterday.toISOString().slice(0, 10);
+  // Cutoff = right now. Keep any session whose end time (or start time if no
+  // end) is still in the future. Using current time avoids the midnight-UTC
+  // boundary problem that caused today's sessions to be dropped.
+  const cutoff = new Date();
 
   const sessions = [];
   const events = text.split('BEGIN:VEVENT');
+  const rawEventCount = events.length - 1; // excludes the leading non-event chunk
 
   for (let i = 1; i < events.length; i++) {
     const block = events[i].split('END:VEVENT')[0];
@@ -81,7 +82,8 @@ function parseIcal(ical) {
     const startStr = fmtDt(dtstart);
     const endStr   = dtend?.val?.includes('T') ? fmtDt(dtend) : null;
 
-    if (new Date(startStr) < new Date(cutoffStr)) continue;
+    // Drop sessions that have already ended (or started, if no end time)
+    if (new Date(endStr ?? startStr) <= cutoff) continue;
 
     const uid    = props['UID']?.val ?? startStr;
     const urlVal = props['URL']?.val ?? '';
@@ -100,7 +102,7 @@ function parseIcal(ical) {
     });
   }
 
-  return sessions.sort((a, b) => a.start.localeCompare(b.start));
+  return { sessions: sessions.sort((a, b) => a.start.localeCompare(b.start)), rawEventCount };
 }
 
 function fmtDt({ val, isUtc }) {
