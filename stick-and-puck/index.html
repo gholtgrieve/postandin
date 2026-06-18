@@ -644,26 +644,29 @@ footer a:hover { color: var(--yellow); }
 
 /* ── Bottom sheet ── */
 .bottom-sheet {
+  display: none;   /* hidden by default; .open reveals it */
   position: fixed;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%) translateY(100%);
+  transform: translateX(-50%) translateY(10px);
+  opacity: 0;
   width: 100%;
   max-width: 400px;
   background: var(--black-2);
   border: 1px solid var(--black-4);
   border-bottom: none;
   z-index: 501;
-  transition: transform 150ms;
+  transition: transform 150ms, opacity 150ms;
   font-family: 'IBM Plex Mono', monospace;
 }
-.bottom-sheet.visible { transform: translateX(-50%) translateY(0); }
+.bottom-sheet.open    { display: block; }
+.bottom-sheet.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
 @media (min-width: 641px) {
   .bottom-sheet {
     bottom: auto;
     top: 50%;
     border-bottom: 1px solid var(--black-4);
-    transform: translateX(-50%) translateY(calc(-50% + 12px));
+    transform: translateX(-50%) translateY(calc(-50% + 10px));
   }
   .bottom-sheet.visible { transform: translateX(-50%) translateY(-50%); }
 }
@@ -1721,18 +1724,24 @@ function openBottomSheet(s, sk) {
   toggleBtn.textContent = amGoing ? "I'm not going" : "I'm going";
   toggleBtn.className   = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
   const overlay = document.getElementById('sheetOverlay');
+  const sheet   = document.getElementById('bottomSheet');
   overlay.classList.add('open');
+  sheet.classList.add('open');
   requestAnimationFrame(() => {
     overlay.classList.add('visible');
-    document.getElementById('bottomSheet').classList.add('visible');
+    sheet.classList.add('visible');
   });
 }
 
 function closeBottomSheet() {
   const overlay = document.getElementById('sheetOverlay');
+  const sheet   = document.getElementById('bottomSheet');
   overlay.classList.remove('visible');
-  document.getElementById('bottomSheet').classList.remove('visible');
-  overlay.addEventListener('transitionend', () => overlay.classList.remove('open'), { once: true });
+  sheet.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => {
+    overlay.classList.remove('open');
+    sheet.classList.remove('open');
+  }, { once: true });
   sheetSession = null;
 }
 
