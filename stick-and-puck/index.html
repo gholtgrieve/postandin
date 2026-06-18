@@ -545,6 +545,345 @@ footer {
 footer a { color: var(--white-3); text-decoration: none; }
 footer a:hover { color: var(--yellow); }
 
+/* ── Group feature (GROUPS_ENABLED) ── */
+.group-bar-item {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 14px;
+  border-right: var(--rule);
+}
+.group-join-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--white-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.1s;
+}
+.group-join-link:hover { color: var(--white-2); }
+.group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--white-2);
+  padding: 4px 10px;
+  border: 1px solid var(--black-4);
+  background: var(--black-2);
+}
+.group-chip-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--white-3);
+  font-size: 12px;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.1s;
+}
+.group-chip-x:hover { color: var(--red); }
+
+/* ── Going indicator ── */
+.going-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+  vertical-align: middle;
+}
+.going-plus { font-size: 14px; color: var(--white-3); line-height: 1; }
+.going-dot  { font-size: 8px; color: var(--white-3); }
+.going-dot.active { color: var(--yellow); }
+.going-count { font-size: 13px; letter-spacing: 0.06em; color: var(--yellow); }
+.going-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  right: 0;
+  background: var(--white);
+  color: var(--black);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  border: 1px solid var(--black-4);
+  white-space: nowrap;
+  z-index: 200;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .going-btn:hover .going-tooltip { display: block; }
+}
+
+/* ── Sheet overlay ── */
+.sheet-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(20,18,16,0.55);
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.sheet-overlay.open    { display: block; }
+.sheet-overlay.visible { opacity: 1; }
+
+/* ── Bottom sheet ── */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 400px;
+  background: var(--black-2);
+  border: 1px solid var(--black-4);
+  border-bottom: none;
+  z-index: 501;
+  transition: transform 150ms;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.bottom-sheet.visible { transform: translateX(-50%) translateY(0); }
+@media (min-width: 641px) {
+  .bottom-sheet {
+    bottom: auto;
+    top: 50%;
+    border-bottom: 1px solid var(--black-4);
+    transform: translateX(-50%) translateY(calc(-50% + 12px));
+  }
+  .bottom-sheet.visible { transform: translateX(-50%) translateY(-50%); }
+}
+.sheet-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--black-4);
+}
+.sheet-rink {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--yellow);
+  margin-bottom: 4px;
+}
+.sheet-datetime {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--white-2);
+}
+.sheet-body { padding: 14px 18px 6px; }
+.sheet-going-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-bottom: 6px;
+}
+.sheet-names {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--white-2);
+  margin-bottom: 14px;
+  line-height: 1.8;
+  min-height: 22px;
+}
+.sheet-toggle-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 10px 18px;
+  width: 100%;
+  border: 1px solid var(--yellow);
+  background: transparent;
+  color: var(--yellow);
+  cursor: pointer;
+  transition: all 0.1s;
+  margin-bottom: 10px;
+}
+.sheet-toggle-btn:hover,
+.sheet-toggle-btn.going { background: var(--yellow); color: var(--black); }
+.sheet-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--black-4);
+}
+.sheet-share-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--white-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.1s;
+}
+.sheet-share-btn:hover { color: var(--white-2); }
+.sheet-copy-confirm {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  margin-left: auto;
+  min-height: 16px;
+}
+.sheet-close-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--white-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 18px;
+  width: 100%;
+  text-align: center;
+  border-top: 1px solid var(--black-4);
+  transition: color 0.1s;
+}
+.sheet-close-btn:hover { color: var(--white-2); }
+
+/* ── Group setup modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(20,18,16,0.6);
+  z-index: 600;
+  opacity: 0;
+  transition: opacity 150ms;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open    { display: flex; }
+.modal-overlay.visible { opacity: 1; }
+.group-modal {
+  background: var(--black-2);
+  border: 1px solid var(--black-4);
+  width: calc(100% - 2rem);
+  max-width: 400px;
+  font-family: 'IBM Plex Mono', monospace;
+  transform: translateY(12px);
+  transition: transform 150ms;
+}
+.modal-overlay.visible .group-modal { transform: translateY(0); }
+.modal-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--black-4);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-close-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--white-3);
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: color 0.1s;
+}
+.modal-close-x:hover { color: var(--white); }
+.modal-body { padding: 16px 18px; }
+.modal-field { margin-bottom: 14px; }
+.modal-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-bottom: 6px;
+}
+.modal-input {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  background: var(--black);
+  border: 1px solid var(--black-4);
+  padding: 10px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.1s;
+}
+.modal-input:focus { border-color: var(--yellow); }
+.modal-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.modal-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 10px;
+  border: 1px solid var(--black-4);
+  background: var(--black-3);
+  color: var(--white-2);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.modal-btn:hover { border-color: var(--white-3); color: var(--white); }
+.modal-btn.primary { border-color: var(--yellow); color: var(--yellow); background: transparent; }
+.modal-btn.primary:hover { background: var(--yellow); color: var(--black); }
+.modal-btn.full { grid-column: 1 / -1; }
+.modal-step { display: none; }
+.modal-step.active { display: block; }
+.modal-code-display {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 0.4em;
+  color: var(--yellow);
+  text-align: center;
+  padding: 16px 0;
+  border: 1px solid var(--black-4);
+  margin-bottom: 12px;
+}
+.modal-hint {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--white-3);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+.modal-error {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--red);
+  margin-top: 8px;
+  min-height: 16px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .page-meta { display: none; }
@@ -593,6 +932,7 @@ footer a:hover { color: var(--yellow); }
     <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
     <button class="filter-btn" data-filter="thisweek">This Week</button>
     <button class="filter-btn" data-filter="female">Female/Non-Binary</button>
+    <div id="groupBarItem" style="display:none" class="group-bar-item"></div>
     <span class="spacer"></span>
     <button class="refresh-btn" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
@@ -612,7 +952,85 @@ footer a:hover { color: var(--yellow); }
   Data from DaySmart, FareHarbor &amp; Google Calendar &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a> &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
 </footer>
 
+<!-- Sheet overlay (Who's going) -->
+<div id="sheetOverlay" class="sheet-overlay" aria-hidden="true"></div>
+<div id="bottomSheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-label="Who's going">
+  <div class="sheet-header">
+    <div id="sheetRink" class="sheet-rink"></div>
+    <div id="sheetDatetime" class="sheet-datetime"></div>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-going-label">GOING</div>
+    <div id="sheetNames" class="sheet-names">Nobody yet</div>
+    <button id="sheetToggleBtn" class="sheet-toggle-btn">I'm going</button>
+  </div>
+  <div class="sheet-share-row">
+    <button id="sheetShareBtn" class="sheet-share-btn">↗ Nudge your group</button>
+    <span id="sheetCopyConfirm" class="sheet-copy-confirm"></span>
+  </div>
+  <button id="sheetCloseBtn" class="sheet-close-btn">Close</button>
+</div>
+
+<!-- Group setup modal -->
+<div id="modalOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="group-modal" role="dialog" aria-modal="true" aria-label="Group setup">
+    <div class="modal-header">
+      <span>Your Group</span>
+      <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Step 1: name + choose action -->
+      <div id="modalStep1" class="modal-step active">
+        <div class="modal-field">
+          <label class="modal-label" for="modalDisplayName">Your name</label>
+          <input class="modal-input" id="modalDisplayName" type="text" placeholder="How you appear to your group" maxlength="32" autocomplete="off">
+        </div>
+        <div class="modal-btn-row">
+          <button class="modal-btn primary" id="modalGoCreateBtn">Create a group</button>
+          <button class="modal-btn" id="modalGoJoinBtn">Join with a code</button>
+        </div>
+        <div id="modalError" class="modal-error"></div>
+      </div>
+      <!-- Step 2a: enter group name -->
+      <div id="modalStepCreate" class="modal-step">
+        <div class="modal-field">
+          <label class="modal-label" for="modalGroupName">Group name</label>
+          <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. Wednesday Crew" maxlength="32" autocomplete="off">
+        </div>
+        <div class="modal-btn-row">
+          <button class="modal-btn" id="modalBackFromCreate">← Back</button>
+          <button class="modal-btn primary" id="modalCreateBtn">Create</button>
+        </div>
+        <div id="modalCreateError" class="modal-error"></div>
+      </div>
+      <!-- Step 2b: group created — show code -->
+      <div id="modalStepCode" class="modal-step">
+        <div id="modalCodeDisplay" class="modal-code-display">------</div>
+        <p class="modal-hint">Share this code with your group.<br>They'll enter it on the Join screen.</p>
+        <div class="modal-btn-row">
+          <button class="modal-btn primary full" id="modalDoneCodeBtn">Done</button>
+        </div>
+      </div>
+      <!-- Step 2c: join with code -->
+      <div id="modalStepJoin" class="modal-step">
+        <div class="modal-field">
+          <label class="modal-label" for="modalJoinCode">Group code</label>
+          <input class="modal-input" id="modalJoinCode" type="text" placeholder="6-character code" maxlength="6" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.3em">
+        </div>
+        <div class="modal-btn-row">
+          <button class="modal-btn" id="modalBackFromJoin">← Back</button>
+          <button class="modal-btn primary" id="modalJoinBtn">Join</button>
+        </div>
+        <div id="modalJoinError" class="modal-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
+// ─── Feature flag ─────────────────────────────────────────────────────────────
+const GROUPS_ENABLED = false;
+
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
 const RINKS = {
@@ -937,6 +1355,11 @@ let allData = null;
 let activeFilter = "all";
 let selectedRinks = new Set();
 
+// Group feature (read by group functions below; only populated when GROUPS_ENABLED)
+const sessionMap = {};   // sessionKey → session object, rebuilt on each render
+const rsvpCache  = {};   // sessionKey → [displayName,...], fetched async after render
+let   sheetSession = null; // { s, sk } for the currently-open bottom sheet
+
 function showStatus(msg, type = "loading") {
   const el = document.getElementById("statusBanner");
   el.style.display = "flex";
@@ -1088,13 +1511,17 @@ function renderSessions(data) {
           <div class="day-count-block">${sessions.length} session${sessions.length !== 1 ? 's' : ''}</div>
         </div>
         <div class="session-rows">
-          ${sessions.map(s => sessionRow(s)).join("")}
+          ${sessions.map(s => {
+            if (GROUPS_ENABLED) sessionMap[mkSessionKey(s)] = s;
+            return sessionRow(s);
+          }).join("")}
         </div>
       </div>`;
     });
   }
 
   content.innerHTML = html;
+  if (GROUPS_ENABLED && getGroup()) void updateGoingIndicators();
 
   const total = all.filter(s => !s.soldOut).length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
@@ -1120,6 +1547,11 @@ function sessionRow(s) {
     ? `href="${s.bookUrl}" target="_blank" rel="noopener"`
     : '';
 
+  // Going indicator — only rendered when flag is on and user has a group
+  const goingBtn = GROUPS_ENABLED && getGroup()
+    ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going"><span class="going-plus">+</span></span>`
+    : '';
+
   return `<a class="session-row${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
@@ -1129,6 +1561,7 @@ function sessionRow(s) {
     </div>
     <div class="row-right">
       ${dur ? `<div class="row-duration">${dur}</div>` : ''}
+      ${goingBtn}
       <div class="row-badges">${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
   </a>`;
@@ -1174,6 +1607,292 @@ setInterval(loadData, 10 * 60 * 1000);
 
 // Initial load
 loadData();
+
+// ─── Group feature (all gated by GROUPS_ENABLED) ─────────────────────────────
+
+const GROUP_LS_KEY = 'postandin_group';
+
+function getGroup() {
+  if (!GROUPS_ENABLED) return null;
+  try { return JSON.parse(localStorage.getItem(GROUP_LS_KEY) || 'null'); }
+  catch { return null; }
+}
+
+function setGroup(v) {
+  if (v) localStorage.setItem(GROUP_LS_KEY, JSON.stringify(v));
+  else localStorage.removeItem(GROUP_LS_KEY);
+}
+
+function mkSessionKey(s) {
+  const d = s.start;
+  const date = d.toLocaleDateString('en-CA');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${s.rinkKey}|${date}|${hh}:${mm}`;
+}
+
+function updateIndicatorEl(btn, going, myName) {
+  if (!going.length) {
+    btn.innerHTML = `<span class="going-plus">+</span>`;
+    return;
+  }
+  const amGoing = going.includes(myName);
+  btn.innerHTML = `<span class="going-dot${amGoing ? ' active' : ''}">●</span><span class="going-count">${going.length}</span><span class="going-tooltip">${going.join(', ')}</span>`;
+}
+
+async function updateGoingIndicators() {
+  if (!GROUPS_ENABLED) return;
+  const group = getGroup();
+  if (!group) return;
+  const btns = [...document.querySelectorAll('.going-btn')];
+  if (!btns.length) return;
+  const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
+  await Promise.all(keys.map(async sk => {
+    try {
+      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupCode=${encodeURIComponent(group.code)}`);
+      if (r.ok) rsvpCache[sk] = (await r.json()).going ?? [];
+      else rsvpCache[sk] = [];
+    } catch { rsvpCache[sk] = []; }
+    document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
+      updateIndicatorEl(btn, rsvpCache[sk], group.displayName);
+    });
+  }));
+}
+
+async function doToggleGoing(s, sk, goingValue) {
+  const group = getGroup();
+  if (!group) return;
+  try {
+    const r = await fetch('/api/groups/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionKey: sk, groupCode: group.code, memberId: group.memberId, displayName: group.displayName, going: goingValue }),
+    });
+    rsvpCache[sk] = (await r.json()).going ?? [];
+  } catch(e) { console.error('RSVP error', e); return; }
+  document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
+    updateIndicatorEl(btn, rsvpCache[sk], group.displayName);
+  });
+  if (sheetSession?.sk === sk) _refreshSheetContent(rsvpCache[sk], group);
+}
+
+function _refreshSheetContent(going, group) {
+  const amGoing = going.includes(group.displayName);
+  document.getElementById('sheetNames').textContent = going.length ? going.join(', ') : 'Nobody yet';
+  const btn = document.getElementById('sheetToggleBtn');
+  btn.textContent = amGoing ? "I'm not going" : "I'm going";
+  btn.className = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
+}
+
+// Group bar
+function renderGroupBar() {
+  if (!GROUPS_ENABLED) return;
+  const el = document.getElementById('groupBarItem');
+  if (!el) return;
+  const group = getGroup();
+  el.style.display = 'flex';
+  if (group) {
+    el.innerHTML = `<span class="group-chip">${group.groupName}<button class="group-chip-x" id="leaveGroupBtn" aria-label="Leave group">✕</button></span>`;
+    document.getElementById('leaveGroupBtn').addEventListener('click', () => {
+      if (confirm(`Leave ${group.groupName}?`)) {
+        setGroup(null);
+        renderGroupBar();
+        if (allData) renderSessions(allData);
+      }
+    });
+  } else {
+    el.innerHTML = `<button class="group-join-link" id="joinGroupBtn">Join or create a group</button>`;
+    document.getElementById('joinGroupBtn').addEventListener('click', openGroupModal);
+  }
+}
+
+// Bottom sheet
+function openBottomSheet(s, sk) {
+  sheetSession = { s, sk };
+  const going  = rsvpCache[sk] ?? [];
+  const group  = getGroup();
+  document.getElementById('sheetRink').textContent     = s.rink.name.toUpperCase();
+  document.getElementById('sheetDatetime').textContent =
+    `${s.start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })} · ${fmtTime(s.start)}`;
+  document.getElementById('sheetNames').textContent    = going.length ? going.join(', ') : 'Nobody yet';
+  document.getElementById('sheetCopyConfirm').textContent = '';
+  const amGoing = group ? going.includes(group.displayName) : false;
+  const toggleBtn = document.getElementById('sheetToggleBtn');
+  toggleBtn.textContent = amGoing ? "I'm not going" : "I'm going";
+  toggleBtn.className   = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
+  const overlay = document.getElementById('sheetOverlay');
+  overlay.classList.add('open');
+  requestAnimationFrame(() => {
+    overlay.classList.add('visible');
+    document.getElementById('bottomSheet').classList.add('visible');
+  });
+}
+
+function closeBottomSheet() {
+  const overlay = document.getElementById('sheetOverlay');
+  overlay.classList.remove('visible');
+  document.getElementById('bottomSheet').classList.remove('visible');
+  overlay.addEventListener('transitionend', () => overlay.classList.remove('open'), { once: true });
+  sheetSession = null;
+}
+
+// Group setup modal
+function showModalStep(id) {
+  document.querySelectorAll('.modal-step').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function openGroupModal() {
+  ['modalDisplayName', 'modalGroupName', 'modalJoinCode'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['modalError', 'modalCreateError', 'modalJoinError'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '';
+  });
+  showModalStep('modalStep1');
+  const overlay = document.getElementById('modalOverlay');
+  overlay.classList.add('open');
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+  setTimeout(() => document.getElementById('modalDisplayName')?.focus(), 160);
+}
+
+function closeGroupModal() {
+  const overlay = document.getElementById('modalOverlay');
+  overlay.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => overlay.classList.remove('open'), { once: true });
+}
+
+if (GROUPS_ENABLED) {
+  // Event delegation: going-btn clicks inside session rows
+  document.getElementById('content').addEventListener('click', async e => {
+    const btn = e.target.closest('.going-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const sk = btn.dataset.sessionKey;
+    const s  = sessionMap[sk];
+    if (!s) return;
+    const group = getGroup();
+    if (!group) { openGroupModal(); return; }
+    const going = rsvpCache[sk] ?? [];
+    if (going.length === 0) {
+      await doToggleGoing(s, sk, true);
+    } else {
+      openBottomSheet(s, sk);
+    }
+  });
+
+  // Sheet wiring
+  document.getElementById('sheetOverlay').addEventListener('click', closeBottomSheet);
+  document.getElementById('sheetCloseBtn').addEventListener('click', closeBottomSheet);
+
+  document.getElementById('sheetToggleBtn').addEventListener('click', async () => {
+    if (!sheetSession) return;
+    const group = getGroup();
+    if (!group) return;
+    const going   = rsvpCache[sheetSession.sk] ?? [];
+    const amGoing = going.includes(group.displayName);
+    await doToggleGoing(sheetSession.s, sheetSession.sk, !amGoing);
+  });
+
+  document.getElementById('sheetShareBtn').addEventListener('click', async () => {
+    if (!sheetSession) return;
+    const group = getGroup();
+    if (!group) return;
+    const { s, sk } = sheetSession;
+    const date = s.start.toLocaleDateString('en-CA');
+    const time = fmtTime(s.start);
+    try {
+      const r = await fetch(
+        `/api/groups/nudge?sessionKey=${encodeURIComponent(sk)}&rinkName=${encodeURIComponent(s.rink.name)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&displayName=${encodeURIComponent(group.displayName)}`
+      );
+      const data  = await r.json();
+      const text  = data.text ?? `Stick & Puck at ${s.rink.name}. You in? postandin.com/stick-and-puck/`;
+      if (navigator.share) {
+        await navigator.share({ text }).catch(() => {});
+      } else {
+        await navigator.clipboard.writeText(text);
+        const confirm = document.getElementById('sheetCopyConfirm');
+        confirm.textContent = 'Copied!';
+        setTimeout(() => { confirm.textContent = ''; }, 2000);
+      }
+    } catch(e) { console.error('Nudge error', e); }
+  });
+
+  // Modal wiring
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeGroupModal();
+  });
+  document.getElementById('modalCloseBtn').addEventListener('click', closeGroupModal);
+
+  document.getElementById('modalGoCreateBtn').addEventListener('click', () => {
+    const name = document.getElementById('modalDisplayName').value.trim();
+    if (!name) { document.getElementById('modalError').textContent = 'Enter your name first.'; return; }
+    document.getElementById('modalError').textContent = '';
+    showModalStep('modalStepCreate');
+    setTimeout(() => document.getElementById('modalGroupName')?.focus(), 50);
+  });
+
+  document.getElementById('modalGoJoinBtn').addEventListener('click', () => {
+    const name = document.getElementById('modalDisplayName').value.trim();
+    if (!name) { document.getElementById('modalError').textContent = 'Enter your name first.'; return; }
+    document.getElementById('modalError').textContent = '';
+    showModalStep('modalStepJoin');
+    setTimeout(() => document.getElementById('modalJoinCode')?.focus(), 50);
+  });
+
+  document.getElementById('modalBackFromCreate').addEventListener('click', () => showModalStep('modalStep1'));
+
+  document.getElementById('modalCreateBtn').addEventListener('click', async () => {
+    const displayName = document.getElementById('modalDisplayName').value.trim();
+    const groupName   = document.getElementById('modalGroupName').value.trim();
+    if (!groupName) { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
+    document.getElementById('modalCreateError').textContent = '';
+    try {
+      const r = await fetch('/api/groups/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: groupName, displayName }),
+      });
+      const d = await r.json();
+      if (!r.ok) { document.getElementById('modalCreateError').textContent = d.error ?? 'Failed.'; return; }
+      setGroup({ code: d.code, groupId: d.groupId, memberId: d.memberId, displayName, groupName });
+      document.getElementById('modalCodeDisplay').textContent = d.code;
+      showModalStep('modalStepCode');
+    } catch { document.getElementById('modalCreateError').textContent = 'Network error. Try again.'; }
+  });
+
+  document.getElementById('modalDoneCodeBtn').addEventListener('click', () => {
+    closeGroupModal();
+    renderGroupBar();
+    if (allData) renderSessions(allData);
+  });
+
+  document.getElementById('modalBackFromJoin').addEventListener('click', () => showModalStep('modalStep1'));
+
+  document.getElementById('modalJoinBtn').addEventListener('click', async () => {
+    const displayName = document.getElementById('modalDisplayName').value.trim();
+    const code        = document.getElementById('modalJoinCode').value.trim().toUpperCase();
+    if (!code) { document.getElementById('modalJoinError').textContent = 'Enter a code.'; return; }
+    document.getElementById('modalJoinError').textContent = '';
+    try {
+      const r = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, displayName }),
+      });
+      const d = await r.json();
+      if (!r.ok) { document.getElementById('modalJoinError').textContent = d.error ?? 'Failed.'; return; }
+      setGroup({ code: d.groupId, groupId: d.groupId, memberId: d.memberId, displayName, groupName: d.groupName });
+      closeGroupModal();
+      renderGroupBar();
+      if (allData) renderSessions(allData);
+    } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
+  });
+
+  // Initial group bar render on page load
+  renderGroupBar();
+}
 
 // ─── Dev helpers (run from browser console) ──────────────────────────────────
 window.discoverLynnwoodPKs = async () => {
