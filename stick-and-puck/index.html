@@ -1184,7 +1184,7 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
         bookUrl:  start ? `https://apps.daysmartrecreation.com/dash/x/#/online/${company}/event-registration?date=${new Date(start).toISOString().slice(0,10)}` : null,
       };
     })
-    .filter(s => s.start && s.start > now)
+    .filter(s => s.start && (s.end ?? s.start) > now)
     .sort((a, b) => a.start - b.start);
 }
 
@@ -1219,7 +1219,7 @@ async function fetchFareHarbor({ company, itemPk, subtitle: fixedSubtitle = null
       avails = data.calendar.weeks.flatMap(w => w.days ?? []).flatMap(day => day?.availabilities ?? []);
     }
     return avails
-      .filter(av => new Date(av.start_at) > now)
+      .filter(av => new Date(av.end_at ?? av.start_at) > now)
       .map(av => {
         const rate = av.customer_type_rates?.[0];
         const spots = rate?.availability?.capacity_remaining ?? null;
@@ -1256,7 +1256,7 @@ async function fetchKentValley() {
   const now = new Date();
   return data.sessions
     .map(s => ({ ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null }))
-    .filter(s => s.start > now)
+    .filter(s => (s.end ?? s.start) > now)
     .sort((a, b) => a.start - b.start);
 }
 
@@ -1278,7 +1278,7 @@ async function fetchEverett() {
       const dateStr = slot.startDate.slice(0, 10);
       const start = new Date(`${dateStr}T${slot.startTime}`);
       const end   = new Date(`${dateStr}T${slot.endTime}`);
-      if (start <= now) continue;
+      if (end <= now) continue;
       sessions.push({
         id: `everett-${slot.id}`,
         start, end,
