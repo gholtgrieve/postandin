@@ -173,14 +173,16 @@ function expandRrule(startStr, endStr, rrule, exdates, now, horizon) {
   }
   if (params.FREQ !== 'WEEKLY') return [];
 
-  const until  = params.UNTIL ? parseIcalDt(params.UNTIL) : null;
-  const limit  = until && until < horizon ? until : horizon;
-
+  const until      = params.UNTIL ? parseIcalDt(params.UNTIL) : null;
   const isUtcStart = startStr.endsWith('Z');
   const isUtcEnd   = endStr?.endsWith('Z') ?? false;
   const startMs    = new Date(startStr).getTime();
   const durMs      = endStr ? new Date(endStr).getTime() - startMs : 0;
   const weekMs     = 7 * 24 * 60 * 60 * 1000;
+
+  const count      = params.COUNT ? parseInt(params.COUNT, 10) : null;
+  const countUntil = count ? new Date(startMs + (count - 1) * weekMs) : null;
+  const limit      = [until, countUntil, horizon].filter(Boolean).reduce((a, b) => a < b ? a : b);
 
   // Jump to the occurrence at or just before (now - 12 h) to capture
   // local-time sessions that appear earlier than they actually are in UTC.
