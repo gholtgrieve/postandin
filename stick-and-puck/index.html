@@ -1157,6 +1157,7 @@ async function fetchDaySmart({ company, sportId, resourceIds }) {
         ev.attributes?.name,
         ev.attributes?.title,
       ].filter(Boolean).join(" ").toLowerCase().replace(/<[^>]+>/g, "");
+      if (text.includes("learn to play")) return false;
       return text.includes("stick") || text.includes("s&p") || text.includes("s & p") || text.includes("full hockey gear");
     })
     .map(ev => {
