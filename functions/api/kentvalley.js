@@ -1,6 +1,17 @@
 // functions/api/kentvalley.js
 // Cloudflare Pages Function — fetches Kent Valley stick & puck sessions via Google Calendar iCal.
 // On fetch failure, serves the last good response from the Workers Cache API.
+//
+// The KVIC Google Calendar uses FREQ=WEEKLY recurring events for all sessions.
+// This parser expands those recurrences, handles RECURRENCE-ID overrides
+// (modified instances), and EXDATE exceptions.
+//
+// Timezone note: the feed mixes UTC-Z strings and local-time strings (no Z,
+// TZID=America/Los_Angeles or America/Vancouver). The Worker runs in UTC, so
+// a bare "2026-06-18T16:30:00" is parsed as 16:30 UTC — but it actually
+// represents 4:30 PM PT (= 23:30 UTC). We apply a 12-hour buffer on the
+// server-side emit cutoff so nothing in the near future gets dropped; the
+// client always applies its own precise temporal filter.
 
 const ICAL_URL = 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics';
 const CACHE_KEY = new Request('https://cache.internal/postandin/kentvalley-v1');
@@ -20,7 +31,6 @@ export async function onRequest(ctx) {
     const { sessions, rawEventCount } = parseIcal(await res.text());
     const body = JSON.stringify({ ok: true, sessions, rawEventCount });
 
-    // Persist the good response; don't block the reply waiting for the write.
     ctx.waitUntil(cache.put(CACHE_KEY, new Response(body, {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
     })));
@@ -28,7 +38,6 @@ export async function onRequest(ctx) {
     return new Response(body, { headers: RESPONSE_HEADERS });
 
   } catch (e) {
-    // Fall back to the last good cached payload, if any.
     const cached = await cache.match(CACHE_KEY);
     if (cached) {
       const data = await cached.json();
@@ -37,7 +46,6 @@ export async function onRequest(ctx) {
         { headers: RESPONSE_HEADERS },
       );
     }
-    // Nothing cached yet — return the error so the UI can show it.
     return new Response(
       JSON.stringify({ ok: false, error: e.message, sessions: [] }),
       { status: 200, headers: RESPONSE_HEADERS },
@@ -46,71 +54,182 @@ export async function onRequest(ctx) {
 }
 
 function parseIcal(ical) {
-  // Unfold continuation lines (RFC 5545 line folding)
   const text = ical.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
 
-  // Cutoff = right now. Keep any session whose end time (or start time if no
-  // end) is still in the future. Using current time avoids the midnight-UTC
-  // boundary problem that caused today's sessions to be dropped.
-  const cutoff = new Date();
+  const now     = new Date();
+  const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
+  // Server-side emit cutoff is 12 h in the past so that local-time (non-Z)
+  // strings — which appear up to 8 h earlier than their true UTC value on this
+  // UTC Worker — are never incorrectly dropped. The client re-filters precisely.
+  const emitCutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000);
 
-  const sessions = [];
-  const events = text.split('BEGIN:VEVENT');
-  const rawEventCount = events.length - 1; // excludes the leading non-event chunk
+  const blocks = text.split('BEGIN:VEVENT');
+  const rawEventCount = blocks.length - 1;
 
-  for (let i = 1; i < events.length; i++) {
-    const block = events[i].split('END:VEVENT')[0];
-    const props = {};
+  const masters = [];
+  const overridesByUid = new Map(); // uid → Map(normalised-recurrence-id → {startStr,endStr,bookUrl})
+  const singles = [];
+
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i].split('END:VEVENT')[0];
+    const props   = {};
+    const exdates = new Set();
 
     for (const line of block.split('\n')) {
       const ci = line.indexOf(':');
       if (ci === -1) continue;
-      const rawKey = line.slice(0, ci);
-      const val = line.slice(ci + 1).trimEnd();
-      // Strip parameters (e.g. DTSTART;TZID=America/Los_Angeles) to get base key
+      const rawKey  = line.slice(0, ci);
+      const val     = line.slice(ci + 1).trimEnd();
       const baseKey = rawKey.split(';')[0].toUpperCase();
-      props[baseKey] = { val, isUtc: val.endsWith('Z') };
+      if (baseKey === 'EXDATE') {
+        for (const v of val.split(',')) {
+          const s = v.replace('Z', '');
+          if (s.length >= 8) exdates.add(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`);
+        }
+      } else {
+        props[baseKey] = { val, isUtc: val.endsWith('Z') };
+      }
     }
 
     const summary = (props['SUMMARY']?.val ?? '').replace(/\\[,;nN]/g, ' ').trim();
     if (!/stick|s&p/i.test(summary)) continue;
 
     const dtstart = props['DTSTART'];
-    const dtend   = props['DTEND'];
-    if (!dtstart?.val?.includes('T')) continue; // skip all-day events
+    if (!dtstart?.val?.includes('T')) continue; // skip VALUE=DATE all-day events
+
+    const dtend      = props['DTEND'];
+    const uid        = props['UID']?.val ?? '';
+    const rrule      = props['RRULE']?.val ?? null;
+    const recurrProp = props['RECURRENCE-ID'];
+    const urlVal     = props['URL']?.val ?? '';
+    const bookUrl    = urlVal.startsWith('http') ? urlVal : 'https://kentvalleyicecentre.net/';
 
     const startStr = fmtDt(dtstart);
     const endStr   = dtend?.val?.includes('T') ? fmtDt(dtend) : null;
 
-    // Drop sessions that have already ended (or started, if no end time)
-    if (new Date(endStr ?? startStr) <= cutoff) continue;
+    if (recurrProp?.val?.includes('T')) {
+      const recurrIdStr = fmtDt(recurrProp);
+      if (!overridesByUid.has(uid)) overridesByUid.set(uid, new Map());
+      overridesByUid.get(uid).set(recurrIdStr, { startStr, endStr, bookUrl });
+    } else if (rrule) {
+      masters.push({ startStr, endStr, rrule, uid, bookUrl, exdates });
+    } else {
+      singles.push({ startStr, endStr, uid, bookUrl });
+    }
+  }
 
-    const uid    = props['UID']?.val ?? startStr;
-    const urlVal = props['URL']?.val ?? '';
-    const bookUrl = urlVal.startsWith('http') ? urlVal : 'https://kentvalleyicecentre.net/';
+  const sessions = [];
+  const seen = new Set();
+  const consumedOverrides = new Set();
 
-    sessions.push({
-      id: uid,
-      start: startStr,
-      end: endStr,
-      title: 'Stick & Puck',
-      subtitle: null,
-      spots: null,
-      price: null,
-      soldOut: false,
-      bookUrl,
-    });
+  function emit(id, start, end, bookUrl) {
+    if (seen.has(id)) return;
+    seen.add(id);
+    sessions.push({ id, start, end, title: 'Stick & Puck', subtitle: null,
+                    spots: null, price: null, soldOut: false, bookUrl });
+  }
+
+  for (const ev of masters) {
+    const uidOverrides = overridesByUid.get(ev.uid);
+    for (const occ of expandRrule(ev.startStr, ev.endStr, ev.rrule, ev.exdates, now, horizon)) {
+      const override = uidOverrides?.get(occ.startStr);
+      if (override) consumedOverrides.add(`${ev.uid}:${occ.startStr}`);
+
+      const start = override?.startStr ?? occ.startStr;
+      const end   = override?.endStr   ?? occ.endStr;
+      if (new Date(end ?? start) > emitCutoff) {
+        emit(`${ev.uid}:${occ.startStr}`, start, end, override?.bookUrl ?? ev.bookUrl);
+      }
+    }
+  }
+
+  for (const ev of singles) {
+    if (new Date(ev.endStr ?? ev.startStr) > emitCutoff) {
+      emit(ev.uid || ev.startStr, ev.startStr, ev.endStr, ev.bookUrl);
+    }
+  }
+
+  // Override instances whose master wasn't found in the feed
+  for (const [uid, uidOverrides] of overridesByUid) {
+    for (const [recurrIdStr, ov] of uidOverrides) {
+      if (consumedOverrides.has(`${uid}:${recurrIdStr}`)) continue;
+      if (new Date(ov.endStr ?? ov.startStr) > emitCutoff) {
+        emit(`orphan:${uid}:${ov.startStr}`, ov.startStr, ov.endStr, ov.bookUrl);
+      }
+    }
   }
 
   return { sessions: sessions.sort((a, b) => a.start.localeCompare(b.start)), rawEventCount };
 }
 
+// Expand a FREQ=WEEKLY rule into occurrences between (now-12h) and horizon.
+// Jumps directly to the occurrence nearest to now rather than iterating
+// from the series start, so series from years ago are handled efficiently.
+function expandRrule(startStr, endStr, rrule, exdates, now, horizon) {
+  const params = {};
+  for (const part of rrule.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq !== -1) params[part.slice(0, eq)] = part.slice(eq + 1);
+  }
+  if (params.FREQ !== 'WEEKLY') return [];
+
+  const until  = params.UNTIL ? parseIcalDt(params.UNTIL) : null;
+  const limit  = until && until < horizon ? until : horizon;
+
+  const isUtcStart = startStr.endsWith('Z');
+  const isUtcEnd   = endStr?.endsWith('Z') ?? false;
+  const startMs    = new Date(startStr).getTime();
+  const durMs      = endStr ? new Date(endStr).getTime() - startMs : 0;
+  const weekMs     = 7 * 24 * 60 * 60 * 1000;
+
+  // Jump to the occurrence at or just before (now - 12 h) to capture
+  // local-time sessions that appear earlier than they actually are in UTC.
+  const windowStart   = now.getTime() - 12 * 60 * 60 * 1000;
+  const weeksElapsed  = Math.max(0, Math.floor((windowStart - startMs) / weekMs));
+  const firstT        = startMs + weeksElapsed * weekMs;
+
+  const occurrences = [];
+  for (let t = firstT; ; t += weekMs) {
+    const d = new Date(t);
+    if (d > limit) break;
+    const occStart = fmtDateFrom(d, isUtcStart);
+    if (exdates.has(occStart.slice(0, 10))) continue;
+    occurrences.push({
+      startStr: occStart,
+      endStr:   endStr ? fmtDateFrom(new Date(t + durMs), isUtcEnd) : null,
+    });
+  }
+  return occurrences;
+}
+
+// Parse an iCal UNTIL / EXDATE datetime string to a JS Date.
+function parseIcalDt(s) {
+  const isUtc = s.endsWith('Z');
+  const c = s.replace('Z', '');
+  if (c.length === 8) {
+    return new Date(`${c.slice(0,4)}-${c.slice(4,6)}-${c.slice(6,8)}`);
+  }
+  const yr = c.slice(0,4), mo = c.slice(4,6), dy = c.slice(6,8);
+  const hr = c.slice(9,11), mn = c.slice(11,13), sc = c.slice(13,15) || '00';
+  return new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:${sc}${isUtc ? 'Z' : ''}`);
+}
+
+// Reformat a JS Date into the same no-timezone shape as fmtDt output.
+// Uses UTC accessors — on this UTC Worker getUTC* === get*.
+function fmtDateFrom(d, isUtc) {
+  if (isUtc) return d.toISOString().slice(0, 16) + ':00Z';
+  const yr = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dy = String(d.getUTCDate()).padStart(2, '0');
+  const hr = String(d.getUTCHours()).padStart(2, '0');
+  const mn = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${yr}-${mo}-${dy}T${hr}:${mn}:00`;
+}
+
+// Convert a raw iCal DTSTART/DTEND/RECURRENCE-ID value to a normalised string.
 function fmtDt({ val, isUtc }) {
-  const s = val.replace('Z', '');
-  const yr  = s.slice(0, 4);
-  const mo  = s.slice(4, 6);
-  const dy  = s.slice(6, 8);
-  const hr  = s.slice(9, 11);
-  const min = s.slice(11, 13);
-  return `${yr}-${mo}-${dy}T${hr}:${min}:00${isUtc ? 'Z' : ''}`;
+  const s  = val.replace('Z', '');
+  const yr = s.slice(0, 4), mo = s.slice(4, 6), dy = s.slice(6, 8);
+  const hr = s.slice(9, 11), mn = s.slice(11, 13);
+  return `${yr}-${mo}-${dy}T${hr}:${mn}:00${isUtc ? 'Z' : ''}`;
 }
