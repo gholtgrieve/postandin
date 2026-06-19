@@ -6,12 +6,9 @@
 // This parser expands those recurrences, handles RECURRENCE-ID overrides
 // (modified instances), and EXDATE exceptions.
 //
-// Timezone note: the feed mixes UTC-Z strings and local-time strings (no Z,
-// TZID=America/Los_Angeles or America/Vancouver). The Worker runs in UTC, so
-// a bare "2026-06-18T16:30:00" is parsed as 16:30 UTC — but it actually
-// represents 4:30 PM PT (= 23:30 UTC). We apply a 12-hour buffer on the
-// server-side emit cutoff so nothing in the near future gets dropped; the
-// client always applies its own precise temporal filter.
+// Timezone note: the feed mixes UTC-Z strings and local-time strings (no Z).
+// UTC-Z values are converted to naive Pacific local strings via toPackedPacific
+// so all emitted start/end values are comparable local-time strings.
 
 const ICAL_URL = 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics';
 const CACHE_KEY = new Request('https://cache.internal/postandin/kentvalley-v1');
@@ -58,10 +55,7 @@ function parseIcal(ical) {
 
   const now     = new Date();
   const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
-  // Server-side emit cutoff is 12 h in the past so that local-time (non-Z)
-  // strings — which appear up to 8 h earlier than their true UTC value on this
-  // UTC Worker — are never incorrectly dropped. The client re-filters precisely.
-  const emitCutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+  const emitCutoff = new Date();
 
   const blocks = text.split('BEGIN:VEVENT');
   const rawEventCount = blocks.length - 1;
@@ -135,8 +129,10 @@ function parseIcal(ical) {
       const override = uidOverrides?.get(occ.startStr);
       if (override) consumedOverrides.add(`${ev.uid}:${occ.startStr}`);
 
-      const start = override?.startStr ?? occ.startStr;
-      const end   = override?.endStr   ?? occ.endStr;
+      const rawStart = override?.startStr ?? occ.startStr;
+      const rawEnd   = override?.endStr   ?? occ.endStr;
+      const start = rawStart?.endsWith('Z') ? toPackedPacific(rawStart) : rawStart;
+      const end   = rawEnd?.endsWith('Z')   ? toPackedPacific(rawEnd)   : rawEnd;
       if (new Date(end ?? start) > emitCutoff) {
         emit(`${ev.uid}:${occ.startStr}`, start, end, override?.bookUrl ?? ev.bookUrl);
       }
@@ -144,8 +140,10 @@ function parseIcal(ical) {
   }
 
   for (const ev of singles) {
-    if (new Date(ev.endStr ?? ev.startStr) > emitCutoff) {
-      emit(ev.uid || ev.startStr, ev.startStr, ev.endStr, ev.bookUrl);
+    const sStart = ev.startStr?.endsWith('Z') ? toPackedPacific(ev.startStr) : ev.startStr;
+    const sEnd   = ev.endStr?.endsWith('Z')   ? toPackedPacific(ev.endStr)   : ev.endStr;
+    if (new Date(sEnd ?? sStart) > emitCutoff) {
+      emit(ev.uid || ev.startStr, sStart, sEnd, ev.bookUrl);
     }
   }
 
@@ -153,8 +151,10 @@ function parseIcal(ical) {
   for (const [uid, uidOverrides] of overridesByUid) {
     for (const [recurrIdStr, ov] of uidOverrides) {
       if (consumedOverrides.has(`${uid}:${recurrIdStr}`)) continue;
-      if (new Date(ov.endStr ?? ov.startStr) > emitCutoff) {
-        emit(`orphan:${uid}:${ov.startStr}`, ov.startStr, ov.endStr, ov.bookUrl);
+      const oStart = ov.startStr?.endsWith('Z') ? toPackedPacific(ov.startStr) : ov.startStr;
+      const oEnd   = ov.endStr?.endsWith('Z')   ? toPackedPacific(ov.endStr)   : ov.endStr;
+      if (new Date(oEnd ?? oStart) > emitCutoff) {
+        emit(`orphan:${uid}:${ov.startStr}`, oStart, oEnd, ov.bookUrl);
       }
     }
   }
@@ -224,6 +224,20 @@ function fmtDateFrom(d, isUtc) {
   const hr = String(d.getUTCHours()).padStart(2, '0');
   const mn = String(d.getUTCMinutes()).padStart(2, '0');
   return `${yr}-${mo}-${dy}T${hr}:${mn}:00`;
+}
+
+// Convert a UTC-Z ISO string to a naive Pacific local datetime string.
+function toPackedPacific(isoStr) {
+  if (!isoStr) return null;
+  const d = new Date(isoStr);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+  const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;
 }
 
 // Convert a raw iCal DTSTART/DTEND/RECURRENCE-ID value to a normalised string.
