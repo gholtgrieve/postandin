@@ -161,10 +161,8 @@ header {
 .filters-row { height: 48px; }
 
 .groups-row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  min-height: 44px;
-  gap: 8px;
+  height: 48px;
+  gap: 0;
 }
 
 .locations-row {
@@ -570,12 +568,13 @@ footer a:hover { color: var(--yellow); }
 .group-filter-chip {
   display: inline-flex;
   align-items: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
   letter-spacing: 0.1em;
-  padding: 5px 11px;
-  border: 1px solid var(--white-2);
+  padding: 0 18px;
+  height: 48px;
+  border: none;
+  border-right: var(--rule);
   background: var(--white);
   color: var(--black);
   cursor: pointer;
@@ -584,67 +583,69 @@ footer a:hover { color: var(--yellow); }
   flex-shrink: 0;
   transition: all 0.1s;
 }
+.group-filter-chip:first-of-type { border-left: var(--rule); }
 .group-filter-chip.inactive {
-  background: var(--black-2);
-  color: var(--white-3);
-  border-color: var(--black-4);
+  background: transparent;
+  color: var(--white-2);
 }
-.group-filter-chip:hover { opacity: 0.8; }
+.group-filter-chip:hover { background: var(--black-4); color: var(--white); }
+.group-filter-chip.inactive:hover { background: var(--black-4); color: var(--white); }
 
 .manage-groups-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--white-3);
+  gap: 6px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  color: var(--white-2);
   background: none;
-  border: 1px solid var(--black-4);
-  padding: 5px 10px;
+  border: none;
+  border-left: var(--rule);
+  padding: 0 18px;
+  height: 48px;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.1s;
 }
-.manage-groups-btn:hover { color: var(--white-2); border-color: var(--white-3); }
+.manage-groups-btn:hover { background: var(--black-4); color: var(--white); }
 
 .groups-empty-prompt {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--white-3);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  color: var(--white-2);
   flex-shrink: 0;
   background: none;
   border: none;
+  padding: 0;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
-  padding: 5px 0;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 2px;
   transition: color 0.1s;
 }
-.groups-empty-prompt:hover { color: var(--white-2); }
+.groups-empty-prompt:hover { color: var(--white); }
 
 .groups-help-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--white-3);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  color: var(--white-2);
   background: none;
-  border: 1px solid var(--black-4);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  border: none;
+  border-left: var(--rule);
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.1s;
 }
-.groups-help-btn:hover { color: var(--white-2); border-color: var(--white-3); }
+.groups-help-btn:hover { background: var(--black-4); color: var(--white); }
 
 .intro-modal-body { padding: 24px 22px 22px; }
 .intro-modal-heading {
@@ -1963,6 +1964,7 @@ function renderGroupsRow() {
       return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}">${escapeHtml(g.groupName)}</button>`;
     }).join('');
   }
+  html += `<span class="spacer"></span>`;
   html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups</button>`;
   html += `<button class="groups-help-btn" id="groupsHelpBtn" aria-label="What are groups?">?</button>`;
   el.innerHTML = html;
