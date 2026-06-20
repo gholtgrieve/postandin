@@ -7,7 +7,7 @@
 // (modified instances), and EXDATE exceptions.
 //
 // Timezone note: the feed mixes UTC-Z strings and local-time strings (no Z).
-// UTC-Z values are converted to naive Pacific local strings via toPackedPacific
+// UTC-Z values are converted to naive Pacific local strings via toPacificLocal
 // so all emitted start/end values are comparable local-time strings.
 
 const ICAL_URL = 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics';
@@ -131,18 +131,18 @@ function parseIcal(ical) {
 
       const rawStart = override?.startStr ?? occ.startStr;
       const rawEnd   = override?.endStr   ?? occ.endStr;
-      const start = rawStart?.endsWith('Z') ? toPackedPacific(rawStart) : rawStart;
-      const end   = rawEnd?.endsWith('Z')   ? toPackedPacific(rawEnd)   : rawEnd;
-      if (new Date(end ?? start) > emitCutoff) {
+      const start = rawStart?.endsWith('Z') ? toPacificLocal(rawStart) : rawStart;
+      const end   = rawEnd?.endsWith('Z')   ? toPacificLocal(rawEnd)   : rawEnd;
+      if (new Date(rawEnd ?? rawStart) > emitCutoff) {
         emit(`${ev.uid}:${occ.startStr}`, start, end, override?.bookUrl ?? ev.bookUrl);
       }
     }
   }
 
   for (const ev of singles) {
-    const sStart = ev.startStr?.endsWith('Z') ? toPackedPacific(ev.startStr) : ev.startStr;
-    const sEnd   = ev.endStr?.endsWith('Z')   ? toPackedPacific(ev.endStr)   : ev.endStr;
-    if (new Date(sEnd ?? sStart) > emitCutoff) {
+    const sStart = ev.startStr?.endsWith('Z') ? toPacificLocal(ev.startStr) : ev.startStr;
+    const sEnd   = ev.endStr?.endsWith('Z')   ? toPacificLocal(ev.endStr)   : ev.endStr;
+    if (new Date(ev.endStr ?? ev.startStr) > emitCutoff) {
       emit(ev.uid || ev.startStr, sStart, sEnd, ev.bookUrl);
     }
   }
@@ -151,9 +151,9 @@ function parseIcal(ical) {
   for (const [uid, uidOverrides] of overridesByUid) {
     for (const [recurrIdStr, ov] of uidOverrides) {
       if (consumedOverrides.has(`${uid}:${recurrIdStr}`)) continue;
-      const oStart = ov.startStr?.endsWith('Z') ? toPackedPacific(ov.startStr) : ov.startStr;
-      const oEnd   = ov.endStr?.endsWith('Z')   ? toPackedPacific(ov.endStr)   : ov.endStr;
-      if (new Date(oEnd ?? oStart) > emitCutoff) {
+      const oStart = ov.startStr?.endsWith('Z') ? toPacificLocal(ov.startStr) : ov.startStr;
+      const oEnd   = ov.endStr?.endsWith('Z')   ? toPacificLocal(ov.endStr)   : ov.endStr;
+      if (new Date(ov.endStr ?? ov.startStr) > emitCutoff) {
         emit(`orphan:${uid}:${ov.startStr}`, oStart, oEnd, ov.bookUrl);
       }
     }
@@ -229,7 +229,7 @@ function fmtDateFrom(d, isUtc) {
 }
 
 // Convert a UTC-Z ISO string to a naive Pacific local datetime string.
-function toPackedPacific(isoStr) {
+function toPacificLocal(isoStr) {
   if (!isoStr) return null;
   const d = new Date(isoStr);
   const parts = new Intl.DateTimeFormat('en-CA', {
