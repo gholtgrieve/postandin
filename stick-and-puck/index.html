@@ -1421,7 +1421,7 @@ async function fetchEverett() {
   for (const rink of data) {
     if (rink.name !== 'Community Rink') continue;
     for (const slot of rink.slots) {
-      if (!slot.title.toLowerCase().includes('stick')) continue;
+      if (!/stick\s*(?:&|and)\s*puck/i.test(slot.title)) continue;
       const dateStr = slot.startDate.slice(0, 10);
       const start = new Date(`${dateStr}T${slot.startTime}`);
       const end   = new Date(`${dateStr}T${slot.endTime}`);
