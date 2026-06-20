@@ -1949,7 +1949,11 @@ function _refreshSheetContent(sk) {
 
 // Groups row — one toggleable chip per group + Manage groups button
 function renderGroupsRow() {
-  if (!GROUPS_ENABLED) return;
+  const el = document.getElementById('groupsRow');
+  if (!GROUPS_ENABLED) {
+    if (el) el.style.display = 'none';
+    return;
+  }
   const el = document.getElementById('groupsRow');
   if (!el) return;
   const groups = getGroups();
