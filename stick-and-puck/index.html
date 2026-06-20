@@ -616,7 +616,52 @@ footer a:hover { color: var(--yellow); }
   letter-spacing: 0.06em;
   color: var(--white-3);
   flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 0;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  transition: color 0.1s;
 }
+.groups-empty-prompt:hover { color: var(--white-2); }
+
+.groups-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white-3);
+  background: none;
+  border: 1px solid var(--black-4);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.1s;
+}
+.groups-help-btn:hover { color: var(--white-2); border-color: var(--white-3); }
+
+.intro-modal-body { padding: 24px 22px 22px; }
+.intro-modal-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+.intro-modal-copy {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  line-height: 1.75;
+  color: var(--white-2);
+  margin-bottom: 20px;
+}
+.intro-modal-btns { display: flex; flex-direction: column; gap: 8px; }
 
 /* ── Going indicator (person icon) ── */
 .going-btn {
@@ -1111,6 +1156,20 @@ footer a:hover { color: var(--yellow); }
         </div>
         <button class="modal-btn primary" id="modalCreateBtn">Create</button>
         <div id="modalCreateError" class="modal-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Groups intro / help modal -->
+<div id="introModalOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="group-modal" role="dialog" aria-modal="true" aria-label="See who's going" style="max-width:380px">
+    <div class="intro-modal-body">
+      <div class="intro-modal-heading">See who's going</div>
+      <p class="intro-modal-copy">Groups let you see which friends are coming to a session. Create a group, share the name and password with other families, and you'll see each other on the schedule.</p>
+      <div class="intro-modal-btns">
+        <button class="modal-btn primary" id="introJoinBtn">Join or create a group</button>
+        <button class="modal-btn" id="introLaterBtn">Maybe later</button>
       </div>
     </div>
   </div>
@@ -1896,7 +1955,7 @@ function renderGroupsRow() {
 
   let html = '';
   if (!groups.length) {
-    html = `<span class="groups-empty-prompt">Join a group to see who's going.</span>`;
+    html = `<button class="groups-empty-prompt" id="groupsEmptyPrompt">Join a group to see who's going</button>`;
   } else {
     html = groups.map((g, i) => {
       const slug = getGroupSlug(g);
@@ -1905,6 +1964,7 @@ function renderGroupsRow() {
     }).join('');
   }
   html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups</button>`;
+  html += `<button class="groups-help-btn" id="groupsHelpBtn" aria-label="What are groups?">?</button>`;
   el.innerHTML = html;
 
   el.querySelectorAll('.group-filter-chip').forEach(chip => {
@@ -1929,6 +1989,8 @@ function renderGroupsRow() {
   });
 
   document.getElementById('manageGroupsBtn')?.addEventListener('click', openGroupModal);
+  document.getElementById('groupsHelpBtn')?.addEventListener('click', openIntroModal);
+  document.getElementById('groupsEmptyPrompt')?.addEventListener('click', openGroupModal);
 }
 
 // Populate the "Your groups" list inside the modal
@@ -2065,6 +2127,31 @@ function closeGroupModal() {
   overlay.addEventListener('transitionend', () => overlay.classList.remove('open'), { once: true });
 }
 
+// Intro / help modal
+function openIntroModal() {
+  const overlay = document.getElementById('introModalOverlay');
+  overlay.setAttribute('aria-hidden', 'false');
+  overlay.classList.add('open');
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+}
+
+function closeIntroModal() {
+  localStorage.setItem('postandin_groups_intro_seen', '1');
+  const overlay = document.getElementById('introModalOverlay');
+  overlay.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }, { once: true });
+}
+
+function maybeShowIntroModal() {
+  if (!GROUPS_ENABLED) return;
+  if (getGroups().length) return;
+  if (localStorage.getItem('postandin_groups_intro_seen')) return;
+  openIntroModal();
+}
+
 if (GROUPS_ENABLED) {
   migrateStorage();
 
@@ -2185,8 +2272,19 @@ if (GROUPS_ENABLED) {
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
   });
 
+  // Intro modal wiring
+  document.getElementById('introJoinBtn').addEventListener('click', () => {
+    closeIntroModal();
+    openGroupModal();
+  });
+  document.getElementById('introLaterBtn').addEventListener('click', closeIntroModal);
+  document.getElementById('introModalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('introModalOverlay')) closeIntroModal();
+  });
+
   // Initial groups row render on page load
   renderGroupsRow();
+  maybeShowIntroModal();
 }
 
 // ─── Dev helpers (run from browser console) ──────────────────────────────────
