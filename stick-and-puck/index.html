@@ -134,7 +134,7 @@ header {
   margin-bottom: 4px;
 }
 
-/* ── Controls bar ── */
+/* ── Controls bar (3 stacked rows) ── */
 .controls-bar {
   background: var(--black-3);
   border-bottom: var(--rule);
@@ -143,14 +143,35 @@ header {
   z-index: 90;
 }
 
-.controls-inner {
+.controls-row {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 clamp(1rem, 4vw, 2rem);
-  height: 48px;
   display: flex;
   align-items: center;
   gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+  border-top: var(--rule);
+}
+.controls-row:first-child { border-top: none; }
+.controls-row::-webkit-scrollbar { display: none; }
+
+.filters-row { height: 48px; }
+
+.groups-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  min-height: 44px;
+  gap: 8px;
+}
+
+.locations-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  min-height: 44px;
+  gap: 6px;
 }
 
 .filter-btn {
@@ -166,6 +187,7 @@ header {
   cursor: pointer;
   transition: all 0.1s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .filter-btn:first-of-type { border-left: var(--rule); }
 .filter-btn:hover { background: var(--black-4); color: var(--white); }
@@ -187,9 +209,10 @@ header {
   height: 48px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.spacer { flex: 1; }
+.spacer { flex: 1; min-width: 16px; }
 
 .refresh-btn {
   font-family: 'Bebas Neue', sans-serif;
@@ -206,6 +229,7 @@ header {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 .refresh-btn:hover { background: var(--black-4); color: var(--white); }
 .refresh-btn.spinning .spin-icon { animation: spin 0.7s linear infinite; }
@@ -247,14 +271,7 @@ main {
 }
 .status-banner.success .status-dot { animation: none; }
 
-/* ── Rink legend (chip filter) ── */
-.rink-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 24px;
-  align-items: center;
-}
+/* ── Rink legend (chip filter) — now lives in .locations-row ── */
 .legend-chip {
   display: inline-flex;
   align-items: center;
@@ -269,6 +286,8 @@ main {
   background: var(--black-2);
   transition: all 0.1s;
   user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .legend-chip:hover { border-color: var(--white-3); color: var(--white); }
 .legend-chip.selected {
@@ -293,6 +312,8 @@ main {
   border: 1px solid var(--black-4);
   transition: all 0.1s;
   display: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .legend-clear.visible { display: inline-flex; align-items: center; }
 .legend-clear:hover { color: var(--white); border-color: var(--white-3); }
@@ -545,122 +566,59 @@ footer {
 footer a { color: var(--white-3); text-decoration: none; }
 footer a:hover { color: var(--yellow); }
 
-/* ── Group feature (GROUPS_ENABLED) ── */
-.group-bar-item {
-  display: flex;
-  align-items: center;
-  height: 48px;
-  padding: 0 8px 0 14px;
-  border-right: var(--rule);
-  gap: 6px;
-  overflow-x: auto;
-  max-width: 50%;
-  scrollbar-width: none;
-}
-.group-bar-item::-webkit-scrollbar { display: none; }
-.group-join-link {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  color: var(--white-3);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.1s;
-}
-.group-join-link:hover { color: var(--white-2); }
-.group-chip {
+/* ── Groups row chips ── */
+.group-filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--white-2);
-  padding: 4px 10px;
-  border: 1px solid var(--black-4);
+  padding: 5px 11px;
+  border: 1px solid var(--white-2);
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.1s;
+}
+.group-filter-chip.inactive {
   background: var(--black-2);
-  position: relative;
-}
-.group-chip-info {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--white-2);
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-color: var(--black-4);
-  transition: color 0.1s;
-}
-.group-chip-info:hover { color: var(--white); }
-.group-chip-x {
-  background: none;
-  border: none;
-  cursor: pointer;
   color: var(--white-3);
-  font-size: 12px;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.1s;
+  border-color: var(--black-4);
 }
-.group-chip-x:hover { color: var(--red); }
+.group-filter-chip:hover { opacity: 0.8; }
 
-/* ── Group info popover ── */
-.group-info-popover {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  background: var(--black-2);
-  border: 1px solid var(--black-4);
-  padding: 12px 14px;
-  z-index: 200;
-  min-width: 220px;
-  font-family: 'IBM Plex Mono', monospace;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.group-info-popover.open { display: block; }
-.group-info-row { margin-bottom: 10px; }
-.group-info-label {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  color: var(--white-3);
-  margin-bottom: 3px;
-}
-.group-info-value {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--white);
-}
-.group-info-copy {
+.manage-groups-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  padding: 6px 12px;
-  border: 1px solid var(--yellow);
-  background: transparent;
-  color: var(--yellow);
+  color: var(--white-3);
+  background: none;
+  border: 1px solid var(--black-4);
+  padding: 5px 10px;
   cursor: pointer;
-  width: 100%;
-  margin-top: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.1s;
 }
-.group-info-copy:hover { background: var(--yellow); color: var(--black); }
+.manage-groups-btn:hover { color: var(--white-2); border-color: var(--white-3); }
 
-/* ── Going indicator ── */
+.groups-empty-prompt {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--white-3);
+  flex-shrink: 0;
+}
+
+/* ── Going indicator (person icon) ── */
 .going-btn {
   background: none;
   border: none;
@@ -671,11 +629,23 @@ footer a:hover { color: var(--yellow); }
   gap: 3px;
   position: relative;
   vertical-align: middle;
+  color: var(--black-4);
+  transition: color 0.1s;
 }
-.going-plus { font-size: 14px; color: var(--white-3); line-height: 1; }
-.going-dot  { font-size: 8px; color: var(--white-3); }
-.going-dot.active { color: var(--yellow); }
-.going-count { font-size: 13px; letter-spacing: 0.06em; color: var(--yellow); }
+.going-btn.has-going { color: var(--yellow); }
+.going-person {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: block;
+}
+.going-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--yellow);
+}
 .going-tooltip {
   display: none;
   position: absolute;
@@ -711,7 +681,7 @@ footer a:hover { color: var(--yellow); }
 
 /* ── Bottom sheet ── */
 .bottom-sheet {
-  display: none;   /* hidden by default; .open reveals it */
+  display: none;
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -787,10 +757,10 @@ footer a:hover { color: var(--yellow); }
 .sheet-toggle-btn:hover,
 .sheet-toggle-btn.going { background: var(--yellow); color: var(--black); }
 .sheet-share-row {
-  display: none; /* Nudge hidden — will be re-added later */
+  display: none;
 }
 
-/* ── Sheet group clusters (Who's going, multi-group) ── */
+/* ── Sheet group clusters ── */
 .sheet-group-cluster { margin-bottom: 10px; }
 .sheet-group-cluster:last-child { margin-bottom: 0; }
 .sheet-group-label {
@@ -846,7 +816,7 @@ footer a:hover { color: var(--yellow); }
 }
 .sheet-close-btn:hover { color: var(--white-2); }
 
-/* ── Group setup modal ── */
+/* ── Manage groups modal ── */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -864,10 +834,13 @@ footer a:hover { color: var(--yellow); }
   background: var(--black-2);
   border: 1px solid var(--black-4);
   width: calc(100% - 2rem);
-  max-width: 400px;
+  max-width: 420px;
+  max-height: 86vh;
   font-family: 'IBM Plex Mono', monospace;
   transform: translateY(12px);
   transition: transform 150ms;
+  display: flex;
+  flex-direction: column;
 }
 .modal-overlay.visible .group-modal { transform: translateY(0); }
 .modal-header {
@@ -880,6 +853,7 @@ footer a:hover { color: var(--yellow); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 .modal-close-x {
   background: none;
@@ -893,8 +867,63 @@ footer a:hover { color: var(--yellow); }
   transition: color 0.1s;
 }
 .modal-close-x:hover { color: var(--white); }
-.modal-body { padding: 16px 18px; }
-.modal-field { margin-bottom: 14px; }
+.modal-body {
+  padding: 0 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--black-4);
+}
+.modal-section:first-child { border-top: none; padding-top: 16px; }
+.modal-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-bottom: 10px;
+}
+.modal-groups-list { }
+.modal-groups-empty {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--white-3);
+  padding: 4px 0;
+}
+.modal-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  gap: 12px;
+}
+.modal-group-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal-leave-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  background: none;
+  border: 1px solid var(--red);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.modal-leave-btn:hover { background: var(--red); color: var(--black); }
+.modal-field { margin-bottom: 12px; }
 .modal-label {
   display: block;
   font-size: 9px;
@@ -917,12 +946,6 @@ footer a:hover { color: var(--yellow); }
   transition: border-color 0.1s;
 }
 .modal-input:focus { border-color: var(--yellow); }
-.modal-btn-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 8px;
-}
 .modal-btn {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
@@ -934,31 +957,11 @@ footer a:hover { color: var(--yellow); }
   color: var(--white-2);
   cursor: pointer;
   transition: all 0.1s;
+  width: 100%;
 }
 .modal-btn:hover { border-color: var(--white-3); color: var(--white); }
 .modal-btn.primary { border-color: var(--yellow); color: var(--yellow); background: transparent; }
 .modal-btn.primary:hover { background: var(--yellow); color: var(--black); }
-.modal-btn.full { grid-column: 1 / -1; }
-.modal-step { display: none; }
-.modal-step.active { display: block; }
-.modal-code-display {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 36px;
-  letter-spacing: 0.4em;
-  color: var(--yellow);
-  text-align: center;
-  padding: 16px 0;
-  border: 1px solid var(--black-4);
-  margin-bottom: 12px;
-}
-.modal-hint {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--white-3);
-  text-align: center;
-  margin-bottom: 16px;
-  line-height: 1.7;
-}
 .modal-error {
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -1007,7 +1010,10 @@ footer a:hover { color: var(--yellow); }
 </div>
 
 <div class="controls-bar">
-  <div class="controls-inner">
+  <!-- Row 1: Groups -->
+  <div class="controls-row groups-row" id="groupsRow"></div>
+  <!-- Row 2: Session filters -->
+  <div class="controls-row filters-row">
     <span class="filter-label">Filter</span>
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="available">Available</button>
@@ -1015,18 +1021,18 @@ footer a:hover { color: var(--yellow); }
     <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
     <button class="filter-btn" data-filter="thisweek">This Week</button>
     <button class="filter-btn" data-filter="female">Female/Non-Binary</button>
-    <div id="groupBarItem" style="display:none" class="group-bar-item"></div>
     <span class="spacer"></span>
     <button class="refresh-btn" id="refreshBtn">
       <span class="spin-icon">↻</span> Refresh
     </button>
   </div>
+  <!-- Row 3: Location filters -->
+  <div class="controls-row locations-row" id="rinkLegend"></div>
 </div>
 
 <main>
   <div class="main-inner">
     <div id="statusBanner" class="status-banner" style="display:none"></div>
-    <div id="rinkLegend" class="rink-legend"></div>
     <div id="content"></div>
   </div>
 </main>
@@ -1054,28 +1060,47 @@ footer a:hover { color: var(--yellow); }
   <button id="sheetCloseBtn" class="sheet-close-btn">Close</button>
 </div>
 
-<!-- Group setup modal -->
+<!-- Manage Groups modal -->
 <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
-  <div class="group-modal" role="dialog" aria-modal="true" aria-label="Group setup">
+  <div class="group-modal" role="dialog" aria-modal="true" aria-label="Manage Groups">
     <div class="modal-header">
-      <span>Your Groups</span>
-      <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">✕</button>
+      <span>Manage Groups</span>
+      <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <!-- Step 1: your name + choose action -->
-      <div id="modalStep1" class="modal-step active">
+      <!-- Name (shown only when not yet set) -->
+      <div id="modalNameSection" class="modal-section" style="display:none">
+        <div class="modal-section-title">YOUR NAME</div>
         <div class="modal-field">
-          <label class="modal-label" for="modalDisplayName">Your name</label>
-          <input class="modal-input" id="modalDisplayName" type="text" placeholder="How you appear to your group" maxlength="32" autocomplete="off">
+          <label class="modal-label" for="modalDisplayName">How you appear to your group</label>
+          <input class="modal-input" id="modalDisplayName" type="text" placeholder="e.g. Felix's Dad" maxlength="32" autocomplete="off">
         </div>
-        <div class="modal-btn-row">
-          <button class="modal-btn primary" id="modalGoCreateBtn">Create a group</button>
-          <button class="modal-btn" id="modalGoJoinBtn">Join a group</button>
-        </div>
-        <div id="modalError" class="modal-error"></div>
+        <div id="modalNameError" class="modal-error"></div>
       </div>
-      <!-- Step 2a: create a group (name + password) -->
-      <div id="modalStepCreate" class="modal-step">
+      <!-- Your groups -->
+      <div class="modal-section">
+        <div class="modal-section-title">YOUR GROUPS</div>
+        <div id="modalGroupsList" class="modal-groups-list">
+          <div class="modal-groups-empty">No groups yet. Join or create one below.</div>
+        </div>
+      </div>
+      <!-- Join a group -->
+      <div class="modal-section">
+        <div class="modal-section-title">JOIN A GROUP</div>
+        <div class="modal-field">
+          <label class="modal-label" for="modalJoinGroupName">Group name</label>
+          <input class="modal-input" id="modalJoinGroupName" type="text" placeholder="e.g. SJ 16UAA" maxlength="48" autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="modalJoinPassword">Password</label>
+          <input class="modal-input" id="modalJoinPassword" type="text" placeholder="" maxlength="64" autocomplete="off">
+        </div>
+        <button class="modal-btn primary" id="modalJoinBtn">Join</button>
+        <div id="modalJoinError" class="modal-error"></div>
+      </div>
+      <!-- Create a group -->
+      <div class="modal-section">
+        <div class="modal-section-title">CREATE A GROUP</div>
         <div class="modal-field">
           <label class="modal-label" for="modalGroupName">Group name</label>
           <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. SJ 16UAA" maxlength="48" autocomplete="off">
@@ -1084,27 +1109,8 @@ footer a:hover { color: var(--yellow); }
           <label class="modal-label" for="modalGroupPassword">Password</label>
           <input class="modal-input" id="modalGroupPassword" type="text" placeholder="e.g. Sno-King sucks" maxlength="64" autocomplete="off">
         </div>
-        <div class="modal-btn-row">
-          <button class="modal-btn" id="modalBackFromCreate">← Back</button>
-          <button class="modal-btn primary" id="modalCreateBtn">Create</button>
-        </div>
+        <button class="modal-btn primary" id="modalCreateBtn">Create</button>
         <div id="modalCreateError" class="modal-error"></div>
-      </div>
-      <!-- Step 2b: join a group (name + password) -->
-      <div id="modalStepJoin" class="modal-step">
-        <div class="modal-field">
-          <label class="modal-label" for="modalJoinGroupName">Group name</label>
-          <input class="modal-input" id="modalJoinGroupName" type="text" placeholder="e.g. SJ 16UAA" maxlength="48" autocomplete="off">
-        </div>
-        <div class="modal-field">
-          <label class="modal-label" for="modalJoinPassword">Password</label>
-          <input class="modal-input" id="modalJoinPassword" type="text" placeholder="e.g. Sno-King sucks" maxlength="64" autocomplete="off">
-        </div>
-        <div class="modal-btn-row">
-          <button class="modal-btn" id="modalBackFromJoin">← Back</button>
-          <button class="modal-btn primary" id="modalJoinBtn">Join</button>
-        </div>
-        <div id="modalJoinError" class="modal-error"></div>
       </div>
     </div>
   </div>
@@ -1444,9 +1450,9 @@ let allData = null;
 let activeFilter = "all";
 let selectedRinks = new Set();
 
-// Group feature (read by group functions below; only populated when GROUPS_ENABLED)
+// Group feature state
 const sessionMap = {};   // sessionKey → session object, rebuilt on each render
-const rsvpCache  = {};   // sessionKey → [displayName,...], fetched async after render
+const rsvpCache  = {};   // sessionKey → { groupSlug: [displayName,...] }
 let   sheetSession = null; // { s, sk } for the currently-open bottom sheet
 
 function showStatus(msg, type = "loading") {
@@ -1484,7 +1490,7 @@ function renderLegend(data) {
       ${r.rink.city.toUpperCase()}${!r.ok ? ' !' : ''}
     </span>`
   ).join("");
-  html += `<span class="legend-clear${selectedRinks.size > 0 ? ' visible' : ''}" id="legendClear">Clear ✕</span>`;
+  html += `<span class="legend-clear${selectedRinks.size > 0 ? ' visible' : ''}" id="legendClear">Clear &#x2715;</span>`;
   legend.innerHTML = html;
 
   legend.querySelectorAll(".legend-chip").forEach(el => {
@@ -1620,6 +1626,8 @@ function renderSessions(data) {
     `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
 }
 
+const GOING_PERSON_SVG = `<svg class="going-person" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 14c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5"/></svg>`;
+
 function sessionRow(s) {
   const timeStr = fmtTime(s.start);
   const dur = fmtDuration(s.start, s.end);
@@ -1638,7 +1646,7 @@ function sessionRow(s) {
 
   // Going indicator — only rendered when flag is on and user is in at least one group
   const goingBtn = GROUPS_ENABLED && getGroups().length
-    ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going"><span class="going-plus">+</span></span>`
+    ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going">${GOING_PERSON_SVG}</span>`
     : '';
 
   return `<a class="session-row${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
@@ -1706,6 +1714,13 @@ const GROUPS_LS_KEY       = 'postandin_groups';
 const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
 const LEGACY_LS_KEY       = 'postandin_group';
 
+// Session-state: which groups are toggled off (empty = all active by default)
+const inactiveGroupSlugs = new Set();
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function migrateStorage() {
   const raw = localStorage.getItem(LEGACY_LS_KEY);
   if (!raw) return;
@@ -1755,7 +1770,7 @@ function getGroupSlug(group) {
   return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
 }
 
-// Returns deduplicated going names across all groups for a session
+// Deduplicated names across ALL groups for a session (for amGoing checks)
 function allUniqueGoing(sk) {
   const byGroup = rsvpCache[sk] ?? {};
   const seen = new Set();
@@ -1769,15 +1784,31 @@ function allUniqueGoing(sk) {
   return result;
 }
 
+// Deduplicated names across only ACTIVE (toggled-on) groups
+function activeUniqueGoing(sk) {
+  const groups = getGroups();
+  const byGroup = rsvpCache[sk] ?? {};
+  const seen = new Set();
+  const result = [];
+  for (const g of groups) {
+    if (inactiveGroupSlugs.has(getGroupSlug(g))) continue;
+    for (const n of (byGroup[getGroupSlug(g)] ?? [])) {
+      const key = n.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); result.push(n); }
+    }
+  }
+  return result;
+}
+
 function updateIndicatorEl(btn, sk) {
-  const displayName = getDisplayName();
-  const all = allUniqueGoing(sk);
-  if (!all.length) {
-    btn.innerHTML = `<span class="going-plus">+</span>`;
+  const activeNames = activeUniqueGoing(sk);
+  if (!activeNames.length) {
+    btn.innerHTML = GOING_PERSON_SVG;
+    btn.classList.remove('has-going');
     return;
   }
-  const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
-  btn.innerHTML = `<span class="going-dot${amGoing ? ' active' : ''}">●</span><span class="going-count">${all.length}</span><span class="going-tooltip">${all.join(', ')}</span>`;
+  btn.classList.add('has-going');
+  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-count">${activeNames.length}</span><span class="going-tooltip">${activeNames.map(escapeHtml).join(', ')}</span>`;
 }
 
 async function updateGoingIndicators() {
@@ -1828,21 +1859,24 @@ function _refreshSheetContent(sk) {
   const groups = getGroups();
   const displayName = getDisplayName();
   const byGroup = rsvpCache[sk] ?? {};
+  // Only show groups that are toggled on
+  const activeGroups = groups.filter(g => !inactiveGroupSlugs.has(getGroupSlug(g)));
+  // amGoing check uses all groups
   const all = allUniqueGoing(sk);
   const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
 
   const sheetNamesEl = document.getElementById('sheetNames');
-  if (!groups.length || !all.length) {
+  if (!activeGroups.length) {
     sheetNamesEl.innerHTML = '<span style="color:var(--white-3)">Nobody yet</span>';
   } else {
-    sheetNamesEl.innerHTML = groups.map(g => {
+    sheetNamesEl.innerHTML = activeGroups.map(g => {
       const slug = getGroupSlug(g);
       const names = byGroup[slug] ?? [];
       return `<div class="sheet-group-cluster">
-        <div class="sheet-group-label">${g.groupName}</div>
+        <div class="sheet-group-label">Going from ${escapeHtml(g.groupName)}</div>
         ${names.length
-          ? names.map(n => `<div class="sheet-going-name">${n} ✓</div>`).join('')
-          : '<div class="sheet-going-name" style="color:var(--white-3)">Nobody yet</div>'
+          ? names.map(n => `<div class="sheet-going-name" style="padding-left:14px">${escapeHtml(n)}</div>`).join('')
+          : '<div class="sheet-going-name" style="color:var(--white-3);padding-left:14px">Nobody yet</div>'
         }
       </div>`;
     }).join('');
@@ -1853,35 +1887,112 @@ function _refreshSheetContent(sk) {
   btn.className = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
 }
 
-// Group bar — one chip per group + a join/add link
-function renderGroupBar() {
+// Groups row — one toggleable chip per group + Manage groups button
+function renderGroupsRow() {
   if (!GROUPS_ENABLED) return;
-  const el = document.getElementById('groupBarItem');
+  const el = document.getElementById('groupsRow');
   if (!el) return;
   const groups = getGroups();
-  el.style.display = 'flex';
 
-  const chips = groups.map((g, i) =>
-    `<span class="group-chip"><span class="group-chip-name">${g.groupName}</span><button class="group-chip-x" data-idx="${i}" aria-label="Leave ${g.groupName}">✕</button></span>`
+  let html = '';
+  if (!groups.length) {
+    html = `<span class="groups-empty-prompt">Join a group to see who's going.</span>`;
+  } else {
+    html = groups.map((g, i) => {
+      const slug = getGroupSlug(g);
+      const isActive = !inactiveGroupSlugs.has(slug);
+      return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}">${escapeHtml(g.groupName)}</button>`;
+    }).join('');
+  }
+  html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups</button>`;
+  el.innerHTML = html;
+
+  el.querySelectorAll('.group-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const idx = Number(chip.dataset.idx);
+      const g = getGroups()[idx];
+      if (!g) return;
+      const slug = getGroupSlug(g);
+      if (inactiveGroupSlugs.has(slug)) {
+        inactiveGroupSlugs.delete(slug);
+        chip.classList.remove('inactive');
+      } else {
+        inactiveGroupSlugs.add(slug);
+        chip.classList.add('inactive');
+      }
+      // Re-render indicators from cache (no network fetch needed)
+      document.querySelectorAll('.going-btn').forEach(btn => {
+        updateIndicatorEl(btn, btn.dataset.sessionKey);
+      });
+      if (sheetSession) _refreshSheetContent(sheetSession.sk);
+    });
+  });
+
+  document.getElementById('manageGroupsBtn')?.addEventListener('click', openGroupModal);
+}
+
+// Populate the "Your groups" list inside the modal
+function renderModalGroupsList() {
+  const groups = getGroups();
+  const el = document.getElementById('modalGroupsList');
+  if (!el) return;
+  if (!groups.length) {
+    el.innerHTML = '<div class="modal-groups-empty">No groups yet. Join or create one below.</div>';
+    return;
+  }
+  el.innerHTML = groups.map((g, i) =>
+    `<div class="modal-group-row">
+      <span class="modal-group-name">${escapeHtml(g.groupName)}</span>
+      <button class="modal-leave-btn" data-idx="${i}">Leave</button>
+    </div>`
   ).join('');
 
-  el.innerHTML = chips + `<button class="group-join-link" id="joinGroupBtn">${groups.length ? '+' : 'Join or create a group'}</button>`;
-
-  el.querySelectorAll('.group-chip-x').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
+  el.querySelectorAll('.modal-leave-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
       const idx = Number(btn.dataset.idx);
       const current = getGroups();
       const g = current[idx];
       if (!g) return;
-      if (confirm(`Leave ${g.groupName}?`)) {
-        setGroups(current.filter((_, i) => i !== idx));
-        renderGroupBar();
-        if (allData) renderSessions(allData);
-      }
+      await leaveGroup(g);
+      inactiveGroupSlugs.delete(getGroupSlug(g));
+      setGroups(current.filter((_, i) => i !== idx));
+      renderModalGroupsList();
+      renderGroupsRow();
+      if (allData) renderSessions(allData);
     });
   });
-  document.getElementById('joinGroupBtn')?.addEventListener('click', openGroupModal);
+}
+
+async function leaveGroup(g) {
+  try {
+    await fetch('/api/groups/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupName: g.groupName, password: g.password, memberId: g.memberId }),
+    });
+  } catch {}
+  // localStorage removal happens in caller regardless of server response
+}
+
+// When joining/creating a group, backfill RSVPs for sessions where user is already going
+async function backfillRsvpForGroup(g) {
+  const displayName = getDisplayName();
+  if (!displayName) return;
+  const slug = getGroupSlug(g);
+  await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
+    const amGoing = Object.values(byGroup).some(names =>
+      names.some(n => n.toLowerCase() === displayName.toLowerCase())
+    );
+    if (!amGoing) return;
+    try {
+      const r = await fetch('/api/groups/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: true }),
+      });
+      if (r.ok) rsvpCache[sk][slug] = (await r.json()).going ?? [];
+    } catch {}
+  }));
 }
 
 // Bottom sheet
@@ -1913,26 +2024,39 @@ function closeBottomSheet() {
   sheetSession = null;
 }
 
-// Group setup modal
-function showModalStep(id) {
-  document.querySelectorAll('.modal-step').forEach(el => el.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
+// Manage Groups modal
 function openGroupModal() {
   ['modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  ['modalError', 'modalCreateError', 'modalJoinError'].forEach(id => {
+  ['modalCreateError', 'modalJoinError', 'modalNameError'].forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '';
   });
-  const nameEl = document.getElementById('modalDisplayName');
-  if (nameEl) nameEl.value = getDisplayName();
-  showModalStep('modalStep1');
+
+  // Show name section only if display name not yet set
+  const nameSection = document.getElementById('modalNameSection');
+  const hasName = !!getDisplayName();
+  if (nameSection) {
+    nameSection.style.display = hasName ? 'none' : '';
+    if (!hasName) {
+      const nameInput = document.getElementById('modalDisplayName');
+      if (nameInput) nameInput.value = '';
+    }
+  }
+
+  renderModalGroupsList();
+
   const overlay = document.getElementById('modalOverlay');
   overlay.classList.add('open');
   requestAnimationFrame(() => overlay.classList.add('visible'));
-  setTimeout(() => document.getElementById('modalDisplayName')?.focus(), 160);
+
+  setTimeout(() => {
+    if (!getDisplayName()) {
+      document.getElementById('modalDisplayName')?.focus();
+    } else {
+      document.getElementById('modalJoinGroupName')?.focus();
+    }
+  }, 160);
 }
 
 function closeGroupModal() {
@@ -1983,36 +2107,24 @@ if (GROUPS_ENABLED) {
   });
   document.getElementById('modalCloseBtn').addEventListener('click', closeGroupModal);
 
-  document.getElementById('modalGoCreateBtn').addEventListener('click', () => {
-    const name = document.getElementById('modalDisplayName').value.trim();
-    if (!name) { document.getElementById('modalError').textContent = 'Enter your name first.'; return; }
-    document.getElementById('modalError').textContent = '';
-    showModalStep('modalStepCreate');
-    setTimeout(() => document.getElementById('modalGroupName')?.focus(), 50);
-  });
-
-  document.getElementById('modalGoJoinBtn').addEventListener('click', () => {
-    const name = document.getElementById('modalDisplayName').value.trim();
-    if (!name) { document.getElementById('modalError').textContent = 'Enter your name first.'; return; }
-    document.getElementById('modalError').textContent = '';
-    showModalStep('modalStepJoin');
-    setTimeout(() => document.getElementById('modalJoinGroupName')?.focus(), 50);
-  });
-
-  document.getElementById('modalBackFromCreate').addEventListener('click', () => showModalStep('modalStep1'));
-
   document.getElementById('modalCreateBtn').addEventListener('click', async () => {
-    const displayName = document.getElementById('modalDisplayName').value.trim();
-    const groupName   = document.getElementById('modalGroupName').value.trim();
-    const password    = document.getElementById('modalGroupPassword').value.trim();
+    const nameSectionVisible = document.getElementById('modalNameSection')?.style.display !== 'none';
+    const displayName = nameSectionVisible
+      ? (document.getElementById('modalDisplayName')?.value.trim() || getDisplayName())
+      : getDisplayName();
+    const groupName = document.getElementById('modalGroupName').value.trim();
+    const password  = document.getElementById('modalGroupPassword').value.trim();
+
+    if (!displayName) { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
     if (!groupName) { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
     if (!password)  { document.getElementById('modalCreateError').textContent = 'Enter a password.'; return; }
-    const slug = groupName.trim().toLowerCase() + '|' + password.trim().toLowerCase();
+
+    const slug = getGroupSlug({ groupName, password });
     if (getGroups().some(g => getGroupSlug(g) === slug)) {
-      document.getElementById('modalCreateError').textContent = "You're already in this group.";
-      return;
+      document.getElementById('modalCreateError').textContent = "You're already in this group."; return;
     }
     document.getElementById('modalCreateError').textContent = '';
+
     try {
       const r = await fetch('/api/groups/create', {
         method: 'POST',
@@ -2022,27 +2134,36 @@ if (GROUPS_ENABLED) {
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalCreateError').textContent = d.error ?? 'Failed.'; return; }
       setDisplayName(displayName);
-      setGroups([...getGroups(), { groupName, password, memberId: d.memberId }]);
-      closeGroupModal();
-      renderGroupBar();
+      const newGroup = { groupName, password, memberId: d.memberId };
+      setGroups([...getGroups(), newGroup]);
+      await backfillRsvpForGroup(newGroup);
+      document.getElementById('modalGroupName').value = '';
+      document.getElementById('modalGroupPassword').value = '';
+      if (nameSectionVisible) document.getElementById('modalNameSection').style.display = 'none';
+      renderModalGroupsList();
+      renderGroupsRow();
       if (allData) renderSessions(allData);
     } catch { document.getElementById('modalCreateError').textContent = 'Network error. Try again.'; }
   });
 
-  document.getElementById('modalBackFromJoin').addEventListener('click', () => showModalStep('modalStep1'));
-
   document.getElementById('modalJoinBtn').addEventListener('click', async () => {
-    const displayName = document.getElementById('modalDisplayName').value.trim();
-    const groupName   = document.getElementById('modalJoinGroupName').value.trim();
-    const password    = document.getElementById('modalJoinPassword').value.trim();
+    const nameSectionVisible = document.getElementById('modalNameSection')?.style.display !== 'none';
+    const displayName = nameSectionVisible
+      ? (document.getElementById('modalDisplayName')?.value.trim() || getDisplayName())
+      : getDisplayName();
+    const groupName = document.getElementById('modalJoinGroupName').value.trim();
+    const password  = document.getElementById('modalJoinPassword').value.trim();
+
+    if (!displayName) { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
     if (!groupName) { document.getElementById('modalJoinError').textContent = 'Enter the group name.'; return; }
     if (!password)  { document.getElementById('modalJoinError').textContent = 'Enter the password.'; return; }
-    const slug = groupName.trim().toLowerCase() + '|' + password.trim().toLowerCase();
+
+    const slug = getGroupSlug({ groupName, password });
     if (getGroups().some(g => getGroupSlug(g) === slug)) {
-      document.getElementById('modalJoinError').textContent = "You're already in this group.";
-      return;
+      document.getElementById('modalJoinError').textContent = "You're already in this group."; return;
     }
     document.getElementById('modalJoinError').textContent = '';
+
     try {
       const r = await fetch('/api/groups/join', {
         method: 'POST',
@@ -2052,15 +2173,20 @@ if (GROUPS_ENABLED) {
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalJoinError').textContent = d.error ?? 'Failed.'; return; }
       setDisplayName(displayName);
-      setGroups([...getGroups(), { groupName, password, memberId: d.memberId }]);
-      closeGroupModal();
-      renderGroupBar();
+      const newGroup = { groupName, password, memberId: d.memberId };
+      setGroups([...getGroups(), newGroup]);
+      await backfillRsvpForGroup(newGroup);
+      document.getElementById('modalJoinGroupName').value = '';
+      document.getElementById('modalJoinPassword').value = '';
+      if (nameSectionVisible) document.getElementById('modalNameSection').style.display = 'none';
+      renderModalGroupsList();
+      renderGroupsRow();
       if (allData) renderSessions(allData);
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
   });
 
-  // Initial group bar render on page load
-  renderGroupBar();
+  // Initial groups row render on page load
+  renderGroupsRow();
 }
 
 // ─── Dev helpers (run from browser console) ──────────────────────────────────
