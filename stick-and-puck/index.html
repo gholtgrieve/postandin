@@ -550,9 +550,14 @@ footer a:hover { color: var(--yellow); }
   display: flex;
   align-items: center;
   height: 48px;
-  padding: 0 14px;
+  padding: 0 8px 0 14px;
   border-right: var(--rule);
+  gap: 6px;
+  overflow-x: auto;
+  max-width: 50%;
+  scrollbar-width: none;
 }
+.group-bar-item::-webkit-scrollbar { display: none; }
 .group-join-link {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
@@ -782,11 +787,24 @@ footer a:hover { color: var(--yellow); }
 .sheet-toggle-btn:hover,
 .sheet-toggle-btn.going { background: var(--yellow); color: var(--black); }
 .sheet-share-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--black-4);
+  display: none; /* Nudge hidden — will be re-added later */
+}
+
+/* ── Sheet group clusters (Who's going, multi-group) ── */
+.sheet-group-cluster { margin-bottom: 10px; }
+.sheet-group-cluster:last-child { margin-bottom: 0; }
+.sheet-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-bottom: 3px;
+}
+.sheet-going-name {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--white-2);
+  line-height: 1.8;
 }
 .sheet-share-btn {
   font-family: 'IBM Plex Mono', monospace;
@@ -1040,7 +1058,7 @@ footer a:hover { color: var(--yellow); }
 <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
   <div class="group-modal" role="dialog" aria-modal="true" aria-label="Group setup">
     <div class="modal-header">
-      <span>Your Group</span>
+      <span>Your Groups</span>
       <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
@@ -1592,7 +1610,7 @@ function renderSessions(data) {
   }
 
   content.innerHTML = html;
-  if (GROUPS_ENABLED && getGroup()) void updateGoingIndicators();
+  if (GROUPS_ENABLED && getGroups().length) void updateGoingIndicators();
 
   const total = all.filter(s => !s.soldOut).length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
@@ -1618,8 +1636,8 @@ function sessionRow(s) {
     ? `href="${s.bookUrl}" target="_blank" rel="noopener"`
     : '';
 
-  // Going indicator — only rendered when flag is on and user has a group
-  const goingBtn = GROUPS_ENABLED && getGroup()
+  // Going indicator — only rendered when flag is on and user is in at least one group
+  const goingBtn = GROUPS_ENABLED && getGroups().length
     ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going"><span class="going-plus">+</span></span>`
     : '';
 
@@ -1679,19 +1697,50 @@ setInterval(loadData, 10 * 60 * 1000);
 // Initial load
 loadData();
 
-// ─── Group feature (all gated by GROUPS_ENABLED) ─────────────────────────────
+// ─── Group feature ─────────────────────────────────────────────────────────────
+// Multi-group model: displayName is stored at a top-level key shared across all
+// groups. Each group entry is { groupName, password, memberId }.
+// Old single-group format (postandin_group) is migrated automatically on load.
 
-const GROUP_LS_KEY = 'postandin_group';
+const GROUPS_LS_KEY       = 'postandin_groups';
+const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
+const LEGACY_LS_KEY       = 'postandin_group';
 
-function getGroup() {
-  if (!GROUPS_ENABLED) return null;
-  try { return JSON.parse(localStorage.getItem(GROUP_LS_KEY) || 'null'); }
-  catch { return null; }
+function migrateStorage() {
+  const raw = localStorage.getItem(LEGACY_LS_KEY);
+  if (!raw) return;
+  try {
+    const old = JSON.parse(raw);
+    if (old?.groupName) {
+      if (old.displayName && !localStorage.getItem(DISPLAY_NAME_LS_KEY))
+        localStorage.setItem(DISPLAY_NAME_LS_KEY, old.displayName);
+      const slug = getGroupSlug(old);
+      const existing = getGroups();
+      if (!existing.some(g => getGroupSlug(g) === slug))
+        setGroups([...existing, { groupName: old.groupName, password: old.password, memberId: old.memberId }]);
+    }
+  } catch {}
+  localStorage.removeItem(LEGACY_LS_KEY);
 }
 
-function setGroup(v) {
-  if (v) localStorage.setItem(GROUP_LS_KEY, JSON.stringify(v));
-  else localStorage.removeItem(GROUP_LS_KEY);
+function getGroups() {
+  if (!GROUPS_ENABLED) return [];
+  try { return JSON.parse(localStorage.getItem(GROUPS_LS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function setGroups(arr) {
+  if (arr?.length) localStorage.setItem(GROUPS_LS_KEY, JSON.stringify(arr));
+  else localStorage.removeItem(GROUPS_LS_KEY);
+}
+
+function getDisplayName() {
+  return localStorage.getItem(DISPLAY_NAME_LS_KEY) || '';
+}
+
+function setDisplayName(name) {
+  if (name) localStorage.setItem(DISPLAY_NAME_LS_KEY, name);
+  else localStorage.removeItem(DISPLAY_NAME_LS_KEY);
 }
 
 function mkSessionKey(s) {
@@ -1706,123 +1755,142 @@ function getGroupSlug(group) {
   return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
 }
 
-function updateIndicatorEl(btn, going, myName) {
-  if (!going.length) {
+// Returns deduplicated going names across all groups for a session
+function allUniqueGoing(sk) {
+  const byGroup = rsvpCache[sk] ?? {};
+  const seen = new Set();
+  const result = [];
+  for (const names of Object.values(byGroup)) {
+    for (const n of names) {
+      const key = n.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); result.push(n); }
+    }
+  }
+  return result;
+}
+
+function updateIndicatorEl(btn, sk) {
+  const displayName = getDisplayName();
+  const all = allUniqueGoing(sk);
+  if (!all.length) {
     btn.innerHTML = `<span class="going-plus">+</span>`;
     return;
   }
-  const amGoing = going.includes(myName);
-  btn.innerHTML = `<span class="going-dot${amGoing ? ' active' : ''}">●</span><span class="going-count">${going.length}</span><span class="going-tooltip">${going.join(', ')}</span>`;
+  const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
+  btn.innerHTML = `<span class="going-dot${amGoing ? ' active' : ''}">●</span><span class="going-count">${all.length}</span><span class="going-tooltip">${all.join(', ')}</span>`;
 }
 
 async function updateGoingIndicators() {
   if (!GROUPS_ENABLED) return;
-  const group = getGroup();
-  if (!group) return;
+  const groups = getGroups();
+  if (!groups.length) return;
   const btns = [...document.querySelectorAll('.going-btn')];
   if (!btns.length) return;
   const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
   await Promise.all(keys.map(async sk => {
-    try {
-      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(getGroupSlug(group))}`);
-      if (r.ok) rsvpCache[sk] = (await r.json()).going ?? [];
-      else rsvpCache[sk] = [];
-    } catch { rsvpCache[sk] = []; }
+    rsvpCache[sk] = {};
+    await Promise.all(groups.map(async g => {
+      const slug = getGroupSlug(g);
+      try {
+        const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(slug)}`);
+        rsvpCache[sk][slug] = r.ok ? ((await r.json()).going ?? []) : [];
+      } catch { rsvpCache[sk][slug] = []; }
+    }));
     document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
-      updateIndicatorEl(btn, rsvpCache[sk], group.displayName);
+      updateIndicatorEl(btn, sk);
     });
   }));
 }
 
 async function doToggleGoing(s, sk, goingValue) {
-  const group = getGroup();
-  if (!group) return;
-  try {
-    const r = await fetch('/api/groups/rsvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionKey: sk, groupSlug: getGroupSlug(group), memberId: group.memberId, displayName: group.displayName, going: goingValue }),
-    });
-    rsvpCache[sk] = (await r.json()).going ?? [];
-  } catch(e) { console.error('RSVP error', e); return; }
+  const groups = getGroups();
+  const displayName = getDisplayName();
+  if (!groups.length || !displayName) return;
+  rsvpCache[sk] = rsvpCache[sk] ?? {};
+  await Promise.all(groups.map(async g => {
+    const slug = getGroupSlug(g);
+    try {
+      const r = await fetch('/api/groups/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: goingValue }),
+      });
+      rsvpCache[sk][slug] = (await r.json()).going ?? [];
+    } catch(e) { console.error('RSVP error', e); }
+  }));
   document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
-    updateIndicatorEl(btn, rsvpCache[sk], group.displayName);
+    updateIndicatorEl(btn, sk);
   });
-  if (sheetSession?.sk === sk) _refreshSheetContent(rsvpCache[sk], group);
+  if (sheetSession?.sk === sk) _refreshSheetContent(sk);
 }
 
-function _refreshSheetContent(going, group) {
-  const amGoing = going.includes(group.displayName);
-  document.getElementById('sheetNames').textContent = going.length ? going.join(', ') : 'Nobody yet';
+function _refreshSheetContent(sk) {
+  const groups = getGroups();
+  const displayName = getDisplayName();
+  const byGroup = rsvpCache[sk] ?? {};
+  const all = allUniqueGoing(sk);
+  const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
+
+  const sheetNamesEl = document.getElementById('sheetNames');
+  if (!groups.length || !all.length) {
+    sheetNamesEl.innerHTML = '<span style="color:var(--white-3)">Nobody yet</span>';
+  } else {
+    sheetNamesEl.innerHTML = groups.map(g => {
+      const slug = getGroupSlug(g);
+      const names = byGroup[slug] ?? [];
+      return `<div class="sheet-group-cluster">
+        <div class="sheet-group-label">${g.groupName}</div>
+        ${names.length
+          ? names.map(n => `<div class="sheet-going-name">${n} ✓</div>`).join('')
+          : '<div class="sheet-going-name" style="color:var(--white-3)">Nobody yet</div>'
+        }
+      </div>`;
+    }).join('');
+  }
+
   const btn = document.getElementById('sheetToggleBtn');
   btn.textContent = amGoing ? "I'm not going" : "I'm going";
   btn.className = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
 }
 
-// Group bar
+// Group bar — one chip per group + a join/add link
 function renderGroupBar() {
   if (!GROUPS_ENABLED) return;
   const el = document.getElementById('groupBarItem');
   if (!el) return;
-  const group = getGroup();
+  const groups = getGroups();
   el.style.display = 'flex';
-  if (group) {
-    el.innerHTML = `
-      <span class="group-chip" id="groupChipWrapper">
-        <button class="group-chip-info" id="groupChipInfoBtn" aria-label="Group info">${group.groupName}</button>
-        <button class="group-chip-x" id="leaveGroupBtn" aria-label="Leave group">✕</button>
-        <div class="group-info-popover" id="groupInfoPopover">
-          <div class="group-info-row">
-            <span class="group-info-label">GROUP</span>
-            <span class="group-info-value">${group.groupName}</span>
-          </div>
-          <div class="group-info-row">
-            <span class="group-info-label">PASSWORD</span>
-            <span class="group-info-value">${group.password}</span>
-          </div>
-          <button class="group-info-copy" id="groupInfoCopyBtn">Copy info</button>
-        </div>
-      </span>`;
-    document.getElementById('groupChipInfoBtn').addEventListener('click', e => {
+
+  const chips = groups.map((g, i) =>
+    `<span class="group-chip"><span class="group-chip-name">${g.groupName}</span><button class="group-chip-x" data-idx="${i}" aria-label="Leave ${g.groupName}">✕</button></span>`
+  ).join('');
+
+  el.innerHTML = chips + `<button class="group-join-link" id="joinGroupBtn">${groups.length ? '+' : 'Join or create a group'}</button>`;
+
+  el.querySelectorAll('.group-chip-x').forEach(btn => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
-      document.getElementById('groupInfoPopover').classList.toggle('open');
-    });
-    document.getElementById('groupInfoCopyBtn').addEventListener('click', async () => {
-      const text = `Group: ${group.groupName} / Password: ${group.password}`;
-      try {
-        await navigator.clipboard.writeText(text);
-        const btn = document.getElementById('groupInfoCopyBtn');
-        btn.textContent = 'Copied!';
-        setTimeout(() => { if (btn) btn.textContent = 'Copy info'; }, 2000);
-      } catch {}
-    });
-    document.getElementById('leaveGroupBtn').addEventListener('click', () => {
-      if (confirm(`Leave ${group.groupName}?`)) {
-        setGroup(null);
+      const idx = Number(btn.dataset.idx);
+      const current = getGroups();
+      const g = current[idx];
+      if (!g) return;
+      if (confirm(`Leave ${g.groupName}?`)) {
+        setGroups(current.filter((_, i) => i !== idx));
         renderGroupBar();
         if (allData) renderSessions(allData);
       }
     });
-  } else {
-    el.innerHTML = `<button class="group-join-link" id="joinGroupBtn">Join or create a group</button>`;
-    document.getElementById('joinGroupBtn').addEventListener('click', openGroupModal);
-  }
+  });
+  document.getElementById('joinGroupBtn')?.addEventListener('click', openGroupModal);
 }
 
 // Bottom sheet
 function openBottomSheet(s, sk) {
   sheetSession = { s, sk };
-  const going  = rsvpCache[sk] ?? [];
-  const group  = getGroup();
   document.getElementById('sheetRink').textContent     = s.rink.name.toUpperCase();
   document.getElementById('sheetDatetime').textContent =
     `${s.start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })} · ${fmtTime(s.start)}`;
-  document.getElementById('sheetNames').textContent    = going.length ? going.join(', ') : 'Nobody yet';
-  document.getElementById('sheetCopyConfirm').textContent = '';
-  const amGoing = group ? going.includes(group.displayName) : false;
-  const toggleBtn = document.getElementById('sheetToggleBtn');
-  toggleBtn.textContent = amGoing ? "I'm not going" : "I'm going";
-  toggleBtn.className   = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
+  _refreshSheetContent(sk);
   const overlay = document.getElementById('sheetOverlay');
   const sheet   = document.getElementById('bottomSheet');
   overlay.classList.add('open');
@@ -1852,12 +1920,14 @@ function showModalStep(id) {
 }
 
 function openGroupModal() {
-  ['modalDisplayName', 'modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
+  ['modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   ['modalError', 'modalCreateError', 'modalJoinError'].forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '';
   });
+  const nameEl = document.getElementById('modalDisplayName');
+  if (nameEl) nameEl.value = getDisplayName();
   showModalStep('modalStep1');
   const overlay = document.getElementById('modalOverlay');
   overlay.classList.add('open');
@@ -1872,6 +1942,8 @@ function closeGroupModal() {
 }
 
 if (GROUPS_ENABLED) {
+  migrateStorage();
+
   // Event delegation: going-btn clicks inside session rows
   document.getElementById('content').addEventListener('click', async e => {
     const btn = e.target.closest('.going-btn');
@@ -1881,10 +1953,10 @@ if (GROUPS_ENABLED) {
     const sk = btn.dataset.sessionKey;
     const s  = sessionMap[sk];
     if (!s) return;
-    const group = getGroup();
-    if (!group) { openGroupModal(); return; }
-    const going = rsvpCache[sk] ?? [];
-    if (going.length === 0) {
+    const groups = getGroups();
+    if (!groups.length) { openGroupModal(); return; }
+    const all = allUniqueGoing(sk);
+    if (all.length === 0) {
       await doToggleGoing(s, sk, true);
     } else {
       openBottomSheet(s, sk);
@@ -1897,35 +1969,12 @@ if (GROUPS_ENABLED) {
 
   document.getElementById('sheetToggleBtn').addEventListener('click', async () => {
     if (!sheetSession) return;
-    const group = getGroup();
-    if (!group) return;
-    const going   = rsvpCache[sheetSession.sk] ?? [];
-    const amGoing = going.includes(group.displayName);
+    const groups = getGroups();
+    if (!groups.length) return;
+    const displayName = getDisplayName();
+    const all = allUniqueGoing(sheetSession.sk);
+    const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
     await doToggleGoing(sheetSession.s, sheetSession.sk, !amGoing);
-  });
-
-  document.getElementById('sheetShareBtn').addEventListener('click', async () => {
-    if (!sheetSession) return;
-    const group = getGroup();
-    if (!group) return;
-    const { s, sk } = sheetSession;
-    const date = s.start.toLocaleDateString('en-CA');
-    const time = fmtTime(s.start);
-    try {
-      const r = await fetch(
-        `/api/groups/nudge?sessionKey=${encodeURIComponent(sk)}&rinkName=${encodeURIComponent(s.rink.name)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&displayName=${encodeURIComponent(group.displayName)}`
-      );
-      const data  = await r.json();
-      const text  = data.text ?? `Stick & Puck at ${s.rink.name}. You in? postandin.com/stick-and-puck/`;
-      if (navigator.share) {
-        await navigator.share({ text }).catch(() => {});
-      } else {
-        await navigator.clipboard.writeText(text);
-        const confirm = document.getElementById('sheetCopyConfirm');
-        confirm.textContent = 'Copied!';
-        setTimeout(() => { confirm.textContent = ''; }, 2000);
-      }
-    } catch(e) { console.error('Nudge error', e); }
   });
 
   // Modal wiring
@@ -1958,6 +2007,11 @@ if (GROUPS_ENABLED) {
     const password    = document.getElementById('modalGroupPassword').value.trim();
     if (!groupName) { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
     if (!password)  { document.getElementById('modalCreateError').textContent = 'Enter a password.'; return; }
+    const slug = groupName.trim().toLowerCase() + '|' + password.trim().toLowerCase();
+    if (getGroups().some(g => getGroupSlug(g) === slug)) {
+      document.getElementById('modalCreateError').textContent = "You're already in this group.";
+      return;
+    }
     document.getElementById('modalCreateError').textContent = '';
     try {
       const r = await fetch('/api/groups/create', {
@@ -1967,7 +2021,8 @@ if (GROUPS_ENABLED) {
       });
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalCreateError').textContent = d.error ?? 'Failed.'; return; }
-      setGroup({ groupName, password, groupId: d.groupId, memberId: d.memberId, displayName });
+      setDisplayName(displayName);
+      setGroups([...getGroups(), { groupName, password, memberId: d.memberId }]);
       closeGroupModal();
       renderGroupBar();
       if (allData) renderSessions(allData);
@@ -1982,6 +2037,11 @@ if (GROUPS_ENABLED) {
     const password    = document.getElementById('modalJoinPassword').value.trim();
     if (!groupName) { document.getElementById('modalJoinError').textContent = 'Enter the group name.'; return; }
     if (!password)  { document.getElementById('modalJoinError').textContent = 'Enter the password.'; return; }
+    const slug = groupName.trim().toLowerCase() + '|' + password.trim().toLowerCase();
+    if (getGroups().some(g => getGroupSlug(g) === slug)) {
+      document.getElementById('modalJoinError').textContent = "You're already in this group.";
+      return;
+    }
     document.getElementById('modalJoinError').textContent = '';
     try {
       const r = await fetch('/api/groups/join', {
@@ -1991,17 +2051,12 @@ if (GROUPS_ENABLED) {
       });
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalJoinError').textContent = d.error ?? 'Failed.'; return; }
-      setGroup({ groupName, password, groupId: d.groupId, memberId: d.memberId, displayName });
+      setDisplayName(displayName);
+      setGroups([...getGroups(), { groupName, password, memberId: d.memberId }]);
       closeGroupModal();
       renderGroupBar();
       if (allData) renderSessions(allData);
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
-  });
-
-  // Close group info popover when clicking outside it
-  document.addEventListener('click', () => {
-    const popover = document.getElementById('groupInfoPopover');
-    if (popover) popover.classList.remove('open');
   });
 
   // Initial group bar render on page load
