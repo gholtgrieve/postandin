@@ -21,6 +21,30 @@ Live at **[postandin.com/stick-and-puck](https://postandin.com/stick-and-puck/)*
 
 ---
 
+## Groups feature
+
+Users can create a private group so members can see who's attending each session.
+
+### Joining mechanic
+
+- **Create**: enter your display name, a group name (e.g. "SJ 16UAA"), and a password (e.g. "Sno-King sucks"). Share the group name + password out-of-band with teammates.
+- **Join**: enter your display name plus the group name and password a teammate shared with you.
+
+The combination of group name + password identifies the group — neither needs to be globally unique on its own. The KV lookup key is a deterministic slug: `groupName.trim().lower() + "|" + password.trim().lower()`. No random code is generated or stored.
+
+After joining, the group chip in the filter bar shows the group name. Tapping the chip reveals a popover with the group name, the password (for resharing), and a copy button that copies `"Group: [name] / Password: [password]"` to the clipboard.
+
+### RSVP storage
+
+RSVP records are stored in Cloudflare KV under `rsvp:{groupSlug}:{sessionKey}`. Each record expires 24 hours after the session start time (parsed from the session key, format `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`), so stale RSVPs clean up automatically without any cron job.
+
+### KV namespace
+
+Requires a Cloudflare KV namespace bound as `GROUPS` in the Pages dashboard:
+> Settings → Functions → KV namespace bindings → Variable name: `GROUPS`
+
+---
+
 ## Architecture
 
 All session data is fetched client-side from `stick-and-puck/index.html`. Sources that require a CORS proxy are routed through serverless functions.

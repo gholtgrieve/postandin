@@ -580,7 +580,24 @@ footer a:hover { color: var(--yellow); }
   padding: 4px 10px;
   border: 1px solid var(--black-4);
   background: var(--black-2);
+  position: relative;
 }
+.group-chip-info {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--white-2);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--black-4);
+  transition: color 0.1s;
+}
+.group-chip-info:hover { color: var(--white); }
 .group-chip-x {
   background: none;
   border: none;
@@ -592,6 +609,51 @@ footer a:hover { color: var(--yellow); }
   transition: color 0.1s;
 }
 .group-chip-x:hover { color: var(--red); }
+
+/* ── Group info popover ── */
+.group-info-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--black-2);
+  border: 1px solid var(--black-4);
+  padding: 12px 14px;
+  z-index: 200;
+  min-width: 220px;
+  font-family: 'IBM Plex Mono', monospace;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.group-info-popover.open { display: block; }
+.group-info-row { margin-bottom: 10px; }
+.group-info-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--white-3);
+  margin-bottom: 3px;
+}
+.group-info-value {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--white);
+}
+.group-info-copy {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 6px 12px;
+  border: 1px solid var(--yellow);
+  background: transparent;
+  color: var(--yellow);
+  cursor: pointer;
+  width: 100%;
+  margin-top: 2px;
+  transition: all 0.1s;
+}
+.group-info-copy:hover { background: var(--yellow); color: var(--black); }
 
 /* ── Going indicator ── */
 .going-btn {
@@ -982,7 +1044,7 @@ footer a:hover { color: var(--yellow); }
       <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Step 1: name + choose action -->
+      <!-- Step 1: your name + choose action -->
       <div id="modalStep1" class="modal-step active">
         <div class="modal-field">
           <label class="modal-label" for="modalDisplayName">Your name</label>
@@ -990,15 +1052,19 @@ footer a:hover { color: var(--yellow); }
         </div>
         <div class="modal-btn-row">
           <button class="modal-btn primary" id="modalGoCreateBtn">Create a group</button>
-          <button class="modal-btn" id="modalGoJoinBtn">Join with a code</button>
+          <button class="modal-btn" id="modalGoJoinBtn">Join a group</button>
         </div>
         <div id="modalError" class="modal-error"></div>
       </div>
-      <!-- Step 2a: enter group name -->
+      <!-- Step 2a: create a group (name + password) -->
       <div id="modalStepCreate" class="modal-step">
         <div class="modal-field">
           <label class="modal-label" for="modalGroupName">Group name</label>
-          <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. Wednesday Crew" maxlength="32" autocomplete="off">
+          <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. SJ 16UAA" maxlength="48" autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="modalGroupPassword">Password</label>
+          <input class="modal-input" id="modalGroupPassword" type="text" placeholder="e.g. Sno-King sucks" maxlength="64" autocomplete="off">
         </div>
         <div class="modal-btn-row">
           <button class="modal-btn" id="modalBackFromCreate">← Back</button>
@@ -1006,19 +1072,15 @@ footer a:hover { color: var(--yellow); }
         </div>
         <div id="modalCreateError" class="modal-error"></div>
       </div>
-      <!-- Step 2b: group created — show code -->
-      <div id="modalStepCode" class="modal-step">
-        <div id="modalCodeDisplay" class="modal-code-display">------</div>
-        <p class="modal-hint">Share this code with your group.<br>They'll enter it on the Join screen.</p>
-        <div class="modal-btn-row">
-          <button class="modal-btn primary full" id="modalDoneCodeBtn">Done</button>
-        </div>
-      </div>
-      <!-- Step 2c: join with code -->
+      <!-- Step 2b: join a group (name + password) -->
       <div id="modalStepJoin" class="modal-step">
         <div class="modal-field">
-          <label class="modal-label" for="modalJoinCode">Group code</label>
-          <input class="modal-input" id="modalJoinCode" type="text" placeholder="6-character code" maxlength="6" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.3em">
+          <label class="modal-label" for="modalJoinGroupName">Group name</label>
+          <input class="modal-input" id="modalJoinGroupName" type="text" placeholder="e.g. SJ 16UAA" maxlength="48" autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="modalJoinPassword">Password</label>
+          <input class="modal-input" id="modalJoinPassword" type="text" placeholder="e.g. Sno-King sucks" maxlength="64" autocomplete="off">
         </div>
         <div class="modal-btn-row">
           <button class="modal-btn" id="modalBackFromJoin">← Back</button>
@@ -1032,7 +1094,7 @@ footer a:hover { color: var(--yellow); }
 
 <script type="module">
 // ─── Feature flag ─────────────────────────────────────────────────────────────
-const GROUPS_ENABLED = false;
+const GROUPS_ENABLED = true;
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
@@ -1640,6 +1702,10 @@ function mkSessionKey(s) {
   return `${s.rinkKey}|${date}|${hh}:${mm}`;
 }
 
+function getGroupSlug(group) {
+  return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
+}
+
 function updateIndicatorEl(btn, going, myName) {
   if (!going.length) {
     btn.innerHTML = `<span class="going-plus">+</span>`;
@@ -1658,7 +1724,7 @@ async function updateGoingIndicators() {
   const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
   await Promise.all(keys.map(async sk => {
     try {
-      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupCode=${encodeURIComponent(group.code)}`);
+      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(getGroupSlug(group))}`);
       if (r.ok) rsvpCache[sk] = (await r.json()).going ?? [];
       else rsvpCache[sk] = [];
     } catch { rsvpCache[sk] = []; }
@@ -1675,7 +1741,7 @@ async function doToggleGoing(s, sk, goingValue) {
     const r = await fetch('/api/groups/rsvp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionKey: sk, groupCode: group.code, memberId: group.memberId, displayName: group.displayName, going: goingValue }),
+      body: JSON.stringify({ sessionKey: sk, groupSlug: getGroupSlug(group), memberId: group.memberId, displayName: group.displayName, going: goingValue }),
     });
     rsvpCache[sk] = (await r.json()).going ?? [];
   } catch(e) { console.error('RSVP error', e); return; }
@@ -1701,7 +1767,35 @@ function renderGroupBar() {
   const group = getGroup();
   el.style.display = 'flex';
   if (group) {
-    el.innerHTML = `<span class="group-chip">${group.groupName}<button class="group-chip-x" id="leaveGroupBtn" aria-label="Leave group">✕</button></span>`;
+    el.innerHTML = `
+      <span class="group-chip" id="groupChipWrapper">
+        <button class="group-chip-info" id="groupChipInfoBtn" aria-label="Group info">${group.groupName}</button>
+        <button class="group-chip-x" id="leaveGroupBtn" aria-label="Leave group">✕</button>
+        <div class="group-info-popover" id="groupInfoPopover">
+          <div class="group-info-row">
+            <span class="group-info-label">GROUP</span>
+            <span class="group-info-value">${group.groupName}</span>
+          </div>
+          <div class="group-info-row">
+            <span class="group-info-label">PASSWORD</span>
+            <span class="group-info-value">${group.password}</span>
+          </div>
+          <button class="group-info-copy" id="groupInfoCopyBtn">Copy info</button>
+        </div>
+      </span>`;
+    document.getElementById('groupChipInfoBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('groupInfoPopover').classList.toggle('open');
+    });
+    document.getElementById('groupInfoCopyBtn').addEventListener('click', async () => {
+      const text = `Group: ${group.groupName} / Password: ${group.password}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('groupInfoCopyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { if (btn) btn.textContent = 'Copy info'; }, 2000);
+      } catch {}
+    });
     document.getElementById('leaveGroupBtn').addEventListener('click', () => {
       if (confirm(`Leave ${group.groupName}?`)) {
         setGroup(null);
@@ -1758,7 +1852,7 @@ function showModalStep(id) {
 }
 
 function openGroupModal() {
-  ['modalDisplayName', 'modalGroupName', 'modalJoinCode'].forEach(id => {
+  ['modalDisplayName', 'modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   ['modalError', 'modalCreateError', 'modalJoinError'].forEach(id => {
@@ -1853,7 +1947,7 @@ if (GROUPS_ENABLED) {
     if (!name) { document.getElementById('modalError').textContent = 'Enter your name first.'; return; }
     document.getElementById('modalError').textContent = '';
     showModalStep('modalStepJoin');
-    setTimeout(() => document.getElementById('modalJoinCode')?.focus(), 50);
+    setTimeout(() => document.getElementById('modalJoinGroupName')?.focus(), 50);
   });
 
   document.getElementById('modalBackFromCreate').addEventListener('click', () => showModalStep('modalStep1'));
@@ -1861,48 +1955,53 @@ if (GROUPS_ENABLED) {
   document.getElementById('modalCreateBtn').addEventListener('click', async () => {
     const displayName = document.getElementById('modalDisplayName').value.trim();
     const groupName   = document.getElementById('modalGroupName').value.trim();
+    const password    = document.getElementById('modalGroupPassword').value.trim();
     if (!groupName) { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
+    if (!password)  { document.getElementById('modalCreateError').textContent = 'Enter a password.'; return; }
     document.getElementById('modalCreateError').textContent = '';
     try {
       const r = await fetch('/api/groups/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: groupName, displayName }),
+        body: JSON.stringify({ groupName, password, displayName }),
       });
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalCreateError').textContent = d.error ?? 'Failed.'; return; }
-      setGroup({ code: d.code, groupId: d.groupId, memberId: d.memberId, displayName, groupName });
-      document.getElementById('modalCodeDisplay').textContent = d.code;
-      showModalStep('modalStepCode');
+      setGroup({ groupName, password, groupId: d.groupId, memberId: d.memberId, displayName });
+      closeGroupModal();
+      renderGroupBar();
+      if (allData) renderSessions(allData);
     } catch { document.getElementById('modalCreateError').textContent = 'Network error. Try again.'; }
-  });
-
-  document.getElementById('modalDoneCodeBtn').addEventListener('click', () => {
-    closeGroupModal();
-    renderGroupBar();
-    if (allData) renderSessions(allData);
   });
 
   document.getElementById('modalBackFromJoin').addEventListener('click', () => showModalStep('modalStep1'));
 
   document.getElementById('modalJoinBtn').addEventListener('click', async () => {
     const displayName = document.getElementById('modalDisplayName').value.trim();
-    const code        = document.getElementById('modalJoinCode').value.trim().toUpperCase();
-    if (!code) { document.getElementById('modalJoinError').textContent = 'Enter a code.'; return; }
+    const groupName   = document.getElementById('modalJoinGroupName').value.trim();
+    const password    = document.getElementById('modalJoinPassword').value.trim();
+    if (!groupName) { document.getElementById('modalJoinError').textContent = 'Enter the group name.'; return; }
+    if (!password)  { document.getElementById('modalJoinError').textContent = 'Enter the password.'; return; }
     document.getElementById('modalJoinError').textContent = '';
     try {
       const r = await fetch('/api/groups/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, displayName }),
+        body: JSON.stringify({ groupName, password, displayName }),
       });
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalJoinError').textContent = d.error ?? 'Failed.'; return; }
-      setGroup({ code: d.groupId, groupId: d.groupId, memberId: d.memberId, displayName, groupName: d.groupName });
+      setGroup({ groupName, password, groupId: d.groupId, memberId: d.memberId, displayName });
       closeGroupModal();
       renderGroupBar();
       if (allData) renderSessions(allData);
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
+  });
+
+  // Close group info popover when clicking outside it
+  document.addEventListener('click', () => {
+    const popover = document.getElementById('groupInfoPopover');
+    if (popover) popover.classList.remove('open');
   });
 
   // Initial group bar render on page load

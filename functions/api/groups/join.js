@@ -1,4 +1,6 @@
-// POST /api/groups/join  {code, displayName} → {groupId, groupName, memberId}
+// POST /api/groups/join  {groupName, password, displayName} → {groupId, groupName, memberId}
+//
+// Looks up the group by slug = groupName.trim().lower() + "|" + password.trim().lower()
 
 export async function onRequestPost(context) {
   const { GROUPS } = context.env;
@@ -8,20 +10,22 @@ export async function onRequestPost(context) {
   try { body = await context.request.json(); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const code = body?.code?.trim().toUpperCase();
+  const groupName   = body?.groupName?.trim();
+  const password    = body?.password?.trim();
   const displayName = body?.displayName?.trim();
-  if (!code || !displayName)
-    return json(400, { error: 'code and displayName are required' });
+  if (!groupName || !password || !displayName)
+    return json(400, { error: 'groupName, password, and displayName are required' });
 
-  const raw = await GROUPS.get(`group:${code}`);
-  if (!raw) return json(404, { error: 'Group not found' });
+  const slug = groupName.toLowerCase() + '|' + password.toLowerCase();
+  const raw  = await GROUPS.get(`group:${slug}`);
+  if (!raw) return json(404, { error: 'Group not found — check the group name and password' });
 
-  const group = JSON.parse(raw);
+  const group    = JSON.parse(raw);
   const memberId = crypto.randomUUID();
   group.members.push({ id: memberId, displayName });
-  await GROUPS.put(`group:${code}`, JSON.stringify(group));
+  await GROUPS.put(`group:${slug}`, JSON.stringify(group));
 
-  return json(200, { groupId: code, groupName: group.name, memberId });
+  return json(200, { groupId: slug, groupName: group.groupName, memberId });
 }
 
 function json(status, body) {
