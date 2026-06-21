@@ -575,8 +575,8 @@ footer a:hover { color: var(--yellow); }
   height: 48px;
   border: none;
   border-right: var(--rule);
-  background: var(--white);
-  color: var(--black);
+  background: transparent;
+  color: var(--white-2);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -584,12 +584,11 @@ footer a:hover { color: var(--yellow); }
   transition: all 0.1s;
 }
 .group-filter-chip:first-of-type { border-left: var(--rule); }
-.group-filter-chip.inactive {
-  background: transparent;
-  color: var(--white-2);
+.group-filter-chip.selected {
+  background: var(--white);
+  color: var(--black);
 }
 .group-filter-chip:hover { background: var(--black-4); color: var(--white); }
-.group-filter-chip.inactive:hover { background: var(--black-4); color: var(--white); }
 
 .manage-groups-btn {
   display: inline-flex;
@@ -1836,8 +1835,8 @@ if (!GROUPS_ENABLED && !localStorage.getItem('postandin_data_wiped_v1')) {
   localStorage.setItem('postandin_data_wiped_v1', '1');
 }
 
-// Session-state: which groups are toggled off (empty = all active by default)
-const inactiveGroupSlugs = new Set();
+// Session-state: which groups are toggled on (empty = all active by default, same as rink chips)
+const selectedGroupSlugs = new Set();
 
 function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1932,7 +1931,7 @@ function activeUniqueGoing(sk) {
   const seen = new Set();
   const result = [];
   for (const g of groups) {
-    if (inactiveGroupSlugs.has(getGroupSlug(g))) continue;
+    if (selectedGroupSlugs.size > 0 && !selectedGroupSlugs.has(getGroupSlug(g))) continue;
     for (const n of (byGroup[getGroupSlug(g)] ?? [])) {
       const key = n.toLowerCase();
       if (!seen.has(key)) { seen.add(key); result.push(n); }
@@ -2027,8 +2026,8 @@ function _refreshSheetContent(sk) {
   const groups = getGroups();
   const displayName = getDisplayName();
   const byGroup = rsvpCache[sk] ?? {};
-  // Only show groups that are toggled on
-  const activeGroups = groups.filter(g => !inactiveGroupSlugs.has(getGroupSlug(g)));
+  // Only show groups that are toggled on (empty selection = all show, same as rink chips)
+  const activeGroups = groups.filter(g => selectedGroupSlugs.size === 0 || selectedGroupSlugs.has(getGroupSlug(g)));
   // amGoing check uses all groups
   const all = allUniqueGoing(sk);
   const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
@@ -2070,9 +2069,9 @@ function renderGroupsRow() {
   } else {
     html += groups.map((g, i) => {
       const slug = getGroupSlug(g);
-      const isActive = !inactiveGroupSlugs.has(slug);
+      const isSelected = selectedGroupSlugs.has(slug);
       const color = g.color || 'var(--yellow)';
-      return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}" style="border-left:3px solid ${color}">${escapeHtml(g.groupName)}</button>`;
+      return `<button class="group-filter-chip${isSelected ? ' selected' : ''}" data-idx="${i}" style="border-left:3px solid ${color}">${escapeHtml(g.groupName)}</button>`;
     }).join('');
   }
   html += `<span class="spacer"></span>`;
@@ -2086,12 +2085,12 @@ function renderGroupsRow() {
       const g = getGroups()[idx];
       if (!g) return;
       const slug = getGroupSlug(g);
-      if (inactiveGroupSlugs.has(slug)) {
-        inactiveGroupSlugs.delete(slug);
-        chip.classList.remove('inactive');
+      if (selectedGroupSlugs.has(slug)) {
+        selectedGroupSlugs.delete(slug);
+        chip.classList.remove('selected');
       } else {
-        inactiveGroupSlugs.add(slug);
-        chip.classList.add('inactive');
+        selectedGroupSlugs.add(slug);
+        chip.classList.add('selected');
       }
       // Re-render indicators from cache (no network fetch needed)
       document.querySelectorAll('.going-btn').forEach(btn => {
@@ -2130,7 +2129,7 @@ function renderModalGroupsList() {
       const g = current[idx];
       if (!g) return;
       await leaveGroup(g);
-      inactiveGroupSlugs.delete(getGroupSlug(g));
+      selectedGroupSlugs.delete(getGroupSlug(g));
       setGroups(current.filter((_, i) => i !== idx));
       renderModalGroupsList();
       renderGroupsRow();
