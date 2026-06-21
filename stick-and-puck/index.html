@@ -575,8 +575,8 @@ footer a:hover { color: var(--yellow); }
   height: 48px;
   border: none;
   border-right: var(--rule);
-  background: transparent;
-  color: var(--white-2);
+  background: var(--white);
+  color: var(--black);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -584,10 +584,6 @@ footer a:hover { color: var(--yellow); }
   transition: all 0.1s;
 }
 .group-filter-chip:first-of-type { border-left: var(--rule); }
-.group-filter-chip.selected {
-  background: var(--white);
-  color: var(--black);
-}
 .group-filter-chip:hover { background: var(--black-4); color: var(--white); }
 
 .manage-groups-btn {
@@ -873,6 +869,49 @@ footer a:hover { color: var(--yellow); }
 }
 .sheet-close-btn:hover { color: var(--white-2); }
 
+/* ── Group info sheet ── */
+.group-sheet-body {
+  padding: 14px 18px 6px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.group-sheet-password {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--white-3);
+  margin-top: 4px;
+}
+.group-sheet-session {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--black-4);
+}
+.group-sheet-session:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.group-sheet-session-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--white-2);
+  margin-bottom: 5px;
+}
+.group-sheet-session-name {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--white-2);
+  padding-left: 14px;
+  line-height: 1.8;
+}
+.group-sheet-empty {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--white-3);
+  line-height: 1.6;
+}
+
 /* ── Manage groups modal ── */
 .modal-overlay {
   display: none;
@@ -1146,6 +1185,17 @@ footer a:hover { color: var(--yellow); }
     <span id="sheetCopyConfirm" class="sheet-copy-confirm"></span>
   </div>
   <button id="sheetCloseBtn" class="sheet-close-btn">Close</button>
+</div>
+
+<!-- Group info bottom sheet -->
+<div id="groupSheetOverlay" class="sheet-overlay" aria-hidden="true"></div>
+<div id="groupBottomSheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-label="Group details">
+  <div class="sheet-header">
+    <div id="groupSheetTitle" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;color:var(--white)"></div>
+    <div id="groupSheetPassword" class="group-sheet-password"></div>
+  </div>
+  <div id="groupSheetBody" class="group-sheet-body"></div>
+  <button id="groupSheetCloseBtn" class="sheet-close-btn">Close</button>
 </div>
 
 <!-- Manage Groups modal -->
@@ -1835,9 +1885,6 @@ if (!GROUPS_ENABLED && !localStorage.getItem('postandin_data_wiped_v1')) {
   localStorage.setItem('postandin_data_wiped_v1', '1');
 }
 
-// Session-state: which groups are toggled on (empty = all active by default, same as rink chips)
-const selectedGroupSlugs = new Set();
-
 function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -1924,20 +1971,9 @@ function allUniqueGoing(sk) {
   return result;
 }
 
-// Deduplicated names across only ACTIVE (toggled-on) groups
+// All groups are always active — same as allUniqueGoing
 function activeUniqueGoing(sk) {
-  const groups = getGroups();
-  const byGroup = rsvpCache[sk] ?? {};
-  const seen = new Set();
-  const result = [];
-  for (const g of groups) {
-    if (selectedGroupSlugs.size > 0 && !selectedGroupSlugs.has(getGroupSlug(g))) continue;
-    for (const n of (byGroup[getGroupSlug(g)] ?? [])) {
-      const key = n.toLowerCase();
-      if (!seen.has(key)) { seen.add(key); result.push(n); }
-    }
-  }
-  return result;
+  return allUniqueGoing(sk);
 }
 
 function updateIndicatorEl(btn, sk) {
@@ -2026,8 +2062,7 @@ function _refreshSheetContent(sk) {
   const groups = getGroups();
   const displayName = getDisplayName();
   const byGroup = rsvpCache[sk] ?? {};
-  // Only show groups that are toggled on (empty selection = all show, same as rink chips)
-  const activeGroups = groups.filter(g => selectedGroupSlugs.size === 0 || selectedGroupSlugs.has(getGroupSlug(g)));
+  const activeGroups = groups;
   // amGoing check uses all groups
   const all = allUniqueGoing(sk);
   const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
@@ -2054,7 +2089,101 @@ function _refreshSheetContent(sk) {
   btn.className = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
 }
 
-// Groups row — one toggleable chip per group + Manage groups button
+// Returns true if session falls within the window implied by the current day filter
+function sessionMatchesDayFilter(s) {
+  const now = new Date();
+  if (activeFilter === 'today') {
+    return dayKey(s.start) === dayKey(now);
+  }
+  if (activeFilter === 'tomorrow') {
+    const tom = new Date(now); tom.setDate(now.getDate() + 1);
+    return dayKey(s.start) === dayKey(tom);
+  }
+  if (activeFilter === 'thisweek') {
+    const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
+    return s.start <= weekEnd;
+  }
+  // 'all', 'available', 'female', or any other non-day filter → next 5 days
+  const limit = new Date(now); limit.setDate(now.getDate() + 5); limit.setHours(23, 59, 59, 999);
+  return s.start <= limit;
+}
+
+// Group info bottom sheet
+let activeGroupSheet = null;
+
+async function openGroupSheet(group) {
+  activeGroupSheet = group;
+  const slug = getGroupSlug(group);
+
+  document.getElementById('groupSheetTitle').textContent = group.groupName;
+  document.getElementById('groupSheetPassword').textContent = `Password: ${group.password}`;
+  document.getElementById('groupSheetBody').innerHTML = '<div class="group-sheet-empty">Loading…</div>';
+
+  const overlay = document.getElementById('groupSheetOverlay');
+  const sheet   = document.getElementById('groupBottomSheet');
+  overlay.classList.add('open');
+  sheet.classList.add('open');
+  requestAnimationFrame(() => {
+    overlay.classList.add('visible');
+    sheet.classList.add('visible');
+  });
+
+  // Collect all sessions within the day filter window
+  const candidates = [];
+  if (allData) {
+    for (const [rinkKey, r] of Object.entries(allData)) {
+      for (const s of r.sessions) {
+        if (!sessionMatchesDayFilter(s)) continue;
+        candidates.push({ s: { ...s, rinkKey, rink: r.rink }, sk: mkSessionKey(s) });
+      }
+    }
+  }
+  candidates.sort((a, b) => a.s.start - b.s.start);
+
+  // Fetch RSVPs for this group in parallel
+  const rsvpResults = {};
+  await Promise.all(candidates.map(async ({ sk }) => {
+    try {
+      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(slug)}`);
+      const names = r.ok ? ((await r.json()).going ?? []) : [];
+      rsvpResults[sk] = names;
+      if (!rsvpCache[sk]) rsvpCache[sk] = {};
+      rsvpCache[sk][slug] = names;
+    } catch {
+      rsvpResults[sk] = [];
+    }
+  }));
+
+  if (activeGroupSheet !== group) return; // sheet was closed while loading
+
+  const withRsvps = candidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
+  const body = document.getElementById('groupSheetBody');
+  if (!withRsvps.length) {
+    body.innerHTML = '<div class="group-sheet-empty">No one has signed up for any upcoming sessions yet.</div>';
+    return;
+  }
+
+  body.innerHTML = withRsvps.map(({ s, sk }) => {
+    const dateStr = s.start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const header = `${dateStr} ${fmtTime(s.start)} — ${escapeHtml(s.rink.city)}`;
+    const names = (rsvpResults[sk] ?? []).map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
+    return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${names}</div>`;
+  }).join('');
+}
+
+function closeGroupSheet() {
+  const overlay = document.getElementById('groupSheetOverlay');
+  const sheet   = document.getElementById('groupBottomSheet');
+  overlay.classList.remove('visible');
+  sheet.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => {
+    overlay.classList.remove('open');
+    sheet.classList.remove('open');
+  }, { once: true });
+  activeGroupSheet = null;
+}
+
+// Groups row — one chip per group (always active) + Manage groups button
 function renderGroupsRow() {
   const el = document.getElementById('groupsRow');
   if (!GROUPS_ENABLED) {
@@ -2068,10 +2197,8 @@ function renderGroupsRow() {
     html += `<button class="groups-empty-prompt" id="groupsEmptyPrompt">Join a group to see who's going</button>`;
   } else {
     html += groups.map((g, i) => {
-      const slug = getGroupSlug(g);
-      const isSelected = selectedGroupSlugs.has(slug);
       const color = g.color || 'var(--yellow)';
-      return `<button class="group-filter-chip${isSelected ? ' selected' : ''}" data-idx="${i}" style="border-left:3px solid ${color}">${escapeHtml(g.groupName)}</button>`;
+      return `<button class="group-filter-chip" data-idx="${i}" style="border-left:3px solid ${color}">${escapeHtml(g.groupName)}</button>`;
     }).join('');
   }
   html += `<span class="spacer"></span>`;
@@ -2084,19 +2211,7 @@ function renderGroupsRow() {
       const idx = Number(chip.dataset.idx);
       const g = getGroups()[idx];
       if (!g) return;
-      const slug = getGroupSlug(g);
-      if (selectedGroupSlugs.has(slug)) {
-        selectedGroupSlugs.delete(slug);
-        chip.classList.remove('selected');
-      } else {
-        selectedGroupSlugs.add(slug);
-        chip.classList.add('selected');
-      }
-      // Re-render indicators from cache (no network fetch needed)
-      document.querySelectorAll('.going-btn').forEach(btn => {
-        updateIndicatorEl(btn, btn.dataset.sessionKey);
-      });
-      if (sheetSession) _refreshSheetContent(sheetSession.sk);
+      openGroupSheet(g);
     });
   });
 
@@ -2129,7 +2244,6 @@ function renderModalGroupsList() {
       const g = current[idx];
       if (!g) return;
       await leaveGroup(g);
-      selectedGroupSlugs.delete(getGroupSlug(g));
       setGroups(current.filter((_, i) => i !== idx));
       renderModalGroupsList();
       renderGroupsRow();
@@ -2469,6 +2583,10 @@ if (GROUPS_ENABLED) {
       if (allData) renderSessions(allData);
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
   });
+
+  // Group info sheet wiring
+  document.getElementById('groupSheetOverlay').addEventListener('click', closeGroupSheet);
+  document.getElementById('groupSheetCloseBtn').addEventListener('click', closeGroupSheet);
 
   // Intro modal wiring
   document.getElementById('introJoinBtn').addEventListener('click', () => {
