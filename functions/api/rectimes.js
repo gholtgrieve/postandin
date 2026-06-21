@@ -45,6 +45,11 @@ export async function onRequest(context) {
     const data = await res.json();
     const bookings = Array.isArray(data) ? data : (data?.bookings ?? []);
 
+    const BOOK_URLS = {
+      1146: 'https://fareharbor.com/embeds/book/lynnwoodicecenter/items/245296/',
+      1145: 'https://fareharbor.com/embeds/book/olympicviewarena/items/313860/',
+    };
+
     const sessions = bookings
       .filter(b => /stick\s*(?:&|and)\s*puck/i.test(b.groupName ?? ''))
       .filter(b => (b.endTimeLocal ?? b.startTimeLocal) > pacificNow)
@@ -57,7 +62,7 @@ export async function onRequest(context) {
         spots: null,
         price: null,
         soldOut: false,
-        bookUrl: 'https://app.rectimes.com/ova',
+        bookUrl: BOOK_URLS[venueId] ?? 'https://app.rectimes.com/ova',
       }));
 
     return new Response(JSON.stringify({ ok: true, sessions }), { headers: HEADERS });
