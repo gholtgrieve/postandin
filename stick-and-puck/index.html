@@ -2127,13 +2127,12 @@ function sessionMatchesDayFilter(s) {
 // Group info bottom sheet
 let activeGroupSheet = null;
 
-async function openGroupSheet(group) {
+function openGroupSheet(group) {
   activeGroupSheet = group;
   const slug = getGroupSlug(group);
 
   document.getElementById('groupSheetTitle').textContent = group.groupName;
   document.getElementById('groupSheetPassword').textContent = `Password: ${group.password}`;
-  document.getElementById('groupSheetBody').innerHTML = '<div class="group-sheet-empty">Loading…</div>';
 
   const overlay = document.getElementById('groupSheetOverlay');
   const sheet   = document.getElementById('groupBottomSheet');
@@ -2144,42 +2143,38 @@ async function openGroupSheet(group) {
     sheet.classList.add('visible');
   });
 
-  // Collect all upcoming sessions, ignoring the active day/rink filter
+  // Build a full session lookup from allData so we can resolve any sk in rsvpCache,
+  // even for sessions that are no longer in sessionMap due to active filter changes.
+  const lookup = {};
+  if (allData) {
+    for (const [rinkKey, r] of Object.entries(allData)) {
+      for (const s of r.sessions) {
+        lookup[mkSessionKey({ ...s, rinkKey })] = { ...s, rinkKey, rink: r.rink };
+      }
+    }
+  }
+  // sessionMap entries already have rinkKey+rink and take precedence
+  Object.assign(lookup, sessionMap);
+
+  // Read RSVPs directly from rsvpCache — same cache that drives the person-icon indicators
   const now       = new Date();
   const nearLimit = new Date(now);
   nearLimit.setDate(now.getDate() + 5);
   nearLimit.setHours(23, 59, 59, 999);
 
-  const nearCandidates = [];
-  const farCandidates  = [];
+  const nearWithRsvps = [];
+  const farWithRsvps  = [];
 
-  if (allData) {
-    for (const [rinkKey, r] of Object.entries(allData)) {
-      for (const s of r.sessions) {
-        if (s.start < now) continue;
-        const item = { s: { ...s, rinkKey, rink: r.rink }, sk: mkSessionKey(s) };
-        (s.start <= nearLimit ? nearCandidates : farCandidates).push(item);
-      }
-    }
+  for (const [sk, byGroup] of Object.entries(rsvpCache)) {
+    const names = byGroup[slug] ?? [];
+    if (!names.length) continue;
+    const s = lookup[sk];
+    if (!s || s.start < now) continue;
+    (s.start <= nearLimit ? nearWithRsvps : farWithRsvps).push({ s, names });
   }
-  nearCandidates.sort((a, b) => a.s.start - b.s.start);
-  farCandidates.sort((a, b) => a.s.start - b.s.start);
 
-  // Fetch RSVPs for all upcoming sessions (near + far) in parallel
-  const rsvpResults = {};
-  await Promise.all([...nearCandidates, ...farCandidates].map(async ({ sk }) => {
-    try {
-      const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(slug)}`);
-      const names = r.ok ? ((await r.json()).going ?? []) : [];
-      rsvpResults[sk] = names;
-      if (!rsvpCache[sk]) rsvpCache[sk] = {};
-      rsvpCache[sk][slug] = names;
-    } catch {
-      rsvpResults[sk] = [];
-    }
-  }));
-
-  if (activeGroupSheet !== group) return; // sheet was closed while loading
+  nearWithRsvps.sort((a, b) => a.s.start - b.s.start);
+  farWithRsvps.sort((a, b) => a.s.start - b.s.start);
 
   function sessionDayLabel(start) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2190,15 +2185,12 @@ async function openGroupSheet(group) {
     return start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  function renderSession({ s, sk }) {
-    const header = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(s.rink.name)}`;
-    const names  = (rsvpResults[sk] ?? [])
-      .map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
-    return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${names}</div>`;
+  function renderSession({ s, names }) {
+    const header  = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(s.rink.name)}`;
+    const nameHtml = names.map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
+    return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${nameHtml}</div>`;
   }
 
-  const nearWithRsvps = nearCandidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
-  const farWithRsvps  = farCandidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
   const body = document.getElementById('groupSheetBody');
 
   if (!nearWithRsvps.length && !farWithRsvps.length) {
@@ -2206,9 +2198,9 @@ async function openGroupSheet(group) {
     return;
   }
 
-  // If no near-window sessions, show all far sessions directly
-  const primary = nearWithRsvps.length ? nearWithRsvps : farWithRsvps;
-  const secondary = nearWithRsvps.length ? farWithRsvps : [];
+  // If no near-window sessions with RSVPs, show far sessions directly (no collapse)
+  const primary   = nearWithRsvps.length ? nearWithRsvps : farWithRsvps;
+  const secondary = nearWithRsvps.length ? farWithRsvps  : [];
 
   body.innerHTML = primary.map(renderSession).join('');
 
