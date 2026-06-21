@@ -628,6 +628,21 @@ footer a:hover { color: var(--yellow); }
 }
 .groups-empty-prompt:hover { color: var(--white); }
 
+.beta-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--white-3);
+  border: 1px solid #B8B2A4;
+  border-radius: 3px;
+  padding: 1px 4px;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
 .groups-help-btn {
   display: inline-flex;
   align-items: center;
@@ -1967,7 +1982,7 @@ function renderGroupsRow() {
     }).join('');
   }
   html += `<span class="spacer"></span>`;
-  html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups</button>`;
+  html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups<span class="beta-badge">Beta</span></button>`;
   html += `<button class="groups-help-btn" id="groupsHelpBtn" aria-label="What are groups?">?</button>`;
   el.innerHTML = html;
 
