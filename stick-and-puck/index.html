@@ -1190,7 +1190,7 @@ footer a:hover { color: var(--yellow); }
 
 <script type="module">
 // ─── Feature flag ─────────────────────────────────────────────────────────────
-const GROUPS_ENABLED = true;
+const GROUPS_ENABLED = false;
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
@@ -1786,6 +1786,12 @@ loadData();
 const GROUPS_LS_KEY       = 'postandin_groups';
 const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
 const LEGACY_LS_KEY       = 'postandin_group';
+
+// Wipe all stored groups/identity data when the feature is off
+if (!GROUPS_ENABLED) {
+  ['postandin_groups', 'postandin_displayName', 'postandin_group', 'postandin_icon_tip_seen']
+    .forEach(k => localStorage.removeItem(k));
+}
 
 // Session-state: which groups are toggled off (empty = all active by default)
 const inactiveGroupSlugs = new Set();
