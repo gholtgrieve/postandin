@@ -151,6 +151,7 @@ header {
   align-items: center;
   gap: 0;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   flex-wrap: nowrap;
   border-top: var(--rule);
@@ -208,6 +209,10 @@ header {
   align-items: center;
   align-self: stretch;
   flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  background: var(--black-3);
+  z-index: 1;
 }
 
 .spacer { flex: 1; min-width: 16px; }
@@ -1114,14 +1119,153 @@ footer a:hover { color: var(--yellow); }
 }
 
 /* ── Responsive ── */
+
+/* Right-edge fade scroll affordance on chip rows */
+@media (max-width: 768px) {
+  .controls-row {
+    box-shadow: inset -40px 0 20px -8px var(--black-3);
+  }
+}
+
 @media (max-width: 640px) {
   .page-meta { display: none; }
   .filter-btn { font-size: 15px; padding: 0 12px; }
   .row-time { font-size: 22px; min-width: 76px; }
   .row-rink { font-size: 11px; }
 }
+
+@media (max-width: 480px) {
+  /* ── Filter rows: label stacks above, chips scroll on their own line ── */
+  /* Switch rows to block so filter-label (display:flex = block-level) takes a full
+     line; inline-flex chip buttons then flow on the next line, non-wrapping,
+     scrollable via overflow-x:auto on the container. */
+  .controls-row {
+    display: block;
+    height: auto;
+    padding-top: 0;
+    padding-bottom: 0;
+    white-space: nowrap; /* keeps all inline chips on one line */
+  }
+  .filters-row,
+  .groups-row { height: auto; }
+  .locations-row { padding-top: 0; padding-bottom: 0; min-height: auto; }
+
+  .filter-label {
+    /* block-level flex container = full-width label row */
+    display: flex;
+    position: static;        /* undo sticky — label is full-width, no need */
+    background: transparent;
+    width: 100%;
+    height: 28px;
+    align-items: center;
+    border-right: none;
+    border-bottom: var(--rule);
+    margin-right: 0;
+    padding-right: 0;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* ── Chips → inline-flex so they flow after the block label ── */
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    vertical-align: middle;
+    font-size: 14px;
+    padding: 0 10px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .refresh-btn {
+    display: inline-flex;
+    height: 40px;
+    vertical-align: middle;
+  }
+  .spacer {
+    display: inline-block;
+    min-width: 8px;
+    width: 8px;
+    flex: none;
+  }
+  .legend-chip {
+    display: inline-flex;
+    height: 38px;
+    vertical-align: middle;
+    margin-right: 4px; /* gap: 6px doesn't apply in block mode */
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .legend-clear.visible {
+    display: inline-flex;
+    height: 38px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  .group-filter-chip {
+    display: inline-flex;
+    height: 40px;
+    vertical-align: middle;
+    font-size: 14px;
+    padding: 0 10px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .manage-groups-btn {
+    display: inline-flex;
+    height: 40px;
+    vertical-align: middle;
+    font-size: 14px;
+    padding: 0 12px;
+  }
+  .groups-help-btn {
+    display: inline-flex;
+    height: 40px;
+    width: 40px;
+    vertical-align: middle;
+  }
+  .groups-empty-prompt {
+    display: inline-flex;
+    height: 40px;
+    vertical-align: middle;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Session cards ── */
+  .session-row {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+  .row-time {
+    font-size: 20px;
+    min-width: 60px;
+  }
+  .row-rink { font-size: 10px; }
+  .row-city { font-size: 10px; }
+
+  /* ── RSVP tap target: 44×44 minimum ── */
+  .going-btn {
+    padding: 10px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* ── Main layout padding ── */
+  main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 1rem;
+  }
+}
+
 @media (max-width: 400px) {
-  .row-time { min-width: 64px; }
+  .row-time { min-width: 56px; }
 }
 </style>
 </head>
