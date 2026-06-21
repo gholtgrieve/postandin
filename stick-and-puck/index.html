@@ -911,6 +911,22 @@ footer a:hover { color: var(--yellow); }
   color: var(--white-3);
   line-height: 1.6;
 }
+.group-sheet-show-more {
+  display: block;
+  width: 100%;
+  padding: 10px 0 4px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--black-4);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  cursor: pointer;
+  text-align: center;
+}
+.group-sheet-show-more:hover { color: var(--yellow-dk); }
 
 /* ── Manage groups modal ── */
 .modal-overlay {
@@ -2128,30 +2144,30 @@ async function openGroupSheet(group) {
     sheet.classList.add('visible');
   });
 
-  // Collect all sessions within the day filter window
-  const candidates = [];
+  // Collect all upcoming sessions, ignoring the active day/rink filter
+  const now       = new Date();
+  const nearLimit = new Date(now);
+  nearLimit.setDate(now.getDate() + 5);
+  nearLimit.setHours(23, 59, 59, 999);
+
+  const nearCandidates = [];
+  const farCandidates  = [];
+
   if (allData) {
     for (const [rinkKey, r] of Object.entries(allData)) {
       for (const s of r.sessions) {
-        if (!sessionMatchesDayFilter(s)) continue;
-        candidates.push({ s: { ...s, rinkKey, rink: r.rink }, sk: mkSessionKey(s) });
+        if (s.start < now) continue;
+        const item = { s: { ...s, rinkKey, rink: r.rink }, sk: mkSessionKey(s) };
+        (s.start <= nearLimit ? nearCandidates : farCandidates).push(item);
       }
     }
   }
-  candidates.sort((a, b) => a.s.start - b.s.start);
+  nearCandidates.sort((a, b) => a.s.start - b.s.start);
+  farCandidates.sort((a, b) => a.s.start - b.s.start);
 
-  // Capture current user's RSVP state from existing cache before the fresh fetch overwrites it
-  const displayName = getDisplayName();
-  const myGoingBySk = {};
-  if (displayName) {
-    for (const { sk } of candidates) {
-      myGoingBySk[sk] = allUniqueGoing(sk).some(n => n.toLowerCase() === displayName.toLowerCase());
-    }
-  }
-
-  // Fetch RSVPs for this group in parallel
+  // Fetch RSVPs for all upcoming sessions (near + far) in parallel
   const rsvpResults = {};
-  await Promise.all(candidates.map(async ({ sk }) => {
+  await Promise.all([...nearCandidates, ...farCandidates].map(async ({ sk }) => {
     try {
       const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(slug)}`);
       const names = r.ok ? ((await r.json()).going ?? []) : [];
@@ -2165,23 +2181,47 @@ async function openGroupSheet(group) {
 
   if (activeGroupSheet !== group) return; // sheet was closed while loading
 
-  const withRsvps = candidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0 || myGoingBySk[sk]);
+  function sessionDayLabel(start) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(start); d.setHours(0, 0, 0, 0);
+    const diff = Math.round((d - today) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Tomorrow';
+    return start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function renderSession({ s, sk }) {
+    const header = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(s.rink.name)}`;
+    const names  = (rsvpResults[sk] ?? [])
+      .map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
+    return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${names}</div>`;
+  }
+
+  const nearWithRsvps = nearCandidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
+  const farWithRsvps  = farCandidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
   const body = document.getElementById('groupSheetBody');
-  if (!withRsvps.length) {
+
+  if (!nearWithRsvps.length && !farWithRsvps.length) {
     body.innerHTML = '<div class="group-sheet-empty">No one has signed up for any upcoming sessions yet.</div>';
     return;
   }
 
-  body.innerHTML = withRsvps.map(({ s, sk }) => {
-    const dateStr = s.start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const header = `${dateStr} ${fmtTime(s.start)} — ${escapeHtml(s.rink.city)}`;
-    let sessionNames = [...(rsvpResults[sk] ?? [])];
-    if (myGoingBySk[sk] && displayName && !sessionNames.some(n => n.toLowerCase() === displayName.toLowerCase())) {
-      sessionNames = [displayName, ...sessionNames];
-    }
-    const names = sessionNames.map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
-    return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${names}</div>`;
-  }).join('');
+  // If no near-window sessions, show all far sessions directly
+  const primary = nearWithRsvps.length ? nearWithRsvps : farWithRsvps;
+  const secondary = nearWithRsvps.length ? farWithRsvps : [];
+
+  body.innerHTML = primary.map(renderSession).join('');
+
+  if (secondary.length) {
+    const btn = document.createElement('button');
+    btn.className = 'group-sheet-show-more';
+    btn.textContent = 'Show more';
+    btn.addEventListener('click', () => {
+      btn.insertAdjacentHTML('afterend', secondary.map(renderSession).join(''));
+      btn.remove();
+    });
+    body.appendChild(btn);
+  }
 }
 
 function closeGroupSheet() {
