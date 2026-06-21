@@ -575,8 +575,8 @@ footer a:hover { color: var(--yellow); }
   height: 48px;
   border: none;
   border-right: var(--rule);
-  background: var(--white);
-  color: var(--black);
+  background: transparent;
+  color: var(--white-2);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -2140,6 +2140,15 @@ async function openGroupSheet(group) {
   }
   candidates.sort((a, b) => a.s.start - b.s.start);
 
+  // Capture current user's RSVP state from existing cache before the fresh fetch overwrites it
+  const displayName = getDisplayName();
+  const myGoingBySk = {};
+  if (displayName) {
+    for (const { sk } of candidates) {
+      myGoingBySk[sk] = allUniqueGoing(sk).some(n => n.toLowerCase() === displayName.toLowerCase());
+    }
+  }
+
   // Fetch RSVPs for this group in parallel
   const rsvpResults = {};
   await Promise.all(candidates.map(async ({ sk }) => {
@@ -2156,7 +2165,7 @@ async function openGroupSheet(group) {
 
   if (activeGroupSheet !== group) return; // sheet was closed while loading
 
-  const withRsvps = candidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0);
+  const withRsvps = candidates.filter(({ sk }) => (rsvpResults[sk] ?? []).length > 0 || myGoingBySk[sk]);
   const body = document.getElementById('groupSheetBody');
   if (!withRsvps.length) {
     body.innerHTML = '<div class="group-sheet-empty">No one has signed up for any upcoming sessions yet.</div>';
@@ -2166,7 +2175,11 @@ async function openGroupSheet(group) {
   body.innerHTML = withRsvps.map(({ s, sk }) => {
     const dateStr = s.start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const header = `${dateStr} ${fmtTime(s.start)} — ${escapeHtml(s.rink.city)}`;
-    const names = (rsvpResults[sk] ?? []).map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
+    let sessionNames = [...(rsvpResults[sk] ?? [])];
+    if (myGoingBySk[sk] && displayName && !sessionNames.some(n => n.toLowerCase() === displayName.toLowerCase())) {
+      sessionNames = [displayName, ...sessionNames];
+    }
+    const names = sessionNames.map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
     return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${names}</div>`;
   }).join('');
 }
