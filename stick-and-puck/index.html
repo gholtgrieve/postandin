@@ -204,9 +204,9 @@ header {
   margin-right: 12px;
   padding-right: 12px;
   border-right: var(--rule);
-  height: 48px;
   display: flex;
   align-items: center;
+  align-self: stretch;
   flex-shrink: 0;
 }
 
@@ -684,47 +684,44 @@ footer a:hover { color: var(--yellow); }
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 6px 8px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   position: relative;
   vertical-align: middle;
-  color: var(--black-4);
+  color: #557B8A;
   transition: color 0.1s;
 }
 .going-btn.has-going { color: var(--yellow); }
 .going-person {
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   display: block;
 }
 .going-count {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--yellow);
 }
-.going-tooltip {
-  display: none;
-  position: absolute;
-  bottom: 125%;
-  right: 0;
+
+/* One-time icon onboarding tip */
+.icon-tip {
+  position: fixed;
+  z-index: 400;
   background: var(--white);
   color: var(--black);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  padding: 8px 12px;
   border: 1px solid var(--black-4);
-  white-space: nowrap;
-  z-index: 200;
+  max-width: 230px;
   pointer-events: none;
-}
-@media (hover: hover) {
-  .going-btn:hover .going-tooltip { display: block; }
 }
 
 /* ── Sheet overlay ── */
@@ -1071,11 +1068,9 @@ footer a:hover { color: var(--yellow); }
 </div>
 
 <div class="controls-bar">
-  <!-- Row 1: Groups -->
-  <div class="controls-row groups-row" id="groupsRow"></div>
-  <!-- Row 2: Session filters -->
+  <!-- Row 1: Session filters -->
   <div class="controls-row filters-row">
-    <span class="filter-label">Filter</span>
+    <span class="filter-label">Days</span>
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="available">Available</button>
     <button class="filter-btn" data-filter="today">Today</button>
@@ -1087,8 +1082,10 @@ footer a:hover { color: var(--yellow); }
       <span class="spin-icon">↻</span> Refresh
     </button>
   </div>
-  <!-- Row 3: Location filters -->
+  <!-- Row 2: Location filters -->
   <div class="controls-row locations-row" id="rinkLegend"></div>
+  <!-- Row 3: Groups -->
+  <div class="controls-row groups-row" id="groupsRow"></div>
 </div>
 
 <main>
@@ -1182,7 +1179,7 @@ footer a:hover { color: var(--yellow); }
   <div class="group-modal" role="dialog" aria-modal="true" aria-label="See who's going" style="max-width:380px">
     <div class="intro-modal-body">
       <div class="intro-modal-heading">See who's going</div>
-      <p class="intro-modal-copy">Groups let you see which friends are coming to a session. Create a group, share the name and password with other families, and you'll see each other on the schedule. Your identity is saved on this device — if you get a new phone, just rejoin your groups.</p>
+      <p class="intro-modal-copy">Groups let you see which friends are coming to a session. Create a group, share the name and password with other families, and you'll see each other on the schedule. Tap the person icon on any session to see who's going and add yourself. Your identity is saved on this device — if you get a new phone, just rejoin your groups.</p>
       <div class="intro-modal-btns">
         <button class="modal-btn primary" id="introJoinBtn">Join or create a group</button>
         <button class="modal-btn" id="introLaterBtn">Maybe later</button>
@@ -1557,7 +1554,8 @@ function showSkeletons(n = 8) {
 
 function renderLegend(data) {
   const legend = document.getElementById("rinkLegend");
-  let html = Object.entries(data)
+  let html = '<span class="filter-label">Rinks</span>';
+  html += Object.entries(data)
     .filter(([, r]) => !r.rink.legendKey)
     .map(([key, r]) =>
     `<span class="legend-chip${selectedRinks.has(key) ? ' selected' : ''}" data-rink="${key}">
@@ -1906,6 +1904,33 @@ async function updateGoingIndicators() {
       updateIndicatorEl(btn, sk);
     });
   }));
+  maybeShowIconTip();
+}
+
+function maybeShowIconTip() {
+  if (localStorage.getItem('postandin_icon_tip_seen')) return;
+  const firstGoing = document.querySelector('.going-btn.has-going');
+  if (!firstGoing) return;
+
+  const tip = document.createElement('div');
+  tip.className = 'icon-tip';
+  tip.textContent = "Tap the person icon to see who’s going and add yourself";
+  document.body.appendChild(tip);
+
+  const rect = firstGoing.getBoundingClientRect();
+  tip.style.top = (rect.bottom + 6) + 'px';
+  tip.style.right = '16px';
+
+  const dismiss = () => {
+    tip.remove();
+    localStorage.setItem('postandin_icon_tip_seen', '1');
+    document.removeEventListener('click', dismiss);
+    document.removeEventListener('touchstart', dismiss);
+  };
+  requestAnimationFrame(() => {
+    document.addEventListener('click', dismiss);
+    document.addEventListener('touchstart', dismiss);
+  });
 }
 
 async function doToggleGoing(s, sk, goingValue) {
@@ -1971,11 +1996,11 @@ function renderGroupsRow() {
   }
   const groups = getGroups();
 
-  let html = '';
+  let html = '<span class="filter-label">Groups</span>';
   if (!groups.length) {
-    html = `<button class="groups-empty-prompt" id="groupsEmptyPrompt">Join a group to see who's going</button>`;
+    html += `<button class="groups-empty-prompt" id="groupsEmptyPrompt">Join a group to see who's going</button>`;
   } else {
-    html = groups.map((g, i) => {
+    html += groups.map((g, i) => {
       const slug = getGroupSlug(g);
       const isActive = !inactiveGroupSlugs.has(slug);
       return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}">${escapeHtml(g.groupName)}</button>`;
