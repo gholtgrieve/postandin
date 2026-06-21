@@ -1125,10 +1125,20 @@ footer a:hover { color: var(--yellow); }
   .controls-row {
     box-shadow: inset -40px 0 20px -8px var(--black-3);
   }
+  /* Header: replace fixed height with padding so it can breathe */
+  .header-inner {
+    height: auto;
+    min-height: 52px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  /* Hero tagline block is desktop-only */
+  .page-meta {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .page-meta { display: none; }
   .filter-btn { font-size: 15px; padding: 0 12px; }
   .row-time { font-size: 22px; min-width: 76px; }
   .row-rink { font-size: 11px; }
