@@ -56,6 +56,13 @@ function parseIcal(ical) {
   const now     = new Date();
   const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
   const emitCutoff = new Date();
+  // Local-time strings (no Z) are Pacific — compare them against now expressed as Pacific local.
+  // new Date(localStr) on a UTC Cloudflare Worker misinterprets them as UTC, 7-8 h too early.
+  const emitCutoffPacific = toPacificLocal(emitCutoff.toISOString());
+  const isAfterNow = (raw) => {
+    if (!raw) return false;
+    return raw.endsWith('Z') ? new Date(raw) > emitCutoff : raw > emitCutoffPacific;
+  };
 
   const blocks = text.split('BEGIN:VEVENT');
   const rawEventCount = blocks.length - 1;
@@ -133,7 +140,7 @@ function parseIcal(ical) {
       const rawEnd   = override?.endStr   ?? occ.endStr;
       const start = rawStart?.endsWith('Z') ? toPacificLocal(rawStart) : rawStart;
       const end   = rawEnd?.endsWith('Z')   ? toPacificLocal(rawEnd)   : rawEnd;
-      if (new Date(rawEnd ?? rawStart) > emitCutoff) {
+      if (isAfterNow(rawEnd ?? rawStart)) {
         emit(`${ev.uid}:${occ.startStr}`, start, end, override?.bookUrl ?? ev.bookUrl);
       }
     }
@@ -142,7 +149,7 @@ function parseIcal(ical) {
   for (const ev of singles) {
     const sStart = ev.startStr?.endsWith('Z') ? toPacificLocal(ev.startStr) : ev.startStr;
     const sEnd   = ev.endStr?.endsWith('Z')   ? toPacificLocal(ev.endStr)   : ev.endStr;
-    if (new Date(ev.endStr ?? ev.startStr) > emitCutoff) {
+    if (isAfterNow(ev.endStr ?? ev.startStr)) {
       emit(ev.uid || ev.startStr, sStart, sEnd, ev.bookUrl);
     }
   }
@@ -153,7 +160,7 @@ function parseIcal(ical) {
       if (consumedOverrides.has(`${uid}:${recurrIdStr}`)) continue;
       const oStart = ov.startStr?.endsWith('Z') ? toPacificLocal(ov.startStr) : ov.startStr;
       const oEnd   = ov.endStr?.endsWith('Z')   ? toPacificLocal(ov.endStr)   : ov.endStr;
-      if (new Date(ov.endStr ?? ov.startStr) > emitCutoff) {
+      if (isAfterNow(ov.endStr ?? ov.startStr)) {
         emit(`orphan:${uid}:${ov.startStr}`, oStart, oEnd, ov.bookUrl);
       }
     }
