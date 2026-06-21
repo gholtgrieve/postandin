@@ -1787,10 +1787,13 @@ const GROUPS_LS_KEY       = 'postandin_groups';
 const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
 const LEGACY_LS_KEY       = 'postandin_group';
 
-// Wipe all stored groups/identity data when the feature is off
-if (!GROUPS_ENABLED) {
+// One-time wipe of all groups/identity data (local + server-side KV).
+// Runs once per device, gated by the sentinel key.
+if (!GROUPS_ENABLED && !localStorage.getItem('postandin_data_wiped_v1')) {
+  fetch('/api/groups/purge', { method: 'POST' }).catch(() => {});
   ['postandin_groups', 'postandin_displayName', 'postandin_group', 'postandin_icon_tip_seen']
     .forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('postandin_data_wiped_v1', '1');
 }
 
 // Session-state: which groups are toggled off (empty = all active by default)
