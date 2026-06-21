@@ -1096,7 +1096,7 @@ footer a:hover { color: var(--yellow); }
 </main>
 
 <footer>
-  Data from DaySmart, FareHarbor &amp; Google Calendar &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a> &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
+  Data from DaySmart, RecTimes &amp; Google Calendar &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a> &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
 </footer>
 
 <!-- Sheet overlay (Who's going) -->
@@ -1232,27 +1232,16 @@ const RINKS = {
     city: "Mountlake Terrace",
     url: "https://www.olympicviewarena.com/",
     color: "#44BBAA",
-    system: "fareharbor",
-    config: { company: "olympicviewarena", itemPk: 313860 },
+    system: "rectimes",
+    config: { venueId: 1145 },
   },
   lynnwood: {
     name: "Lynnwood Ice Center",
     city: "Lynnwood",
     url: "https://www.lynnwoodicecenter.com/",
     color: "#1565A8",
-    system: "fareharbor",
-    // Slug confirmed: lynnwoodicecenter
-    // Item 245296 = "Stick and Puck LIC Drop In" ✅ (discovered via FareHarbor items API)
-    config: { company: "lynnwoodicecenter", itemPk: 245296 },
-  },
-  lynnwoodFemale: {
-    name: "Lynnwood Ice Center",
-    city: "Lynnwood",
-    legendKey: "lynnwood",
-    url: "https://www.lynnwoodicecenter.com/",
-    color: "#1565A8",
-    system: "fareharbor",
-    config: { company: "lynnwoodicecenter", itemPk: 737473, subtitle: "Female only" },
+    system: "rectimes",
+    config: { venueId: 1146 },
   },
   everett: {
     name: "Everett Community Ice Rink",
@@ -1419,6 +1408,19 @@ async function fetchKentValley() {
     .sort((a, b) => a.start - b.start);
 }
 
+// RecTimes (Lynnwood Ice Center, Olympic View Arena) ──────────────────────────
+async function fetchRecTimes({ venueId }) {
+  const r = await fetch(`/api/rectimes?venueId=${venueId}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'RecTimes fetch failed');
+  const now = new Date();
+  return data.sessions
+    .map(s => ({ ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null }))
+    .filter(s => (s.end ?? s.start) > now)
+    .sort((a, b) => a.start - b.start);
+}
+
 // Everett Community Ice Rink (Angel of the Winds) ──────────────────────────────
 async function fetchEverett() {
   const today = new Date().toISOString().slice(0, 10);
@@ -1458,9 +1460,8 @@ async function fetchAll() {
     snokingRenton:    fetchDaySmart(RINKS.snokingRenton.config),
     snokingKirkland:  fetchDaySmart(RINKS.snokingKirkland.config),
     snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
-    olympicview:      fetchFareHarbor(RINKS.olympicview.config),
-    lynnwood:         fetchFareHarbor(RINKS.lynnwood.config),
-    lynnwoodFemale:   fetchFareHarbor(RINKS.lynnwoodFemale.config),
+    olympicview:      fetchRecTimes(RINKS.olympicview.config),
+    lynnwood:         fetchRecTimes(RINKS.lynnwood.config),
     everett:          fetchEverett(),
     kentValley:       fetchKentValley(),
   };
@@ -2340,27 +2341,6 @@ if (GROUPS_ENABLED) {
   maybeShowIntroModal();
 }
 
-// ─── Dev helpers (run from browser console) ──────────────────────────────────
-window.discoverLynnwoodPKs = async () => {
-  console.log("Fetching Lynnwood FareHarbor items...");
-  try {
-    const r = await fetch("https://fareharbor.com/api/v1/companies/lynnwoodicecenter/items/");
-    const d = await r.json();
-    const items = d.items ?? [];
-    console.table(items.map(i => ({ pk: i.pk, name: i.name, description: i.description?.substring(0, 60) })));
-    const snp = items.filter(i => /stick|puck|hockey/i.test(i.name + " " + i.description));
-    console.log("\n🏒 Likely Stick & Puck items:");
-    snp.forEach(i => console.log(`  PK: ${i.pk}  →  ${i.name}`));
-    return snp;
-  } catch(e) {
-    console.error("Failed:", e.message);
-  }
-};
-
-window.setLynnwoodPK = (pk) => {
-  RINKS.lynnwood.config.itemPk = pk;
-  console.log(`✅ Lynnwood item PK set to ${pk}. Call loadData() to refresh.`);
-};
 </script>
 
 </body>
