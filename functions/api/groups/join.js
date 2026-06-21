@@ -15,6 +15,9 @@ export async function onRequestPost(context) {
   const displayName = body?.displayName?.trim();
   if (!groupName || !password || !displayName)
     return json(400, { error: 'groupName, password, and displayName are required' });
+  if (groupName.length > 30)   return json(400, { error: 'Group name must be 30 characters or fewer' });
+  if (password.length > 50)    return json(400, { error: 'Password must be 50 characters or fewer' });
+  if (displayName.length > 30) return json(400, { error: 'Display name must be 30 characters or fewer' });
 
   const slug = groupName.toLowerCase() + '|' + password.toLowerCase();
   const raw  = await GROUPS.get(`group:${slug}`);

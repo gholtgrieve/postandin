@@ -981,6 +981,37 @@ footer a:hover { color: var(--yellow); }
   flex-shrink: 0;
 }
 .modal-leave-btn:hover { background: var(--red); color: var(--black); }
+.modal-name-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modal-name-value {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal-name-edit-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--yellow);
+  background: none;
+  border: 1px solid var(--yellow);
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.modal-name-edit-btn:hover { background: var(--yellow); color: var(--black); }
 .modal-field { margin-bottom: 12px; }
 .modal-label {
   display: block;
@@ -1126,12 +1157,19 @@ footer a:hover { color: var(--yellow); }
       <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <!-- Name (shown only when not yet set) -->
-      <div id="modalNameSection" class="modal-section" style="display:none">
+      <!-- Your name — always shown -->
+      <div id="modalNameSection" class="modal-section">
         <div class="modal-section-title">YOUR NAME</div>
-        <div class="modal-field">
-          <label class="modal-label" for="modalDisplayName">How you appear to your group</label>
-          <input class="modal-input" id="modalDisplayName" type="text" placeholder="e.g. Joey Daccord" maxlength="32" autocomplete="off">
+        <div id="modalNameDisplay" class="modal-name-display">
+          <span id="modalNameValue" class="modal-name-value"></span>
+          <button id="modalNameEditBtn" class="modal-name-edit-btn">Edit</button>
+        </div>
+        <div id="modalNameEditRow" style="display:none">
+          <input class="modal-input" id="modalDisplayName" type="text" placeholder="e.g. Joey Daccord" maxlength="30" autocomplete="off">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="modal-btn primary" id="modalNameSaveBtn">Save</button>
+            <button class="modal-btn" id="modalNameCancelBtn" style="display:none">Cancel</button>
+          </div>
         </div>
         <div id="modalNameError" class="modal-error"></div>
       </div>
@@ -1147,11 +1185,11 @@ footer a:hover { color: var(--yellow); }
         <div class="modal-section-title">JOIN A GROUP</div>
         <div class="modal-field">
           <label class="modal-label" for="modalJoinGroupName">Group name</label>
-          <input class="modal-input" id="modalJoinGroupName" type="text" placeholder="e.g. The Deep" maxlength="48" autocomplete="off">
+          <input class="modal-input" id="modalJoinGroupName" type="text" placeholder="e.g. The Deep" maxlength="30" autocomplete="off">
         </div>
         <div class="modal-field">
           <label class="modal-label" for="modalJoinPassword">Password</label>
-          <input class="modal-input" id="modalJoinPassword" type="text" placeholder="" maxlength="64" autocomplete="off">
+          <input class="modal-input" id="modalJoinPassword" type="text" placeholder="" maxlength="50" autocomplete="off">
         </div>
         <button class="modal-btn primary" id="modalJoinBtn">Join</button>
         <div id="modalJoinError" class="modal-error"></div>
@@ -1161,11 +1199,11 @@ footer a:hover { color: var(--yellow); }
         <div class="modal-section-title">CREATE A GROUP</div>
         <div class="modal-field">
           <label class="modal-label" for="modalGroupName">Group name</label>
-          <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. The Deep" maxlength="48" autocomplete="off">
+          <input class="modal-input" id="modalGroupName" type="text" placeholder="e.g. The Deep" maxlength="30" autocomplete="off">
         </div>
         <div class="modal-field">
           <label class="modal-label" for="modalGroupPassword">Password</label>
-          <input class="modal-input" id="modalGroupPassword" type="text" placeholder="e.g. Hat Trick" maxlength="64" autocomplete="off">
+          <input class="modal-input" id="modalGroupPassword" type="text" placeholder="e.g. Hat Trick" maxlength="50" autocomplete="off">
         </div>
         <button class="modal-btn primary" id="modalCreateBtn">Create</button>
         <div id="modalCreateError" class="modal-error"></div>
@@ -1787,6 +1825,7 @@ loadData();
 const GROUPS_LS_KEY       = 'postandin_groups';
 const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
 const LEGACY_LS_KEY       = 'postandin_group';
+const GROUP_COLORS        = ['#B94040', '#3D7A6F', '#7B5EA7', '#4A6FA5', '#C47A30', '#6B7A3A'];
 
 // One-time wipe of all groups/identity data (local + server-side KV).
 // Runs once per device, gated by the sentinel key.
@@ -1841,6 +1880,25 @@ function setDisplayName(name) {
   else localStorage.removeItem(DISPLAY_NAME_LS_KEY);
 }
 
+function ensureGroupColors() {
+  try {
+    const groups = JSON.parse(localStorage.getItem(GROUPS_LS_KEY) || '[]');
+    const currentName = getDisplayName();
+    let changed = false;
+    const usedColors = groups.filter(g => g.color).map(g => g.color);
+    groups.forEach((g, idx) => {
+      if (!g.color) {
+        const available = GROUP_COLORS.filter(c => !usedColors.includes(c));
+        g.color = available.length ? available[0] : GROUP_COLORS[idx % GROUP_COLORS.length];
+        usedColors.push(g.color);
+        changed = true;
+      }
+      if (!g.displayName && currentName) { g.displayName = currentName; changed = true; }
+    });
+    if (changed) localStorage.setItem(GROUPS_LS_KEY, JSON.stringify(groups));
+  } catch {}
+}
+
 function mkSessionKey(s) {
   const d = s.start;
   const date = d.toLocaleDateString('en-CA');
@@ -1891,7 +1949,7 @@ function updateIndicatorEl(btn, sk) {
     return;
   }
   btn.classList.add('has-going');
-  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-count">${activeNames.length}</span><span class="going-tooltip">${activeNames.map(escapeHtml).join(', ')}</span>`;
+  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-count">${activeNames.length}</span>`;
 }
 
 async function updateGoingIndicators() {
@@ -1983,7 +2041,7 @@ function _refreshSheetContent(sk) {
       const slug = getGroupSlug(g);
       const names = byGroup[slug] ?? [];
       return `<div class="sheet-group-cluster">
-        <div class="sheet-group-label">Going from ${escapeHtml(g.groupName)}</div>
+        <div class="sheet-group-label" style="color:${g.color || 'var(--white-3)'}">Going from ${escapeHtml(g.groupName)}</div>
         ${names.length
           ? names.map(n => `<div class="sheet-going-name" style="padding-left:14px">${escapeHtml(n)}</div>`).join('')
           : '<div class="sheet-going-name" style="color:var(--white-3);padding-left:14px">Nobody yet</div>'
@@ -2013,7 +2071,8 @@ function renderGroupsRow() {
     html += groups.map((g, i) => {
       const slug = getGroupSlug(g);
       const isActive = !inactiveGroupSlugs.has(slug);
-      return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}">${escapeHtml(g.groupName)}</button>`;
+      const color = g.color || 'var(--yellow)';
+      return `<button class="group-filter-chip${isActive ? '' : ' inactive'}" data-idx="${i}" style="border-left:3px solid ${color}">${escapeHtml(g.groupName)}</button>`;
     }).join('');
   }
   html += `<span class="spacer"></span>`;
@@ -2056,12 +2115,13 @@ function renderModalGroupsList() {
     el.innerHTML = '<div class="modal-groups-empty">No groups yet. Join or create one below.</div>';
     return;
   }
-  el.innerHTML = groups.map((g, i) =>
-    `<div class="modal-group-row">
-      <span class="modal-group-name">${escapeHtml(g.groupName)}</span>
+  el.innerHTML = groups.map((g, i) => {
+    const color = g.color || 'var(--yellow)';
+    return `<div class="modal-group-row">
+      <span class="modal-group-name" style="color:${color}">${escapeHtml(g.groupName)}</span>
       <button class="modal-leave-btn" data-idx="${i}">Leave</button>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 
   el.querySelectorAll('.modal-leave-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -2140,6 +2200,58 @@ function closeBottomSheet() {
   sheetSession = null;
 }
 
+// Sync the name section between display mode and edit mode
+function _refreshModalNameSection() {
+  const name      = getDisplayName();
+  const displayEl = document.getElementById('modalNameDisplay');
+  const editRow   = document.getElementById('modalNameEditRow');
+  const nameVal   = document.getElementById('modalNameValue');
+  const cancelBtn = document.getElementById('modalNameCancelBtn');
+  if (!displayEl || !editRow) return;
+  if (name) {
+    if (nameVal) nameVal.textContent = name;
+    displayEl.style.display = '';
+    editRow.style.display   = 'none';
+  } else {
+    displayEl.style.display = 'none';
+    editRow.style.display   = '';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+}
+
+// Rename: update localStorage + group entries + backfill RSVPs
+async function updateDisplayNameAndBackfill(newName) {
+  const oldName = getDisplayName();
+  setDisplayName(newName);
+  setGroups(getGroups().map(g => ({ ...g, displayName: newName })));
+  if (!oldName) return;
+  const myGroups = getGroups();
+  await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
+    const wasGoing = Object.values(byGroup).some(names =>
+      names.some(n => n.toLowerCase() === oldName.toLowerCase())
+    );
+    if (!wasGoing) return;
+    await Promise.all(myGroups.map(async g => {
+      const slug = getGroupSlug(g);
+      try {
+        await fetch('/api/groups/rsvp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName: oldName, going: false }),
+        });
+        const r = await fetch('/api/groups/rsvp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName: newName, going: true }),
+        });
+        if (r.ok) rsvpCache[sk][slug] = (await r.json()).going ?? [];
+      } catch {}
+    }));
+  }));
+  document.querySelectorAll('.going-btn').forEach(btn => updateIndicatorEl(btn, btn.dataset.sessionKey));
+  if (sheetSession) _refreshSheetContent(sheetSession.sk);
+}
+
 // Manage Groups modal
 function openGroupModal() {
   ['modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
@@ -2148,17 +2260,9 @@ function openGroupModal() {
   ['modalCreateError', 'modalJoinError', 'modalNameError'].forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '';
   });
-
-  // Show name section only if display name not yet set
-  const nameSection = document.getElementById('modalNameSection');
-  const hasName = !!getDisplayName();
-  if (nameSection) {
-    nameSection.style.display = hasName ? 'none' : '';
-    if (!hasName) {
-      const nameInput = document.getElementById('modalDisplayName');
-      if (nameInput) nameInput.value = '';
-    }
-  }
+  const nameInput = document.getElementById('modalDisplayName');
+  if (nameInput) nameInput.value = '';
+  _refreshModalNameSection();
 
   renderModalGroupsList();
 
@@ -2208,6 +2312,7 @@ function maybeShowIntroModal() {
 
 if (GROUPS_ENABLED) {
   migrateStorage();
+  ensureGroupColors();
 
   // Event delegation: going-btn clicks inside session rows
   document.getElementById('content').addEventListener('click', async e => {
@@ -2248,17 +2353,47 @@ if (GROUPS_ENABLED) {
   });
   document.getElementById('modalCloseBtn').addEventListener('click', closeGroupModal);
 
+  // Name section — edit / save / cancel
+  document.getElementById('modalNameEditBtn')?.addEventListener('click', () => {
+    const nameInput = document.getElementById('modalDisplayName');
+    if (nameInput) nameInput.value = getDisplayName();
+    document.getElementById('modalNameDisplay').style.display  = 'none';
+    document.getElementById('modalNameEditRow').style.display  = '';
+    document.getElementById('modalNameCancelBtn').style.display = '';
+    document.getElementById('modalNameError').textContent = '';
+    nameInput?.focus();
+  });
+
+  document.getElementById('modalNameSaveBtn')?.addEventListener('click', async () => {
+    const nameInput = document.getElementById('modalDisplayName');
+    const newName   = nameInput?.value.trim() ?? '';
+    if (!newName)          { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
+    if (newName.length > 30) { document.getElementById('modalNameError').textContent = 'Name must be 30 characters or fewer.'; return; }
+    document.getElementById('modalNameError').textContent = '';
+    await updateDisplayNameAndBackfill(newName);
+    _refreshModalNameSection();
+  });
+
+  document.getElementById('modalNameCancelBtn')?.addEventListener('click', () => {
+    document.getElementById('modalNameError').textContent = '';
+    _refreshModalNameSection();
+  });
+
   document.getElementById('modalCreateBtn').addEventListener('click', async () => {
-    const nameSectionVisible = document.getElementById('modalNameSection')?.style.display !== 'none';
-    const displayName = nameSectionVisible
+    const editRow   = document.getElementById('modalNameEditRow');
+    const inEditMode = editRow && editRow.style.display !== 'none';
+    const displayName = inEditMode
       ? (document.getElementById('modalDisplayName')?.value.trim() || getDisplayName())
       : getDisplayName();
     const groupName = document.getElementById('modalGroupName').value.trim();
     const password  = document.getElementById('modalGroupPassword').value.trim();
 
-    if (!displayName) { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
-    if (!groupName) { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
-    if (!password)  { document.getElementById('modalCreateError').textContent = 'Enter a password.'; return; }
+    if (!displayName)          { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
+    if (displayName.length > 30) { document.getElementById('modalNameError').textContent = 'Name must be 30 characters or fewer.'; return; }
+    if (!groupName)            { document.getElementById('modalCreateError').textContent = 'Enter a group name.'; return; }
+    if (groupName.length > 30) { document.getElementById('modalCreateError').textContent = 'Group name must be 30 characters or fewer.'; return; }
+    if (!password)             { document.getElementById('modalCreateError').textContent = 'Enter a password.'; return; }
+    if (password.length > 50)  { document.getElementById('modalCreateError').textContent = 'Password must be 50 characters or fewer.'; return; }
 
     const slug = getGroupSlug({ groupName, password });
     if (getGroups().some(g => getGroupSlug(g) === slug)) {
@@ -2275,12 +2410,15 @@ if (GROUPS_ENABLED) {
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalCreateError').textContent = d.error ?? 'Failed.'; return; }
       setDisplayName(displayName);
-      const newGroup = { groupName, password, memberId: d.memberId };
+      const existingColors = getGroups().map(g => g.color).filter(Boolean);
+      const available = GROUP_COLORS.filter(c => !existingColors.includes(c));
+      const color = available.length ? available[0] : GROUP_COLORS[getGroups().length % GROUP_COLORS.length];
+      const newGroup = { groupName, password, memberId: d.memberId, displayName, color };
       setGroups([...getGroups(), newGroup]);
       await backfillRsvpForGroup(newGroup);
-      document.getElementById('modalGroupName').value = '';
+      document.getElementById('modalGroupName').value    = '';
       document.getElementById('modalGroupPassword').value = '';
-      if (nameSectionVisible) document.getElementById('modalNameSection').style.display = 'none';
+      _refreshModalNameSection();
       renderModalGroupsList();
       renderGroupsRow();
       if (allData) renderSessions(allData);
@@ -2288,16 +2426,20 @@ if (GROUPS_ENABLED) {
   });
 
   document.getElementById('modalJoinBtn').addEventListener('click', async () => {
-    const nameSectionVisible = document.getElementById('modalNameSection')?.style.display !== 'none';
-    const displayName = nameSectionVisible
+    const editRow    = document.getElementById('modalNameEditRow');
+    const inEditMode = editRow && editRow.style.display !== 'none';
+    const displayName = inEditMode
       ? (document.getElementById('modalDisplayName')?.value.trim() || getDisplayName())
       : getDisplayName();
     const groupName = document.getElementById('modalJoinGroupName').value.trim();
     const password  = document.getElementById('modalJoinPassword').value.trim();
 
-    if (!displayName) { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
-    if (!groupName) { document.getElementById('modalJoinError').textContent = 'Enter the group name.'; return; }
-    if (!password)  { document.getElementById('modalJoinError').textContent = 'Enter the password.'; return; }
+    if (!displayName)          { document.getElementById('modalNameError').textContent = 'Enter your name.'; return; }
+    if (displayName.length > 30) { document.getElementById('modalNameError').textContent = 'Name must be 30 characters or fewer.'; return; }
+    if (!groupName)            { document.getElementById('modalJoinError').textContent = 'Enter the group name.'; return; }
+    if (groupName.length > 30) { document.getElementById('modalJoinError').textContent = 'Group name must be 30 characters or fewer.'; return; }
+    if (!password)             { document.getElementById('modalJoinError').textContent = 'Enter the password.'; return; }
+    if (password.length > 50)  { document.getElementById('modalJoinError').textContent = 'Password must be 50 characters or fewer.'; return; }
 
     const slug = getGroupSlug({ groupName, password });
     if (getGroups().some(g => getGroupSlug(g) === slug)) {
@@ -2314,12 +2456,15 @@ if (GROUPS_ENABLED) {
       const d = await r.json();
       if (!r.ok) { document.getElementById('modalJoinError').textContent = d.error ?? 'Failed.'; return; }
       setDisplayName(displayName);
-      const newGroup = { groupName, password, memberId: d.memberId };
+      const existingColors = getGroups().map(g => g.color).filter(Boolean);
+      const available = GROUP_COLORS.filter(c => !existingColors.includes(c));
+      const color = available.length ? available[0] : GROUP_COLORS[getGroups().length % GROUP_COLORS.length];
+      const newGroup = { groupName, password, memberId: d.memberId, displayName, color };
       setGroups([...getGroups(), newGroup]);
       await backfillRsvpForGroup(newGroup);
       document.getElementById('modalJoinGroupName').value = '';
-      document.getElementById('modalJoinPassword').value = '';
-      if (nameSectionVisible) document.getElementById('modalNameSection').style.display = 'none';
+      document.getElementById('modalJoinPassword').value  = '';
+      _refreshModalNameSection();
       renderModalGroupsList();
       renderGroupsRow();
       if (allData) renderSessions(allData);
