@@ -158,7 +158,7 @@ function renderHtml(coach) {
   --panel:    #EFEBE2;
   --card:     #DED9CD;
   --rule:     #B8B2A4;
-  --ink:      #141210;
+  --ink:      #2E2A26;
   --ink2:     #3D3A34;
   --ink3:     #6E6A61;
   --mustard:  #9A7B00;
@@ -180,7 +180,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .breadcrumb-bar { background: var(--panel); border-bottom: 1px solid var(--rule); padding: 10px clamp(1rem,4vw,2rem); }
 .breadcrumb-inner { max-width: 1100px; margin: 0 auto; }
 .breadcrumb {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -212,12 +212,12 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .profile-photo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .profile-initials { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 0.04em; color: var(--mustard); }
 
-.profile-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mustard); margin-bottom: 6px; }
+.profile-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mustard); margin-bottom: 6px; }
 .profile-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px,6vw,48px); letter-spacing: 0.04em; line-height: 1; color: var(--ink); margin-bottom: 6px; }
-.profile-cert { font-size: 10px; letter-spacing: 0.1em; color: var(--ink3); text-transform: uppercase; margin-bottom: 10px; }
+.profile-cert { font-size: 13px; letter-spacing: 0.1em; color: var(--ink3); text-transform: uppercase; margin-bottom: 10px; }
 .profile-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 
-.tag { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--rule); color: var(--ink3); }
+.tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--rule); color: var(--ink3); }
 .tag-specialty { border-color: var(--mustard); color: var(--mustard); }
 
 /* ── Two-column layout ── */
@@ -236,7 +236,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 }
 
 .bio-text p {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.02em;
   line-height: 1.9;
   color: var(--ink2);
@@ -253,7 +253,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
   gap: 16px;
   padding: 10px 0;
   border-bottom: 1px solid var(--rule);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.03em;
 }
 .team-row:last-child { border-bottom: none; }
@@ -275,7 +275,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .sidebar-block:first-child { border-top: 1px solid var(--rule); }
 
 .sidebar-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -286,27 +286,27 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 /* Private lessons block — dark panel */
 .lessons-block { background: var(--ink); border-color: var(--ink); }
 .lessons-heading { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; color: var(--mustard); margin-bottom: 6px; }
-.lessons-detail { font-size: 11px; letter-spacing: 0.06em; color: var(--ink3); line-height: 1.6; }
+.lessons-detail { font-size: 13px; letter-spacing: 0.06em; color: var(--ink3); line-height: 1.6; }
 
 /* Contact */
 .contact-list { display: flex; flex-direction: column; gap: 8px; }
 .contact-link { display: flex; flex-direction: column; gap: 1px; text-decoration: none; }
-.contact-method { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3); }
-.contact-value { font-size: 12px; letter-spacing: 0.04em; color: var(--mustard); transition: color 0.1s; }
+.contact-method { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3); }
+.contact-value { font-size: 14px; letter-spacing: 0.04em; color: var(--mustard); transition: color 0.1s; }
 .contact-link:hover .contact-value { color: var(--mustard2); }
 
 /* Rinks */
 .rinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
-.rink-pill { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--rule); color: var(--ink3); }
+.rink-pill { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--rule); color: var(--ink3); }
 
 /* Elite Prospects */
-.ep-link { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--mustard); text-decoration: none; transition: color 0.1s; }
+.ep-link { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--mustard); text-decoration: none; transition: color 0.1s; }
 .ep-link:hover { color: var(--mustard2); }
 
 /* ── Back link / footer area ── */
 .back-link-bar { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem,4vw,2rem) clamp(2rem,3vw,3rem); }
 .back-link {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
