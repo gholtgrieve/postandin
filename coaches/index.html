@@ -293,6 +293,44 @@ main { min-height: 60vh; }
   color: var(--ink3);
 }
 
+/* ── Join CTA ── */
+.join-cta {
+  background: var(--card);
+  border-top: 2px solid var(--mustard);
+  padding: 32px clamp(1rem, 4vw, 24px);
+}
+.join-cta-inner { max-width: 1100px; margin: 0 auto; }
+.join-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.join-body {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1.8;
+  color: #888780;
+  max-width: 480px;
+  margin-bottom: 18px;
+}
+.join-btn {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  background: transparent;
+  border: 1px solid var(--mustard);
+  padding: 8px 20px;
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+}
+.join-btn:hover { background: var(--mustard); color: var(--ink); }
+
 /* ── Footer ── */
 footer {
   background: var(--ink);
@@ -391,6 +429,14 @@ footer a:hover { color: var(--mustard); }
     <div id="coachList"></div>
   </div>
 </main>
+
+<div class="join-cta">
+  <div class="join-cta-inner">
+    <div class="join-heading">Are You a Seattle Hockey Coach?</div>
+    <p class="join-body">We're building a directory of coaches who work with Seattle youth hockey players. If you offer private lessons or coach in the area, we'd love to include you.</p>
+    <a href="mailto:gholtgrieve@gmail.com" class="join-btn">Get in Touch</a>
+  </div>
+</div>
 
 <footer>
   postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a>
