@@ -174,7 +174,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.08em; color: var(--paper); display: flex; align-items: center; gap: 10px; }
 .logo a { color: inherit; text-decoration: none; }
 .logo .slash { color: rgba(184,178,164,0.35); font-size: 18px; }
-.logo .section { color: var(--mustard); }
+.logo .section { color: #D4A800; }
 
 /* ── Breadcrumb ── */
 .breadcrumb-bar { background: var(--panel); border-bottom: 1px solid var(--rule); padding: 10px clamp(1rem,4vw,2rem); }
