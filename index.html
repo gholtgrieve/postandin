@@ -3,151 +3,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Post & In — Seattle Ice Hockey</title>
+<title>Post &amp; In — Seattle Hockey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --black:   #0A0A0A;
-  --black-2: #111111;
-  --black-3: #1A1A1A;
-  --white:   #E8E4DC;
-  --white-2: #C8C4BC;
-  --white-3: #989490;
-  --yellow:  #F0D44A;
-  --red:     #CC2200;
-  --red-lt:  #E83318;
+  --paper:    #E8E3D8;
+  --panel:    #EFEBE2;
+  --card:     #DED9CD;
+  --rule:     #B8B2A4;
+  --ink:      #2E2A26;
+  --ink2:     #3D3A34;
+  --ink3:     #6E6A61;
+  --mustard:  #9A7B00;
+  --mustard2: #7C6300;
 }
-html, body { height: 100%; }
+
+html { scroll-behavior: smooth; }
+
 body {
   font-family: 'IBM Plex Mono', monospace;
-  background-color: var(--black);
-  color: var(--white);
+  background: var(--paper);
+  color: var(--ink);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  position: relative;
-  overflow: hidden;
 }
-.hero-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: url('hero.png') center 30% / cover no-repeat;
-  filter: brightness(0.32) contrast(1.1) saturate(1.1);
+
+/* ── Site header ── */
+.site-header {
+  background: var(--ink);
+  border-bottom: 1px solid rgba(184,178,164,0.12);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.hero-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.5) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-.hero-fade {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(to bottom, rgba(10,10,10,0.75) 0%, rgba(10,10,10,0.15) 35%, rgba(10,10,10,0.15) 65%, rgba(10,10,10,0.95) 100%);
-}
-.container {
-  width: 100%;
-  max-width: 440px;
-  position: relative;
-  z-index: 2;
-}
-.top-rule { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
-.top-rule-line { flex: 1; height: 2px; background: var(--yellow); }
-.top-rule-center { width: 8px; height: 8px; background: var(--yellow); transform: rotate(45deg); margin: 0 12px; flex-shrink: 0; }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: clamp(72px, 18vw, 112px); letter-spacing: 0.04em; line-height: 0.88; margin-bottom: 0; }
-.logo-post { color: var(--white); display: block; }
-.logo-amp  { color: var(--yellow); display: block; font-size: 0.65em; line-height: 0.9; }
-.logo-in   { color: var(--white); display: block; }
-.tagline {
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  color: var(--white-2);
-  margin-top: 12px;
-  margin-bottom: 2.5rem;
-  border-left: 2px solid var(--red);
-  padding-left: 12px;
-}
-.nav { display: flex; flex-direction: column; gap: 0; border: 1px solid #2A2A2A; margin-bottom: 2rem; }
-.nav-link {
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  height: 52px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--black-2);
-  border-bottom: 1px solid #2A2A2A;
-  text-decoration: none;
-  color: var(--white);
+}
+.logo {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: 0.08em;
-  transition: background 0.1s;
-  border-left: 3px solid transparent;
+  color: var(--paper);
 }
-.nav-link:last-child { border-bottom: none; }
-.nav-link:hover { background: var(--black-3); border-left-color: var(--yellow); }
-.nav-link-right { display: flex; align-items: center; gap: 10px; }
-.badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
+.logo a { color: inherit; text-decoration: none; }
+
+/* ── Mission / hero block ── */
+.page-banner {
+  background: var(--paper);
+  padding: clamp(2.5rem, 5vw, 4rem) clamp(1rem, 4vw, 2rem);
+}
+.banner-inner { max-width: 1100px; margin: 0 auto; }
+
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(52px, 10vw, 96px);
+  letter-spacing: 0.04em;
+  line-height: 0.92;
+  color: var(--ink);
+  margin-bottom: 28px;
+}
+.mission-body {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink3);
+  max-width: 560px;
+  line-height: 1.9;
+}
+.mission-body p + p { margin-top: 16px; }
+
+/* ── Bridge line ── */
+.bridge {
+  padding: 2.5rem clamp(1rem, 4vw, 2rem);
+}
+.bridge-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.bridge-rule {
+  height: 1px;
+  background: var(--mustard);
+}
+.bridge-text {
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  padding: 3px 8px;
-  border: 1px solid var(--yellow);
-  color: var(--yellow);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  text-align: center;
+  padding: 14px 0;
 }
-.nav-arrow { font-size: 16px; color: var(--yellow); opacity: 0.7; }
-.live-dot {
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: var(--red-lt);
-  margin-right: 4px;
-  vertical-align: middle;
-  animation: blink 1.4s ease-in-out infinite;
+
+/* ── Tool cards ── */
+.tools {
+  padding: 0 clamp(1rem, 4vw, 2rem) 3rem;
+  flex: 1;
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-.bottom-rule { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: #333; display: flex; align-items: center; gap: 12px; }
-.bottom-rule::before, .bottom-rule::after { content: ''; flex: 1; height: 1px; background: #222; }
-.bottom-rule a { color: #444; text-decoration: none; }
-.bottom-rule a:hover { color: var(--yellow); }
+.tools-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  background: var(--rule);
+}
+
+.tool-card {
+  background: var(--card);
+  padding: 28px 24px;
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  border-left: 3px solid transparent;
+  transition: border-color 0.1s, background 0.1s;
+}
+.tool-card:hover {
+  border-left-color: var(--mustard);
+  background: var(--panel);
+}
+
+.card-glyph {
+  width: 14px;
+  height: 14px;
+  background: var(--mustard);
+  transform: rotate(45deg);
+  margin-bottom: 22px;
+  flex-shrink: 0;
+}
+.tool-card:hover .card-glyph { background: var(--mustard2); }
+
+.card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.card-body {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1.8;
+  color: var(--ink3);
+  flex: 1;
+  margin-bottom: 20px;
+}
+.card-cta {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-cta::after { content: '→'; }
+.tool-card:hover .card-cta { color: var(--mustard2); }
+
+/* ── Footer ── */
+footer {
+  background: var(--ink);
+  border-top: 2px solid var(--mustard);
+  color: var(--ink3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  padding: 16px;
+  margin-top: auto;
+}
+footer a { color: var(--rule); text-decoration: none; }
+footer a:hover { color: var(--mustard); }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .tools-inner {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 <body>
-<div class="hero-bg"></div>
-<div class="hero-fade"></div>
-<div class="container">
-  <div class="top-rule">
-    <div class="top-rule-line"></div>
-    <div class="top-rule-center"></div>
-    <div class="top-rule-line"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <a href="/">Post &amp; In</a>
+    </div>
   </div>
-  <div class="logo">
-    <span class="logo-post">Post</span>
-    <span class="logo-amp">&amp;</span>
-    <span class="logo-in">In</span>
-  </div>
-  <p class="tagline">Seattle hockey, all in one place</p>
-  <nav class="nav">
-    <a class="nav-link" href="/stick-and-puck/">
-      <span><span class="live-dot"></span>Stick &amp; Puck</span>
-      <span class="nav-link-right">
-        <span class="badge">Live</span>
-        <span class="nav-arrow">→</span>
-      </span>
-    </a>
-  </nav>
-  <div class="bottom-rule">
-    <a href="https://github.com/gholtgrieve/postandin">postandin.com</a>
+</header>
+
+<div class="page-banner">
+  <div class="banner-inner">
+    <h1 class="page-title">Seattle is a<br>Hockey City!</h1>
+    <div class="mission-body">
+      <p>Since the Kraken arrived, the game here has transformed. The rinks are full. The programs are serious. A generation of Seattle kids are growing up with NHL hockey in their backyard, and it shows in how they play.</p>
+      <p>Post &amp; In is a community project — tools built by hockey parents for players and coaches who love this game.</p>
+    </div>
   </div>
 </div>
+
+<div class="bridge">
+  <div class="bridge-inner">
+    <div class="bridge-rule"></div>
+    <p class="bridge-text">Here's how we can help.</p>
+    <div class="bridge-rule"></div>
+  </div>
+</div>
+
+<div class="tools">
+  <div class="tools-inner">
+    <a class="tool-card" href="/coaches/">
+      <div class="card-glyph"></div>
+      <div class="card-title">Find a Coach</div>
+      <p class="card-body">Connect with experienced coaches across the Seattle area.</p>
+      <span class="card-cta">Browse Coaches</span>
+    </a>
+    <a class="tool-card" href="/stick-and-puck/">
+      <div class="card-glyph"></div>
+      <div class="card-title">Find Ice Time</div>
+      <p class="card-body">Stick &amp; Puck sessions across local rinks.</p>
+      <span class="card-cta">Find Ice Time</span>
+    </a>
+  </div>
+</div>
+
+<footer>
+  postandin.com &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a> &nbsp;·&nbsp; <a href="/coaches/">Coaches</a> &nbsp;·&nbsp; <a href="/pathway/">Pathway</a>
+</footer>
+
 </body>
 </html>
