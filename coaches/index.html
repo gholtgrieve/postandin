@@ -463,11 +463,11 @@ function renderSkeletons() {
   document.getElementById('coachList').innerHTML = rows;
 }
 
-function renderCoaches(coaches) {
+function renderCoaches(coaches, filtersActive) {
   const count = document.getElementById('resultCount');
   const list  = document.getElementById('coachList');
 
-  count.style.display = 'block';
+  count.style.display = filtersActive ? 'block' : 'none';
   count.textContent = coaches.length === 1 ? '1 coach' : `${coaches.length} coaches`;
 
   if (!coaches.length) {
@@ -505,6 +505,8 @@ function applyFilters() {
   const rink      = document.getElementById('filterRink').value;
   const level     = document.getElementById('filterLevel').value;
 
+  const filtersActive = !!(specialty || age || rink || level || privateFilter);
+
   const filtered = allCoaches.filter(c => {
     if (specialty && !(c.specialty || []).includes(specialty)) return false;
     if (age      && !(c.age_groups || []).includes(age))       return false;
@@ -514,7 +516,7 @@ function applyFilters() {
     return true;
   });
 
-  renderCoaches(filtered);
+  renderCoaches(filtered, filtersActive);
 }
 
 async function load() {
