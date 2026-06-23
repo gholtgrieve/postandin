@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Find Your Coach — Post &amp; In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper:    #E8E3D8;
+  --panel:    #EFEBE2;
+  --card:     #DED9CD;
+  --rule:     #B8B2A4;
+  --ink:      #141210;
+  --ink2:     #3D3A34;
+  --ink3:     #6E6A61;
+  --mustard:  #9A7B00;
+  --mustard2: #7C6300;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'IBM Plex Mono', monospace;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── Site header (dark nav) ── */
+.site-header {
+  background: var(--ink);
+  border-bottom: 1px solid rgba(184,178,164,0.12);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo a { color: inherit; text-decoration: none; }
+.logo .slash { color: rgba(184,178,164,0.35); font-size: 18px; }
+.logo .section { color: var(--mustard); }
+
+/* ── Page banner ── */
+.page-banner {
+  background: var(--paper);
+  border-bottom: 2px solid var(--mustard);
+  padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem);
+}
+.banner-inner { max-width: 1100px; margin: 0 auto; }
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  margin-bottom: 14px;
+}
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(52px, 9vw, 80px);
+  letter-spacing: 0.04em;
+  line-height: 0.92;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+.page-subhead {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  max-width: 480px;
+  line-height: 1.8;
+}
+
+/* ── Filter bar ── */
+.filter-bar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 52px;
+  z-index: 90;
+}
+.filter-bar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 48px;
+}
+.filter-bar-inner::-webkit-scrollbar { display: none; }
+
+.filter-select {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--ink2);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--rule);
+  padding: 0 16px;
+  padding-right: 34px;
+  height: 100%;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%236E6A61' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.1s, color 0.1s;
+}
+.filter-select:hover { background-color: var(--card); color: var(--ink); }
+.filter-select:focus { outline: none; background-color: var(--card); }
+.filter-select option { font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: var(--panel); color: var(--ink); }
+
+.filter-toggle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--rule);
+  padding: 0 18px;
+  height: 100%;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.1s;
+}
+.filter-toggle:hover { background: var(--card); color: var(--ink); }
+.filter-toggle.active { background: var(--mustard); color: var(--paper); }
+
+/* ── Main content ── */
+main { min-height: 60vh; }
+.main-inner { max-width: 1100px; margin: 0 auto; }
+
+/* ── Result count ── */
+.result-count {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  padding: 12px clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ── Coach rows ── */
+.coach-list { display: flex; flex-direction: column; }
+
+.coach-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 28px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--rule);
+  border-left: 3px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.1s;
+  background: var(--paper);
+}
+.coach-row:hover { border-left-color: var(--mustard); }
+
+.coach-avatar {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.coach-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.coach-initials {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: var(--mustard);
+}
+
+.coach-info { min-width: 0; }
+
+.coach-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.coach-cert {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  margin-bottom: 7px;
+}
+.coach-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border: 1px solid var(--rule);
+  color: var(--ink3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tag-specialty { border-color: var(--mustard); color: var(--mustard); }
+.coach-teaser {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--ink3);
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.coach-arrow {
+  font-size: 18px;
+  color: var(--rule);
+  text-align: center;
+  transition: color 0.1s;
+  flex-shrink: 0;
+}
+.coach-row:hover .coach-arrow { color: var(--mustard); }
+
+/* ── Skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, var(--panel) 50%, var(--card) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--rule);
+  border-left: 3px solid transparent;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  padding: 80px clamp(1rem, 4vw, 2rem);
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+}
+
+/* ── Footer ── */
+footer {
+  background: var(--ink);
+  border-top: 2px solid var(--mustard);
+  color: var(--ink3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  padding: 16px;
+  margin-top: auto;
+}
+footer a { color: var(--rule); text-decoration: none; }
+footer a:hover { color: var(--mustard); }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .coach-row { grid-template-columns: 56px 1fr 24px; gap: 12px; }
+  .coach-avatar { width: 56px; height: 56px; }
+  .coach-initials { font-size: 20px; }
+  .coach-name { font-size: 18px; }
+  .skeleton-row { grid-template-columns: 56px 1fr; }
+}
+
+@media (max-width: 480px) {
+  .coach-cert { display: none; }
+  .coach-tags { gap: 3px; }
+  .tag { font-size: 8px; padding: 2px 5px; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <a href="/">Post &amp; In</a>
+      <span class="slash">/</span>
+      <span class="section">Coaches</span>
+    </div>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="banner-inner">
+    <div class="eyebrow">Seattle Youth Hockey</div>
+    <h1 class="page-title">Find Your Coach</h1>
+    <p class="page-subhead">Seattle coaches offering private lessons and team coaching. Real development, real relationships.</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-bar-inner">
+    <select id="filterSpecialty" class="filter-select" aria-label="Filter by specialty">
+      <option value="">All Specialties</option>
+      <option>Skating</option>
+      <option>Goalie</option>
+      <option>Shooting</option>
+      <option>Stickhandling</option>
+      <option>Defense</option>
+      <option>Overall Development</option>
+    </select>
+    <select id="filterAge" class="filter-select" aria-label="Filter by age group">
+      <option value="">All Ages</option>
+      <option>4U</option>
+      <option>6U</option>
+      <option>8U</option>
+      <option>10U</option>
+      <option>12U</option>
+      <option>14U</option>
+      <option>16U</option>
+      <option>18U</option>
+    </select>
+    <select id="filterRink" class="filter-select" aria-label="Filter by rink">
+      <option value="">All Rinks</option>
+      <option>Sno-King</option>
+      <option>KCI</option>
+      <option>Lynnwood</option>
+      <option>Olympic View</option>
+      <option>Kent Valley</option>
+    </select>
+    <select id="filterLevel" class="filter-select" aria-label="Filter by level">
+      <option value="">All Levels</option>
+      <option>AAA</option>
+      <option>AA</option>
+      <option>A / Select</option>
+      <option>House</option>
+    </select>
+    <button id="filterPrivate" class="filter-toggle" aria-pressed="false">Private Lessons</button>
+  </div>
+</div>
+
+<main>
+  <div class="main-inner">
+    <div id="resultCount" class="result-count" style="display:none"></div>
+    <div id="coachList"></div>
+  </div>
+</main>
+
+<footer>
+  postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a>
+</footer>
+
+<script>
+let allCoaches = [];
+let privateFilter = false;
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderSkeletons() {
+  const rows = Array.from({length: 5}, () => `
+    <div class="skeleton-row">
+      <div class="skeleton" style="width:72px;height:72px;flex-shrink:0"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="skeleton" style="height:18px;width:160px"></div>
+        <div class="skeleton" style="height:10px;width:220px"></div>
+        <div class="skeleton" style="height:10px;width:180px"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('coachList').innerHTML = rows;
+}
+
+function renderCoaches(coaches) {
+  const count = document.getElementById('resultCount');
+  const list  = document.getElementById('coachList');
+
+  count.style.display = 'block';
+  count.textContent = coaches.length === 1 ? '1 coach' : `${coaches.length} coaches`;
+
+  if (!coaches.length) {
+    list.innerHTML = '<div class="empty-state">No coaches match your filters.</div>';
+    return;
+  }
+
+  list.innerHTML = coaches.map(c => {
+    const avatarHtml = c.headshot_url
+      ? `<img src="${esc(c.headshot_url)}" alt="${esc(c.name)}" loading="lazy">`
+      : `<div class="coach-initials">${esc(c.initials || c.name.slice(0,2).toUpperCase())}</div>`;
+
+    const specialtyTags = (c.specialty || [])
+      .map(s => `<span class="tag tag-specialty">${esc(s)}</span>`).join('');
+    const otherTags = [...(c.age_groups || []), ...(c.levels || [])]
+      .map(t => `<span class="tag">${esc(t)}</span>`).join('');
+
+    return `
+      <a class="coach-row" href="/coaches/${esc(c.slug)}">
+        <div class="coach-avatar">${avatarHtml}</div>
+        <div class="coach-info">
+          <div class="coach-name">${esc(c.name)}</div>
+          ${c.cert ? `<div class="coach-cert">${esc(c.cert)}</div>` : ''}
+          <div class="coach-tags">${specialtyTags}${otherTags}</div>
+          ${c.teaser ? `<div class="coach-teaser">${esc(c.teaser)}</div>` : ''}
+        </div>
+        <div class="coach-arrow">&#x2192;</div>
+      </a>`;
+  }).join('');
+}
+
+function applyFilters() {
+  const specialty = document.getElementById('filterSpecialty').value;
+  const age       = document.getElementById('filterAge').value;
+  const rink      = document.getElementById('filterRink').value;
+  const level     = document.getElementById('filterLevel').value;
+
+  const filtered = allCoaches.filter(c => {
+    if (specialty && !(c.specialty || []).includes(specialty)) return false;
+    if (age      && !(c.age_groups || []).includes(age))       return false;
+    if (rink     && !(c.rinks || []).includes(rink))           return false;
+    if (level    && !(c.levels || []).includes(level))         return false;
+    if (privateFilter && !c.private_lessons)                   return false;
+    return true;
+  });
+
+  renderCoaches(filtered);
+}
+
+async function load() {
+  renderSkeletons();
+  try {
+    const res = await fetch('/api/coaches');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allCoaches = await res.json();
+    applyFilters();
+  } catch (e) {
+    document.getElementById('coachList').innerHTML =
+      `<div class="empty-state">Could not load coaches — please try again.</div>`;
+    document.getElementById('resultCount').style.display = 'none';
+  }
+}
+
+['filterSpecialty','filterAge','filterRink','filterLevel'].forEach(id => {
+  document.getElementById(id).addEventListener('change', applyFilters);
+});
+
+document.getElementById('filterPrivate').addEventListener('click', function() {
+  privateFilter = !privateFilter;
+  this.classList.toggle('active', privateFilter);
+  this.setAttribute('aria-pressed', String(privateFilter));
+  applyFilters();
+});
+
+load();
+</script>
+</body>
+</html>
