@@ -18,6 +18,14 @@ function fmtBio(text) {
   return text.split(/\n\n+/).map(p => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
 }
 
+function parseLinks(text) {
+  return (text || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const idx = line.indexOf(' · ');
+    if (idx === -1) return { label: 'Link', url: line.trim() };
+    return { label: line.slice(0, idx).trim(), url: line.slice(idx + 3).trim() };
+  }).filter(l => l.url);
+}
+
 function tag(label, specialty = false) {
   const cls = specialty ? 'tag tag-specialty' : 'tag';
   return `<span class="${cls}">${esc(label)}</span>`;
@@ -56,7 +64,7 @@ async function fetchCoach(slug, env) {
     contact_preference: f.contact_preference ?? [],
     headshot_url:       f.headshot_url ?? '',
     photo_urls:         f.photo_urls ?? '',
-    elite_prospects_url:f.elite_prospects_url ?? '',
+    links:              f.links ?? '',
     initials:           f.initials ?? '',
   };
 }
@@ -64,6 +72,7 @@ async function fetchCoach(slug, env) {
 function renderHtml(coach) {
   const teams  = parseTeams(coach.teams_coached);
   const photos = parsePhotos(coach.photo_urls);
+  const links  = parseLinks(coach.links);
   const prefs  = new Set(coach.contact_preference);
 
   const avatarLg = coach.headshot_url
@@ -133,11 +142,9 @@ function renderHtml(coach) {
       </div>
     </div>` : '';
 
-  const epHtml = coach.elite_prospects_url ? `
-    <div class="sidebar-block">
-      <a href="${esc(coach.elite_prospects_url)}" target="_blank" rel="noopener" class="ep-link">
-        Elite Prospects &#x2197;
-      </a>
+  const linksHtml = links.length ? `
+    <div class="profile-links">
+      ${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
     </div>` : '';
 
   return `<!DOCTYPE html>
@@ -299,9 +306,10 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .rinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .rink-pill { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--rule); color: var(--ink3); }
 
-/* Elite Prospects */
-.ep-link { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--mustard); text-decoration: none; transition: color 0.1s; }
-.ep-link:hover { color: var(--mustard2); }
+/* External links */
+.profile-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.profile-link { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mustard); border: 1px solid var(--mustard); padding: 3px 10px; text-decoration: none; transition: background 0.1s, color 0.1s; }
+.profile-link:hover { background: var(--mustard); color: var(--paper); }
 
 /* ── Back link / footer area ── */
 .back-link-bar { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem,4vw,2rem) clamp(2rem,3vw,3rem); }
@@ -365,6 +373,7 @@ footer a:hover { color: var(--mustard); }
         <h1 class="profile-name">${esc(coach.name)}</h1>
         ${coach.cert ? `<div class="profile-cert">${esc(coach.cert)}</div>` : ''}
         <div class="profile-tags">${allTags}</div>
+        ${linksHtml}
       </div>
     </div>
   </div>
@@ -385,7 +394,6 @@ footer a:hover { color: var(--mustard); }
     ${lessonsHtml}
     ${contactHtml}
     ${rinksHtml}
-    ${epHtml}
   </aside>
 </div>
 
@@ -456,7 +464,7 @@ function mockCoach() {
     contact_preference: ['Email', 'Text'],
     headshot_url:       '',
     photo_urls:         'https://placehold.co/400x400/DED9CD/6E6A61?text=Photo+1\nhttps://placehold.co/400x400/DED9CD/6E6A61?text=Photo+2\nhttps://placehold.co/400x400/DED9CD/6E6A61?text=Photo+3',
-    elite_prospects_url:'https://www.eliteprospects.com',
+    links:              'Elite Prospects · https://www.eliteprospects.com\nCoaching Website · https://example.com',
     initials:           'MK',
   };
 }
