@@ -285,7 +285,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 
 /* Private lessons block — dark panel */
 .lessons-block { background: var(--ink); border-color: var(--ink); }
-.lessons-heading { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; color: var(--mustard); margin-bottom: 6px; }
+.lessons-heading { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; color: var(--paper); margin-bottom: 6px; }
 .lessons-detail { font-size: 13px; letter-spacing: 0.06em; color: var(--paper); line-height: 1.6; }
 
 /* Contact */
