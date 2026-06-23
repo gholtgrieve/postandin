@@ -112,7 +112,7 @@ body {
   max-width: 1100px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: minmax(0, 480px);
   gap: 2px;
   background: var(--rule);
 }
@@ -185,12 +185,6 @@ footer {
 footer a { color: var(--rule); text-decoration: none; }
 footer a:hover { color: var(--mustard); }
 
-/* ── Responsive ── */
-@media (max-width: 640px) {
-  .tools-inner {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
 </head>
 <body>
@@ -223,12 +217,7 @@ footer a:hover { color: var(--mustard); }
 
 <div class="tools">
   <div class="tools-inner">
-    <a class="tool-card" href="/coaches/">
-      <div class="card-glyph"></div>
-      <div class="card-title">Find a Coach</div>
-      <p class="card-body">Connect with experienced coaches across the Seattle area.</p>
-      <span class="card-cta">Browse Coaches</span>
-    </a>
+    <!-- Find Your Coach card: hidden until ready -->
     <a class="tool-card" href="/stick-and-puck/">
       <div class="card-glyph"></div>
       <div class="card-title">Find Ice Time</div>
