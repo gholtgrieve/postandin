@@ -143,9 +143,12 @@ function renderHtml(coach) {
     </div>` : '';
 
   const linksHtml = links.length ? `
-    <div class="profile-links">
-      ${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
-    </div>` : '';
+    <section class="profile-section">
+      <h2 class="section-heading">Links</h2>
+      <div class="profile-links">
+        ${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
+      </div>
+    </section>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -373,7 +376,6 @@ footer a:hover { color: var(--mustard); }
         <h1 class="profile-name">${esc(coach.name)}</h1>
         ${coach.cert ? `<div class="profile-cert">${esc(coach.cert)}</div>` : ''}
         <div class="profile-tags">${allTags}</div>
-        ${linksHtml}
       </div>
     </div>
   </div>
@@ -387,6 +389,7 @@ footer a:hover { color: var(--mustard); }
       <div class="bio-text">${fmtBio(coach.bio)}</div>
     </section>` : ''}
     ${teamsHtml}
+    ${linksHtml}
     ${photosHtml}
   </main>
 
