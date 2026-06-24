@@ -448,38 +448,8 @@ footer { background: var(--ink); border-top: 2px solid var(--mustard); color: va
 </html>`;
 }
 
-function mockCoach() {
-  return {
-    name:               'Mike Kowalski',
-    slug:               'preview',
-    cert:               'USA Hockey Level 4 Certified',
-    specialty:          ['Skating', 'Overall Development'],
-    age_groups:         ['8U', '10U', '12U', '14U'],
-    levels:             ['AA', 'A / Select'],
-    rinks:              ['Sno-King', 'KCI'],
-    private_lessons:    true,
-    lessons_detail:     'Available weekday mornings and weekend afternoons. 45-minute sessions for individuals, 60-minute sessions for small groups (2–3 players).',
-    bio:                'Mike Kowalski has been coaching youth hockey in the Seattle area for over 15 years. A former collegiate player at Western Washington University, Mike brings a passion for player development and a deep knowledge of skating mechanics to every session.\n\nHe specializes in working with younger players building foundational skills, with a particular emphasis on edge work and skating efficiency. His players have gone on to compete at AAA and prep school levels across the Pacific Northwest.\n\nMike believes that hockey is about more than just skills — it\'s about building confidence, discipline, and love for the game.',
-    teams_coached:      'Seattle Jr. Thunderbirds · Head Coach · 2021–Present\nSno-King Ice AA Squirts · Head Coach · 2018–2021\nKCI Peewee Select · Assistant Coach · 2015–2018',
-    contact_email:      'mike.kowalski@example.com',
-    contact_phone:      '206-555-0142',
-    contact_text:       '206-555-0142',
-    contact_preference: ['Email', 'Text'],
-    headshot_url:       '',
-    photo_urls:         'https://placehold.co/400x400/DED9CD/6E6A61?text=Photo+1\nhttps://placehold.co/400x400/DED9CD/6E6A61?text=Photo+2\nhttps://placehold.co/400x400/DED9CD/6E6A61?text=Photo+3',
-    links:              'Elite Prospects · https://www.eliteprospects.com\nCoaching Website · https://example.com',
-    initials:           'MK',
-  };
-}
-
 export async function onRequest(context) {
   const slug = context.params.slug;
-
-  if (slug === 'preview') {
-    return new Response(renderHtml(mockCoach()), {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
-  }
 
   let coach;
   try {
