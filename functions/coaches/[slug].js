@@ -101,7 +101,7 @@ function renderHtml(coach) {
     <section class="profile-section">
       <h2 class="section-heading">Photos</h2>
       <div class="photos-row">
-        ${photos.map(url => `<img src="${esc(url)}" alt="" class="photo-thumb" loading="lazy">`).join('')}
+        ${photos.map(url => `<img src="${esc(url)}" data-full="${esc(url)}" alt="" class="photo-thumb" loading="lazy">`).join('')}
       </div>
     </section>` : '';
 
@@ -272,7 +272,12 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 
 /* ── Photos ── */
 .photos-row { display: flex; gap: 8px; }
-.photo-thumb { width: 80px; height: 80px; object-fit: cover; display: block; }
+.photo-thumb { width: 80px; height: 80px; object-fit: cover; display: block; cursor: pointer; }
+
+/* ── Lightbox ── */
+#lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 999; align-items: center; justify-content: center; cursor: pointer; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: min(90vw, 960px); max-height: 90vh; object-fit: contain; display: block; }
 
 /* ── Sidebar ── */
 .profile-sidebar { display: flex; flex-direction: column; gap: 0; }
@@ -407,6 +412,22 @@ footer a:hover { color: var(--mustard); }
 <footer>
   postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a>
 </footer>
+
+<div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
+<script>
+(function() {
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  document.querySelectorAll('.photo-thumb').forEach(function(img) {
+    img.addEventListener('click', function() {
+      lbImg.src = img.dataset.full || img.src;
+      lb.classList.add('open');
+    });
+  });
+  lb.addEventListener('click', function() { lb.classList.remove('open'); lbImg.src = ''; });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { lb.classList.remove('open'); lbImg.src = ''; } });
+})();
+</script>
 
 </body>
 </html>`;
