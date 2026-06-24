@@ -56,21 +56,21 @@ async function fetchLiveCoaches(apiKey, baseId) {
 }
 
 export async function onRequest(context) {
-  const { env } = context;
-  const apiKey  = env.AIRTABLE_API_KEY;
-  const baseId  = env.AIRTABLE_BASE_ID;
-
-  if (!apiKey || !baseId) {
-    return new Response(JSON.stringify({ error: 'Missing Airtable credentials' }), {
-      status: 500, headers: HEADERS,
-    });
-  }
-
   try {
+    const { env } = context;
+    const apiKey  = env.AIRTABLE_API_KEY;
+    const baseId  = env.AIRTABLE_BASE_ID;
+
+    if (!apiKey || !baseId) {
+      return new Response(JSON.stringify({ error: 'Missing Airtable credentials' }), {
+        status: 500, headers: HEADERS,
+      });
+    }
+
     const coaches = await fetchLiveCoaches(apiKey, baseId);
     return new Response(JSON.stringify(coaches), { headers: HEADERS });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), {
       status: 502, headers: HEADERS,
     });
   }
