@@ -1118,6 +1118,16 @@ footer a:hover { color: var(--yellow); }
   min-height: 16px;
 }
 
+.modal-notice {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+  color: var(--white-3);
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--black-4);
+  flex-shrink: 0;
+}
+
 /* ── Responsive ── */
 
 /* Right-edge fade scroll affordance on chip rows */
@@ -1428,6 +1438,7 @@ footer a:hover { color: var(--yellow); }
         <div id="modalCreateError" class="modal-error"></div>
       </div>
     </div>
+    <div class="modal-notice">ⓘ Groups are saved on this browser only. Private Browsing mode will erase them when you close the browser.</div>
   </div>
 </div>
 
@@ -2046,6 +2057,21 @@ const DISPLAY_NAME_LS_KEY = 'postandin_displayName';
 const LEGACY_LS_KEY       = 'postandin_group';
 const GROUP_COLORS        = ['#B94040', '#3D7A6F', '#7B5EA7', '#4A6FA5', '#C47A30', '#6B7A3A'];
 
+// Detect if localStorage is fully blocked (e.g. "Block All Cookies" in Safari settings).
+// Note: Private Browsing mode still allows localStorage within the session — it's just
+// wiped when the browser closes. That case is handled via the modal-notice warning.
+const _lsAvailable = (() => {
+  try {
+    const k = '__sp_ls_test__';
+    localStorage.setItem(k, '1');
+    const ok = localStorage.getItem(k) === '1';
+    localStorage.removeItem(k);
+    return ok;
+  } catch {
+    return false;
+  }
+})();
+
 // One-time wipe of all groups/identity data (local + server-side KV).
 // Runs once per device, gated by the sentinel key.
 if (!GROUPS_ENABLED && !localStorage.getItem('postandin_data_wiped_v1')) {
@@ -2387,6 +2413,12 @@ function renderGroupsRow() {
   const el = document.getElementById('groupsRow');
   if (!GROUPS_ENABLED) {
     if (el) el.style.display = 'none';
+    return;
+  }
+  if (!_lsAvailable) {
+    el.innerHTML = '<span class="filter-label">Groups</span>' +
+      '<span style="font-size:11px;letter-spacing:0.06em;color:var(--red);padding:0 16px;display:flex;align-items:center">' +
+      'Groups unavailable — enable browser storage (Settings → Safari → uncheck Block All Cookies)</span>';
     return;
   }
   const groups = getGroups();
