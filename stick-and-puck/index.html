@@ -2122,6 +2122,33 @@ function setDisplayName(name) {
   else localStorage.removeItem(DISPLAY_NAME_LS_KEY);
 }
 
+// Push current localStorage state up to the server session (fire-and-forget).
+function syncSession() {
+  fetch('/api/groups/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName: getDisplayName(), groups: getGroups() }),
+  }).catch(() => {});
+}
+
+// On page load, hydrate from the server session so groups survive localStorage loss.
+// Falls back to migrating any existing localStorage data up to the server.
+async function initSession() {
+  try {
+    const r = await fetch('/api/groups/session');
+    if (!r.ok) throw new Error();
+    const { displayName, groups } = await r.json();
+    if (groups?.length) {
+      setGroups(groups);
+      if (displayName) setDisplayName(displayName);
+      ensureGroupColors();
+      return;
+    }
+  } catch {}
+  // No server session yet — push localStorage data up if present (legacy migration).
+  if (getGroups().length) syncSession();
+}
+
 function ensureGroupColors() {
   try {
     const groups = JSON.parse(localStorage.getItem(GROUPS_LS_KEY) || '[]');
@@ -2568,6 +2595,7 @@ async function updateDisplayNameAndBackfill(newName) {
   const oldName = getDisplayName();
   setDisplayName(newName);
   setGroups(getGroups().map(g => ({ ...g, displayName: newName })));
+  syncSession();
   if (!oldName) return;
   const myGroups = getGroups();
   await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
@@ -2759,6 +2787,7 @@ if (GROUPS_ENABLED) {
       const color = available.length ? available[0] : GROUP_COLORS[getGroups().length % GROUP_COLORS.length];
       const newGroup = { groupName, password, memberId: d.memberId, displayName, color };
       setGroups([...getGroups(), newGroup]);
+      syncSession();
       await backfillRsvpForGroup(newGroup);
       document.getElementById('modalGroupName').value    = '';
       document.getElementById('modalGroupPassword').value = '';
@@ -2805,6 +2834,7 @@ if (GROUPS_ENABLED) {
       const color = available.length ? available[0] : GROUP_COLORS[getGroups().length % GROUP_COLORS.length];
       const newGroup = { groupName, password, memberId: d.memberId, displayName, color };
       setGroups([...getGroups(), newGroup]);
+      syncSession();
       await backfillRsvpForGroup(newGroup);
       document.getElementById('modalJoinGroupName').value = '';
       document.getElementById('modalJoinPassword').value  = '';
@@ -2829,9 +2859,17 @@ if (GROUPS_ENABLED) {
     if (e.target === document.getElementById('introModalOverlay')) closeIntroModal();
   });
 
-  // Initial groups row render on page load
+  // Render immediately with whatever is in localStorage, then update from server session.
   renderGroupsRow();
-  maybeShowIntroModal();
+  void (async () => {
+    await initSession();
+    renderGroupsRow();
+    if (allData) {
+      renderSessions(allData);
+      void updateGoingIndicators();
+    }
+    maybeShowIntroModal();
+  })();
 }
 
 </script>

@@ -3,6 +3,9 @@
 // KV key: group:<slug>  where slug = groupName.trim().lower() + "|" + password.trim().lower()
 // The pair (groupName, password) identifies the group — neither needs to be globally unique alone.
 //
+// Also creates/updates a server-side session (KV key: session:<sessionId>) so the user's
+// group membership survives localStorage loss (Private Browsing, cleared site data, etc.).
+//
 // Requires KV namespace binding named GROUPS.
 // Cloudflare Pages does not use wrangler.toml for KV bindings — configure it
 // in the Cloudflare Pages dashboard under:
@@ -31,7 +34,42 @@ export async function onRequestPost(context) {
   const group    = { groupName, members: [{ id: memberId, displayName }] };
 
   await GROUPS.put(`group:${slug}`, JSON.stringify(group));
-  return json(200, { groupId: slug, groupName, memberId });
+
+  // Persist membership server-side via session cookie
+  const sessionId  = parseSid(context.request) || crypto.randomUUID();
+  const rawSession = await GROUPS.get(`session:${sessionId}`);
+  const session    = rawSession ? JSON.parse(rawSession) : { displayName, groups: [] };
+  session.displayName = displayName;
+  if (!session.groups.some(g => toSlug(g) === slug)) {
+    session.groups.push({ groupName, password, memberId, displayName });
+  }
+  await GROUPS.put(`session:${sessionId}`, JSON.stringify(session));
+
+  return jsonWithSession(200, { groupId: slug, groupName, memberId }, sessionId);
+}
+
+function toSlug(g) {
+  return g.groupName.trim().toLowerCase() + '|' + g.password.trim().toLowerCase();
+}
+
+function parseSid(request) {
+  const raw = request.headers.get('Cookie') || '';
+  const match = raw.split(';').map(c => c.trim()).find(c => c.startsWith('sp_sid='));
+  return match ? match.slice(7) : null;
+}
+
+function sidCookie(id) {
+  return `sp_sid=${id}; Path=/; Max-Age=31536000; SameSite=Strict; Secure; HttpOnly`;
+}
+
+function jsonWithSession(status, body, sessionId) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: new Headers({
+      'Content-Type': 'application/json',
+      'Set-Cookie': sidCookie(sessionId),
+    }),
+  });
 }
 
 function json(status, body) {
