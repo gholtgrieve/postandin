@@ -1385,7 +1385,7 @@ footer a:hover { color: var(--yellow); }
       <span>Manage Groups</span>
       <button class="modal-close-x" id="modalCloseBtn" aria-label="Close">&#x2715;</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" id="modalBody">
       <!-- Your name — always shown -->
       <div id="modalNameSection" class="modal-section">
         <div class="modal-section-title">YOUR NAME</div>
@@ -1438,7 +1438,14 @@ footer a:hover { color: var(--yellow); }
         <div id="modalCreateError" class="modal-error"></div>
       </div>
     </div>
-    <div class="modal-notice">ⓘ Groups are saved on this browser only. Private Browsing mode will erase them when you close the browser.</div>
+    <div class="modal-notice" id="modalNotice">ⓘ Groups are saved on this browser only. Private Browsing mode will erase them when you close the browser.</div>
+    <div id="modalConfirm" style="display:none">
+      <div class="intro-modal-body">
+        <div id="modalConfirmHeading" class="intro-modal-heading"></div>
+        <p class="intro-modal-copy">Your group is saved on this device. Note: if you use Private Browsing, you'll need to rejoin when you close the browser.</p>
+        <button class="modal-btn primary" id="modalConfirmGotItBtn">Got it</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2637,8 +2644,22 @@ async function updateDisplayNameAndBackfill(newName) {
   if (sheetSession) _refreshSheetContent(sheetSession.sk);
 }
 
+// Swap modal body for a brief success confirmation, then close on "Got it".
+// Only shown the first time (guarded by postandin_join_confirmed flag).
+function showJoinConfirm(heading) {
+  document.getElementById('modalConfirmHeading').textContent = heading;
+  document.getElementById('modalBody').style.display    = 'none';
+  document.getElementById('modalNotice').style.display  = 'none';
+  document.getElementById('modalConfirm').style.display = '';
+}
+
 // Manage Groups modal
 function openGroupModal() {
+  // Reset any leftover confirmation state from a previous open
+  document.getElementById('modalConfirm').style.display = 'none';
+  document.getElementById('modalBody').style.display    = '';
+  document.getElementById('modalNotice').style.display  = '';
+
   ['modalGroupName', 'modalGroupPassword', 'modalJoinGroupName', 'modalJoinPassword'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -2832,6 +2853,11 @@ if (GROUPS_ENABLED) {
       renderModalGroupsList();
       renderGroupsRow();
       if (allData) renderSessions(allData);
+      if (!localStorage.getItem('postandin_join_confirmed')) {
+        showJoinConfirm('Group created!');
+      } else {
+        closeGroupModal();
+      }
     } catch { document.getElementById('modalCreateError').textContent = 'Network error. Try again.'; }
   });
 
@@ -2879,6 +2905,11 @@ if (GROUPS_ENABLED) {
       renderModalGroupsList();
       renderGroupsRow();
       if (allData) renderSessions(allData);
+      if (!localStorage.getItem('postandin_join_confirmed')) {
+        showJoinConfirm("You're in!");
+      } else {
+        closeGroupModal();
+      }
     } catch { document.getElementById('modalJoinError').textContent = 'Network error. Try again.'; }
   });
 
@@ -2894,6 +2925,14 @@ if (GROUPS_ENABLED) {
   document.getElementById('introLaterBtn').addEventListener('click', closeIntroModal);
   document.getElementById('introModalOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('introModalOverlay')) closeIntroModal();
+  });
+
+  document.getElementById('modalConfirmGotItBtn').addEventListener('click', () => {
+    localStorage.setItem('postandin_join_confirmed', '1');
+    document.getElementById('modalConfirm').style.display = 'none';
+    document.getElementById('modalBody').style.display    = '';
+    document.getElementById('modalNotice').style.display  = '';
+    closeGroupModal();
   });
 
   document.getElementById('sorryDismissBtn').addEventListener('click', closeSorryModal);
