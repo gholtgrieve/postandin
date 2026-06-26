@@ -1442,6 +1442,19 @@ footer a:hover { color: var(--yellow); }
   </div>
 </div>
 
+<!-- One-time apology modal (server-side session migration) -->
+<div id="sorryModalOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="group-modal" role="dialog" aria-modal="true" aria-label="A Quick Note" style="max-width:380px">
+    <div class="intro-modal-body">
+      <div class="intro-modal-heading">A Quick Note</div>
+      <p class="intro-modal-copy">We made some improvements to how groups are saved — they'll now persist even if you close your browser. Unfortunately your group info may not have survived the update. You may need to recreate or rejoin your group using the same name and password as before. Really sorry about that — it won't happen again.</p>
+      <div class="intro-modal-btns">
+        <button class="modal-btn primary" id="sorryDismissBtn">Got it</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Groups intro / help modal -->
 <div id="introModalOverlay" class="modal-overlay" aria-hidden="true">
   <div class="group-modal" role="dialog" aria-modal="true" aria-label="See who's going" style="max-width:380px">
@@ -2682,6 +2695,30 @@ function maybeShowIntroModal() {
   openIntroModal();
 }
 
+function openSorryModal() {
+  const overlay = document.getElementById('sorryModalOverlay');
+  overlay.setAttribute('aria-hidden', 'false');
+  overlay.classList.add('open');
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+}
+
+function closeSorryModal() {
+  localStorage.setItem('postandin_sorry_v1', '1');
+  const overlay = document.getElementById('sorryModalOverlay');
+  overlay.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }, { once: true });
+}
+
+function maybeShowSorryModal() {
+  if (!GROUPS_ENABLED) return;
+  if (!localStorage.getItem('postandin_groups_intro_seen')) return;
+  if (localStorage.getItem('postandin_sorry_v1')) return;
+  setTimeout(openSorryModal, 300);
+}
+
 if (GROUPS_ENABLED) {
   migrateStorage();
   ensureGroupColors();
@@ -2859,6 +2896,11 @@ if (GROUPS_ENABLED) {
     if (e.target === document.getElementById('introModalOverlay')) closeIntroModal();
   });
 
+  document.getElementById('sorryDismissBtn').addEventListener('click', closeSorryModal);
+  document.getElementById('sorryModalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('sorryModalOverlay')) closeSorryModal();
+  });
+
   // Render immediately with whatever is in localStorage, then update from server session.
   renderGroupsRow();
   void (async () => {
@@ -2869,6 +2911,7 @@ if (GROUPS_ENABLED) {
       void updateGoingIndicators();
     }
     maybeShowIntroModal();
+    maybeShowSorryModal();
   })();
 }
 
