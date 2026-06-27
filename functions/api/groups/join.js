@@ -57,13 +57,10 @@ function sidCookie(id) {
 }
 
 function jsonWithSession(status, body, sessionId) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: new Headers({
-      'Content-Type': 'application/json',
-      'Set-Cookie': sidCookie(sessionId),
-    }),
-  });
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  headers.append('Set-Cookie', sidCookie(sessionId));
+  headers.append('Set-Cookie', 'sp_has_session=1; Path=/; Max-Age=31536000; SameSite=Strict; Secure');
+  return new Response(JSON.stringify(body), { status, headers });
 }
 
 function json(status, body) {

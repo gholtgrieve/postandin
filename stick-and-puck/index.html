@@ -2154,6 +2154,7 @@ function syncSession() {
 // On page load, hydrate from the server session so groups survive localStorage loss.
 // Falls back to migrating any existing localStorage data up to the server.
 async function initSession() {
+  if (!/(?:^|;\s*)sp_has_session=1/.test(document.cookie)) return;
   try {
     const r = await fetch('/api/groups/session');
     if (!r.ok) throw new Error();
