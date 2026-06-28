@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /coaches/
+Disallow: /api/
+
+Sitemap: https://postandin.com/sitemap.xml
