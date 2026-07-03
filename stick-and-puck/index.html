@@ -2736,7 +2736,7 @@ function openSorryModal() {
 }
 
 function closeSorryModal() {
-  localStorage.setItem('postandin_sorry_v1', '1');
+  localStorage.setItem('postandin_sorry_v2', '1');
   const overlay = document.getElementById('sorryModalOverlay');
   overlay.classList.remove('visible');
   overlay.addEventListener('transitionend', () => {
@@ -2748,7 +2748,7 @@ function closeSorryModal() {
 function maybeShowSorryModal() {
   if (!GROUPS_ENABLED) return;
   if (!localStorage.getItem('postandin_groups_intro_seen')) return;
-  if (localStorage.getItem('postandin_sorry_v1')) return;
+  if (localStorage.getItem('postandin_sorry_v2')) return;
   setTimeout(openSorryModal, 300);
 }
 
