@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /coaches/
+Disallow: /about/
 Disallow: /api/
 
 Sitemap: https://postandin.com/sitemap.xml
