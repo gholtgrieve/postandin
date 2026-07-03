@@ -35,12 +35,39 @@ async function handlePost(context) {
   catch { return json(400, { error: 'Invalid JSON' }); }
 
   const { displayName, groups } = body ?? {};
+  const validGroups = Array.isArray(groups) ? groups : [];
 
   let sessionId = parseSid(context.request) || crypto.randomUUID();
 
+  // Write session record.
   await GROUPS.put(`session:${sessionId}`, JSON.stringify({
     displayName: displayName || '',
-    groups: Array.isArray(groups) ? groups : [],
+    groups: validGroups,
+  }));
+
+  // Upsert group:{slug} for each group in the payload so that group records
+  // self-heal when members visit after a KV data loss event. Each member who
+  // visits contributes their own entry back; the group fully reconstructs once
+  // all members have visited at least once.
+  await Promise.all(validGroups.map(async g => {
+    const gName = g.groupName?.trim();
+    const gPass = g.password?.trim();
+    const memberId = g.memberId;
+    const mName = g.displayName || displayName || '';
+    if (!gName || !gPass || !memberId) return;
+
+    const slug = gName.toLowerCase() + '|' + gPass.toLowerCase();
+    const raw = await GROUPS.get(`group:${slug}`);
+    const group = raw ? JSON.parse(raw) : { groupName: gName, members: [] };
+
+    const existing = group.members.find(m => m.id === memberId);
+    if (existing) {
+      if (mName) existing.displayName = mName;
+    } else {
+      group.members.push({ id: memberId, displayName: mName });
+    }
+
+    await GROUPS.put(`group:${slug}`, JSON.stringify(group));
   }));
 
   return jsonWithSession(200, { ok: true }, sessionId);
