@@ -1,18 +1,23 @@
 # postandin-scheduler
 
-A standalone Cloudflare Worker that scrapes all rink schedules on a 30-minute cron
-and writes the result to KV.  The Pages site's `/api/schedule` endpoint reads from
-this cache instead of scraping on every visitor request.
+A standalone Cloudflare Worker with two independent cron jobs:
+
+1. **Schedule cache** (every 30 min) — scrapes all rink schedules and writes the
+   result to KV. The Pages site's `/api/schedule` endpoint reads from this cache
+   instead of scraping on every visitor request.
+2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
+   [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
+   *before* you need it, i.e. before running any bulk-delete/reset operation.
 
 ## How the two pieces fit together
 
 | Piece | Deploy path | Trigger |
 |---|---|---|
 | **Pages site** (`functions/`, `stick-and-puck/`, etc.) | Auto-deploys from GitHub `main` via Cloudflare Pages | Git push |
-| **Scheduler Worker** (`scheduler/`) | **Requires a manual `wrangler deploy`** — not deployed by Pages | Cron (every 30 min) |
+| **Scheduler Worker** (`scheduler/`) | **Requires a manual `wrangler deploy`** — not deployed by Pages | Cron (every 30 min + daily) |
 
 **Pushing to GitHub does NOT update the scheduler.** Run `wrangler deploy` from
-`scheduler/` each time you change scraping logic.
+`scheduler/` each time you change scraping *or backup* logic.
 
 ## First-time setup
 
@@ -41,6 +46,113 @@ this cache instead of scraping on every visitor request.
      curl https://postandin-scheduler.<your-subdomain>.workers.dev/trigger
      ```
    - After the first successful run, check KV for the `schedule:cache` key
+
+## GROUPS backups (data-safety layer)
+
+This exists because a destructive cleanup command once wiped the entire GROUPS
+KV namespace in production with no backup and no safeguard. Read this section
+*before* you need it.
+
+**What gets backed up:** the entire GROUPS KV namespace — every `group:`,
+`session:`, and `rsvp:`-style key. Note that GROUPS and SCHEDULE are bound to
+the *same underlying KV namespace* (see `wrangler.toml`), so each backup also
+captures the `schedule:cache` key. That's harmless (it's regenerated every 30
+min) — it just means a backup file is a full namespace snapshot, not strictly
+"groups only". See `src/backup.js`.
+
+**How often:** daily, via cron `0 10 * * *` (10:00 UTC). Cron Triggers always
+fire in UTC and don't shift for daylight saving, so this lands at ~3am Pacific
+during PDT (Mar–Nov) and ~2am Pacific during PST (Nov–Mar) — both low-traffic,
+so the DST drift wasn't worth working around.
+
+**Where it lives:** R2 bucket `postandin-backups`, one object per day at
+`backups/groups-YYYY-MM-DD.json`:
+```json
+{ "exportedAt": "2026-07-03T10:00:00.000Z", "keys": { "group:abc": "...", "session:xyz": "..." } }
+```
+Each value is the exact raw string stored in KV — no re-encoding, so it can be
+written straight back with `wrangler kv key put` / `kv bulk put`.
+
+**Retention:** 30 days, via an R2 lifecycle rule on the `backups/` prefix (set
+up once — see below).
+
+**On-demand backup:** force a backup immediately — e.g. right before any
+deliberate risky operation — by hitting:
+```sh
+curl https://postandin-scheduler.<your-subdomain>.workers.dev/backup-now
+```
+This runs synchronously and returns the R2 path once the backup is written.
+`scripts/admin-purge.js` (see repo root) also triggers this automatically
+before it will delete anything.
+
+### One-time R2 setup
+
+1. **Enable R2 on the account** — Cloudflare dashboard → R2 → follow the
+   one-time enablement flow. There's no wrangler command for this step; it's a
+   dashboard-only, one-time account action.
+2. **Create the bucket:**
+   ```sh
+   wrangler r2 bucket create postandin-backups
+   ```
+3. **Add the 30-day expiry lifecycle rule:**
+   ```sh
+   wrangler r2 bucket lifecycle add postandin-backups expire-old-backups backups/ --expire-days 30
+   ```
+   Or in the dashboard: R2 → `postandin-backups` → Settings → Lifecycle Rules
+   → Add rule → apply to prefix `backups/` → expire after 30 days.
+4. **Deploy** (the R2 binding is already in `wrangler.toml`):
+   ```sh
+   cd scheduler && wrangler deploy
+   ```
+5. **Verify the lifecycle rule is active:**
+   ```sh
+   wrangler r2 bucket lifecycle list postandin-backups
+   ```
+6. **Test end to end:** hit `/backup-now` (see above) and confirm the object
+   shows up: `wrangler r2 object get postandin-backups/backups/groups-<today>.json --file /tmp/check.json --remote`
+
+### Restore procedure (disaster recovery)
+
+Use this after any incident where GROUPS data was lost or corrupted. It's a
+full overwrite-by-key restore — keys written *after* the backup was taken and
+not present in the backup file are left alone, not deleted.
+
+1. **Get the backup file** (find the date you want in the dashboard, or
+   `wrangler r2 object get postandin-backups/backups/ --remote` to browse):
+   ```sh
+   wrangler r2 object get postandin-backups/backups/groups-2026-07-03.json --file ./restore.json --remote
+   ```
+
+2. **Convert it into wrangler's bulk-put format.** The backup is
+   `{ exportedAt, keys: { key: value, ... } }`; `wrangler kv bulk put` wants an
+   array of `{ key, value }` objects:
+   ```sh
+   node -e "
+   const data = require('./restore.json');
+   const bulk = Object.entries(data.keys).map(([key, value]) => ({ key, value }));
+   require('fs').writeFileSync('./restore-bulk.json', JSON.stringify(bulk));
+   console.log('Restoring', bulk.length, 'keys from backup exported at', data.exportedAt);
+   "
+   ```
+   Optional: to skip restoring the live `schedule:cache` (harmless either way —
+   it's regenerated within 30 min), add
+   `.filter(([k]) => k !== 'schedule:cache')` before `.map(...)` above.
+
+3. **Find the GROUPS namespace ID** (also in `scheduler/wrangler.toml`, binding
+   `GROUPS`):
+   ```sh
+   wrangler kv namespace list
+   ```
+
+4. **Write everything back:**
+   ```sh
+   wrangler kv bulk put --namespace-id <GROUPS_NAMESPACE_ID> ./restore-bulk.json --remote
+   ```
+
+5. **Spot-check** a few keys came back correctly:
+   ```sh
+   wrangler kv key get "group:<some-slug>" --namespace-id <GROUPS_NAMESPACE_ID> --text --remote
+   ```
 
 ## Adding a new rink
 

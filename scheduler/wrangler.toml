@@ -3,11 +3,26 @@ main = "src/index.js"
 compatibility_date = "2024-09-23"
 
 [triggers]
-crons = ["*/30 * * * *"]
+# */30 * * * *  -> schedule-cache scrape (every 30 min)
+# 0 10 * * *    -> daily GROUPS backup to R2 (~3am Pacific; see README for the
+#                  UTC/DST caveat, Cron Triggers always fire in UTC)
+crons = ["*/30 * * * *", "0 10 * * *"]
 
-# Bind to the same KV namespace as the Pages project's GROUPS binding.
+# GROUPS and SCHEDULE are bound to the same underlying KV namespace as the
+# Pages project's GROUPS binding — two names for one store, so schedule-cache
+# code can use env.SCHEDULE and backup code can use env.GROUPS.
 # Find the namespace ID in the Cloudflare dashboard:
 #   Workers & Pages → KV → click your namespace → copy the ID from the URL or details pane.
 [[kv_namespaces]]
 binding = "SCHEDULE"
 id = "7d32e3b21f9b41658b3cca103536c2b7"
+
+[[kv_namespaces]]
+binding = "GROUPS"
+id = "7d32e3b21f9b41658b3cca103536c2b7"
+
+# R2 bucket for daily GROUPS backups (see backupGroups() in src/backup.js).
+# Must be created before first deploy: wrangler r2 bucket create postandin-backups
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "postandin-backups"

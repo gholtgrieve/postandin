@@ -1,29 +1,46 @@
-// Proactive schedule cache Worker.
-// Fires every 30 minutes via Cron Trigger, scrapes all rinks, writes the
-// result to KV as schedule:cache.  The Pages Function at /api/schedule reads
-// from this cache instead of scraping on every visitor request.
+// Scheduler Worker — runs two independent cron jobs:
 //
-// Manual trigger for testing (does not run in production on its own):
-//   curl https://<worker-subdomain>.workers.dev/trigger
+//  1. Schedule cache (every 30 min): scrapes all rinks, writes the result to
+//     KV as schedule:cache. The Pages Function at /api/schedule reads from
+//     this cache instead of scraping on every visitor request.
+//  2. GROUPS backup (daily, ~3am Pacific): full export of the GROUPS KV
+//     namespace to R2. See src/backup.js.
+//
+// Manual triggers for testing (do not run in production on their own):
+//   curl https://<worker-subdomain>.workers.dev/trigger      (schedule cache)
+//   curl https://<worker-subdomain>.workers.dev/backup-now   (GROUPS backup)
 
 import { scrapeAll } from '../../lib/scrapeAll.js';
+import { backupGroups } from './backup.js';
+
+const BACKUP_CRON = '0 10 * * *';
 
 export default {
-  async scheduled(_event, env, ctx) {
+  async scheduled(event, env, ctx) {
+    if (event.cron === BACKUP_CRON) {
+      ctx.waitUntil(backupGroups(env));
+      return;
+    }
     // Real cron firing: jitter the RecTimes calls so they don't look like a
     // fixed bot schedule to RecTimes' bot detection.
     ctx.waitUntil(runScrape(env, { jitterRecTimes: true }));
   },
 
   async fetch(req, env, _ctx) {
-    if (new URL(req.url).pathname !== '/trigger') {
-      return new Response('Not found', { status: 404 });
+    const path = new URL(req.url).pathname;
+
+    if (path === '/trigger') {
+      // Manual trigger: run immediately, no jitter, so testing isn't slow.
+      await runScrape(env);
+      return json({ ok: true, updatedAt: new Date().toISOString() });
     }
-    // Manual trigger: run immediately, no jitter, so testing isn't slow.
-    await runScrape(env);
-    return new Response(JSON.stringify({ ok: true, updatedAt: new Date().toISOString() }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+
+    if (path === '/backup-now') {
+      const result = await backupGroups(env);
+      return json({ ok: true, ...result });
+    }
+
+    return new Response('Not found', { status: 404 });
   },
 };
 
@@ -33,4 +50,10 @@ async function runScrape(env, opts = {}) {
   // 2-hour TTL: if the scheduler stops running, the Pages Function falls back
   // to live scraping rather than serving indefinitely-stale data.
   await env.SCHEDULE.put('schedule:cache', payload, { expirationTtl: 7200 });
+}
+
+function json(body) {
+  return new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
