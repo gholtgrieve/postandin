@@ -1634,7 +1634,7 @@ async function fetchKentValley() {
   const now = new Date();
   return data.sessions
     .map(s => ({ ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null }))
-    .filter(s => (s.end ?? s.start) > now)
+    .filter(s => !s.end || s.end > now)
     .sort((a, b) => a.start - b.start);
 }
 
@@ -1647,7 +1647,7 @@ async function fetchRecTimes({ venueId }) {
   const now = new Date();
   return data.sessions
     .map(s => ({ ...s, start: new Date(s.start), end: s.end ? new Date(s.end) : null }))
-    .filter(s => (s.end ?? s.start) > now)
+    .filter(s => !s.end || s.end > now)
     .sort((a, b) => a.start - b.start);
 }
 
@@ -1698,7 +1698,7 @@ async function fetchAll() {
         ...s,
         start: new Date(s.start),
         end: s.end ? new Date(s.end) : null,
-      })).filter(s => (s.end ?? s.start) > now),
+      })).filter(s => !s.end || s.end > now),
       ...(val.ok ? {} : { error: val.error }),
     };
   }
