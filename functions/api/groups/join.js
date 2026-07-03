@@ -1,11 +1,21 @@
 // POST /api/groups/join  {groupName, password, displayName} → {groupId, groupName, memberId}
 //
 // Looks up the group by slug = groupName.trim().lower() + "|" + password.trim().lower()
+// Group membership lives in a GroupDO Durable Object, one instance per slug —
+// see the comment in create.js for why (avoids the old direct-KV race).
 // Also creates/updates a server-side session so membership survives localStorage loss.
+//
+// Requires a Durable Object binding named GROUP_DO, pointed at the GroupDO
+// class in the postandin-group-do Worker (see group-do/). This can't be set via
+// a config file for a Pages project — it must be added by hand:
+//   Settings → Functions → Bindings → Add → Durable Object
+//   Variable name: GROUP_DO  |  Worker: postandin-group-do  |  Class: GroupDO
+// It won't happen automatically on deploy.
 
 export async function onRequestPost(context) {
-  const { GROUPS } = context.env;
+  const { GROUPS, GROUP_DO } = context.env;
   if (!GROUPS) return json(503, { error: 'KV namespace GROUPS not bound' });
+  if (!GROUP_DO) return json(503, { error: 'Durable Object GROUP_DO not bound' });
 
   let body;
   try { body = await context.request.json(); }
@@ -20,14 +30,14 @@ export async function onRequestPost(context) {
   if (password.length > 50)    return json(400, { error: 'Password must be 50 characters or fewer' });
   if (displayName.length > 30) return json(400, { error: 'Display name must be 30 characters or fewer' });
 
-  const slug = groupName.toLowerCase() + '|' + password.toLowerCase();
-  const raw  = await GROUPS.get(`group:${slug}`);
-  if (!raw) return json(404, { error: 'Group not found — check the group name and password' });
+  const slug   = groupName.toLowerCase() + '|' + password.toLowerCase();
+  const stub   = GROUP_DO.get(GROUP_DO.idFromName(slug));
+  const result = await stub.join(slug, displayName);
 
-  const group    = JSON.parse(raw);
-  const memberId = crypto.randomUUID();
-  group.members.push({ id: memberId, displayName });
-  await GROUPS.put(`group:${slug}`, JSON.stringify(group));
+  if (!result.joined) {
+    return json(404, { error: result.error });
+  }
+  const { memberId, groupName: resolvedGroupName } = result;
 
   // Persist membership server-side via session cookie
   const sessionId  = parseSid(context.request) || crypto.randomUUID();
@@ -39,7 +49,7 @@ export async function onRequestPost(context) {
   }
   await GROUPS.put(`session:${sessionId}`, JSON.stringify(session));
 
-  return jsonWithSession(200, { groupId: slug, groupName: group.groupName, memberId }, sessionId);
+  return jsonWithSession(200, { groupId: slug, groupName: resolvedGroupName, memberId }, sessionId);
 }
 
 function toSlug(g) {
