@@ -30,6 +30,12 @@ export async function onRequestPost(context) {
   if (displayName.length > 30) return json(400, { error: 'Display name must be 30 characters or fewer' });
 
   const slug     = groupName.toLowerCase() + '|' + password.toLowerCase();
+
+  const existing = await GROUPS.get(`group:${slug}`);
+  if (existing) {
+    return json(409, { error: 'A group with that name and password already exists — use Join instead.' });
+  }
+
   const memberId = crypto.randomUUID();
   const group    = { groupName, members: [{ id: memberId, displayName }] };
 
