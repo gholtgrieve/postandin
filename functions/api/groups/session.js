@@ -4,6 +4,17 @@
 // Reads/writes the caller's session from the sp_sid cookie.
 // On POST, creates a new session if no cookie is present.
 // KV key: session:{sessionId}
+//
+// The self-heal loop in handlePost writes membership through to each group's
+// GroupDO Durable Object instead of touching group:<slug> in KV directly —
+// see the comment in create.js for why (avoids the old direct-KV race).
+//
+// Requires a Durable Object binding named GROUP_DO, pointed at the GroupDO
+// class in the postandin-group-do Worker (see group-do/). This can't be set via
+// a config file for a Pages project — it must be added by hand:
+//   Settings → Functions → Bindings → Add → Durable Object
+//   Variable name: GROUP_DO  |  Worker: postandin-group-do  |  Class: GroupDO
+// It won't happen automatically on deploy.
 
 export async function onRequest(context) {
   const { method } = context.request;
@@ -27,8 +38,9 @@ async function handleGet(context) {
 }
 
 async function handlePost(context) {
-  const { GROUPS } = context.env;
+  const { GROUPS, GROUP_DO } = context.env;
   if (!GROUPS) return json(503, { error: 'KV not bound' });
+  if (!GROUP_DO) return json(503, { error: 'Durable Object GROUP_DO not bound' });
 
   let body;
   try { body = await context.request.json(); }
@@ -45,10 +57,10 @@ async function handlePost(context) {
     groups: validGroups,
   }));
 
-  // Upsert group:{slug} for each group in the payload so that group records
-  // self-heal when members visit after a KV data loss event. Each member who
-  // visits contributes their own entry back; the group fully reconstructs once
-  // all members have visited at least once.
+  // Upsert membership for each group in the payload so group records self-heal
+  // when members visit after a data loss event. Each member who visits
+  // contributes their own entry back; the group fully reconstructs once all
+  // members have visited at least once.
   await Promise.all(validGroups.map(async g => {
     const gName = g.groupName?.trim();
     const gPass = g.password?.trim();
@@ -57,17 +69,8 @@ async function handlePost(context) {
     if (!gName || !gPass || !memberId) return;
 
     const slug = gName.toLowerCase() + '|' + gPass.toLowerCase();
-    const raw = await GROUPS.get(`group:${slug}`);
-    const group = raw ? JSON.parse(raw) : { groupName: gName, members: [] };
-
-    const existing = group.members.find(m => m.id === memberId);
-    if (existing) {
-      if (mName) existing.displayName = mName;
-    } else {
-      group.members.push({ id: memberId, displayName: mName });
-    }
-
-    await GROUPS.put(`group:${slug}`, JSON.stringify(group));
+    const stub = GROUP_DO.get(GROUP_DO.idFromName(slug));
+    await stub.upsertMember(slug, memberId, mName);
   }));
 
   return jsonWithSession(200, { ok: true }, sessionId);

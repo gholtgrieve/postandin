@@ -1,12 +1,23 @@
 // POST /api/groups/leave  {groupName, password, memberId}
 //
-// Removes a member from the group's member list in KV.
-// Deletes the group entirely if no members remain.
+// Removes a member from the group's member list, which lives in a GroupDO
+// Durable Object, one instance per slug — see the comment in create.js for
+// why (avoids the old direct-KV race). An empty member list afterward is
+// fine and equivalent to the old "delete the group" behavior — a later
+// create or join against the same slug behaves as if the group were gone.
 // Also removes the group from the caller's server-side session.
+//
+// Requires a Durable Object binding named GROUP_DO, pointed at the GroupDO
+// class in the postandin-group-do Worker (see group-do/). This can't be set via
+// a config file for a Pages project — it must be added by hand:
+//   Settings → Functions → Bindings → Add → Durable Object
+//   Variable name: GROUP_DO  |  Worker: postandin-group-do  |  Class: GroupDO
+// It won't happen automatically on deploy.
 
 export async function onRequestPost(context) {
-  const { GROUPS } = context.env;
+  const { GROUPS, GROUP_DO } = context.env;
   if (!GROUPS) return json(503, { error: 'KV namespace GROUPS not bound' });
+  if (!GROUP_DO) return json(503, { error: 'Durable Object GROUP_DO not bound' });
 
   let body;
   try { body = await context.request.json(); }
@@ -20,17 +31,8 @@ export async function onRequestPost(context) {
     return json(400, { error: 'groupName, password, and memberId are required' });
 
   const slug = groupName.toLowerCase() + '|' + password.toLowerCase();
-  const raw  = await GROUPS.get(`group:${slug}`);
-  if (!raw) return json(404, { error: 'Group not found' });
-
-  const group   = JSON.parse(raw);
-  group.members = group.members.filter(m => m.id !== memberId);
-
-  if (group.members.length === 0) {
-    await GROUPS.delete(`group:${slug}`);
-  } else {
-    await GROUPS.put(`group:${slug}`, JSON.stringify(group));
-  }
+  const stub = GROUP_DO.get(GROUP_DO.idFromName(slug));
+  await stub.leave(slug, memberId);
 
   // Remove this group from the caller's session
   const sessionId = parseSid(context.request);

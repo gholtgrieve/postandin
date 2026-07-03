@@ -1,0 +1,30 @@
+name = "postandin-group-do"
+main = "src/group-do.js"
+compatibility_date = "2024-09-23"
+
+# One GroupDO instance per group slug (see idFromName(slug) in the Pages
+# Functions under functions/api/groups/ that call this Worker). Cloudflare
+# serializes all calls to a given instance, so the create/join/leave/rsvp
+# races that used to happen against shared KV keys can no longer occur.
+[[durable_objects.bindings]]
+name = "GROUP_DO"
+class_name = "GroupDO"
+
+# Registers GroupDO as a new Durable Object class backed by SQLite storage
+# (the current default storage backend for new Durable Object classes).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GroupDO"]
+
+# Legacy KV namespace — the same one the Pages project's GROUPS binding and
+# scheduler/wrangler.toml point at. Used only for lazy migration: each
+# GroupDO reads group:<slug> / rsvp:<slug> from here once, the first time it's
+# touched, seeds its own storage from whatever it finds (or starts empty if
+# the keys don't exist), then deletes those two keys so the DO becomes the
+# sole source of truth for that group from then on. There's no batch
+# migration script — groups nobody touches after deploy simply never migrate.
+# Find the namespace ID in the Cloudflare dashboard:
+#   Workers & Pages → KV → click your namespace → copy the ID from the URL or details pane.
+[[kv_namespaces]]
+binding = "GROUPS"
+id = "7d32e3b21f9b41658b3cca103536c2b7"

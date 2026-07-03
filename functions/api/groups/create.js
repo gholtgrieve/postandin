@@ -1,20 +1,33 @@
 // POST /api/groups/create  {groupName, password, displayName} → {groupId, groupName, memberId}
 //
-// KV key: group:<slug>  where slug = groupName.trim().lower() + "|" + password.trim().lower()
-// The pair (groupName, password) identifies the group — neither needs to be globally unique alone.
+// Group membership lives in a GroupDO Durable Object, one instance per
+// slug = groupName.trim().lower() + "|" + password.trim().lower(). Cloudflare
+// serializes all calls to a given DO instance, so concurrent create/join/leave
+// calls against the same group can't race and silently clobber each other the
+// way the old direct GROUPS.get/GROUPS.put read-modify-write against a shared
+// group:<slug> KV key could. See group-do/src/group-do.js for the DO itself.
 //
 // Also creates/updates a server-side session (KV key: session:<sessionId>) so the user's
 // group membership survives localStorage loss (Private Browsing, cleared site data, etc.).
+// Session storage is unrelated to group membership and still lives directly in KV.
 //
-// Requires KV namespace binding named GROUPS.
+// Requires KV namespace binding named GROUPS (used here only for session:<sessionId>).
 // Cloudflare Pages does not use wrangler.toml for KV bindings — configure it
 // in the Cloudflare Pages dashboard under:
 //   Settings → Functions → KV namespace bindings → Add binding
 //   Variable name: GROUPS  |  KV namespace: <your namespace>
+//
+// Also requires a Durable Object binding named GROUP_DO, pointed at the GroupDO
+// class in the postandin-group-do Worker (see group-do/). This can't be set via
+// a config file for a Pages project — it must be added by hand:
+//   Settings → Functions → Bindings → Add → Durable Object
+//   Variable name: GROUP_DO  |  Worker: postandin-group-do  |  Class: GroupDO
+// It won't happen automatically on deploy.
 
 export async function onRequestPost(context) {
-  const { GROUPS } = context.env;
+  const { GROUPS, GROUP_DO } = context.env;
   if (!GROUPS) return json(503, { error: 'KV namespace GROUPS not bound' });
+  if (!GROUP_DO) return json(503, { error: 'Durable Object GROUP_DO not bound' });
 
   let body;
   try { body = await context.request.json(); }
@@ -29,17 +42,14 @@ export async function onRequestPost(context) {
   if (password.length > 50)    return json(400, { error: 'Password must be 50 characters or fewer' });
   if (displayName.length > 30) return json(400, { error: 'Display name must be 30 characters or fewer' });
 
-  const slug     = groupName.toLowerCase() + '|' + password.toLowerCase();
+  const slug   = groupName.toLowerCase() + '|' + password.toLowerCase();
+  const stub   = GROUP_DO.get(GROUP_DO.idFromName(slug));
+  const result = await stub.create(slug, groupName, displayName);
 
-  const existing = await GROUPS.get(`group:${slug}`);
-  if (existing) {
-    return json(409, { error: 'A group with that name and password already exists.  Choose a new group name.' });
+  if (!result.created) {
+    return json(409, { error: result.error });
   }
-
-  const memberId = crypto.randomUUID();
-  const group    = { groupName, members: [{ id: memberId, displayName }] };
-
-  await GROUPS.put(`group:${slug}`, JSON.stringify(group));
+  const { memberId } = result;
 
   // Persist membership server-side via session cookie
   const sessionId  = parseSid(context.request) || crypto.randomUUID();
