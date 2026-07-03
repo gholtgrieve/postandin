@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
 
   const existing = await GROUPS.get(`group:${slug}`);
   if (existing) {
-    return json(409, { error: 'A group with that name and password already exists — use Join instead.' });
+    return json(409, { error: 'A group with that name and password already exists.  Choose a new group name.' });
   }
 
   const memberId = crypto.randomUUID();
