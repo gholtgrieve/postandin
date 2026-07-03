@@ -1,0 +1,13 @@
+name = "postandin-scheduler"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[triggers]
+crons = ["*/30 * * * *"]
+
+# Bind to the same KV namespace as the Pages project's GROUPS binding.
+# Find the namespace ID in the Cloudflare dashboard:
+#   Workers & Pages → KV → click your namespace → copy the ID from the URL or details pane.
+[[kv_namespaces]]
+binding = "SCHEDULE"
+id = "7d32e3b21f9b41658b3cca103536c2b7"

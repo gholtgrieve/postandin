@@ -1484,77 +1484,12 @@ footer a:hover { color: var(--yellow); }
 </div>
 
 <script type="module">
+import { RINKS } from '/lib/rinks.js';
+
 // ─── Feature flag ─────────────────────────────────────────────────────────────
 const GROUPS_ENABLED = true;
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
-
-const RINKS = {
-  kci: {
-    name: "Kraken Community Iceplex",
-    city: "Seattle",
-    url: "https://www.krakencommunityiceplex.com/stick-puck/",
-    color: "#9A7B00",
-    system: "daysmart",
-    config: { company: "kraken", sportId: 20 },
-  },
-  snokingRenton: {
-    name: "Sno-King Ice Arena",
-    city: "Renton",
-    url: "https://www.snokingicearenas.com/",
-    color: "#CC2200",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [11, 12] }, // Renton Large + Small Ice
-  },
-  snokingKirkland: {
-    name: "Sno-King Ice Arena",
-    city: "Kirkland",
-    url: "https://www.snokingicearenas.com/",
-    color: "#E83318",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [1] }, // Kirkland Ice
-  },
-  snokingSnoqualmie: {
-    name: "Sno-King Ice Arena",
-    city: "Snoqualmie",
-    url: "https://www.snokingicearenas.com/",
-    color: "#FF6644",
-    system: "daysmart",
-    config: { company: "snoking", sportId: 20, resourceIds: [13, 14] }, // Rink A + Rink B
-  },
-  olympicview: {
-    name: "Olympic View Arena",
-    city: "Mountlake Terrace",
-    url: "https://www.olympicviewarena.com/",
-    color: "#44BBAA",
-    system: "rectimes",
-    config: { venueId: 1145 },
-  },
-  lynnwood: {
-    name: "Lynnwood Ice Center",
-    city: "Lynnwood",
-    url: "https://www.lynnwoodicecenter.com/",
-    color: "#1565A8",
-    system: "rectimes",
-    config: { venueId: 1146 },
-  },
-  everett: {
-    name: "Everett Community Ice Rink",
-    city: "Everett",
-    url: "https://aotw-arena.web.app/",
-    color: "#2E7D4F",
-    system: "everett",
-    config: {},
-  },
-  kentValley: {
-    name: "Kent Valley Ice Centre",
-    city: "Kent",
-    url: "https://kentvalleyicecentre.net/",
-    color: "#8B44CC",
-    system: "ical",
-    config: {},
-  },
-};
 
 // DaySmart ─────────────────────────────────────────────────────────────────────
 const _dsCache = {};
@@ -1750,24 +1685,23 @@ async function fetchEverett() {
 
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  const tasks = {
-    kci:              fetchDaySmart(RINKS.kci.config),
-    snokingRenton:    fetchDaySmart(RINKS.snokingRenton.config),
-    snokingKirkland:  fetchDaySmart(RINKS.snokingKirkland.config),
-    snokingSnoqualmie:fetchDaySmart(RINKS.snokingSnoqualmie.config),
-    olympicview:      fetchRecTimes(RINKS.olympicview.config),
-    lynnwood:         fetchRecTimes(RINKS.lynnwood.config),
-    everett:          fetchEverett(),
-    kentValley:       fetchKentValley(),
-  };
-  const settled = await Promise.allSettled(Object.values(tasks));
+  const r = await fetch('/api/schedule');
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const raw = await r.json();
+  const now = new Date();
   const results = {};
-  Object.keys(tasks).forEach((key, i) => {
-    const r = settled[i];
-    results[key] = r.status === "fulfilled"
-      ? { ok: true,  sessions: r.value, rink: RINKS[key] }
-      : { ok: false, error: r.reason?.message ?? "Unknown error", sessions: [], rink: RINKS[key] };
-  });
+  for (const [key, val] of Object.entries(raw)) {
+    results[key] = {
+      ok: val.ok,
+      rink: RINKS[key],
+      sessions: (val.sessions ?? []).map(s => ({
+        ...s,
+        start: new Date(s.start),
+        end: s.end ? new Date(s.end) : null,
+      })).filter(s => (s.end ?? s.start) > now),
+      ...(val.ok ? {} : { error: val.error }),
+    };
+  }
   return results;
 }
 
