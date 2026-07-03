@@ -2245,19 +2245,23 @@ async function updateGoingIndicators() {
   const btns = [...document.querySelectorAll('.going-btn')];
   if (!btns.length) return;
   const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
-  await Promise.all(keys.map(async sk => {
+
+  // One request for all groups instead of one per (session × group).
+  const slugs = groups.map(g => getGroupSlug(g));
+  let groupMaps = {};
+  try {
+    const r = await fetch(`/api/groups/rsvp?groupSlugs=${slugs.map(encodeURIComponent).join(',')}`);
+    if (r.ok) groupMaps = await r.json();
+  } catch {}
+
+  for (const sk of keys) {
     rsvpCache[sk] = {};
-    await Promise.all(groups.map(async g => {
-      const slug = getGroupSlug(g);
-      try {
-        const r = await fetch(`/api/groups/rsvp?sessionKey=${encodeURIComponent(sk)}&groupSlug=${encodeURIComponent(slug)}`);
-        rsvpCache[sk][slug] = r.ok ? ((await r.json()).going ?? []) : [];
-      } catch { rsvpCache[sk][slug] = []; }
-    }));
-    document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
-      updateIndicatorEl(btn, sk);
-    });
-  }));
+    for (const slug of slugs) {
+      rsvpCache[sk][slug] = (groupMaps[slug] ?? {})[sk] ?? [];
+    }
+  }
+
+  btns.forEach(btn => updateIndicatorEl(btn, btn.dataset.sessionKey));
   maybeShowIconTip();
 }
 
