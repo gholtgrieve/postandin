@@ -1982,8 +1982,8 @@ async function loadData() {
     renderLegend(allData);
     renderSessions(allData);
   } catch (err) {
-    showStatus("Failed to load session data — " + err.message, "error");
-    document.getElementById("content").innerHTML = `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Load failed</h3><p>${err.message}</p></div>`;
+    showStatus("We couldn't load today's schedule. Try refreshing in a moment.", "error");
+    document.getElementById("content").innerHTML = `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Load failed</h3><p>We couldn't load today's schedule. Try refreshing in a moment.</p></div>`;
   } finally {
     btn.classList.remove("spinning");
   }

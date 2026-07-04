@@ -32,8 +32,9 @@ export async function onRequest(ctx) {
         { headers: RESPONSE_HEADERS },
       );
     }
+    console.error(e.message, e.stack);
     return new Response(
-      JSON.stringify({ ok: false, error: e.message, sessions: [] }),
+      JSON.stringify({ ok: false, error: 'Kent Valley schedule temporarily unavailable.', sessions: [] }),
       { status: 200, headers: RESPONSE_HEADERS },
     );
   }

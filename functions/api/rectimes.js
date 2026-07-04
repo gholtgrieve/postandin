@@ -20,8 +20,9 @@ export async function onRequest(context) {
     const sessions = await scrapeRecTimes({ venueId });
     return new Response(JSON.stringify({ ok: true, sessions }), { headers: HEADERS });
   } catch (e) {
+    console.error(e.message, e.stack);
     return new Response(
-      JSON.stringify({ ok: false, error: e.message, sessions: [] }),
+      JSON.stringify({ ok: false, error: 'RecTimes schedule temporarily unavailable.', sessions: [] }),
       { status: 200, headers: HEADERS },
     );
   }

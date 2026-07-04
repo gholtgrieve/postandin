@@ -60,7 +60,8 @@ export async function onRequest(context) {
 
     return new Response(JSON.stringify(mapRecord(data.records[0])), { headers: HEADERS });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error(e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Unable to load this coach profile right now.' }), {
       status: 502, headers: HEADERS,
     });
   }

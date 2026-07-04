@@ -37,6 +37,7 @@ export async function onRequest(ctx) {
   } catch (e) {
     const cached = await cache.match(CACHE_KEY);
     if (cached) return new Response(await cached.text(), { headers: RESPONSE_HEADERS });
-    return new Response(JSON.stringify({ error: e.message }), { status: 502 });
+    console.error(e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Everett schedule temporarily unavailable.' }), { status: 502 });
   }
 }

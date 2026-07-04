@@ -12,6 +12,7 @@ export async function onRequest(context) {
     const body = await res.text();
     return new Response(body, {status:res.status, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':'public, max-age=300'}});
   } catch(e) {
-    return new Response(JSON.stringify({error:e.message}), {status:502});
+    console.error(e.message, e.stack);
+    return new Response(JSON.stringify({error:'FareHarbor schedule temporarily unavailable.'}), {status:502});
   }
 }

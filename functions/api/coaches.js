@@ -70,7 +70,8 @@ export async function onRequest(context) {
     const coaches = await fetchLiveCoaches(apiKey, baseId);
     return new Response(JSON.stringify(coaches), { headers: HEADERS });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), {
+    console.error(e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Unable to load coaches right now. Please try again shortly.' }), {
       status: 502, headers: HEADERS,
     });
   }
