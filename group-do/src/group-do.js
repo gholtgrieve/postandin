@@ -151,6 +151,42 @@ export class GroupDO extends DurableObject {
 
     return { going: rsvp[sessionKey] ?? [] };
   }
+
+  // Used by the scheduler's backup job (see scheduler/src/backup.js) since
+  // migrated groups' data lives only in this DO's storage, not in KV.
+  // Read-only: unlike every other method here, this must NOT trigger
+  // migration — a backup job should observe state, not mutate it. A group
+  // whose legacy KV keys still exist is already captured by the KV backup
+  // file, so this falls back to reading group:<slug>/rsvp:<slug> from
+  // this.env.GROUPS directly (same parsing shape as _migrate) instead of
+  // calling _ensureMigrated().
+  async export(slug) {
+    if (await this.ctx.storage.get('migrated')) {
+      return {
+        slug,
+        groupName: await this.ctx.storage.get('groupName'),
+        members: await this.ctx.storage.get('members'),
+        rsvp: await this.ctx.storage.get('rsvp'),
+        source: 'do',
+      };
+    }
+
+    const [rawGroup, rawRsvp] = await Promise.all([
+      this.env.GROUPS.get(`group:${slug}`),
+      this.env.GROUPS.get(`rsvp:${slug}`),
+    ]);
+
+    const group = rawGroup ? JSON.parse(rawGroup) : { groupName: '', members: [] };
+    const rsvp  = rawRsvp  ? JSON.parse(rawRsvp)  : {};
+
+    return {
+      slug,
+      groupName: group.groupName ?? '',
+      members: group.members ?? [],
+      rsvp,
+      source: 'kv',
+    };
+  }
 }
 
 // Entries whose session start is >24h in the past are pruned on every RSVP

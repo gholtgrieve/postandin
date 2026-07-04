@@ -26,3 +26,13 @@ id = "7d32e3b21f9b41658b3cca103536c2b7"
 [[r2_buckets]]
 binding = "BACKUPS"
 bucket_name = "postandin-backups"
+
+# Cross-Worker binding to the GroupDO class hosted in the postandin-group-do
+# Worker (see group-do/wrangler.toml). Used by backupGroupDOs() in
+# src/backup.js to export each migrated group's data directly from its DO
+# instance, since that data is no longer in the GROUPS KV namespace once a
+# group has migrated (see the migration comment in group-do/src/group-do.js).
+[[durable_objects.bindings]]
+name = "GROUP_DO"
+class_name = "GroupDO"
+script_name = "postandin-group-do"
