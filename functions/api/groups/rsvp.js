@@ -61,6 +61,8 @@ async function handlePost(context) {
   const stub   = GROUP_DO.get(GROUP_DO.idFromName(groupSlug));
   const result = await stub.setRsvp(groupSlug, sessionKey, memberId, displayName, going);
 
+  if (result.error) return json(403, { error: result.error });
+
   return json(200, { going: result.going ?? [] });
 }
 

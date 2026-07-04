@@ -53,22 +53,55 @@ This exists because a destructive cleanup command once wiped the entire GROUPS
 KV namespace in production with no backup and no safeguard. Read this section
 *before* you need it.
 
-**What gets backed up:** the entire GROUPS KV namespace — every `group:`,
-`session:`, and `rsvp:`-style key. Note that GROUPS and SCHEDULE are bound to
-the *same underlying KV namespace* (see `wrangler.toml`), so each backup also
-captures the `schedule:cache` key. That's harmless (it's regenerated every 30
-min) — it just means a backup file is a full namespace snapshot, not strictly
-"groups only". See `src/backup.js`.
+**What gets backed up:** two separate objects are written on every run:
+
+1. `backups/groups-YYYY-MM-DD.json` — the entire GROUPS KV namespace: every
+   remaining `group:`, `session:`, and `rsvp:`-style key. Note that GROUPS and
+   SCHEDULE are bound to the *same underlying KV namespace* (see
+   `wrangler.toml`), so this also captures the `schedule:cache` key. That's
+   harmless (it's regenerated every 30 min) — it just means this file is a
+   full namespace snapshot, not strictly "groups only".
+
+2. `backups/groups-do-YYYY-MM-DD.json` — a separate export of group data that
+   lives in a **GroupDO Durable Object** instead of KV. Since the
+   `group-do-migration` change, each group's membership + RSVPs move out of
+   KV into a per-group Durable Object the first time any member touches it
+   (see the migration comment at the top of `group-do/src/group-do.js`); once
+   that happens its `group:<slug>` and `rsvp:<slug>` KV keys are deleted, so
+   part 1 above no longer sees that group at all.
+
+   There is no API to enumerate existing DO instances, so this backup can only
+   *guess* which groups exist: it scans every `session:{sessionId}` record
+   found in part 1 for `groups[].groupName`/`password` pairs, derives the same
+   slug the app uses (`groupName.trim().toLowerCase() + '|' +
+   password.trim().toLowerCase()`), and calls `.export(slug)` on each
+   candidate's DO instance.
+
+   **Known gap:** a group is only discoverable this way if at least one of its
+   members has round-tripped through `POST /api/groups/session` (i.e. loaded
+   the app) since that session record was written. A migrated group whose
+   members never visit again after migrating leaves no trace in KV and will be
+   **silently missing** from this backup — there is currently no way to detect
+   or back up such a group. Treat part 2 as best-effort coverage, not a
+   guarantee.
+
+See `src/backup.js` (`backupGroups` for part 1, `backupGroupDOs` for part 2).
 
 **How often:** daily, via cron `0 10 * * *` (10:00 UTC). Cron Triggers always
 fire in UTC and don't shift for daylight saving, so this lands at ~3am Pacific
 during PDT (Mar–Nov) and ~2am Pacific during PST (Nov–Mar) — both low-traffic,
 so the DST drift wasn't worth working around.
 
-**Where it lives:** R2 bucket `postandin-backups`, one object per day at
-`backups/groups-YYYY-MM-DD.json`:
+**Where it lives:** R2 bucket `postandin-backups`, two objects per day:
+
+`backups/groups-YYYY-MM-DD.json` (part 1, KV):
 ```json
 { "exportedAt": "2026-07-03T10:00:00.000Z", "keys": { "group:abc": "...", "session:xyz": "..." } }
+```
+
+`backups/groups-do-YYYY-MM-DD.json` (part 2, DO exports):
+```json
+{ "exportedAt": "2026-07-03T10:00:00.000Z", "slugCount": 9, "groups": [ { "slug": "cks|captainusa!", "groupName": "CKs", "members": [...], "rsvp": {...} } ] }
 ```
 Each value is the exact raw string stored in KV — no re-encoding, so it can be
 written straight back with `wrangler kv key put` / `kv bulk put`.
