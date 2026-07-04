@@ -136,6 +136,14 @@ export class GroupDO extends DurableObject {
   async setRsvp(slug, sessionKey, memberId, displayName, going) {
     await this._ensureMigrated(slug);
 
+    // memberId used to be accepted but not verified, allowing anyone who knew
+    // the group name/password to RSVP under an invented display name that
+    // didn't belong to any real member.
+    const members = (await this.ctx.storage.get('members')) ?? [];
+    if (!members.some(m => m.id === memberId)) {
+      return { error: 'Not a member of this group' };
+    }
+
     const rsvp = (await this.ctx.storage.get('rsvp')) ?? {};
 
     if (!rsvp[sessionKey]) rsvp[sessionKey] = [];
