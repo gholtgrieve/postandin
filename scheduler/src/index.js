@@ -46,6 +46,11 @@ export default {
 
 async function runScrape(env, opts = {}) {
   const data = await scrapeAll(opts);
+  const anyOk = Object.values(data).some(r => r.ok);
+  if (!anyOk) {
+    console.error('runScrape: every rink failed this run — keeping existing schedule:cache instead of overwriting with an all-failed payload');
+    return;
+  }
   const payload = JSON.stringify({ fetchedAt: new Date().toISOString(), data });
   // 2-hour TTL: if the scheduler stops running, the Pages Function falls back
   // to live scraping rather than serving indefinitely-stale data.
