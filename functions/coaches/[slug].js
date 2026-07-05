@@ -40,6 +40,7 @@ async function fetchCoach(slug, env) {
   const qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
   const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${qs}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) return null;
   const data = await res.json();

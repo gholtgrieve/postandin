@@ -46,6 +46,7 @@ async function fetchLiveCoaches(apiKey, baseId) {
     if (offset) params.set('offset', offset);
     const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${params}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) throw new Error(`Airtable HTTP ${res.status}`);
     const data = await res.json();
