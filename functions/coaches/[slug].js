@@ -2,6 +2,15 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function safeUrl(u) {
+  try {
+    const parsed = new URL(u, 'https://placeholder.invalid');
+    return ['http:', 'https:'].includes(parsed.protocol) ? u : '#';
+  } catch {
+    return '#';
+  }
+}
+
 function parseTeams(text) {
   return (text || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
     const parts = line.split(' · ');
@@ -147,7 +156,7 @@ function renderHtml(coach) {
     <section class="profile-section">
       <h2 class="section-heading">Links</h2>
       <div class="profile-links">
-        ${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
+        ${links.map(l => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
       </div>
     </section>` : '';
 

@@ -1680,7 +1680,7 @@ function renderSessions(data) {
             <div class="fc-rink">${r.city}</div>
             <div class="fc-name">${r.name}</div>
             <div class="fc-reason">${reason}</div>
-            <a class="fc-link" href="${r.url}" target="_blank" rel="noopener">View schedule ↗</a>
+            <a class="fc-link" href="${escapeHtml(safeUrl(r.url))}" target="_blank" rel="noopener">View schedule ↗</a>
           </div>`;
         }).join("") +
       `</div>`;
@@ -1746,7 +1746,7 @@ function sessionRow(s) {
   const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
 
   const linkAttrs = s.bookUrl && !s.soldOut
-    ? `href="${s.bookUrl}" target="_blank" rel="noopener"`
+    ? `href="${escapeHtml(safeUrl(s.bookUrl))}" target="_blank" rel="noopener"`
     : '';
 
   // Going indicator — only rendered when flag is on and user is in at least one group
@@ -1837,6 +1837,15 @@ const _lsAvailable = (() => {
 
 function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function safeUrl(u) {
+  try {
+    const parsed = new URL(u, 'https://placeholder.invalid');
+    return ['http:', 'https:'].includes(parsed.protocol) ? u : '#';
+  } catch {
+    return '#';
+  }
 }
 
 function migrateStorage() {

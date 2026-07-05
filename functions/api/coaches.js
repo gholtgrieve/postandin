@@ -11,6 +11,15 @@ const HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
+function safeUrl(u) {
+  try {
+    const parsed = new URL(u, 'https://placeholder.invalid');
+    return ['http:', 'https:'].includes(parsed.protocol) ? u : '#';
+  } catch {
+    return '#';
+  }
+}
+
 function mapRecord(r) {
   const f = r.fields ?? {};
   return {
@@ -33,7 +42,7 @@ function mapRecord(r) {
     contact_preference: f.contact_preference ?? [],
     headshot_url:       f.headshot_url ?? '',
     photo_urls:         f.photo_urls ?? '',
-    elite_prospects_url:f.elite_prospects_url ?? '',
+    elite_prospects_url:safeUrl(f.elite_prospects_url ?? ''),
     initials:           f.initials ?? '',
   };
 }
