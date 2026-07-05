@@ -54,7 +54,14 @@ export async function onRequestPost(context) {
   // Persist membership server-side via session cookie
   const sessionId  = parseSid(context.request) || crypto.randomUUID();
   const rawSession = await GROUPS.get(`session:${sessionId}`);
-  const session    = rawSession ? JSON.parse(rawSession) : { displayName, groups: [] };
+  let session = { displayName, groups: [] };
+  if (rawSession) {
+    try {
+      session = JSON.parse(rawSession);
+    } catch (e) {
+      console.error(`${sessionId}: corrupted session record, resetting:`, e.message);
+    }
+  }
   session.displayName = displayName;
   if (!session.groups.some(g => toSlug(g) === slug)) {
     session.groups.push({ groupName, password, memberId, displayName });

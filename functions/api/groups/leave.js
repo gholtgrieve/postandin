@@ -39,9 +39,13 @@ export async function onRequestPost(context) {
   if (sessionId) {
     const rawSession = await GROUPS.get(`session:${sessionId}`);
     if (rawSession) {
-      const session = JSON.parse(rawSession);
-      session.groups = session.groups.filter(g => toSlug(g) !== slug);
-      await GROUPS.put(`session:${sessionId}`, JSON.stringify(session));
+      try {
+        const session = JSON.parse(rawSession);
+        session.groups = session.groups.filter(g => toSlug(g) !== slug);
+        await GROUPS.put(`session:${sessionId}`, JSON.stringify(session));
+      } catch (e) {
+        console.error(`${sessionId}: corrupted session record, skipping leave-session-update:`, e.message);
+      }
     }
   }
 
