@@ -33,7 +33,12 @@ async function handleGet(context) {
   const raw = await GROUPS.get(`session:${sessionId}`);
   if (!raw)  return json(200, { displayName: '', groups: [] });
 
-  const { displayName = '', groups = [] } = JSON.parse(raw);
+  let displayName = '', groups = [];
+  try {
+    ({ displayName = '', groups = [] } = JSON.parse(raw));
+  } catch (e) {
+    console.error(`session.js: corrupted session record for ${sessionId}:`, e.message);
+  }
   return json(200, { displayName, groups });
 }
 

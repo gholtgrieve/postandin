@@ -1882,7 +1882,7 @@ function syncSession() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ displayName: getDisplayName(), groups: getGroups() }),
-  }).catch(() => {});
+  }).catch(err => console.error('syncSession failed:', err));
 }
 
 // On page load, hydrate from the server session so groups survive localStorage loss.
@@ -2260,7 +2260,11 @@ function renderModalGroupsList() {
       const current = getGroups();
       const g = current[idx];
       if (!g) return;
-      await leaveGroup(g);
+      const ok = await leaveGroup(g);
+      if (!ok) {
+        showStatus("Couldn't leave the group — try again.", "error");
+        return;
+      }
       setGroups(current.filter((_, i) => i !== idx));
       renderModalGroupsList();
       renderGroupsRow();
@@ -2271,13 +2275,15 @@ function renderModalGroupsList() {
 
 async function leaveGroup(g) {
   try {
-    await fetch('/api/groups/leave', {
+    const r = await fetch('/api/groups/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupName: g.groupName, password: g.password, memberId: g.memberId }),
     });
-  } catch {}
-  // localStorage removal happens in caller regardless of server response
+    return r.ok;
+  } catch {
+    return false;
+  }
 }
 
 // When joining/creating a group, backfill RSVPs for sessions where user is already going
