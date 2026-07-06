@@ -1848,6 +1848,10 @@ function safeUrl(u) {
   }
 }
 
+function safeColor(color, fallback) {
+  return GROUP_COLORS.includes(color) ? color : fallback;
+}
+
 function migrateStorage() {
   const raw = localStorage.getItem(LEGACY_LS_KEY);
   if (!raw) return;
@@ -2066,7 +2070,7 @@ function _refreshSheetContent(sk) {
       const slug = getGroupSlug(g);
       const names = byGroup[slug] ?? [];
       return `<div class="sheet-group-cluster">
-        <div class="sheet-group-label" style="color:${g.color || 'var(--white-3)'}">Going from ${escapeHtml(g.groupName)}</div>
+        <div class="sheet-group-label" style="color:${safeColor(g.color, 'var(--white-3)')}">Going from ${escapeHtml(g.groupName)}</div>
         ${names.length
           ? names.map(n => `<div class="sheet-going-name" style="padding-left:14px">${escapeHtml(n)}</div>`).join('')
           : '<div class="sheet-going-name" style="color:var(--white-3);padding-left:14px">Nobody yet</div>'
@@ -2256,7 +2260,7 @@ function renderModalGroupsList() {
     return;
   }
   el.innerHTML = groups.map((g, i) => {
-    const color = g.color || 'var(--yellow)';
+    const color = safeColor(g.color, 'var(--yellow)');
     return `<div class="modal-group-row">
       <span class="modal-group-name" style="color:${color}">${escapeHtml(g.groupName)}</span>
       <button class="modal-leave-btn" data-idx="${i}">Leave</button>
