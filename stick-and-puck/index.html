@@ -1485,6 +1485,10 @@ footer a:hover { color: var(--yellow); }
 
 <script type="module">
 import { RINKS } from '/lib/rinks.js';
+import {
+  escapeHtml, safeUrl, safeColor, fmtTime, fmtDuration,
+  dayKey, fmtDayLabel, mkSessionKey, getGroupSlug
+} from '/stick-and-puck/modules/utils.js';
 
 // ─── Feature flag ─────────────────────────────────────────────────────────────
 const GROUPS_ENABLED = true;
@@ -1511,41 +1515,6 @@ async function fetchAll() {
     };
   }
   return results;
-}
-
-// ─── Formatting helpers ───────────────────────────────────────────────────────
-
-function fmtTime(d) {
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-}
-
-function fmtDuration(start, end) {
-  if (!end) return "";
-  const mins = Math.round((end - start) / 60000);
-  return mins >= 60
-    ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}`
-    : `${mins}m`;
-}
-
-function dayKey(d) {
-  // Build YYYY-MM-DD from local date components so a UTC Date like
-  // new Date("2026-06-21T01:00:00Z") correctly yields "2026-06-20" in PT.
-  const y  = d.getFullYear();
-  const m  = String(d.getMonth() + 1).padStart(2, '0');
-  const dy = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dy}`;
-}
-
-function fmtDayLabel(dateStr) {
-  const d = new Date(dateStr + "T12:00:00");
-  const today = new Date(); today.setHours(12, 0, 0, 0);
-  const diff = Math.round((d - today) / 86400000);
-  if (diff === 0) return { name: "Today", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
-  if (diff === 1) return { name: "Tomorrow", full: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) };
-  return {
-    name: d.toLocaleDateString("en-US", { weekday: "long" }),
-    full: d.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
-  };
 }
 
 // ─── DOM rendering ───────────────────────────────────────────────────────────
@@ -1835,23 +1804,6 @@ const _lsAvailable = (() => {
   }
 })();
 
-function escapeHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function safeUrl(u) {
-  try {
-    const parsed = new URL(u, 'https://placeholder.invalid');
-    return ['http:', 'https:'].includes(parsed.protocol) ? u : '#';
-  } catch {
-    return '#';
-  }
-}
-
-function safeColor(color, fallback) {
-  return GROUP_COLORS.includes(color) ? color : fallback;
-}
-
 function migrateStorage() {
   const raw = localStorage.getItem(LEGACY_LS_KEY);
   if (!raw) return;
@@ -1934,18 +1886,6 @@ function ensureGroupColors() {
     });
     if (changed) localStorage.setItem(GROUPS_LS_KEY, JSON.stringify(groups));
   } catch {}
-}
-
-function mkSessionKey(s) {
-  const d = s.start;
-  const date = d.toLocaleDateString('en-CA');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${s.rinkKey}|${date}|${hh}:${mm}`;
-}
-
-function getGroupSlug(group) {
-  return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
 }
 
 // Deduplicated names across ALL groups for a session (for amGoing checks)
@@ -2070,7 +2010,7 @@ function _refreshSheetContent(sk) {
       const slug = getGroupSlug(g);
       const names = byGroup[slug] ?? [];
       return `<div class="sheet-group-cluster">
-        <div class="sheet-group-label" style="color:${safeColor(g.color, 'var(--white-3)')}">Going from ${escapeHtml(g.groupName)}</div>
+        <div class="sheet-group-label" style="color:${safeColor(g.color, 'var(--white-3)', GROUP_COLORS)}">Going from ${escapeHtml(g.groupName)}</div>
         ${names.length
           ? names.map(n => `<div class="sheet-going-name" style="padding-left:14px">${escapeHtml(n)}</div>`).join('')
           : '<div class="sheet-going-name" style="color:var(--white-3);padding-left:14px">Nobody yet</div>'
@@ -2260,7 +2200,7 @@ function renderModalGroupsList() {
     return;
   }
   el.innerHTML = groups.map((g, i) => {
-    const color = safeColor(g.color, 'var(--yellow)');
+    const color = safeColor(g.color, 'var(--yellow)', GROUP_COLORS);
     return `<div class="modal-group-row">
       <span class="modal-group-name" style="color:${color}">${escapeHtml(g.groupName)}</span>
       <button class="modal-leave-btn" data-idx="${i}">Leave</button>
