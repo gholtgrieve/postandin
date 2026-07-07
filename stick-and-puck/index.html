@@ -1494,6 +1494,7 @@ import {
   getGroups, setGroups, getDisplayName, setDisplayName, syncSession,
   initSession, ensureGroupColors
 } from '/stick-and-puck/modules/storage.js';
+import { sessionMap, rsvpCache, selectedRinks } from '/stick-and-puck/modules/state.js';
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
@@ -1523,11 +1524,7 @@ async function fetchAll() {
 
 let allData = null;
 let activeFilter = "all";
-let selectedRinks = new Set();
 
-// Group feature state
-const sessionMap = {};   // sessionKey → session object, rebuilt on each render
-const rsvpCache  = {};   // sessionKey → { groupSlug: [displayName,...] }
 let   sheetSession = null; // { s, sk } for the currently-open bottom sheet
 
 function showStatus(msg, type = "loading") {
