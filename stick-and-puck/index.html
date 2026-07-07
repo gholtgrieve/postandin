@@ -1494,7 +1494,11 @@ import {
   getGroups, setGroups, getDisplayName, setDisplayName, syncSession,
   initSession, ensureGroupColors
 } from '/stick-and-puck/modules/storage.js';
-import { sessionMap, rsvpCache, selectedRinks } from '/stick-and-puck/modules/state.js';
+import {
+  sessionMap, rsvpCache, selectedRinks,
+  allData, setAllData, activeFilter, setActiveFilter,
+  sheetSession, setSheetSession, activeGroupSheet, setActiveGroupSheet
+} from '/stick-and-puck/modules/state.js';
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
@@ -1521,11 +1525,6 @@ async function fetchAll() {
 }
 
 // ─── DOM rendering ───────────────────────────────────────────────────────────
-
-let allData = null;
-let activeFilter = "all";
-
-let   sheetSession = null; // { s, sk } for the currently-open bottom sheet
 
 function showStatus(msg, type = "loading") {
   const el = document.getElementById("statusBanner");
@@ -1746,7 +1745,7 @@ async function loadData() {
   showStatus("Fetching sessions from all rinks…");
 
   try {
-    allData = await fetchAll();
+    setAllData(await fetchAll());
     const totalSessions = Object.values(allData).reduce((n, r) => n + r.sessions.length, 0);
     showStatus(`Loaded ${totalSessions} sessions`, "success");
     renderLegend(allData);
@@ -1764,7 +1763,7 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    activeFilter = btn.dataset.filter;
+    setActiveFilter(btn.dataset.filter);
     if (allData) renderSessions(allData);
   });
 });
@@ -1938,11 +1937,8 @@ function sessionMatchesDayFilter(s) {
   return s.start <= limit;
 }
 
-// Group info bottom sheet
-let activeGroupSheet = null;
-
 function openGroupSheet(group) {
-  activeGroupSheet = group;
+  setActiveGroupSheet(group);
   const slug = getGroupSlug(group);
 
   document.getElementById('groupSheetTitle').textContent = group.groupName;
@@ -2039,7 +2035,7 @@ function closeGroupSheet() {
     overlay.classList.remove('open');
     sheet.classList.remove('open');
   }, { once: true });
-  activeGroupSheet = null;
+  setActiveGroupSheet(null);
 }
 
 // Groups row — one chip per group (always active) + Manage groups button
@@ -2157,7 +2153,7 @@ async function backfillRsvpForGroup(g) {
 
 // Bottom sheet
 function openBottomSheet(s, sk) {
-  sheetSession = { s, sk };
+  setSheetSession({ s, sk });
   document.getElementById('sheetRink').textContent     = s.rink.name.toUpperCase();
   document.getElementById('sheetDatetime').textContent =
     `${s.start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })} · ${fmtTime(s.start)}`;
@@ -2181,7 +2177,7 @@ function closeBottomSheet() {
     overlay.classList.remove('open');
     sheet.classList.remove('open');
   }, { once: true });
-  sheetSession = null;
+  setSheetSession(null);
 }
 
 // Sync the name section between display mode and edit mode
