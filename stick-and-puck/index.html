@@ -1487,7 +1487,7 @@ footer a:hover { color: var(--yellow); }
 import { RINKS } from '/lib/rinks.js';
 import {
   escapeHtml, safeUrl, safeColor, fmtTime, fmtDuration,
-  dayKey, fmtDayLabel, mkSessionKey, getGroupSlug
+  dayKey, fmtDayLabel, mkSessionKey, getGroupSlug, GOING_PERSON_SVG
 } from '/stick-and-puck/modules/utils.js';
 import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, migrateStorage,
@@ -1499,6 +1499,11 @@ import {
   allData, setAllData, activeFilter, setActiveFilter,
   sheetSession, setSheetSession, activeGroupSheet, setActiveGroupSheet
 } from '/stick-and-puck/modules/state.js';
+import {
+  allUniqueGoing, activeUniqueGoing, updateIndicatorEl,
+  updateGoingIndicators, maybeShowIconTip, doToggleGoing,
+  _refreshSheetContent, backfillRsvpForGroup
+} from '/stick-and-puck/modules/rsvp.js';
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
@@ -1698,8 +1703,6 @@ function renderSessions(data) {
     `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
 }
 
-const GOING_PERSON_SVG = `<svg class="going-person" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 14c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5"/></svg>`;
-
 function sessionRow(s) {
   const timeStr = fmtTime(s.start);
   const dur = fmtDuration(s.start, s.end);
@@ -1781,142 +1784,6 @@ loadData();
 // Multi-group model: displayName is stored at a top-level key shared across all
 // groups. Each group entry is { groupName, password, memberId }.
 // Old single-group format (postandin_group) is migrated automatically on load.
-
-// Deduplicated names across ALL groups for a session (for amGoing checks)
-function allUniqueGoing(sk) {
-  const byGroup = rsvpCache[sk] ?? {};
-  const seen = new Set();
-  const result = [];
-  for (const names of Object.values(byGroup)) {
-    for (const n of names) {
-      const key = n.toLowerCase();
-      if (!seen.has(key)) { seen.add(key); result.push(n); }
-    }
-  }
-  return result;
-}
-
-// All groups are always active — same as allUniqueGoing
-function activeUniqueGoing(sk) {
-  return allUniqueGoing(sk);
-}
-
-function updateIndicatorEl(btn, sk) {
-  const activeNames = activeUniqueGoing(sk);
-  if (!activeNames.length) {
-    btn.innerHTML = GOING_PERSON_SVG;
-    btn.classList.remove('has-going');
-    return;
-  }
-  btn.classList.add('has-going');
-  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-count">${activeNames.length}</span>`;
-}
-
-async function updateGoingIndicators() {
-  if (!GROUPS_ENABLED) return;
-  const groups = getGroups();
-  if (!groups.length) return;
-  const btns = [...document.querySelectorAll('.going-btn')];
-  if (!btns.length) return;
-  const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
-
-  // One request for all groups instead of one per (session × group).
-  const slugs = groups.map(g => getGroupSlug(g));
-  let groupMaps = {};
-  try {
-    const r = await fetch(`/api/groups/rsvp?groupSlugs=${slugs.map(encodeURIComponent).join(',')}`);
-    if (r.ok) groupMaps = await r.json();
-  } catch {}
-
-  for (const sk of keys) {
-    rsvpCache[sk] = {};
-    for (const slug of slugs) {
-      rsvpCache[sk][slug] = (groupMaps[slug] ?? {})[sk] ?? [];
-    }
-  }
-
-  btns.forEach(btn => updateIndicatorEl(btn, btn.dataset.sessionKey));
-  maybeShowIconTip();
-}
-
-function maybeShowIconTip() {
-  if (localStorage.getItem('postandin_icon_tip_seen')) return;
-  const firstGoing = document.querySelector('.going-btn.has-going');
-  if (!firstGoing) return;
-
-  const tip = document.createElement('div');
-  tip.className = 'icon-tip';
-  tip.textContent = "Tap the person icon to see who’s going and add yourself";
-  document.body.appendChild(tip);
-
-  const rect = firstGoing.getBoundingClientRect();
-  tip.style.top = (rect.bottom + 6) + 'px';
-  tip.style.right = '16px';
-
-  const dismiss = () => {
-    tip.remove();
-    localStorage.setItem('postandin_icon_tip_seen', '1');
-    document.removeEventListener('click', dismiss);
-    document.removeEventListener('touchstart', dismiss);
-  };
-  requestAnimationFrame(() => {
-    document.addEventListener('click', dismiss);
-    document.addEventListener('touchstart', dismiss);
-  });
-}
-
-async function doToggleGoing(s, sk, goingValue) {
-  const groups = getGroups();
-  const displayName = getDisplayName();
-  if (!groups.length || !displayName) return;
-  rsvpCache[sk] = rsvpCache[sk] ?? {};
-  await Promise.all(groups.map(async g => {
-    const slug = getGroupSlug(g);
-    try {
-      const r = await fetch('/api/groups/rsvp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: goingValue }),
-      });
-      rsvpCache[sk][slug] = (await r.json()).going ?? [];
-    } catch(e) { console.error('RSVP error', e); }
-  }));
-  document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
-    updateIndicatorEl(btn, sk);
-  });
-  if (sheetSession?.sk === sk) _refreshSheetContent(sk);
-}
-
-function _refreshSheetContent(sk) {
-  const groups = getGroups();
-  const displayName = getDisplayName();
-  const byGroup = rsvpCache[sk] ?? {};
-  const activeGroups = groups;
-  // amGoing check uses all groups
-  const all = allUniqueGoing(sk);
-  const amGoing = !!displayName && all.some(n => n.toLowerCase() === displayName.toLowerCase());
-
-  const sheetNamesEl = document.getElementById('sheetNames');
-  if (!activeGroups.length) {
-    sheetNamesEl.innerHTML = '<span style="color:var(--white-3)">Nobody yet</span>';
-  } else {
-    sheetNamesEl.innerHTML = activeGroups.map(g => {
-      const slug = getGroupSlug(g);
-      const names = byGroup[slug] ?? [];
-      return `<div class="sheet-group-cluster">
-        <div class="sheet-group-label" style="color:${safeColor(g.color, 'var(--white-3)', GROUP_COLORS)}">Going from ${escapeHtml(g.groupName)}</div>
-        ${names.length
-          ? names.map(n => `<div class="sheet-going-name" style="padding-left:14px">${escapeHtml(n)}</div>`).join('')
-          : '<div class="sheet-going-name" style="color:var(--white-3);padding-left:14px">Nobody yet</div>'
-        }
-      </div>`;
-    }).join('');
-  }
-
-  const btn = document.getElementById('sheetToggleBtn');
-  btn.textContent = amGoing ? "I'm not going" : "I'm going";
-  btn.className = `sheet-toggle-btn${amGoing ? ' going' : ''}`;
-}
 
 // Returns true if session falls within the window implied by the current day filter
 function sessionMatchesDayFilter(s) {
@@ -2128,27 +1995,6 @@ async function leaveGroup(g) {
   } catch {
     return false;
   }
-}
-
-// When joining/creating a group, backfill RSVPs for sessions where user is already going
-async function backfillRsvpForGroup(g) {
-  const displayName = getDisplayName();
-  if (!displayName) return;
-  const slug = getGroupSlug(g);
-  await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
-    const amGoing = Object.values(byGroup).some(names =>
-      names.some(n => n.toLowerCase() === displayName.toLowerCase())
-    );
-    if (!amGoing) return;
-    try {
-      const r = await fetch('/api/groups/rsvp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: true }),
-      });
-      if (r.ok) rsvpCache[sk][slug] = (await r.json()).going ?? [];
-    } catch {}
-  }));
 }
 
 // Bottom sheet

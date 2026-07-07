@@ -59,3 +59,5 @@ export function mkSessionKey(s) {
 export function getGroupSlug(group) {
   return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
 }
+
+export const GOING_PERSON_SVG = `<svg class="going-person" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 14c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5"/></svg>`;
