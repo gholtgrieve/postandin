@@ -458,6 +458,15 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function safeUrl(u) {
+  try {
+    const parsed = new URL(u, 'https://placeholder.invalid');
+    return ['http:', 'https:'].includes(parsed.protocol) ? u : '#';
+  } catch {
+    return '#';
+  }
+}
+
 function renderSkeletons() {
   const rows = Array.from({length: 5}, () => `
     <div class="skeleton-row">
@@ -485,7 +494,7 @@ function renderCoaches(coaches, filtersActive) {
 
   list.innerHTML = coaches.map(c => {
     const avatarHtml = c.headshot_url
-      ? `<img src="${esc(c.headshot_url)}" alt="${esc(c.name)}" loading="lazy">`
+      ? `<img src="${esc(safeUrl(c.headshot_url))}" alt="${esc(c.name)}" loading="lazy">`
       : `<div class="coach-initials">${esc(c.initials || c.name.slice(0,2).toUpperCase())}</div>`;
 
     const specialtyTags = (c.specialty || [])

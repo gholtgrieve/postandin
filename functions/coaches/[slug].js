@@ -86,7 +86,7 @@ function renderHtml(coach) {
   const prefs  = new Set(coach.contact_preference);
 
   const avatarLg = coach.headshot_url
-    ? `<img src="${esc(coach.headshot_url)}" alt="${esc(coach.name)}" class="profile-photo-img">`
+    ? `<img src="${esc(safeUrl(coach.headshot_url))}" alt="${esc(coach.name)}" class="profile-photo-img">`
     : `<div class="profile-initials">${esc(coach.initials || coach.name.slice(0,2).toUpperCase())}</div>`;
 
   const allTags = [
@@ -111,7 +111,7 @@ function renderHtml(coach) {
     <section class="profile-section">
       <h2 class="section-heading">Photos</h2>
       <div class="photos-row">
-        ${photos.map(url => `<img src="${esc(url)}" data-full="${esc(url)}" alt="" class="photo-thumb" loading="lazy">`).join('')}
+        ${photos.map(url => `<img src="${esc(safeUrl(url))}" data-full="${esc(safeUrl(url))}" alt="" class="photo-thumb" loading="lazy">`).join('')}
       </div>
     </section>` : '';
 
