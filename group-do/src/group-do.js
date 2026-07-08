@@ -107,8 +107,23 @@ export class GroupDO extends DurableObject {
     await this._ensureMigrated(slug);
 
     const members = (await this.ctx.storage.get('members')) ?? [];
+    const leavingMember = members.find(m => m.id === memberId);
     const filtered = members.filter(m => m.id !== memberId);
     await this.ctx.storage.put('members', filtered);
+
+    // Purge this member's display name from all RSVP lists on leave — same
+    // removal setRsvp() already does for an ordinary "not going" toggle.
+    // KNOWN LIMITATION: if another current member shares this exact display
+    // name (no uniqueness is enforced anywhere), this can also remove their
+    // RSVP for the same sessions — this mirrors an identical, pre-existing
+    // collision risk in setRsvp()'s own going:false branch, not a new one.
+    if (leavingMember?.displayName) {
+      const rsvp = (await this.ctx.storage.get('rsvp')) ?? {};
+      for (const sk of Object.keys(rsvp)) {
+        rsvp[sk] = rsvp[sk].filter(n => n !== leavingMember.displayName);
+      }
+      await this.ctx.storage.put('rsvp', rsvp);
+    }
 
     return { ok: true };
   }
