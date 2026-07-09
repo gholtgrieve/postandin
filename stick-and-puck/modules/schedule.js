@@ -167,7 +167,7 @@ export function renderSessions(data) {
   hardErrors.forEach(e => {
     html += `<div class="rink-error">
       <span>⚠️</span>
-      <span><strong>${e.rink.name}</strong> failed to load — try the rink's own site below.</span>
+      <span><strong>${e.rink.name}</strong> failed to load — <a href="${escapeHtml(safeUrl(e.rink.url))}" target="_blank" rel="noopener">check the rink's own site ↗</a></span>
     </div>`;
   });
 

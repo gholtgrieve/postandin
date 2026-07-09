@@ -51,6 +51,22 @@ async function runScrape(env, opts = {}) {
     console.error('runScrape: every rink failed this run — keeping existing schedule:cache instead of overwriting with an all-failed payload');
     return;
   }
+
+  // Per-rink last-known-good merge: if a rink failed this run but succeeded in
+  // the previous cache, carry its data forward (up to 24h old) so an
+  // intermittent upstream outage doesn't surface an error to every visitor.
+  const prev = await env.SCHEDULE.get('schedule:cache', { type: 'json' });
+  const MAX_CARRY_MS = 24 * 60 * 60 * 1000;
+  for (const key of Object.keys(data)) {
+    if (data[key].ok !== false) continue;
+    const prevEntry = prev?.data?.[key];
+    if (!prevEntry?.ok) continue;
+    const prevTs = prevEntry.fetchedAt ?? prev.fetchedAt;
+    if (!prevTs || Date.now() - new Date(prevTs).getTime() > MAX_CARRY_MS) continue;
+    data[key] = { ...prevEntry, stale: true, fetchedAt: prevTs };
+    console.error(`runScrape: ${key} failed, carrying forward data from ${prevTs}`);
+  }
+
   const payload = JSON.stringify({ fetchedAt: new Date().toISOString(), data });
   // 2-hour TTL: if the scheduler stops running, the Pages Function falls back
   // to live scraping rather than serving indefinitely-stale data.
