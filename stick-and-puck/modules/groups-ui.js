@@ -166,7 +166,7 @@ export function renderGroupsRow() {
     }).join('');
   }
   html += `<span class="spacer"></span>`;
-  html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups<span class="beta-badge">Beta</span></button>`;
+  html += `<button class="manage-groups-btn" id="manageGroupsBtn">&#9881; Manage groups</button>`;
   html += `<button class="groups-help-btn" id="groupsHelpBtn" aria-label="What are groups?">?</button>`;
   el.innerHTML = html;
 
