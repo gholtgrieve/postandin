@@ -1,3 +1,8 @@
+import { readThrough } from '../../lib/kvCache.js';
+
+const FRESH_MS   = 5 * 60 * 1000;
+const STALE_TTL_S = 24 * 60 * 60;
+
 const FIELDS = [
   'name','slug','cert','specialty','age_groups','levels','rinks',
   'private_lessons','lessons_detail','bio','teaser','teams_coached',
@@ -77,7 +82,14 @@ export async function onRequest(context) {
       });
     }
 
-    const coaches = await fetchLiveCoaches(apiKey, baseId);
+    const coaches = await readThrough(
+      env.GROUPS,
+      'coaches:list',
+      FRESH_MS,
+      STALE_TTL_S,
+      () => fetchLiveCoaches(apiKey, baseId),
+      context.waitUntil.bind(context),
+    );
     return new Response(JSON.stringify(coaches), { headers: HEADERS });
   } catch (e) {
     console.error(e.message, e.stack);

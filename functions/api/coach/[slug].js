@@ -1,8 +1,25 @@
+import { readThrough } from '../../../lib/kvCache.js';
+
+const FRESH_MS    = 5 * 60 * 1000;
+const STALE_TTL_S = 24 * 60 * 60;
+
 const HEADERS = {
   'Content-Type': 'application/json',
   'Cache-Control': 'public, max-age=300',
   'Access-Control-Allow-Origin': '*',
 };
+
+async function fetchLiveRecord(slug, apiKey, baseId) {
+  const formula = `AND({slug} = "${slug.replace(/"/g, '')}", {status} = "Live")`;
+  const params_qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
+  const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${params_qs}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`Airtable HTTP ${res.status}`);
+  const data = await res.json();
+  return data.records?.length ? data.records[0] : null;
+}
 
 function mapRecord(r) {
   const f = r.fields ?? {};
@@ -44,21 +61,22 @@ export async function onRequest(context) {
   }
 
   try {
-    const formula = `AND({slug} = "${slug.replace(/"/g, '')}", {status} = "Live")`;
-    const params_qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
-    const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${params_qs}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    if (!res.ok) throw new Error(`Airtable HTTP ${res.status}`);
+    const record = await readThrough(
+      env.GROUPS,
+      `coaches:profile:${slug}`,
+      FRESH_MS,
+      STALE_TTL_S,
+      () => fetchLiveRecord(slug, apiKey, baseId),
+      context.waitUntil.bind(context),
+    );
 
-    const data = await res.json();
-    if (!data.records?.length) {
+    if (!record) {
       return new Response(JSON.stringify({ error: 'Not found' }), {
         status: 404, headers: HEADERS,
       });
     }
 
-    return new Response(JSON.stringify(mapRecord(data.records[0])), { headers: HEADERS });
+    return new Response(JSON.stringify(mapRecord(record)), { headers: HEADERS });
   } catch (e) {
     console.error(e.message, e.stack);
     return new Response(JSON.stringify({ error: 'Unable to load this coach profile right now.' }), {

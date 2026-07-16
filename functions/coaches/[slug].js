@@ -1,3 +1,8 @@
+import { readThrough } from '../../lib/kvCache.js';
+
+const FRESH_MS    = 5 * 60 * 1000;
+const STALE_TTL_S = 24 * 60 * 60;
+
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -40,22 +45,20 @@ function tag(label, specialty = false) {
   return `<span class="${cls}">${esc(label)}</span>`;
 }
 
-async function fetchCoach(slug, env) {
-  const apiKey = env.AIRTABLE_API_KEY;
-  const baseId = env.AIRTABLE_BASE_ID;
-  if (!apiKey || !baseId) return null;
-
+async function fetchLiveRecord(slug, apiKey, baseId) {
   const formula = `AND({slug} = "${slug.replace(/"/g, '')}", {status} = "Live")`;
   const qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
   const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${qs}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
     signal: AbortSignal.timeout(8000),
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`Airtable HTTP ${res.status}`);
   const data = await res.json();
-  if (!data.records?.length) return null;
+  return data.records?.length ? data.records[0] : null;
+}
 
-  const f = data.records[0].fields ?? {};
+function mapCoach(record) {
+  const f = record.fields ?? {};
   return {
     name:               f.name ?? '',
     slug:               f.slug ?? '',
@@ -481,12 +484,25 @@ footer { background: var(--ink); border-top: 2px solid var(--mustard); color: va
 
 export async function onRequest(context) {
   const slug = context.params.slug;
+  const { env } = context;
+  const apiKey = env.AIRTABLE_API_KEY;
+  const baseId = env.AIRTABLE_BASE_ID;
 
-  let coach;
-  try {
-    coach = await fetchCoach(slug, context.env);
-  } catch {
-    coach = null;
+  let coach = null;
+  if (apiKey && baseId) {
+    try {
+      const record = await readThrough(
+        env.GROUPS,
+        `coaches:profile:${slug}`,
+        FRESH_MS,
+        STALE_TTL_S,
+        () => fetchLiveRecord(slug, apiKey, baseId),
+        context.waitUntil.bind(context),
+      );
+      coach = record ? mapCoach(record) : null;
+    } catch {
+      coach = null;
+    }
   }
 
   if (!coach) {
