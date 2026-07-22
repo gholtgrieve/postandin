@@ -10,7 +10,7 @@ const HEADERS = {
 };
 
 async function fetchLiveRecord(slug, apiKey, baseId) {
-  const formula = `AND({slug} = "${slug.replace(/"/g, '')}", {status} = "Live")`;
+  const formula = `{slug} = "${slug.replace(/"/g, '')}"`;
   const params_qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
   const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${params_qs}`, {
     headers: { Authorization: `Bearer ${apiKey}` },

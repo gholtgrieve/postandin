@@ -46,7 +46,7 @@ function tag(label, specialty = false) {
 }
 
 async function fetchLiveRecord(slug, apiKey, baseId) {
-  const formula = `AND({slug} = "${slug.replace(/"/g, '')}", {status} = "Live")`;
+  const formula = `{slug} = "${slug.replace(/"/g, '')}"`;
   const qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
   const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${qs}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
@@ -79,6 +79,7 @@ function mapCoach(record) {
     photo_urls:         f.photo_urls ?? '',
     links:              f.links ?? '',
     initials:           f.initials ?? '',
+    status:             f.status ?? '',
   };
 }
 
@@ -349,6 +350,18 @@ footer { background: var(--ink); border-top: 2px solid var(--mustard); color: va
 footer a { color: var(--rule); text-decoration: none; }
 footer a:hover { color: var(--mustard); }
 
+/* ── Draft banner ── */
+.draft-banner {
+  background: #B00020;
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .profile-body { grid-template-columns: 1fr; }
@@ -365,6 +378,7 @@ footer a:hover { color: var(--mustard); }
 </head>
 <body>
 
+${coach.status !== 'Live' ? '<div class="draft-banner">DRAFT — NOT YET PUBLISHED</div>' : ''}
 <header class="site-header">
   <div class="header-inner">
     <div class="logo">
