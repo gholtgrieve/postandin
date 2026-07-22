@@ -9,8 +9,9 @@ const HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
-async function fetchLiveRecord(slug, apiKey, baseId) {
-  const formula = `{slug} = "${slug.replace(/"/g, '')}"`;
+async function fetchPreviewRecord(slug, apiKey, baseId) {
+  const escapedSlug = slug.replace(/"/g, '');
+  const formula = `AND({slug} = "${escapedSlug}", OR({status} = "Live", {status} = "Draft"))`;
   const params_qs = new URLSearchParams({ filterByFormula: formula, maxRecords: '1' });
   const res = await fetch(`https://api.airtable.com/v0/${baseId}/Coaches?${params_qs}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
@@ -63,10 +64,13 @@ export async function onRequest(context) {
   try {
     const record = await readThrough(
       env.GROUPS,
-      `coaches:profile:${slug}`,
+      // v2: bumped when per-slug lookups were restricted to Live/Draft. Entries
+      // cached under the old key predate that filter and may hold Archived or
+      // otherwise non-public records, so they must not be reused.
+      `coaches:profile:v2:${slug}`,
       FRESH_MS,
       STALE_TTL_S,
-      () => fetchLiveRecord(slug, apiKey, baseId),
+      () => fetchPreviewRecord(slug, apiKey, baseId),
       context.waitUntil.bind(context),
     );
 
