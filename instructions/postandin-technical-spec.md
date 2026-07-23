@@ -224,7 +224,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   /api/
     coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list`)
     /coach/
-      [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:{slug}`)
+      [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v2:{slug}`)
     /groups/
       create.js            → POST create a group
       join.js              → POST join a group
@@ -233,9 +233,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
       session.js           → GET/POST session sync
       nudge.js             → GET share text (no KV reads)
     schedule.js             → GET pre-scraped schedule from KV (written by scheduler Worker)
-    rectimes.js, kentvalley.js, everett.js, fareharbor.js → per-rink live-scrape proxies
+    rectimes.js, everett.js → per-rink live-scrape proxies
   /coaches/
-    [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:{slug}` with /api/coach/[slug].js)
+    [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v2:{slug}` with /api/coach/[slug].js)
 /lib/
   rinks.js                 → Rink config used by both schedule.js and the scheduler Worker
   scrapeAll.js              → Shared scraper orchestration, used by schedule.js (fallback) and the scheduler cron
@@ -453,8 +453,7 @@ details that shouldn't reach a browser. Every catch block should:
    only the error text changes).
 
 This applies to `functions/api/coaches.js`, `functions/api/coach/[slug].js`,
-`functions/api/rectimes.js`, `functions/api/kentvalley.js`,
-`functions/api/everett.js`, `functions/api/fareharbor.js`, `lib/scrapeAll.js`
+`functions/api/rectimes.js`, `functions/api/everett.js`, `lib/scrapeAll.js`
 (consumed by `functions/api/schedule.js` and the scheduler cron), and the
 client-side load-failure handling in `stick-and-puck/modules/schedule.js`'s
 `loadData()` (moved out of `stick-and-puck/index.html` in the July 2026
@@ -469,13 +468,13 @@ forward too.
 - Used as the database for the Coaches directory.
 - Base name: PostAndIn. Base ID: stored as the `AIRTABLE_BASE_ID` Cloudflare secret — not written out here (see Environment Variables & Secrets above for why).
 - Table: Coaches. Key field: `slug` (URL-safe string, e.g. `mike-kowalski`).
-- Status field controls *listing* visibility: only records with `status = Live` are
-  returned by `/api/coaches` (the directory list). As of 2026-07-21, this filter
-  does **not** apply to per-slug lookups — `/coaches/[slug]/` and
-  `/api/coach/[slug]` resolve a coach by `slug` alone, regardless of status. This
-  is intentional: it lets Draft coaches be previewed at their direct URL (with a
-  red "DRAFT — NOT YET PUBLISHED" banner on the HTML page) before they're
-  published, while staying out of the public directory listing.
+- Status controls both listing visibility and per-slug access. Only records with
+  `status = Live` are returned by `/api/coaches` (the directory list). The
+  per-slug HTML and JSON lookups accept `Live` or `Draft` records using
+  `AND({slug} = "...", OR({status} = "Live", {status} = "Draft"))`; records with
+  any other status do not resolve. This intentionally lets Draft coaches be
+  previewed at their direct URL (with a red "DRAFT — NOT YET PUBLISHED" banner
+  on the HTML page) while keeping them out of the public directory listing.
 - Credentials stored as Cloudflare secrets: AIRTABLE_API_KEY, AIRTABLE_BASE_ID.
 - API calls made server-side from Cloudflare Functions only — never from the browser.
 - Pagination handled in coaches.js to ensure all records are fetched.
@@ -548,7 +547,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list` and `coaches:profile:{slug}` (added 2026-07-16, commit `2b20051` — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list` and `coaches:profile:v2:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; the current per-profile key is versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
 - Session key format: `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`
 - KV reads are gated by a non-HttpOnly cookie (`sp_has_session=1`) to prevent unnecessary reads from non-group visitors.
 - The $5/month Workers Paid plan provides higher KV operation limits than the free tier.
@@ -564,7 +563,7 @@ destructive KV operation.
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
   incidentally captures `schedule:cache` and the `coaches:list` /
-  `coaches:profile:{slug}` cache keys, since they share the namespace). These
+  `coaches:profile:v2:{slug}` cache keys, since they share the namespace). These
   cache entries are regenerable and harmless in a backup; they're not group data.
 - `backups/groups-do-YYYY-MM-DD.json` — a best-effort sweep of Durable Object
   group data, via a read-only `export(slug)` method on `GroupDO` that never
@@ -620,13 +619,13 @@ Groups are identified by a name + password pair. No email, no OAuth, no third-pa
 7. User clicks a coach → navigates to `/coaches/[slug]/`
 8. `/coaches/[slug]/` is handled by `/functions/coaches/[slug].js`
 9. That function resolves the single record through the same read-through cache
-   (key `coaches:profile:{slug}`) and renders the full HTML response. The JSON
+   (key `coaches:profile:v2:{slug}`) and renders the full HTML response. The JSON
    endpoint `/api/coach/[slug]` shares the *same* per-slug cache key, so a
    profile-page view and an API call for the same coach warm each other's cache.
-   As of 2026-07-21, this lookup filters by `{slug}` only — **not** by
-   `status` — so both Draft and Live coaches resolve here; only the directory
-   list (`/api/coaches`, step 3–4 above) still filters to `status = "Live"`.
-   See "Draft coach preview" note below.
+   This lookup requires the matching record to have `status = "Live"` or
+   `status = "Draft"`, so both publishable states resolve here while any other
+   status does not. Only the directory list (`/api/coaches`, step 3–4 above)
+   remains restricted to `status = "Live"`. See "Draft coach preview" below.
 
 ### Caching note (added 2026-07-16, commit `2b20051`)
 Until this change, every coaches request hit Airtable live — the
@@ -653,7 +652,7 @@ existing **`GROUPS` KV namespace** (no new binding — the same pattern
 
 **What each key caches differs by endpoint, intentionally:** `coaches:list`
 stores the already-**mapped** array (the list endpoint maps before caching),
-while `coaches:profile:{slug}` stores the **raw Airtable record** (the full
+while `coaches:profile:v2:{slug}` stores the **raw Airtable record** (the full
 record including `r.id`, not just its `fields`), and each per-slug endpoint maps
 or renders from that raw record on the way out. Caching the raw record keeps the
 JSON body shape identical to before (the `/api/coach/[slug]` response includes
@@ -668,11 +667,12 @@ upstream error is never written to cache as a sticky not-found — only a genuin
 Previously, both per-slug lookups (`functions/coaches/[slug].js` and
 `functions/api/coach/[slug].js`) filtered on `AND({slug}="...", {status}="Live")`,
 so a Draft coach's profile page 404'd — there was no way to preview a coach
-before publishing except flipping status to Live. That filter is now just
-`{slug}="..."`, so:
-- A coach's profile page and JSON endpoint resolve **regardless of status**
-  (Draft or Live), letting the record be reviewed at its real URL before
-  publishing.
+before publishing except flipping status to Live. The lookup now accepts the
+two allowed workflow states with
+`AND({slug}="...", OR({status}="Live", {status}="Draft"))`, so:
+- A coach's profile page and JSON endpoint resolve when the status is **Live or
+  Draft**, letting a Draft record be reviewed at its real URL before publishing.
+  Records with any other status do not resolve.
 - The **directory list** (`/api/coaches`) is unchanged and still filters to
   `status = "Live"` only, so Draft coaches remain absent from `/coaches/`.
 - `functions/coaches/[slug].js` now maps the `status` field and renders a
@@ -723,7 +723,12 @@ As of the last resync, the actual per-rink sources are:
 | Everett Community Ice Rink | Custom (Angel of the Winds) | |
 | Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | |
 
-`functions/api/fareharbor.js` still exists but has no live caller — `RINKS` has no `fareharbor` system entry anymore, so the only thing that ever called it (`fetchFareHarbor()` in `stick-and-puck/index.html`) is itself confirmed-dead client-side code, not something actually wired up. Don't assume FareHarbor is a current data source without checking `lib/rinks.js` first.
+The legacy Pages proxies `functions/api/kentvalley.js` and
+`functions/api/fareharbor.js` were deleted in commit `92e53ad`. Kent Valley is
+handled by `lib/scrapers/kentvalley.js` through the shared schedule pipeline;
+FareHarbor is not a live session-data source. The FareHarbor URLs retained in
+`lib/scrapers/rectimes.js` are booking links only. Check `lib/rinks.js` before
+assuming any rink system is current.
 
 The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit-rinks.js`) independently checks FareHarbor item lists, DaySmart league names, and iCal summaries for session types not currently captured by the site — this is a monitoring/discovery tool, separate from the live data path above. Run periodically, especially when rinks update their schedules.
 
@@ -735,7 +740,7 @@ The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit
 |---|---|---|
 | name | Single line text | |
 | slug | Single line text | URL-safe, e.g. mike-kowalski |
-| status | Single select | Draft, Live. Controls directory-listing visibility only (`/api/coaches` filters to Live). Since 2026-07-21, does not gate the per-slug profile URL — see "Draft coach preview" under Data Flow — Coaches Directory. |
+| status | Single select | Draft, Live. `/api/coaches` lists only Live records; per-slug HTML and JSON lookups accept Live or Draft and reject any other status. See "Draft coach preview" under Data Flow — Coaches Directory. |
 | cert | Single line text | e.g. USA Hockey Level 4 · 18 years coaching |
 | specialty | Multiple select | Power Skating, Edge Work, Goalie, Shooting / Finishing, Stickhandling, Defense, Hockey IQ, Strength & Conditioning, Overall Development, Video / Game Analysis, Mental Skills / Sports Psychology, Checking & Physical Play, Special Teams, Other |
 | age_groups | Multiple select | 4U, 6U, 8U, 10U, 12U, 14U, 16U, 18U, Junior, Adult |
@@ -810,7 +815,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links only to Home and Stick & Puck. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
 | Coaches directory (/coaches/) | Under development — unlisted, reachable by direct URL | **As of 2026-07-22:** carries `noindex, nofollow`; absent from `sitemap.xml`; **no longer disallowed in `robots.txt`** (it must be crawlable for the `noindex` to be read — see Search Visibility & Routing); not linked from any publicly launched page. **KV read-through cached as of 2026-07-16 (commit `2b20051`)** — fixes the prior slow/intermittent-failure behavior; see Data Flow — Coaches Directory. |
-| Coach profile pages (/coaches/[slug]/) | Live, unlisted | Server-rendered from Airtable, **KV read-through cached as of 2026-07-16 (commit `2b20051`)**, sharing the per-slug cache key with `/api/coach/[slug]`. **As of 2026-07-21, resolves by slug regardless of status** — Draft coaches are viewable at their direct URL (with a red "DRAFT — NOT YET PUBLISHED" banner) for pre-publish preview, while still excluded from the `/coaches/` directory list; see "Draft coach preview" under Data Flow — Coaches Directory. **Known open bug (not yet fixed):** `functions/coaches/[slug].js` maps its Links section from a non-existent `links` field instead of `elite_prospects_url`, so the Links block never renders on server-rendered profiles. Deliberately left untouched by both the caching change and the Draft-preview change; slated as the next fix. |
+| Coach profile pages (/coaches/[slug]/) | Live, unlisted | Server-rendered from Airtable, **KV read-through cached as of 2026-07-16 (commit `2b20051`)**, sharing `coaches:profile:v2:{slug}` with `/api/coach/[slug]`. Per-slug lookups accept only Live or Draft records — Draft coaches are viewable at their direct URL (with a red "DRAFT — NOT YET PUBLISHED" banner) for pre-publish preview, while still excluded from the `/coaches/` directory list; see "Draft coach preview" under Data Flow — Coaches Directory. **Known open bug (not yet fixed):** `functions/coaches/[slug].js` maps its Links section from a non-existent `links` field instead of `elite_prospects_url`, so the Links block never renders on server-rendered profiles. Deliberately left untouched by both the caching change and the Draft-preview change; slated as the next fix. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | Under development — unlisted, reachable by direct URL | **Resolved 2026-07-22.** The long-standing contradiction (linked from the homepage footer and listed in `sitemap.xml`, despite the "do not link" rule) has been rolled back rather than ratified: `/pathway/` is now removed from `sitemap.xml`, removed from the homepage footer, and carries `noindex, nofollow`. It remains reachable by direct URL for review. |
 
