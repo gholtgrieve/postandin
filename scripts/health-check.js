@@ -107,6 +107,27 @@ async function checkCoachBadSlug() {
   }
 }
 
+// Cloudflare Pages falls back to the root index.html for unmatched paths unless a
+// root 404.html exists. That fallback is a soft 404 (HTTP 200 + homepage body), so
+// assert both the status code and that the body is not the homepage. HOMEPAGE_MARKER
+// is copy unique to index.html's hero — update it if that headline ever changes.
+const HOMEPAGE_MARKER = 'Seattle is a';
+
+async function checkNotFound(path, note) {
+  const label = `GET ${path} — 404, not the homepage${note ? ` (${note})` : ''}`;
+  let res, html;
+  try {
+    res = await get(path);
+    html = await res.text();
+  } catch (e) {
+    fail(label, `fetch error: ${e.message}`);
+    return;
+  }
+  if (res.status !== 404) { fail(label, `expected 404, got HTTP ${res.status}`); return; }
+  if (html.includes(HOMEPAGE_MARKER)) { fail(label, 'served homepage content'); return; }
+  ok(label);
+}
+
 async function checkGroupsSession() {
   const label = 'GET /api/groups/session — 200 with JSON body';
   let res, body;
@@ -131,6 +152,8 @@ await checkHtml('GET /stick-and-puck/ — 200', '/stick-and-puck/');
 await checkCoachesList();
 await checkCoachGoodSlug();
 await checkCoachBadSlug();
+await checkNotFound('/this-page-does-not-exist');
+await checkNotFound('/about/', 'deleted section, must not redirect to /');
 await checkGroupsSession();
 
 console.log(`\n${passed + failed} checks: ${passed} passed, ${failed} failed`);

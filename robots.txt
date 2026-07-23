@@ -1,7 +1,10 @@
+# Unfinished sections (/coaches/, /pathway/) are kept out of search
+# with <meta name="robots" content="noindex, nofollow"> on the pages themselves.
+# They are deliberately NOT disallowed here: a crawler has to be able to fetch
+# the page to see the noindex. robots.txt is not access control.
+
 User-agent: *
 Allow: /
-Disallow: /coaches/
-Disallow: /about/
 Disallow: /api/
 
 Sitemap: https://postandin.com/sitemap.xml

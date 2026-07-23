@@ -170,7 +170,7 @@ function renderHtml(coach) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex, nofollow">
 <title>${esc(coach.name)} — Post &amp; In Coaches</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -467,7 +467,7 @@ function render404(slug) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex, nofollow">
 <title>Coach Not Found — Post &amp; In</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
