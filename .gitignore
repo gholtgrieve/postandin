@@ -1,3 +1,11 @@
 .DS_Store
-instructions/
 .wrangler/
+
+# instructions/ holds working material that stays out of the repo (drafts,
+# audit reports, backlog notes, .docx files). The technical spec is the one
+# exception — it's tracked so it can be updated alongside the code it
+# describes. Note the pattern must be `instructions/*`, not `instructions/`:
+# git will not re-include a file whose parent directory is itself excluded,
+# so negating a path inside an excluded directory silently does nothing.
+instructions/*
+!instructions/postandin-technical-spec.md
