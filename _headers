@@ -3,3 +3,12 @@
 
 /*.css
   Cache-Control: no-cache
+
+# There is no build step, so Cloudflare Pages serves every tracked file as a
+# static asset — including instructions/postandin-technical-spec.md, which
+# became tracked on 2026-07-22. Keep internal docs out of search results.
+# X-Robots-Tag (not robots.txt Disallow) for the same reason the unfinished
+# HTML pages use a noindex meta tag: a blocked crawler never reads the
+# directive. See Search Visibility & Routing in the technical spec.
+/instructions/*
+  X-Robots-Tag: noindex, nofollow

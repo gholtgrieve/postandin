@@ -340,6 +340,24 @@ Cloudflare dashboard → Caching → Configuration → Purge Cached Content → 
 Purge. Verify with a cache-busting query string first to confirm origin
 behavior before concluding a deploy failed.
 
+### Every tracked file is a public URL
+There is no build step, so Cloudflare Pages publishes the repository as-is:
+**any file committed to `main` is served at its path on postandin.com.** This
+is easy to forget for non-web files. When this document became tracked on
+2026-07-22 it immediately became fetchable at
+`https://postandin.com/instructions/postandin-technical-spec.md` (HTTP 200,
+`text/markdown`) — a third indexable URL, contradicting the two-page rule
+above.
+
+Fixed in `_headers` with `X-Robots-Tag: noindex, nofollow` on
+`/instructions/*` — a header rather than a `robots.txt` `Disallow`, for
+exactly the reason given above: a blocked crawler never reads the directive.
+The file stays publicly readable by direct URL (the repo is public anyway);
+it just stays out of search.
+
+Before committing any new non-code file, ask whether it should be
+world-readable at a predictable URL.
+
 ### Nav policy
 Unfinished sections must not appear in navigation on `/` or `/stick-and-puck/`,
 including small footer links. Internal links *within* an unfinished section are
