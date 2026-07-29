@@ -3,13 +3,6 @@ import { readThrough } from '../../lib/kvCache.js';
 const FRESH_MS   = 5 * 60 * 1000;
 const STALE_TTL_S = 24 * 60 * 60;
 
-const FIELDS = [
-  'name','slug','cert','specialty','age_groups','levels','rinks',
-  'private_lessons','lessons_detail','bio','teaser','teams_coached',
-  'contact_email','contact_phone','contact_text','contact_preference',
-  'headshot_url','photo_urls','personal_url','initials',
-];
-
 const HEADERS = {
   'Content-Type': 'application/json',
   'Cache-Control': 'public, max-age=300',
@@ -41,10 +34,6 @@ function mapRecord(r) {
     bio:                f.bio ?? '',
     teaser:             f.teaser ?? '',
     teams_coached:      f.teams_coached ?? '',
-    contact_email:      f.contact_email ?? '',
-    contact_phone:      f.contact_phone ?? '',
-    contact_text:       f.contact_text ?? '',
-    contact_preference: f.contact_preference ?? [],
     headshot_url:       f.headshot_url ?? '',
     photo_urls:         f.photo_urls ?? '',
     personal_url:       safeUrl(f.personal_url ?? ''),
@@ -84,10 +73,10 @@ export async function onRequest(context) {
 
     const coaches = await readThrough(
       env.GROUPS,
-      // v2: the cached value is the mapped response, so bump when the response
-      // schema changes. v2 replaces elite_prospects_url with personal_url and
-      // forces an immediate fresh status-filtered list at launch.
-      'coaches:list:v2',
+      // v3: the cached value is the mapped response, so bump when the response
+      // schema changes. v3 removes contact fields that the directory does not
+      // use, keeping them out of the crawlable list response.
+      'coaches:list:v3',
       FRESH_MS,
       STALE_TTL_S,
       () => fetchLiveCoaches(apiKey, baseId),

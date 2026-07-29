@@ -273,23 +273,6 @@ main { min-height: 60vh; }
 }
 .coach-row:hover .coach-arrow { color: var(--mustard); }
 
-/* ── Skeleton ── */
-.skeleton {
-  background: linear-gradient(90deg, var(--card) 25%, var(--panel) 50%, var(--card) 75%);
-  background-size: 400% 100%;
-  animation: shimmer 1.2s ease-in-out infinite;
-}
-@keyframes shimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
-.skeleton-row {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  align-items: center;
-  gap: 16px;
-  padding: 16px clamp(1rem, 4vw, 2rem);
-  border-bottom: 1px solid var(--rule);
-  border-left: 3px solid transparent;
-}
-
 /* ── Empty state ── */
 .empty-state {
   padding: 80px clamp(1rem, 4vw, 2rem);
@@ -358,7 +341,6 @@ footer a:hover { color: var(--mustard); }
   .coach-avatar { width: 56px; height: 56px; }
   .coach-initials { font-size: 20px; }
   .coach-name { font-size: 18px; }
-  .skeleton-row { grid-template-columns: 56px 1fr; }
 }
 
 @media (max-width: 480px) {
@@ -409,7 +391,108 @@ footer a:hover { color: var(--mustard); }
 <main>
   <div class="main-inner">
     <div id="resultCount" class="result-count" style="display:none"></div>
-    <div id="coachList"></div>
+    <div id="coachList">
+      <!--
+        Crawlable fallback for the Live directory. The client refreshes this
+        list from /api/coaches and replaces it with the interactive version.
+        Keep these links in sync with sitemap.xml when Live status changes.
+      -->
+      <a class="coach-row" href="/coaches/donovan-guldenmann">
+        <div class="coach-avatar">
+          <img src="https://imagedelivery.net/D7NNVIoU9sYglQ4qOYHfHg/a375091f-8431-4826-c5df-ce6c0f472800/public" alt="Donovan Guldenmann" loading="lazy">
+        </div>
+        <div class="coach-info">
+          <div class="coach-name">Donovan Guldenmann</div>
+          <div class="coach-cert">Coaching Education Program (CEP) — Goalie</div>
+          <div class="coach-tags">
+            <span class="tag tag-specialty">Goalie</span>
+            <span class="tag tag-specialty">Video Analysis</span>
+            <span class="tag">8U</span>
+            <span class="tag">10U</span>
+            <span class="tag">12U</span>
+            <span class="tag">14U</span>
+            <span class="tag">16U</span>
+            <span class="tag">18U</span>
+            <span class="tag">Juniors (ages 16-20)</span>
+            <span class="tag">Adult</span>
+            <span class="tag">House</span>
+            <span class="tag">A / Select</span>
+            <span class="tag">AA</span>
+            <span class="tag">AAA</span>
+            <span class="tag">Beginner</span>
+            <span class="tag">Intermediate</span>
+            <span class="tag">Advanced</span>
+          </div>
+          <div class="coach-teaser">Assistant goalie director for Seattle Jr. and a coach with Pacific Coast Goaltending, specializing in individualized goalie development.</div>
+        </div>
+        <div class="coach-arrow">&#x2192;</div>
+      </a>
+      <a class="coach-row" href="/coaches/ian-doner">
+        <div class="coach-avatar">
+          <img src="https://imagedelivery.net/D7NNVIoU9sYglQ4qOYHfHg/37bb30e2-f158-44c1-8bb6-651f4ca76c00/public" alt="Ian Doner" loading="lazy">
+        </div>
+        <div class="coach-info">
+          <div class="coach-name">Ian Doner</div>
+          <div class="coach-tags">
+            <span class="tag tag-specialty">Power Skating</span>
+            <span class="tag tag-specialty">Shooting</span>
+            <span class="tag tag-specialty">Stickhandling</span>
+            <span class="tag tag-specialty">Hockey IQ</span>
+            <span class="tag tag-specialty">Defense</span>
+            <span class="tag tag-specialty">Overall Development</span>
+            <span class="tag">8U</span>
+            <span class="tag">10U</span>
+            <span class="tag">12U</span>
+            <span class="tag">14U</span>
+            <span class="tag">16U</span>
+            <span class="tag">18U</span>
+            <span class="tag">Adult</span>
+            <span class="tag">Juniors (ages 16-20)</span>
+            <span class="tag">House</span>
+            <span class="tag">A / Select</span>
+            <span class="tag">AA</span>
+            <span class="tag">AAA</span>
+            <span class="tag">Advanced</span>
+          </div>
+          <div class="coach-teaser">A decade coaching young players across Seattle, with a focus on deliberate practice and mastering the details</div>
+        </div>
+        <div class="coach-arrow">&#x2192;</div>
+      </a>
+      <a class="coach-row" href="/coaches/max-doner">
+        <div class="coach-avatar">
+          <img src="https://imagedelivery.net/D7NNVIoU9sYglQ4qOYHfHg/56195b30-bb44-4641-dea6-ccad40647f00/public" alt="Max Doner" loading="lazy">
+        </div>
+        <div class="coach-info">
+          <div class="coach-name">Max Doner</div>
+          <div class="coach-tags">
+            <span class="tag tag-specialty">Shooting</span>
+            <span class="tag tag-specialty">Stickhandling</span>
+            <span class="tag tag-specialty">Defense</span>
+            <span class="tag tag-specialty">Hockey IQ</span>
+            <span class="tag tag-specialty">Video Analysis</span>
+            <span class="tag tag-specialty">Mental Skills</span>
+            <span class="tag tag-specialty">Checking &amp; Physical Play</span>
+            <span class="tag tag-specialty">Special Teams</span>
+            <span class="tag tag-specialty">Overall Development</span>
+            <span class="tag">12U</span>
+            <span class="tag">14U</span>
+            <span class="tag">16U</span>
+            <span class="tag">18U</span>
+            <span class="tag">Juniors (ages 16-20)</span>
+            <span class="tag">Adult</span>
+            <span class="tag">House</span>
+            <span class="tag">A / Select</span>
+            <span class="tag">AA</span>
+            <span class="tag">AAA</span>
+            <span class="tag">Beginner</span>
+            <span class="tag">Intermediate</span>
+            <span class="tag">Advanced</span>
+          </div>
+          <div class="coach-teaser">With a lifetime in the game and NCAA D3 experience at Wisconsin-River Falls, Max Doner focuses on skills coaching</div>
+        </div>
+        <div class="coach-arrow">&#x2192;</div>
+      </a>
+    </div>
   </div>
 </main>
 
@@ -440,19 +523,6 @@ function safeUrl(u) {
   } catch {
     return '#';
   }
-}
-
-function renderSkeletons() {
-  const rows = Array.from({length: 5}, () => `
-    <div class="skeleton-row">
-      <div class="skeleton" style="width:72px;height:72px;flex-shrink:0"></div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div class="skeleton" style="height:18px;width:160px"></div>
-        <div class="skeleton" style="height:10px;width:220px"></div>
-        <div class="skeleton" style="height:10px;width:180px"></div>
-      </div>
-    </div>`).join('');
-  document.getElementById('coachList').innerHTML = rows;
 }
 
 function populateFilterOptions() {
@@ -532,17 +602,17 @@ function applyFilters() {
 }
 
 async function load() {
-  renderSkeletons();
   try {
     const res = await fetch('/api/coaches');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allCoaches = await res.json();
     populateFilterOptions();
     applyFilters();
-  } catch (e) {
-    document.getElementById('coachList').innerHTML =
-      `<div class="empty-state">Could not load coaches — please try again.</div>`;
-    document.getElementById('resultCount').style.display = 'none';
+  } catch {
+    // Leave the server-delivered Live coach rows usable if fresh data fails.
+    const count = document.getElementById('resultCount');
+    count.textContent = 'Showing saved coach listings. Filters are temporarily unavailable.';
+    count.style.display = 'block';
   }
 }
 

@@ -252,7 +252,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               /404.html, not a redirect.)
 /functions/
   /api/
-    coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v2`)
+    coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v3`)
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -312,7 +312,7 @@ either unfinished (reachable by direct URL, kept out of search) or gone.
 | Mechanism | Purpose |
 |---|---|
 | `sitemap.xml` | Lists launched pages, including the directory and every Live coach profile. |
-| `robots.txt` | `Allow: /`, `Disallow: /api/` only. Crawling is *permitted* for unfinished pages. |
+| `robots.txt` | `Allow: /`, plus a specific `Allow: /api/coaches` exception before `Disallow: /api/`. The exception lets search render the client-enhanced directory while other API routes remain blocked. Crawling is *permitted* for unfinished pages. |
 | `<meta name="robots" content="noindex, nofollow">` | On each unfinished page. This is what actually keeps them out of search. |
 
 **The critical interaction: never `Disallow` a page you're trying to `noindex`.**
@@ -339,9 +339,13 @@ previously present and inaccurate (hand-maintained dates that drifted). Absent
 values are better than misleading ones; don't reintroduce them without a process
 that actually keeps them correct.
 
-The sitemap is maintained manually. Whenever a coach changes between Draft and
-Live, add or remove that coach's canonical profile URL in the same publishing
-workflow. Draft profiles must never appear in the sitemap.
+The sitemap and the crawlable fallback rows in `coaches/index.html` are
+maintained manually. Whenever a coach changes between Draft and Live, add or
+remove that coach's canonical profile URL and fallback row in the same
+publishing workflow. Draft profiles must never appear in either place. The page
+JavaScript replaces the fallback rows with fresh `/api/coaches` data for users;
+the server-delivered rows ensure the directory still has substantive content
+and profile links before JavaScript runs.
 
 ### Soft-404 / catch-all behavior
 There is **no** `_redirects` file and no catch-all Function, and there must not
@@ -503,7 +507,10 @@ forward too.
 - Table: Coaches. Key field: `slug` (URL-safe string, e.g. `mike-kowalski`).
 - Status controls both listing visibility and per-slug access. Only records with
   `status = Live` are returned by `/api/coaches` (the directory list). The
-  per-slug HTML and JSON lookups accept `Live` or `Draft` records using
+  directory response omits all `contact_*` fields because its cards do not use
+  them; contact methods are rendered only by the per-slug profile flow
+  according to each coach's `contact_preference`. The per-slug HTML and JSON
+  lookups accept `Live` or `Draft` records using
   `AND({slug} = "...", OR({status} = "Live", {status} = "Draft"))`; records with
   any other status do not resolve. This intentionally lets Draft coaches be
   previewed at their direct URL (with a red "DRAFT — NOT YET PUBLISHED" banner
@@ -582,7 +589,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v2` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
 - Session key format: `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`
 - KV reads are gated by a non-HttpOnly cookie (`sp_has_session=1`) to prevent unnecessary reads from non-group visitors.
 - The $5/month Workers Paid plan provides higher KV operation limits than the free tier.
@@ -597,7 +604,7 @@ destructive KV operation.
 
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
-  incidentally captures `schedule:cache` and the `coaches:list:v2` /
+  incidentally captures `schedule:cache` and the `coaches:list:v3` /
   `coaches:profile:v3:{slug}` cache keys, since they share the namespace). These
   cache entries are regenerable and harmless in a backup; they're not group data.
 - `backups/groups-do-YYYY-MM-DD.json` — a best-effort sweep of Durable Object
@@ -640,10 +647,12 @@ Groups are identified by a name + password pair. No email, no OAuth, no third-pa
 
 ## Data Flow — Coaches Directory
 
-1. Browser requests `/coaches/` → Cloudflare serves static `coaches/index.html`
-2. Page JS fetches `/api/coaches`
+1. Browser requests `/coaches/` → Cloudflare serves static
+   `coaches/index.html`, including crawlable fallback rows for every Live coach
+2. Page JS fetches `/api/coaches` and replaces the fallback rows with current
+   data
 3. `/api/coaches` (Cloudflare Function) resolves the coach list through a **KV
-   read-through cache** (`lib/kvCache.js`, key `coaches:list:v2`) before touching
+   read-through cache** (`lib/kvCache.js`, key `coaches:list:v3`) before touching
    Airtable — see the caching note below.
 4. On a cache miss (or stale entry due for refresh) the function calls the
    Airtable REST API with filter `{status}="Live"`, maps the records, and caches
@@ -685,7 +694,7 @@ existing **`GROUPS` KV namespace** (no new binding — the same pattern
   endpoints; the `404` "Coach Not Found" page for the HTML profile — see the
   per-slug caching detail below).
 
-**What each key caches differs by endpoint, intentionally:** `coaches:list:v2`
+**What each key caches differs by endpoint, intentionally:** `coaches:list:v3`
 stores the already-**mapped** array (the list endpoint maps before caching),
 while `coaches:profile:v3:{slug}` stores the **raw Airtable record** (the full
 record including `r.id`, not just its `fields`), and each per-slug endpoint maps
