@@ -533,6 +533,10 @@ function applyFilters() {
     return true;
   });
 
+  filtered.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
+  );
+
   renderCoaches(filtered, filtersActive);
 }
 
