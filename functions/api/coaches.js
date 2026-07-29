@@ -84,7 +84,10 @@ export async function onRequest(context) {
 
     const coaches = await readThrough(
       env.GROUPS,
-      'coaches:list',
+      // v2: the cached value is the mapped response, so bump when the response
+      // schema changes. v2 replaces elite_prospects_url with personal_url and
+      // forces an immediate fresh status-filtered list at launch.
+      'coaches:list:v2',
       FRESH_MS,
       STALE_TTL_S,
       () => fetchLiveCoaches(apiKey, baseId),
