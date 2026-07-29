@@ -43,8 +43,10 @@ The site owner is actively developing this into a mission-driven community platf
 ## GitHub Repository
 
 - URL: github.com/gholtgrieve/postandin
-- Branch strategy: single branch (main). All commits go directly to main and trigger a Cloudflare Pages deployment.
-- No pull requests, no staging branch, no CI/CD pipeline beyond Cloudflare's auto-deploy.
+- Branch strategy: implement and review on short-lived `codex/<task>` branches,
+  then fast-forward merge approved work into `main`.
+- Pushing `main` triggers a Cloudflare Pages deployment. There is no persistent
+  staging branch or CI/CD pipeline beyond Cloudflare's auto-deploy.
 
 ### Browsing code on GitHub
 - Navigate to github.com/gholtgrieve/postandin to see the full file tree
@@ -52,17 +54,27 @@ The site owner is actively developing this into a mission-driven community platf
 - The commit history shows what changed and when — useful for understanding recent work
 
 ### Making changes
-- All file edits are done locally via Claude Code, never directly on GitHub
+- All file edits are done locally via Codex, never directly on GitHub
 - Local repo lives at ~/Dropbox/Documents/postandin
 - Dropbox sync is active — the local repo is also backed up to Dropbox cloud storage
+- Codex implements on a short-lived `codex/<task>` branch
+- Claude Code reviews the completed diff before it is merged to `main`
 
 ### Standard git workflow
 ```bash
-cd ~/Dropbox/Documents/postandin && claude   # open Claude Code
-# make changes via Claude Code
+cd ~/Dropbox/Documents/postandin
+git switch main && git pull --ff-only
+git switch -c codex/brief-task-name
+# open the repository in Codex and ask it to implement + verify the change
+# then run Claude Code and ask it to review without editing:
+claude
+# "Review git diff main...HEAD and any uncommitted changes. Follow CLAUDE.md.
+# Do not edit files."
 git add -A
 git commit -m "Description of what changed"
-git push
+git switch main
+git merge --ff-only codex/brief-task-name
+git push origin main
 # Cloudflare deploys automatically in ~60 seconds
 ```
 
@@ -78,36 +90,50 @@ git push
 
 ---
 
-## Claude Code Workflow
+## Codex Build / Claude Code Review Workflow
 
-Claude Code is the primary tool for making changes to the codebase. It is not used for strategic decisions, UX design, or copy — those happen in a separate Claude chat session first.
+Codex is the primary tool for making changes to the codebase. Claude Code is an
+independent reviewer. Neither tool makes strategic decisions about what to
+build, UX, or copy — those are scoped with the owner first.
 
-### To open Claude Code
+### To start implementation
+```bash
+cd ~/Dropbox/Documents/postandin
+git switch main && git pull --ff-only
+git switch -c codex/brief-task-name
+# Open this folder in Codex
+```
+
+### How to use Codex effectively
+- Write a detailed prompt describing exactly what to build before opening Codex
+- Include: which files to touch, what the output should look like, any design system constraints
+- Codex reads `AGENTS.md`, inspects the repository, makes the change, and runs relevant checks
+- Stop before commit, push, merge, or deploy unless explicitly requested
+- Ask Codex for a concise handoff containing changed files, checks, risks, and a suggested commit message
+
+### How to use Claude Code for review
 ```bash
 cd ~/Dropbox/Documents/postandin && claude
 ```
+- Prompt: `Review git diff main...HEAD and any uncommitted changes. Follow CLAUDE.md. Do not edit files.`
+- Claude Code should lead with concrete findings ordered by severity
+- Send each finding back to Codex to investigate and fix
+- Ask Claude Code to re-review after fixes
+- Merge to `main` only after Claude reports `ready to merge` and you understand the checks that ran
 
-### How to use it effectively
-- Write a detailed prompt describing exactly what to build before opening Claude Code
-- Include: which files to touch, what the output should look like, any design system constraints
-- Claude Code will read existing files, make changes, and can run terminal commands
-- Review changes before committing — Claude Code can make mistakes
-- If something looks wrong, ask Claude Code to explain what it did before pushing
-
-### What Claude Code is used for
+### What Codex is used for
 - Creating and editing HTML, CSS, JS files
 - Creating and editing Cloudflare Functions
 - Running curl commands to test API endpoints
-- Git add, commit, push
 - Running the audit script (`node scripts/audit-rinks.js`)
 - Making Airtable API calls via curl for data operations
 
-### What Claude Code is NOT used for
+### What Codex and Claude Code are NOT used for
 - Strategic decisions about what to build
 - UX and design decisions
 - Copy and content decisions
 - Accessing the Cloudflare dashboard
-- Accessing Airtable directly (it uses curl against the API)
+- Handling secrets in prompts or tracked files
 
 ---
 
