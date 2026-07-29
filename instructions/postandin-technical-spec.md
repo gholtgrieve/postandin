@@ -254,7 +254,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   /api/
     coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v2`)
     /coach/
-      [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v2:{slug}`)
+      [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
       create.js            → POST create a group
       join.js              → POST join a group
@@ -265,7 +265,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
     schedule.js             → GET pre-scraped schedule from KV (written by scheduler Worker)
     rectimes.js, everett.js → per-rink live-scrape proxies
   /coaches/
-    [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v2:{slug}` with /api/coach/[slug].js)
+    [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
 /lib/
   rinks.js                 → Rink config used by both schedule.js and the scheduler Worker
   scrapeAll.js              → Shared scraper orchestration, used by schedule.js (fallback) and the scheduler cron
@@ -582,7 +582,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v2` and `coaches:profile:v2:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v2` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
 - Session key format: `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`
 - KV reads are gated by a non-HttpOnly cookie (`sp_has_session=1`) to prevent unnecessary reads from non-group visitors.
 - The $5/month Workers Paid plan provides higher KV operation limits than the free tier.
@@ -598,7 +598,7 @@ destructive KV operation.
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
   incidentally captures `schedule:cache` and the `coaches:list:v2` /
-  `coaches:profile:v2:{slug}` cache keys, since they share the namespace). These
+  `coaches:profile:v3:{slug}` cache keys, since they share the namespace). These
   cache entries are regenerable and harmless in a backup; they're not group data.
 - `backups/groups-do-YYYY-MM-DD.json` — a best-effort sweep of Durable Object
   group data, via a read-only `export(slug)` method on `GroupDO` that never
@@ -654,7 +654,7 @@ Groups are identified by a name + password pair. No email, no OAuth, no third-pa
 7. User clicks a coach → navigates to `/coaches/[slug]`
 8. `/coaches/[slug]` is handled by `/functions/coaches/[slug].js`
 9. That function resolves the single record through the same read-through cache
-   (key `coaches:profile:v2:{slug}`) and renders the full HTML response. The JSON
+   (key `coaches:profile:v3:{slug}`) and renders the full HTML response. The JSON
    endpoint `/api/coach/[slug]` shares the *same* per-slug cache key, so a
    profile-page view and an API call for the same coach warm each other's cache.
    This lookup requires the matching record to have `status = "Live"` or
@@ -687,7 +687,7 @@ existing **`GROUPS` KV namespace** (no new binding — the same pattern
 
 **What each key caches differs by endpoint, intentionally:** `coaches:list:v2`
 stores the already-**mapped** array (the list endpoint maps before caching),
-while `coaches:profile:v2:{slug}` stores the **raw Airtable record** (the full
+while `coaches:profile:v3:{slug}` stores the **raw Airtable record** (the full
 record including `r.id`, not just its `fields`), and each per-slug endpoint maps
 or renders from that raw record on the way out. Caching the raw record keeps the
 JSON body shape identical to before (the `/api/coach/[slug]` response includes
@@ -848,7 +848,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, Stick & Puck, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
-| Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v2:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
+| Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | Under development — unlisted, reachable by direct URL | **Resolved 2026-07-22.** The long-standing contradiction (linked from the homepage footer and listed in `sitemap.xml`, despite the "do not link" rule) has been rolled back rather than ratified: `/pathway/` is now removed from `sitemap.xml`, removed from the homepage footer, and carries `noindex, nofollow`. It remains reachable by direct URL for review. |
 

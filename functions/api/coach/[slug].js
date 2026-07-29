@@ -73,10 +73,9 @@ export async function onRequest(context) {
   try {
     const record = await readThrough(
       env.GROUPS,
-      // v2: bumped when per-slug lookups were restricted to Live/Draft. Entries
-      // cached under the old key predate that filter and may hold Archived or
-      // otherwise non-public records, so they must not be reused.
-      `coaches:profile:v2:${slug}`,
+      // v3: v2 restricted lookups to Live/Draft; v3 forces current Airtable
+      // status to be read when Live profiles become indexable.
+      `coaches:profile:v3:${slug}`,
       FRESH_MS,
       STALE_TTL_S,
       () => fetchPreviewRecord(slug, apiKey, baseId),
