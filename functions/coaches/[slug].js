@@ -32,14 +32,6 @@ function fmtBio(text) {
   return text.split(/\n\n+/).map(p => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
 }
 
-function parseLinks(text) {
-  return (text || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const idx = line.indexOf(' · ');
-    if (idx === -1) return { label: 'Link', url: line.trim() };
-    return { label: line.slice(0, idx).trim(), url: line.slice(idx + 3).trim() };
-  }).filter(l => l.url);
-}
-
 function tag(label, specialty = false) {
   const cls = specialty ? 'tag tag-specialty' : 'tag';
   return `<span class="${cls}">${esc(label)}</span>`;
@@ -71,6 +63,7 @@ function mapCoach(record) {
     private_lessons:    f.private_lessons ?? false,
     lessons_detail:     f.lessons_detail ?? '',
     bio:                f.bio ?? '',
+    teaser:             f.teaser ?? '',
     teams_coached:      f.teams_coached ?? '',
     contact_email:      f.contact_email ?? '',
     contact_phone:      f.contact_phone ?? '',
@@ -78,7 +71,7 @@ function mapCoach(record) {
     contact_preference: f.contact_preference ?? [],
     headshot_url:       f.headshot_url ?? '',
     photo_urls:         f.photo_urls ?? '',
-    links:              f.links ?? '',
+    personal_url:       f.personal_url ?? '',
     initials:           f.initials ?? '',
     status:             f.status ?? '',
   };
@@ -87,8 +80,11 @@ function mapCoach(record) {
 function renderHtml(coach) {
   const teams  = parseTeams(coach.teams_coached);
   const photos = parsePhotos(coach.photo_urls);
-  const links  = parseLinks(coach.links);
   const prefs  = new Set(coach.contact_preference);
+  const canonicalUrl = `https://postandin.com/coaches/${encodeURIComponent(coach.slug)}`;
+  const metaDescription = coach.teaser ||
+    `Learn about ${coach.name}, a Seattle-area youth hockey coach.`;
+  const robots = coach.status === 'Live' ? 'index, follow' : 'noindex, nofollow';
 
   const avatarLg = coach.headshot_url
     ? `<img src="${esc(safeUrl(coach.headshot_url))}" alt="${esc(coach.name)}" class="profile-photo-img">`
@@ -157,11 +153,11 @@ function renderHtml(coach) {
       </div>
     </div>` : '';
 
-  const linksHtml = links.length ? `
+  const linksHtml = coach.personal_url ? `
     <section class="profile-section">
-      <h2 class="section-heading">Links</h2>
+      <h2 class="section-heading">Website</h2>
       <div class="profile-links">
-        ${links.map(l => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener" class="profile-link">${esc(l.label)} &#x2197;</a>`).join('')}
+        <a href="${esc(safeUrl(coach.personal_url))}" target="_blank" rel="noopener" class="profile-link">Visit Website &#x2197;</a>
       </div>
     </section>` : '';
 
@@ -170,8 +166,16 @@ function renderHtml(coach) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="${robots}">
 <title>${esc(coach.name)} — Post &amp; In Coaches</title>
+<meta name="description" content="${esc(metaDescription)}">
+<link rel="canonical" href="${esc(canonicalUrl)}">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="Post &amp; In">
+<meta property="og:title" content="${esc(coach.name)} — Post &amp; In Coaches">
+<meta property="og:description" content="${esc(metaDescription)}">
+<meta property="og:url" content="${esc(canonicalUrl)}">
+${coach.headshot_url ? `<meta property="og:image" content="${esc(safeUrl(coach.headshot_url))}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -438,7 +442,7 @@ ${coach.status !== 'Live' ? '<div class="draft-banner">DRAFT — NOT YET PUBLISH
 </div>
 
 <footer>
-  postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a>
+  postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a> &nbsp;·&nbsp; <a href="mailto:gholtgrieve@gmail.com">Contact</a>
 </footer>
 
 <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>

@@ -7,7 +7,7 @@ const FIELDS = [
   'name','slug','cert','specialty','age_groups','levels','rinks',
   'private_lessons','lessons_detail','bio','teaser','teams_coached',
   'contact_email','contact_phone','contact_text','contact_preference',
-  'headshot_url','photo_urls','elite_prospects_url','initials',
+  'headshot_url','photo_urls','personal_url','initials',
 ];
 
 const HEADERS = {
@@ -47,7 +47,7 @@ function mapRecord(r) {
     contact_preference: f.contact_preference ?? [],
     headshot_url:       f.headshot_url ?? '',
     photo_urls:         f.photo_urls ?? '',
-    elite_prospects_url:safeUrl(f.elite_prospects_url ?? ''),
+    personal_url:       safeUrl(f.personal_url ?? ''),
     initials:           f.initials ?? '',
   };
 }

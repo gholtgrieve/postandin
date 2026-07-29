@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
 <title>Seattle Youth Hockey Coaches | Private Lessons &amp; Team Coaching | Post &amp; In</title>
 <meta name="description" content="Find Seattle youth hockey coaches offering private lessons. Filter by specialty, age group, rink, and level.">
 <link rel="canonical" href="https://postandin.com/coaches/">
@@ -393,39 +392,15 @@ footer a:hover { color: var(--mustard); }
   <div class="filter-bar-inner">
     <select id="filterSpecialty" class="filter-select" aria-label="Filter by specialty">
       <option value="">All Specialties</option>
-      <option>Skating</option>
-      <option>Goalie</option>
-      <option>Shooting</option>
-      <option>Stickhandling</option>
-      <option>Defense</option>
-      <option>Overall Development</option>
-      <option>Strength and Conditioning</option>
     </select>
     <select id="filterAge" class="filter-select" aria-label="Filter by age group">
       <option value="">All Ages</option>
-      <option>4U</option>
-      <option>6U</option>
-      <option>8U</option>
-      <option>10U</option>
-      <option>12U</option>
-      <option>14U</option>
-      <option>16U</option>
-      <option>18U</option>
     </select>
     <select id="filterRink" class="filter-select" aria-label="Filter by rink">
       <option value="">All Rinks</option>
-      <option>Sno-King</option>
-      <option>KCI</option>
-      <option>Lynnwood</option>
-      <option>Olympic View</option>
-      <option>Kent Valley</option>
     </select>
     <select id="filterLevel" class="filter-select" aria-label="Filter by level">
       <option value="">All Levels</option>
-      <option>AAA</option>
-      <option>AA</option>
-      <option>A / Select</option>
-      <option>House</option>
     </select>
     <button id="filterPrivate" class="filter-toggle" aria-pressed="false">Private Lessons</button>
   </div>
@@ -447,7 +422,7 @@ footer a:hover { color: var(--mustard); }
 </div>
 
 <footer>
-  postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a>
+  postandin.com &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a> &nbsp;·&nbsp; <a href="mailto:gholtgrieve@gmail.com">Contact</a>
 </footer>
 
 <script>
@@ -478,6 +453,22 @@ function renderSkeletons() {
       </div>
     </div>`).join('');
   document.getElementById('coachList').innerHTML = rows;
+}
+
+function populateFilterOptions() {
+  const filters = [
+    ['filterSpecialty', 'specialty'],
+    ['filterAge', 'age_groups'],
+    ['filterRink', 'rinks'],
+    ['filterLevel', 'levels'],
+  ];
+
+  filters.forEach(([id, field]) => {
+    const select = document.getElementById(id);
+    const values = [...new Set(allCoaches.flatMap(c => c[field] || []))]
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    values.forEach(value => select.add(new Option(value, value)));
+  });
 }
 
 function renderCoaches(coaches, filtersActive) {
@@ -546,6 +537,7 @@ async function load() {
     const res = await fetch('/api/coaches');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allCoaches = await res.json();
+    populateFilterOptions();
     applyFilters();
   } catch (e) {
     document.getElementById('coachList').innerHTML =

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Only publicly launched pages belong here. Coaches and Pathway are still under
-  development: they stay reachable by direct URL but carry
-  <meta name="robots" content="noindex, nofollow"> and are deliberately omitted.
+  Only publicly launched pages belong here. Pathway is still under development:
+  it stays reachable by direct URL but carries
+  <meta name="robots" content="noindex, nofollow"> and is deliberately omitted.
 
   lastmod/changefreq/priority are intentionally left out — nothing keeps them
   accurate, and stale values are worse than absent ones.
@@ -13,5 +13,17 @@
   </url>
   <url>
     <loc>https://postandin.com/stick-and-puck/</loc>
+  </url>
+  <url>
+    <loc>https://postandin.com/coaches/</loc>
+  </url>
+  <url>
+    <loc>https://postandin.com/coaches/donovan-guldenmann</loc>
+  </url>
+  <url>
+    <loc>https://postandin.com/coaches/ian-doner</loc>
+  </url>
+  <url>
+    <loc>https://postandin.com/coaches/max-doner</loc>
   </url>
 </urlset>

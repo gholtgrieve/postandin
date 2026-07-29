@@ -245,7 +245,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   state.js/groups-ui.js, and `sessionMatchesDayFilter()` in groups-ui.js are all
   defined but have zero call sites anywhere in the codebase. Safe to remove
   whenever convenient; not urgent.
-/coaches/                  → index.html (coach directory — noindex, nofollow; unlinked)
+/coaches/                  → index.html (public, indexable coach directory)
 /pathway/                  → index.html (pathway guide — noindex, nofollow; unlinked)
                              (/about/ was deleted 2026-07-22 — see Search Visibility &
                               Routing below. It is now a normal missing URL served by
@@ -311,7 +311,7 @@ either unfinished (reachable by direct URL, kept out of search) or gone.
 
 | Mechanism | Purpose |
 |---|---|
-| `sitemap.xml` | Lists **only** the two launched pages. Nothing else. |
+| `sitemap.xml` | Lists launched pages, including the directory and every Live coach profile. |
 | `robots.txt` | `Allow: /`, `Disallow: /api/` only. Crawling is *permitted* for unfinished pages. |
 | `<meta name="robots" content="noindex, nofollow">` | On each unfinished page. This is what actually keeps them out of search. |
 
@@ -324,19 +324,24 @@ crawlable for its `noindex` to be readable. `robots.txt` here is a crawl-budget
 hint, **not access control**; unfinished pages remain fully reachable by direct
 URL by design.
 
-Pages currently carrying `noindex, nofollow`: `coaches/index.html`,
-`pathway/index.html`, and **both** HTML responses in
-`functions/coaches/[slug].js` (the rendered profile and the "Coach Not Found"
-404). When adding any new unfinished section, add the meta tag to *every* HTML
-response it can emit — server-rendered error pages are easy to miss.
+Pages currently carrying `noindex, nofollow`: `pathway/index.html`, Draft coach
+profiles, and the "Coach Not Found" 404 response in
+`functions/coaches/[slug].js`. Live coach profiles are indexable. When adding
+any new unfinished section, add the meta tag to *every* HTML response it can
+emit — server-rendered error pages are easy to miss.
 
-`/` and `/stick-and-puck/` must never carry `noindex`.
+`/`, `/stick-and-puck/`, `/coaches/`, and Live coach profiles must never carry
+`noindex`.
 
 ### sitemap.xml conventions
 `lastmod`, `changefreq`, and `priority` are deliberately **omitted**. They were
 previously present and inaccurate (hand-maintained dates that drifted). Absent
 values are better than misleading ones; don't reintroduce them without a process
 that actually keeps them correct.
+
+The sitemap is maintained manually. Whenever a coach changes between Draft and
+Live, add or remove that coach's canonical profile URL in the same publishing
+workflow. Draft profiles must never appear in the sitemap.
 
 ### Soft-404 / catch-all behavior
 There is **no** `_redirects` file and no catch-all Function, and there must not
@@ -390,15 +395,13 @@ world-readable at a predictable URL.
 
 ### Nav policy
 Unfinished sections must not appear in navigation on `/` or `/stick-and-puck/`,
-including small footer links. Internal links *within* an unfinished section are
-fine (a coach profile may link back to `/coaches/`). The homepage footer links
-only to Stick & Puck; a commented-out "Find Your Coach" card sits in
-`index.html` markup, hidden until that section ships.
+including small footer links. Pathway remains unfinished and unlinked. Coaches
+is launched: the homepage includes a "Find Your Coach" tool card, and the
+homepage, Stick & Puck, and 404 footers link to `/coaches/`.
 
-Homepage metadata (`<title>`, `description`, `og:title`, `og:description`) must
-also not advertise unfinished sections — it previously read "Ice Time, Coaches &
-Pathways", which promised sections a visitor couldn't reach from the one
-indexable page.
+Homepage metadata (`<title>`, `description`, `og:title`, `og:description`)
+advertises the launched Coaches and Stick & Puck sections, but must not
+advertise unfinished sections such as Pathway.
 
 ---
 
@@ -456,7 +459,7 @@ Runtime: Cloudflare Pages Functions (Workers runtime, V8 isolates).
 
 All functions live in /functions/. Cloudflare routes them automatically based on file path:
 - `/functions/api/coaches.js` → available at `/api/coaches`
-- `/functions/coaches/[slug].js` → available at `/coaches/[slug]/`
+- `/functions/coaches/[slug].js` → available at `/coaches/[slug]`
 
 ### Function conventions
 - Export a default object with `onRequestGet`, `onRequestPost`, etc. as needed.
@@ -648,8 +651,8 @@ Groups are identified by a name + password pair. No email, no OAuth, no third-pa
    `Cache-Control: public, max-age=300` browser header.
 5. Page JS renders coach rows and wires up client-side filters
 6. Results count only displays when at least one filter is active
-7. User clicks a coach → navigates to `/coaches/[slug]/`
-8. `/coaches/[slug]/` is handled by `/functions/coaches/[slug].js`
+7. User clicks a coach → navigates to `/coaches/[slug]`
+8. `/coaches/[slug]` is handled by `/functions/coaches/[slug].js`
 9. That function resolves the single record through the same read-through cache
    (key `coaches:profile:v2:{slug}`) and renders the full HTML response. The JSON
    endpoint `/api/coach/[slug]` shares the *same* per-slug cache key, so a
@@ -710,15 +713,10 @@ two allowed workflow states with
 - `functions/coaches/[slug].js` now maps the `status` field and renders a
   red `DRAFT — NOT YET PUBLISHED` banner at the top of the HTML page whenever
   `status !== 'Live'`, so a previewed Draft page is visually unmistakable.
-- Since profile pages are already `noindex, nofollow`, absent from
-  `sitemap.xml`, and unlinked from anywhere on the public site, this doesn't
-  materially change the exposure model — it extends the existing "unlisted but
-  reachable by direct URL" pattern to Draft coaches too. **Corrected
-  2026-07-22:** this previously said profile pages were "blocked by
-  `robots.txt`". They no longer are, and deliberately so — see Search
-  Visibility & Routing. The `noindex, nofollow` meta tag is what keeps them out
-  of search; blocking them in `robots.txt` would prevent crawlers from ever
-  reading it.
+- Draft profiles carry `noindex, nofollow`, remain absent from `sitemap.xml`,
+  and are unlinked from public pages. Live profiles are indexable and listed in
+  the sitemap. Neither is blocked by `robots.txt`: crawlers must be able to
+  fetch a Draft profile to read its `noindex` directive.
 - Same 5-minute cache-freshness window applies: flipping a coach between
   Draft and Live may take up to 5 minutes to be reflected at their direct URL
   (see caching behavior above).
@@ -773,7 +771,7 @@ The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit
 | name | Single line text | |
 | slug | Single line text | URL-safe, e.g. mike-kowalski |
 | status | Single select | Draft, Live. `/api/coaches` lists only Live records; per-slug HTML and JSON lookups accept Live or Draft and reject any other status. See "Draft coach preview" under Data Flow — Coaches Directory. |
-| cert | Single line text | e.g. USA Hockey Level 4 · 18 years coaching |
+| cert | Single line text | Optional. e.g. USA Hockey Level 4 · 18 years coaching |
 | specialty | Multiple select | Power Skating, Edge Work, Goalie, Shooting / Finishing, Stickhandling, Defense, Hockey IQ, Strength & Conditioning, Overall Development, Video / Game Analysis, Mental Skills / Sports Psychology, Checking & Physical Play, Special Teams, Other |
 | age_groups | Multiple select | 4U, 6U, 8U, 10U, 12U, 14U, 16U, 18U, Junior, Adult |
 | levels | Multiple select | House / Recreational, Select / Tier 3, AA / Tier 2, AAA / Tier 1, Junior (USPHL / NAHL / BCHL / WHL), College (NCAA D1 / D3 / ACHA), Adult League, All Levels |
@@ -789,7 +787,7 @@ The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit
 | contact_preference | Multiple select | Email, Phone, Text |
 | headshot_url | URL | |
 | photo_urls | Long text | One URL per line, up to 3 |
-| elite_prospects_url | URL | Renamed from the originally-planned `profile_links` (long text, multi-URL) field — the actual Airtable base and `functions/api/coaches.js`'s FIELDS list both use `elite_prospects_url`, a single URL, not a multi-line list |
+| personal_url | URL | Optional coach website or professional profile URL. Rendered as a single "Visit Website" link. |
 | initials | Single line text | Two-letter fallback, e.g. MK |
 
 New submissions default to `status: Draft`. Owner reviews and sets to `Live` when approved.
@@ -801,16 +799,19 @@ New submissions default to `status: Draft`. Owner reviews and sets to `Live` whe
 ### Directory page (/coaches/)
 - Page title: Find Your Coach
 - Subhead: Seattle coaches offering private lessons and team coaching.
-- Filter bar: Specialty, Age Group, Rink, Level, Private Lessons toggle. All client-side, no page reload.
+- Filter bar: Specialty, Age Group, Rink, Level, Private Lessons toggle. Select
+  options are derived from the loaded Live coach data so Airtable values cannot
+  drift out of sync. All filtering is client-side with no page reload.
 - Results count: only shown when at least one filter is active.
-- Coach rows: photo (72px, square) | name, cert, specialty tags, other tags, teaser | arrow. Mustard border on hover. Links to /coaches/[slug]/.
+- Coach rows: photo (72px, square) | name, cert, specialty tags, other tags, teaser | arrow. Mustard border on hover. Links to /coaches/[slug].
 - Empty state: No coaches match your filters.
+- Footer includes a subtle email contact link to `gholtgrieve@gmail.com`.
 - CTA below list: Are You a Seattle Hockey Coach? with mailto link (gholtgrieve@gmail.com — a real address, not a placeholder) for coaches to express interest.
 
-### Profile page (/coaches/[slug]/)
+### Profile page (/coaches/[slug])
 - Breadcrumb: Coaches › [Name]
 - Header: photo (108px), eyebrow (Seattle Hockey Coach), name (Bebas Neue 48px), cert, tags
-- Two-column layout: main (bio, teams coached, photos) | sidebar (private lessons block, contact, rinks, profile links)
+- Two-column layout: main (bio, teams coached, optional website, photos) | sidebar (private lessons block, contact, rinks)
 - Private lessons block (dark --ink panel): hidden entirely if private_lessons is false
 - Contact: shows only methods the coach opted into
 - Mobile: single column, sidebar stacks below main
@@ -842,12 +843,12 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Homepage (index.html) | Partially rebuilt — **publicly launched & indexable** | Hero + mission statement copy live, one tool card ("Find Ice Time" → Stick & Puck) live. Coaches/Pathway/Spotlights don't have their own module cards yet — a "Find Your Coach" card exists in the markup but is commented out as "hidden until ready." **As of 2026-07-22 the footer links only to Stick & Puck** (Coaches/Pathway links removed), and the page metadata no longer advertises unfinished sections — title is now `Post & In \| Seattle Stick & Puck Ice Time`. See Search Visibility & Routing. |
-| Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. One of only two pages in `sitemap.xml`; must never carry `noindex`. |
-| 404 page (/404.html) | Live | Added 2026-07-22. Branded, links only to Home and Stick & Puck. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
+| Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." Footer and metadata advertise both launched sections; unfinished Pathway remains absent. |
+| Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
+| 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, Stick & Puck, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
-| Coaches directory (/coaches/) | Under development — unlisted, reachable by direct URL | **As of 2026-07-22:** carries `noindex, nofollow`; absent from `sitemap.xml`; **no longer disallowed in `robots.txt`** (it must be crawlable for the `noindex` to be read — see Search Visibility & Routing); not linked from any publicly launched page. **KV read-through cached as of 2026-07-16 (commit `2b20051`)** — fixes the prior slow/intermittent-failure behavior; see Data Flow — Coaches Directory. |
-| Coach profile pages (/coaches/[slug]/) | Live, unlisted | Server-rendered from Airtable, **KV read-through cached as of 2026-07-16 (commit `2b20051`)**, sharing `coaches:profile:v2:{slug}` with `/api/coach/[slug]`. Per-slug lookups accept only Live or Draft records — Draft coaches are viewable at their direct URL (with a red "DRAFT — NOT YET PUBLISHED" banner) for pre-publish preview, while still excluded from the `/coaches/` directory list; see "Draft coach preview" under Data Flow — Coaches Directory. **Known open bug (not yet fixed):** `functions/coaches/[slug].js` maps its Links section from a non-existent `links` field instead of `elite_prospects_url`, so the Links block never renders on server-rendered profiles. Deliberately left untouched by both the caching change and the Draft-preview change; slated as the next fix. |
+| Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
+| Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v2:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | Under development — unlisted, reachable by direct URL | **Resolved 2026-07-22.** The long-standing contradiction (linked from the homepage footer and listed in `sitemap.xml`, despite the "do not link" rule) has been rolled back rather than ratified: `/pathway/` is now removed from `sitemap.xml`, removed from the homepage footer, and carries `noindex, nofollow`. It remains reachable by direct URL for review. |
 
@@ -855,8 +856,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## What to Build Next — Priority Order
 
-1. ~~Homepage refresh~~ — **partially done**: hero with mission statement and one feature module (Ice Time) are live. Coaches, Pathway, and Spotlights modules are not yet built as their own cards — check `index.html` directly before assuming this is fully finished or fully outstanding.
-2. Coaches page design fixes — lighten dark header treatment, increase body type size to match Stick & Puck, results count only when filters active (**already implemented** — verify against `coaches/index.html` before redoing it), replace CTA placeholder email with real address (**already done** — see Coaches Directory UX above)
+1. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Pathway and Spotlights modules are not yet built.
+2. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
 3. Player spotlight feature — static, monthly, coach-nominated, one player per month
 4. Coach intake form — Airtable native form being configured for coach self-submission
 5. Showcase/tournament calendar — PNW events scouts attend (Discovery pillar)
@@ -871,7 +872,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 - Do not use a CSS framework (no Tailwind, no Bootstrap)
 - Do not make Airtable API calls from the browser — server-side only
 - Do not hardcode API keys or secrets in any file
-- Do not link `/coaches/` or `/pathway/` from `/` or `/stick-and-puck/` until explicitly instructed. (This rule used to name `/about/` too, and used to carry a note that `/pathway/` contradicted it in production — both are resolved as of 2026-07-22: `/about/` is deleted and `/pathway/` was rolled back to unlisted. See Search Visibility & Routing.)
+- Do not link `/pathway/` from `/` or `/stick-and-puck/` until explicitly instructed. Coaches is launched and should remain linked from public navigation.
 - Do not add `Disallow:` for a page that carries `noindex` — the two cancel out. A crawler blocked in `robots.txt` never fetches the page and so never reads the `noindex`, leaving the URL indexable from external links. See Search Visibility & Routing.
 - Do not delete `404.html`, and do not add a `_redirects` catch-all such as `/* /index.html 200`. Either one reinstates the soft-404 (unknown URLs served as the homepage with HTTP 200).
 - Do not add `lastmod`, `changefreq`, or `priority` back into `sitemap.xml` without a process that keeps them accurate — they were removed for being stale and misleading.
