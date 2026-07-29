@@ -26,7 +26,7 @@
 
 Post & In (postandin.com) is a static site with serverless API functions built for the Seattle youth hockey community. There is no build step, no framework, no bundler, and no package.json at the root. Everything is vanilla HTML, CSS, and JavaScript. Server-side logic lives exclusively in Cloudflare Pages Functions. The design philosophy is deliberate minimalism — add infrastructure only when the simplest possible approach breaks down.
 
-The site owner is actively developing this into a mission-driven community platform. New features are scoped and designed conversationally before being handed to Claude Code for implementation. Do not introduce complexity that wasn't explicitly requested.
+The site owner is actively developing this into a mission-driven community platform. New features are scoped and designed conversationally before being handed to Codex for implementation. Do not introduce complexity that wasn't explicitly requested.
 
 ---
 
@@ -78,6 +78,11 @@ git push origin main
 # Cloudflare deploys automatically in ~60 seconds
 ```
 
+If `git merge --ff-only` fails because `main` advanced after the task branch was
+created, stop rather than forcing the merge. Switch back to the task branch,
+rebase it onto the updated `main`, rerun the relevant checks and Claude review,
+then retry the fast-forward merge.
+
 ### Verifying a deployment
 - Go to dash.cloudflare.com → Workers & Pages → postandin → Deployments tab
 - Latest deployment should show Success
@@ -96,13 +101,9 @@ Codex is the primary tool for making changes to the codebase. Claude Code is an
 independent reviewer. Neither tool makes strategic decisions about what to
 build, UX, or copy — those are scoped with the owner first.
 
-### To start implementation
-```bash
-cd ~/Dropbox/Documents/postandin
-git switch main && git pull --ff-only
-git switch -c codex/brief-task-name
-# Open this folder in Codex
-```
+Use the **Standard git workflow** above as the authoritative command sequence
+for creating the task branch, committing, merging with `--ff-only`, and pushing
+`main`. The guidance below explains the roles within that sequence.
 
 ### How to use Codex effectively
 - Write a detailed prompt describing exactly what to build before opening Codex
@@ -126,7 +127,8 @@ cd ~/Dropbox/Documents/postandin && claude
 - Creating and editing Cloudflare Functions
 - Running curl commands to test API endpoints
 - Running the audit script (`node scripts/audit-rinks.js`)
-- Making Airtable API calls via curl for data operations
+- Preparing curl commands or scripts for Airtable data operations; the owner
+  supplies credentials outside the tool and runs authenticated commands
 
 ### What Codex and Claude Code are NOT used for
 - Strategic decisions about what to build
@@ -161,7 +163,9 @@ All secrets are stored in Cloudflare Pages as encrypted secrets, never in the co
 > public repo it's in the git history permanently. Redacted when the file was
 > first tracked, so it never entered public history. Don't paste it back in.
 
-If you need to use a secret in Claude Code (e.g. for a curl command), generate a new PAT from Airtable, use it in the session, then update the Cloudflare secret. Never paste secrets into documents or chat.
+Never paste secrets into Codex, Claude Code, documents, chat, tracked files, or
+command output. When an authenticated manual operation is necessary, the owner
+supplies the credential outside the tool and runs the prepared command.
 
 ### KV, R2, and Durable Object bindings
 Unlike secrets, these aren't set via `wrangler.toml` for the Pages project —
@@ -510,7 +514,9 @@ forward too.
   what keeps the directory up during an Airtable rate-limit (5 req/s per base)
   or outage. See Data Flow — Coaches Directory for the full behavior.
 - To add or edit coach records: use the Airtable UI at airtable.com directly.
-- To make bulk changes or seed data: Claude Code writes a curl command or Node script, you run it.
+- To make bulk changes or seed data: Codex prepares a curl command or Node
+  script without credentials; the owner supplies credentials outside the tool
+  and runs it.
 
 ### Cloudflare KV + Durable Objects (Groups feature)
 Group membership and RSVP data now live in a **Durable Object** (`GroupDO`,
