@@ -154,6 +154,7 @@ All secrets are stored in Cloudflare Pages as encrypted secrets, never in the co
 |---|---|
 | AIRTABLE_API_KEY | Personal Access Token from airtable.com/create/tokens. Scopes: data.records:read, data.records:write. Access: PostAndIn base only. |
 | AIRTABLE_BASE_ID | The PostAndIn base ID. Read the live value from the Cloudflare dashboard (Settings → Environment Variables) or the Airtable API docs for that base — deliberately not written down here, see below. |
+| COACH_INTAKE_FORM_URL | The published Airtable coach-intake form URL. Stored in Cloudflare rather than the public repository because it contains Airtable identifiers. |
 
 > **Why the base ID isn't printed here.** This document became a tracked file in
 > the **public** repo on 2026-07-22. The base ID was previously written out in
@@ -466,9 +467,11 @@ Runtime: Cloudflare Pages Functions (Workers runtime, V8 isolates).
 All functions live in /functions/. Cloudflare routes them automatically based on file path:
 - `/functions/api/coaches.js` → available at `/api/coaches`
 - `/functions/coaches/[slug].js` → available at `/coaches/[slug]`
+- `/functions/coach-intake.js` → available at `/coach-intake`; validates and redirects to the configured Airtable form
 
 ### Function conventions
-- Export a default object with `onRequestGet`, `onRequestPost`, etc. as needed.
+- Export named Cloudflare Pages handlers such as `onRequest`, `onRequestGet`, or
+  `onRequestPost` as needed.
 - Access environment variables via `context.env.VARIABLE_NAME`.
 - Return `Response` objects directly.
 - Cache headers on read-only endpoints: `Cache-Control: public, max-age=300`.
@@ -781,7 +784,7 @@ The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit
 |---|---|---|
 | name | Single line text | |
 | slug | Single line text | URL-safe, e.g. mike-kowalski |
-| status | Single select | Draft, Live. `/api/coaches` lists only Live records; per-slug HTML and JSON lookups accept Live or Draft and reject any other status. See "Draft coach preview" under Data Flow — Coaches Directory. |
+| status | Single select | Submitted, Draft, Live. New form records default to Submitted and have no page. `/api/coaches` lists only Live records; per-slug HTML and JSON lookups accept Live or Draft and reject any other status. See "Draft coach preview" under Data Flow — Coaches Directory. |
 | cert | Single line text | Optional. e.g. USA Hockey Level 4 · 18 years coaching |
 | specialty | Multiple select | Power Skating, Edge Work, Goalie, Shooting / Finishing, Stickhandling, Defense, Hockey IQ, Strength & Conditioning, Overall Development, Video / Game Analysis, Mental Skills / Sports Psychology, Checking & Physical Play, Special Teams, Other |
 | age_groups | Multiple select | 4U, 6U, 8U, 10U, 12U, 14U, 16U, 18U, Junior, Adult |
@@ -798,10 +801,14 @@ The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit
 | contact_preference | Multiple select | Email, Phone, Text |
 | headshot_url | URL | |
 | photo_urls | Long text | One URL per line, up to 3 |
+| headshot_upload | Attachment | Required intake upload. Owner moves the approved image to permanent hosting and populates `headshot_url`; Airtable attachment URLs are not used publicly. |
+| photo_uploads | Attachment | Optional intake uploads. Owner moves approved images to permanent hosting and populates `photo_urls`; Airtable attachment URLs are not used publicly. |
 | personal_url | URL | Optional coach website or professional profile URL. Rendered as a single "Visit Website" link. |
 | initials | Single line text | Two-letter fallback, e.g. MK |
 
-New submissions default to `status: Draft`. Owner reviews and sets to `Live` when approved.
+New submissions default to `status: Submitted` and do not resolve to a profile
+page. The owner moves a record to `Draft` when it is ready for direct,
+unlisted preview, then to `Live` after coach approval.
 
 ---
 
@@ -817,7 +824,10 @@ New submissions default to `status: Draft`. Owner reviews and sets to `Live` whe
 - Coach rows: photo (72px, square) | name, cert, specialty tags, other tags, teaser | arrow. Mustard border on hover. Links to /coaches/[slug].
 - Empty state: No coaches match your filters.
 - Footer includes a subtle email contact link to `gholtgrieve@gmail.com`.
-- CTA below list: Are You a Seattle Hockey Coach? with mailto link (gholtgrieve@gmail.com — a real address, not a placeholder) for coaches to express interest.
+- CTA below list: Are You a Seattle Hockey Coach? with a primary link to
+  `/coach-intake` and a subtle mailto link to `gholtgrieve@gmail.com` for
+  questions or coaches who prefer not to use the form. The form is optional,
+  not the only intake path.
 
 ### Profile page (/coaches/[slug])
 - Breadcrumb: Coaches › [Name]
@@ -830,8 +840,15 @@ New submissions default to `status: Draft`. Owner reviews and sets to `Live` whe
 
 ### Coach intake
 - Airtable native form used for coach submissions
-- Google Form being built as alternative intake method
-- All new submissions default to status: Draft until reviewed and approved by site owner
+- The published Airtable URL is kept in the Cloudflare
+  `COACH_INTAKE_FORM_URL` environment variable; `/coach-intake` validates that
+  it is an HTTPS Airtable URL and redirects to it. Missing or invalid
+  configuration returns a branded, `noindex` 503 page with email and directory
+  links rather than a raw error response
+- Coaches may instead email `gholtgrieve@gmail.com`; the form is not required
+- All new form submissions default to status: Submitted and produce no page.
+  The owner changes a reviewed record to Draft for unlisted preview and to Live
+  after approval
 
 ---
 
@@ -870,7 +887,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 1. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Pathway and Spotlights modules are not yet built.
 2. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
 3. Player spotlight feature — static, monthly, coach-nominated, one player per month
-4. Coach intake form — Airtable native form being configured for coach self-submission
+4. ~~Coach intake form~~ — Airtable form is live; the directory offers it as an optional submission path alongside direct email
 5. Showcase/tournament calendar — PNW events scouts attend (Discovery pillar)
 6. Seattle hockey alumni section — where are players who came up through Seattle now?
 

@@ -319,6 +319,23 @@ main { min-height: 60vh; }
   transition: background 0.1s, color 0.1s;
 }
 .join-btn:hover { background: var(--mustard); color: var(--ink); }
+.join-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+.join-contact {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink3);
+}
+.join-contact a {
+  color: var(--ink2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.join-contact a:hover { color: var(--mustard2); }
 
 /* ── Footer ── */
 footer {
@@ -532,8 +549,11 @@ footer a:hover { color: var(--mustard); }
 <div class="join-cta">
   <div class="join-cta-inner">
     <div class="join-heading">Are You a Seattle Hockey Coach?</div>
-    <p class="join-body">We're building a directory of coaches who work with Seattle youth hockey players. If you offer private lessons or coach in the area, we'd love to include you.</p>
-    <a href="mailto:gholtgrieve@gmail.com" class="join-btn">Get in Touch</a>
+    <p class="join-body">We're building a directory of coaches who work with local youth hockey players. If you offer private lessons or coach in the area, we'd love to include you. Use the form or contact us directly — whichever you prefer.</p>
+    <div class="join-actions">
+      <a href="/coach-intake" class="join-btn">Submit Your Profile</a>
+      <span class="join-contact">Unsure or have questions? <a href="mailto:gholtgrieve@gmail.com">Email Gordon</a>.</span>
+    </div>
   </div>
 </div>
 
