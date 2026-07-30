@@ -67,7 +67,8 @@ body {
 /* ── Mission / hero block ── */
 .page-banner {
   background: var(--paper);
-  padding: clamp(2.5rem, 5vw, 4rem) clamp(1rem, 4vw, 2rem);
+  padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem);
+  padding-bottom: clamp(1.5rem, 2vw, 1.75rem);
 }
 .banner-inner { max-width: 1100px; margin: 0 auto; }
 
@@ -80,17 +81,18 @@ body {
   margin-bottom: 28px;
 }
 .mission-body {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.02em;
   color: var(--ink3);
-  max-width: 560px;
-  line-height: 1.9;
+  max-width: 620px;
+  line-height: 1.75;
 }
 .mission-body p + p { margin-top: 16px; }
 
 /* ── Bridge line ── */
 .bridge {
-  padding: 2.5rem clamp(1rem, 4vw, 2rem);
+  padding: 1.75rem clamp(1rem, 4vw, 2rem);
+  padding-top: 1rem;
 }
 .bridge-inner {
   max-width: 1100px;
@@ -101,7 +103,7 @@ body {
   background: var(--mustard);
 }
 .bridge-text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -140,11 +142,10 @@ body {
 }
 
 .card-glyph {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   background: var(--mustard);
   transform: rotate(45deg);
-  margin-bottom: 22px;
   flex-shrink: 0;
 }
 .tool-card:hover .card-glyph { background: var(--mustard2); }
@@ -155,17 +156,20 @@ body {
   letter-spacing: 0.04em;
   color: var(--ink);
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .card-body {
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.02em;
-  line-height: 1.8;
+  line-height: 1.65;
   color: var(--ink3);
   flex: 1;
   margin-bottom: 20px;
 }
 .card-cta {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -182,7 +186,7 @@ footer {
   background: var(--ink);
   border-top: 2px solid var(--mustard);
   color: var(--ink3);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-align: center;
@@ -193,6 +197,13 @@ footer a { color: var(--rule); text-decoration: none; }
 footer a:hover { color: var(--mustard); }
 
 @media (max-width: 700px) {
+  .page-banner {
+    padding-top: 1.5rem;
+    padding-bottom: 0.75rem;
+  }
+  .page-title { margin-bottom: 18px; }
+  .mission-body p + p { margin-top: 10px; }
+  .bridge { padding-top: 0.5rem; padding-bottom: 0.75rem; }
   .tools-inner { grid-template-columns: 1fr; }
 }
 
@@ -229,14 +240,12 @@ footer a:hover { color: var(--mustard); }
 <div class="tools">
   <div class="tools-inner">
     <a class="tool-card" href="/stick-and-puck/">
-      <div class="card-glyph"></div>
-      <div class="card-title">Find Ice Time</div>
+      <div class="card-title"><span class="card-glyph"></span>Find Ice Time</div>
       <p class="card-body">Stick &amp; Puck sessions across local rinks.</p>
       <span class="card-cta">Find Ice Time</span>
     </a>
     <a class="tool-card" href="/coaches/">
-      <div class="card-glyph"></div>
-      <div class="card-title">Find Your Coach</div>
+      <div class="card-title"><span class="card-glyph"></span>Find Your Coach</div>
       <p class="card-body">Seattle-area coaches for private lessons and player development.</p>
       <span class="card-cta">Find Your Coach</span>
     </a>

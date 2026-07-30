@@ -351,7 +351,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 }
 .back-link:hover { color: var(--mustard2); }
 
-footer { background: var(--ink); border-top: 2px solid var(--mustard); color: var(--ink3); font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-align: center; padding: 16px; }
+footer { background: var(--ink); border-top: 2px solid var(--mustard); color: var(--ink3); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-align: center; padding: 16px; }
 footer a { color: var(--rule); text-decoration: none; }
 footer a:hover { color: var(--mustard); }
 
@@ -486,7 +486,7 @@ main { flex: 1; display: flex; align-items: center; justify-content: center; pad
 .not-found h1 { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 0.08em; color: var(--ink); margin-bottom: 12px; }
 .not-found p { font-size: 12px; letter-spacing: 0.06em; color: var(--ink3); margin-bottom: 24px; }
 .back { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mustard); text-decoration: none; }
-footer { background: var(--ink); border-top: 2px solid var(--mustard); color: var(--ink3); font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-align: center; padding: 16px; }
+footer { background: var(--ink); border-top: 2px solid var(--mustard); color: var(--ink3); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-align: center; padding: 16px; }
 </style>
 </head>
 <body>
