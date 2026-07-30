@@ -18,13 +18,13 @@ import {
   updateGoingIndicators, maybeShowIconTip, doToggleGoing,
   _refreshSheetContent, backfillRsvpForGroup
 } from '/stick-and-puck/modules/rsvp.js';
-import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=f3b203b';
+import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=ec0dca5';
 import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
   showJoinConfirm, openGroupModal, closeGroupModal, closeIntroModal,
   maybeShowIntroModal, closeSorryModal, maybeShowSorryModal
-} from '/stick-and-puck/modules/groups-ui.js?v=f3b203b';
+} from '/stick-and-puck/modules/groups-ui.js?v=ec0dca5';
 
 if (GROUPS_ENABLED) {
   migrateStorage();

@@ -14,7 +14,7 @@ import {
 } from '/stick-and-puck/modules/rsvp.js';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=f3b203b';
+} from '/stick-and-puck/modules/schedule.js?v=ec0dca5';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
