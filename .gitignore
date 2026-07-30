@@ -1,6 +1,12 @@
 .DS_Store
 .wrangler/
 
+# Local environment files may contain credentials. Keep documented examples.
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+
 # instructions/ holds working material that stays out of the repo (drafts,
 # audit reports, backlog notes, .docx files). The technical spec is the one
 # exception — it's tracked so it can be updated alongside the code it
