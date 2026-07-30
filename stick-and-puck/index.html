@@ -30,6 +30,8 @@
   --yellow-dk:#7C6300;
   --red:      #CC2200;
   --red-lt:   #E83318;
+  --footer-bg:#2E2A26;
+  --footer-link:#B8B2A4;
   --rule:     1px solid #B8B2A4;
 }
 
@@ -83,6 +85,27 @@ header {
   text-align: right;
 }
 .header-meta strong { color: var(--yellow); font-weight: 700; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.coach-nav-link {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--yellow);
+  border: 1px solid var(--yellow);
+  padding: 8px 11px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+.coach-nav-link:hover { background: var(--yellow-dk); border-color: var(--yellow-dk); }
+.coach-nav-desktop { display: inline; }
+.coach-nav-mobile { display: none; }
 
 .live-dot {
   display: inline-block;
@@ -140,6 +163,21 @@ header {
   line-height: 1.2;
   margin-bottom: 4px;
 }
+.page-meta a {
+  color: var(--yellow-dk);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+.page-meta a:hover { color: var(--white-2); }
+.mobile-status {
+  display: none;
+  color: var(--white-3);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+.mobile-status strong { color: var(--yellow); font-weight: 700; }
 
 /* ── Controls bar (3 stacked rows) ── */
 .controls-bar {
@@ -564,7 +602,7 @@ main {
 
 /* ── Footer ── */
 footer {
-  background: var(--black);
+  background: var(--footer-bg);
   border-top: 2px solid var(--yellow);
   color: var(--white-3);
   font-size: 12px;
@@ -573,7 +611,7 @@ footer {
   text-align: center;
   padding: 16px;
 }
-footer a { color: var(--white-3); text-decoration: none; }
+footer a { color: var(--footer-link); text-decoration: none; }
 footer a:hover { color: var(--yellow); }
 
 /* ── Groups row chips ── */
@@ -1138,9 +1176,13 @@ footer a:hover { color: var(--yellow); }
   .page-meta {
     display: none;
   }
+  .header-meta { display: none; }
+  .mobile-status { display: block; }
 }
 
 @media (max-width: 640px) {
+  .coach-nav-desktop { display: none; }
+  .coach-nav-mobile { display: inline; }
   .filter-btn { font-size: 15px; padding: 0 12px; }
   .row-time { font-size: 22px; min-width: 76px; }
   .row-rink { font-size: 11px; }
@@ -1290,8 +1332,14 @@ footer a:hover { color: var(--yellow); }
       <span class="slash">/</span>
       <span class="section">Stick &amp; Puck</span>
     </div>
-    <div id="headerMeta" class="header-meta">
-      <span class="live-dot"></span>Loading&hellip;
+    <div class="header-actions">
+      <div id="headerMeta" class="header-meta">
+        <span class="live-dot"></span>Loading&hellip;
+      </div>
+      <a class="coach-nav-link" href="/coaches/">
+        <span class="coach-nav-desktop">Find Your Coach</span>
+        <span class="coach-nav-mobile">Coaches</span>
+      </a>
     </div>
   </div>
 </header>
@@ -1302,8 +1350,11 @@ footer a:hover { color: var(--yellow); }
     <div class="page-meta">
       <span class="city-name">Seattle Area</span>
       Open ice sessions<br>
-      All rinks &nbsp;·&nbsp; Updated live<br>
-      postandin.com
+      Updated live<br>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a>
+    </div>
+    <div id="mobileHeaderMeta" class="mobile-status">
+      <span class="live-dot"></span>Loading&hellip;
     </div>
   </div>
 </div>
@@ -1337,7 +1388,7 @@ footer a:hover { color: var(--yellow); }
 </main>
 
 <footer>
-  Data from DaySmart, RecTimes &amp; Google Calendar &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="/coaches/">Coaches</a> &nbsp;·&nbsp; <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a> &nbsp;·&nbsp; <a href="https://github.com/gholtgrieve/postandin">GitHub</a>
+  Data from DaySmart, RecTimes &amp; Google Calendar &nbsp;·&nbsp; Not affiliated with any venue &nbsp;·&nbsp; <a href="/coaches/">Coaches</a> &nbsp;·&nbsp; <a href="https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform" target="_blank" rel="noopener">Report an issue</a>
 </footer>
 
 <!-- Sheet overlay (Who's going) -->

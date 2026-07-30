@@ -403,8 +403,9 @@ world-readable at a predictable URL.
 ### Nav policy
 Unfinished sections must not appear in navigation on `/` or `/stick-and-puck/`,
 including small footer links. Pathway remains unfinished and unlinked. Coaches
-is launched: the homepage includes a "Find Your Coach" tool card, and the
-homepage, Stick & Puck, and 404 footers link to `/coaches/`.
+is launched: the homepage includes a "Find Your Coach" tool card, Stick & Puck
+includes a persistent "Find Your Coach" header action, and the homepage, Stick
+& Puck, and 404 footers link to `/coaches/`.
 
 Homepage metadata (`<title>`, `description`, `og:title`, `og:description`)
 advertises the launched Coaches and Stick & Puck sections, but must not

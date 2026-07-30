@@ -204,8 +204,10 @@ export function renderSessions(data) {
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
   const totalRinks = liveRinks + fallbacks.length;
   const lastUpdated = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  document.getElementById("headerMeta").innerHTML =
+  const statusHtml =
     `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
+  document.getElementById("headerMeta").innerHTML = statusHtml;
+  document.getElementById("mobileHeaderMeta").innerHTML = statusHtml;
 }
 
 function sessionRow(s) {
