@@ -1,8 +1,3 @@
-# The unfinished Pathway section is kept out of search with
-# <meta name="robots" content="noindex, nofollow"> on the page itself. It is
-# deliberately NOT disallowed here: a crawler has to fetch the page to see the
-# noindex directive. robots.txt is not access control.
-
 User-agent: *
 Allow: /
 Allow: /api/coaches

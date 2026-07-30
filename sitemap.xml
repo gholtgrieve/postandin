@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Only publicly launched pages belong here. Pathway is still under development:
-  it stays reachable by direct URL but carries
-  <meta name="robots" content="noindex, nofollow"> and is deliberately omitted.
-
   lastmod/changefreq/priority are intentionally left out — nothing keeps them
   accurate, and stale values are worse than absent ones.
 -->

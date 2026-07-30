@@ -31,7 +31,7 @@ files that contain unrelated changes.
   public.
 - Never expose `e.message`, stacks, upstream URLs, or binding names in public
   responses. Log the real error server-side and return a generic safe message.
-- Do not link the unfinished `/pathway/` section from public pages unless
+- `/pathway/` is intentionally deleted. Do not recreate or link it unless
   explicitly requested. Coaches is launched and should remain publicly linked.
 - Do not remove `404.html` or add a catch-all 200 redirect.
 - Do not change Stick & Puck while working on an unrelated feature.
