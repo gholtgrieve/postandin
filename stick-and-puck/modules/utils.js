@@ -53,7 +53,8 @@ export function mkSessionKey(s) {
   const date = d.toLocaleDateString('en-CA');
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${s.rinkKey}|${date}|${hh}:${mm}`;
+  const base = `${s.rinkKey}|${date}|${hh}:${mm}`;
+  return s.activity === 'drop-in-hockey' ? `${base}|drop-in-hockey` : base;
 }
 
 export function getGroupSlug(group) {

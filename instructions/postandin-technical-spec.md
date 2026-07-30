@@ -267,6 +267,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   /coaches/
     [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
 /lib/
+  activities.js             → Shared activity constants plus exact, source-specific
+                              Drop-in Hockey allowlists/classifiers. Stick & Puck is
+                              the default activity for backward compatibility.
   rinks.js                 → Rink config used by both schedule.js and the scheduler Worker
   scrapeAll.js              → Shared scraper orchestration, used by schedule.js (fallback) and the scheduler cron
   kvCache.js                → Generic KV read-through cache (stale-while-revalidate +
@@ -287,7 +290,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
 /scripts/
-  audit-rinks.js           → Node.js script, run locally only
+  audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck
+                              and Drop-in Hockey terminology across FareHarbor,
+                              DaySmart, Everett, and Kent Valley.
   health-check.js          → Node.js script, hits live endpoints, run locally only.
                               Includes `checkNotFound(path, note)` — asserts a path
                               returns HTTP 404 *and* isn't the homepage body, guarding
@@ -774,7 +779,20 @@ FareHarbor is not a live session-data source. The FareHarbor URLs retained in
 `lib/scrapers/rectimes.js` are booking links only. Check `lib/rinks.js` before
 assuming any rink system is current.
 
-The audit script (`scripts/audit-rinks.js`, run locally with `node scripts/audit-rinks.js`) independently checks FareHarbor item lists, DaySmart league names, and iCal summaries for session types not currently captured by the site — this is a monitoring/discovery tool, separate from the live data path above. Run periodically, especially when rinks update their schedules.
+The audit script (`scripts/audit-rinks.js`, run locally with
+`node scripts/audit-rinks.js`) independently checks FareHarbor item lists,
+DaySmart league names, Everett calendar titles, and Kent Valley iCal summaries
+for session types not currently classified by the site. This is a
+monitoring/discovery tool, separate from the live data path above. Run
+periodically, especially when rinks update their schedules.
+
+The shared scraper layer normalizes every emitted session with an `activity`
+value. Supported values are `stick-and-puck` and `drop-in-hockey`. Existing
+callers default to Stick & Puck only; Drop-in Hockey collection is opt-in until
+the activity-aware API is implemented. Drop-in classification uses reviewed,
+source-specific exact labels rather than a broad fuzzy match. DaySmart
+skater/goalie registration records are combined only when their league,
+resource, start, end, and role-stripped base description all match.
 
 ---
 
@@ -873,6 +891,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 |---|---|---|
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." Footer and metadata advertise both launched sections. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
+| Drop-in Hockey data collection | **In development; not public** | Shared scrapers can normalize approved Drop-in Hockey labels when explicitly requested. Existing API/scheduler calls remain Stick & Puck-only. The activity-aware API and `/drop-in-hockey/` destination are separate later increments. |
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, Stick & Puck, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
@@ -884,12 +903,15 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## What to Build Next — Priority Order
 
-1. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Spotlight modules are not yet built.
-2. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
-3. Player spotlight feature — static, monthly, coach-nominated, one player per month
-4. ~~Coach intake form~~ — Airtable form is live; the directory offers it as an optional submission path alongside direct email
-5. Showcase/tournament calendar — PNW events scouts attend (Discovery pillar)
-6. Seattle hockey alumni section — where are players who came up through Seattle now?
+1. Complete Drop-in Hockey — activity-aware schedule API, then the shared
+   `/drop-in-hockey/` destination and activity switch. Do not change the
+   homepage until coverage and reliability are approved.
+2. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Spotlight modules are not yet built.
+3. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
+4. Player spotlight feature — static, monthly, coach-nominated, one player per month
+5. ~~Coach intake form~~ — Airtable form is live; the directory offers it as an optional submission path alongside direct email
+6. Showcase/tournament calendar — PNW events scouts attend (Discovery pillar)
+7. Seattle hockey alumni section — where are players who came up through Seattle now?
 
 ---
 

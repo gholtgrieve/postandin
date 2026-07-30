@@ -1,0 +1,25 @@
+[
+  {
+    "id": 1001,
+    "groupName": "Stick & Puck",
+    "startTimeLocal": "2026-08-01T10:00:00",
+    "endTimeLocal": "2026-08-01T11:00:00"
+  },
+  {
+    "id": 1002,
+    "groupName": "OVA Lunch Hockey",
+    "startTimeLocal": "2026-08-01T12:00:00",
+    "endTimeLocal": "2026-08-01T13:15:00"
+  },
+  {
+    "groupName": "OVA Lunch Hockey",
+    "startTimeLocal": "2026-08-02T12:00:00",
+    "endTimeLocal": "2026-08-02T13:15:00"
+  },
+  {
+    "id": 1003,
+    "groupName": "Figure Skating Session (OVA Drop in)",
+    "startTimeLocal": "2026-08-01T14:00:00",
+    "endTimeLocal": "2026-08-01T15:00:00"
+  }
+]
