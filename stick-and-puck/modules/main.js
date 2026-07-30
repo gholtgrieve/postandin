@@ -24,7 +24,7 @@ import {
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
   showJoinConfirm, openGroupModal, closeGroupModal, closeIntroModal,
   maybeShowIntroModal, closeSorryModal, maybeShowSorryModal
-} from '/stick-and-puck/modules/groups-ui.js';
+} from '/stick-and-puck/modules/groups-ui.js?v=f3b203b';
 
 if (GROUPS_ENABLED) {
   migrateStorage();
