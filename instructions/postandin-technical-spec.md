@@ -303,9 +303,11 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 
 ## Search Visibility & Routing
 
-Established 2026-07-22, commit `f23f83d`. **Only two pages are publicly
-discoverable and indexable:** `/` and `/stick-and-puck/`. Everything else is
-either unfinished (reachable by direct URL, kept out of search) or gone.
+Established 2026-07-22 in commit `f23f83d` and expanded with the Coaches launch.
+The publicly discoverable and indexable pages are `/`, `/stick-and-puck/`,
+`/coaches/`, and every Live coach profile. Draft coach profiles and other
+unfinished pages remain reachable by direct URL but are kept out of search;
+deleted pages are gone.
 
 ### The three-part model
 
@@ -385,8 +387,8 @@ There is no build step, so Cloudflare Pages publishes the repository as-is:
 is easy to forget for non-web files. When this document became tracked on
 2026-07-22 it immediately became fetchable at
 `https://postandin.com/instructions/postandin-technical-spec.md` (HTTP 200,
-`text/markdown`) — a third indexable URL, contradicting the two-page rule
-above.
+`text/markdown`) — an unintended indexable URL, contradicting the launch
+boundary in effect at the time.
 
 Fixed in `_headers` with `X-Robots-Tag: noindex, nofollow` on
 `/instructions/*` — a header rather than a `robots.txt` `Disallow`, for
