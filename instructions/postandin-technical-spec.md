@@ -262,8 +262,10 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
       rsvp.js              → GET/POST session RSVPs (validates memberId — see Groups/RSVPs below)
       session.js           → GET/POST session sync
       nudge.js             → GET share text (no KV reads)
-    schedule.js             → GET pre-scraped Stick & Puck schedule from KV
-                              (`schedule:cache`, written by scheduler Worker)
+    schedule.js             → GET pre-scraped schedule from KV. Defaults to Stick &
+                              Puck (`schedule:cache`) and accepts
+                              `?activity=drop-in-hockey` for the activity-specific
+                              cache written by the scheduler Worker.
     rectimes.js, everett.js → per-rink live-scrape proxies
   /coaches/
     [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
@@ -792,8 +794,11 @@ periodically, especially when rinks update their schedules.
 The shared scraper layer normalizes every emitted session with an `activity`
 value. Supported values are `stick-and-puck` and `drop-in-hockey`. Callers
 still default to Stick & Puck for backward compatibility. The scheduler opts
-into both activities during one scrape, then writes separate activity caches;
-the existing `/api/schedule` contract continues to read only `schedule:cache`.
+into both activities during one scrape, then writes separate activity caches.
+`/api/schedule` accepts those same values through the optional `activity` query
+parameter; omission and explicit `activity=stick-and-puck` both preserve the
+legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
+`schedule:cache:drop-in-hockey`. Unsupported values return `400`.
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
@@ -895,7 +900,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 |---|---|---|
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." Footer and metadata advertise both launched sections. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
-| Drop-in Hockey data collection | **In development; not public** | Shared scrapers normalize approved Drop-in Hockey labels, and the scheduler writes them to `schedule:cache:drop-in-hockey` while preserving the legacy Stick & Puck cache. The activity-aware API and `/drop-in-hockey/` destination are separate later increments. |
+| Drop-in Hockey data and API | **In development; not public** | Shared scrapers normalize approved Drop-in Hockey labels, the scheduler writes them to `schedule:cache:drop-in-hockey`, and `/api/schedule?activity=drop-in-hockey` serves that cache while preserving the legacy Stick & Puck default. The `/drop-in-hockey/` destination remains a separate later increment. |
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, Stick & Puck, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
@@ -907,8 +912,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## What to Build Next — Priority Order
 
-1. Complete Drop-in Hockey — activity-aware schedule API, then the shared
-   `/drop-in-hockey/` destination and activity switch. Do not change the
+1. Complete Drop-in Hockey — build the shared `/drop-in-hockey/` destination
+   and activity switch on the activity-aware schedule API. Do not change the
    homepage until coverage and reliability are approved.
 2. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Spotlight modules are not yet built.
 3. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.

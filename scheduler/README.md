@@ -4,8 +4,9 @@ A standalone Cloudflare Worker with two independent cron jobs:
 
 1. **Schedule caches** (every 30 min) — scrapes all rink schedules once and
    writes separate Stick & Puck and Drop-in Hockey results to KV. The Pages
-   site's `/api/schedule` endpoint currently reads the legacy Stick & Puck key;
-   the Drop-in Hockey key is ready for the activity-aware API increment.
+   site's `/api/schedule` endpoint defaults to the legacy Stick & Puck key and
+   reads the Drop-in Hockey key when requested with
+   `?activity=drop-in-hockey`.
    The two KV writes are sequential, Drop-in first: if the legacy write fails,
    Drop-in may be newer while the intact legacy value remains until the next run.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
@@ -216,7 +217,7 @@ Both the scheduler and the Pages Function at `/api/schedule` import from these.
 | Key | Written by | Read by | Format |
 |---|---|---|---|
 | `schedule:cache` | Scheduler (cron) | `/api/schedule` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
-| `schedule:cache:drop-in-hockey` | Scheduler (cron) | Activity-aware schedule API (planned) | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
+| `schedule:cache:drop-in-hockey` | Scheduler (cron) | `/api/schedule?activity=drop-in-hockey` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `rsvp:{groupSlug}` | `/api/groups/rsvp` (POST) | `/api/groups/rsvp` (GET) | `{ [sessionKey]: [displayName,...] }` |
 | `group:{slug}` | `/api/groups/create`, `join` | `/api/groups/join`, `leave` | group metadata |
 | `session:{sessionId}` | `/api/groups/session` | `/api/groups/session` | `{ displayName, groups }` |
