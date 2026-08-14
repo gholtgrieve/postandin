@@ -1,8 +1,9 @@
 // Scheduler Worker — runs two independent cron jobs:
 //
-//  1. Schedule cache (every 30 min): scrapes all rinks, writes the result to
-//     KV as schedule:cache. The Pages Function at /api/schedule reads from
-//     this cache instead of scraping on every visitor request.
+//  1. Schedule caches (every 30 min): scrapes all rinks once, writes Stick &
+//     Puck to schedule:cache and Drop-in Hockey to
+//     schedule:cache:drop-in-hockey. The Pages Function currently reads the
+//     legacy Stick & Puck key.
 //  2. GROUPS backup (daily, ~3am Pacific): full export of the GROUPS KV
 //     namespace to R2. See src/backup.js.
 //
@@ -11,9 +12,21 @@
 //   curl https://<worker-subdomain>.workers.dev/backup-now   (GROUPS backup)
 
 import { scrapeAll } from '../../lib/scrapeAll.js';
+import {
+  ACTIVITY_DROP_IN_HOCKEY,
+  ACTIVITY_STICK_AND_PUCK,
+  SUPPORTED_ACTIVITIES,
+} from '../../lib/activities.js';
 import { backupGroups } from './backup.js';
 
 const BACKUP_CRON = '0 10 * * *';
+const CACHE_TTL_SECONDS = 2 * 60 * 60;
+const MAX_CARRY_MS = 24 * 60 * 60 * 1000;
+
+export const SCHEDULE_CACHE_KEYS = Object.freeze({
+  [ACTIVITY_STICK_AND_PUCK]: 'schedule:cache',
+  [ACTIVITY_DROP_IN_HOCKEY]: 'schedule:cache:drop-in-hockey',
+});
 
 export default {
   async scheduled(event, env, ctx) {
@@ -45,32 +58,56 @@ export default {
 };
 
 async function runScrape(env, opts = {}) {
-  const data = await scrapeAll(opts);
+  const data = await scrapeAll({ ...opts, activities: SUPPORTED_ACTIVITIES });
+  await writeScheduleCaches(env, data);
+}
+
+export async function writeScheduleCaches(env, data, { now = new Date() } = {}) {
   const anyOk = Object.values(data).some(r => r.ok);
   if (!anyOk) {
-    console.error('runScrape: every rink failed this run — keeping existing schedule:cache instead of overwriting with an all-failed payload');
-    return;
+    console.error('runScrape: every rink failed this run — keeping existing schedule caches instead of overwriting them with an all-failed payload');
+    return { updated: false };
   }
 
-  // Per-rink last-known-good merge: if a rink failed this run but succeeded in
-  // the previous cache, carry its data forward (up to 24h old) so an
-  // intermittent upstream outage doesn't surface an error to every visitor.
-  const prev = await env.SCHEDULE.get('schedule:cache', { type: 'json' });
-  const MAX_CARRY_MS = 24 * 60 * 60 * 1000;
+  const fetchedAt = now.toISOString();
+
+  // Write the new Drop-in Hockey cache first. The legacy Stick & Puck key is
+  // written last and keeps its exact response shape for /api/schedule.
+  const writeOrder = [ACTIVITY_DROP_IN_HOCKEY, ACTIVITY_STICK_AND_PUCK];
+  for (const activity of writeOrder) {
+    const cacheKey = SCHEDULE_CACHE_KEYS[activity];
+    const current = selectActivity(data, activity);
+    const prev = await env.SCHEDULE.get(cacheKey, { type: 'json' });
+    const merged = carryLastKnownGood(current, prev, now.getTime(), activity);
+    const payload = JSON.stringify({ fetchedAt, data: merged });
+    await env.SCHEDULE.put(cacheKey, payload, { expirationTtl: CACHE_TTL_SECONDS });
+  }
+
+  return { updated: true, fetchedAt };
+}
+
+export function selectActivity(data, activity) {
+  return Object.fromEntries(Object.entries(data).map(([key, entry]) => [
+    key,
+    {
+      ...entry,
+      sessions: (entry.sessions ?? []).filter(session => session.activity === activity),
+    },
+  ]));
+}
+
+function carryLastKnownGood(data, prev, nowMs, activity) {
   for (const key of Object.keys(data)) {
     if (data[key].ok !== false) continue;
     const prevEntry = prev?.data?.[key];
     if (!prevEntry?.ok) continue;
     const prevTs = prevEntry.fetchedAt ?? prev.fetchedAt;
-    if (!prevTs || Date.now() - new Date(prevTs).getTime() > MAX_CARRY_MS) continue;
+    const prevTime = new Date(prevTs).getTime();
+    if (!prevTs || !Number.isFinite(prevTime) || nowMs - prevTime > MAX_CARRY_MS) continue;
     data[key] = { ...prevEntry, stale: true, fetchedAt: prevTs };
-    console.error(`runScrape: ${key} failed, carrying forward data from ${prevTs}`);
+    console.error(`runScrape: ${activity}:${key} failed, carrying forward data from ${prevTs}`);
   }
-
-  const payload = JSON.stringify({ fetchedAt: new Date().toISOString(), data });
-  // 2-hour TTL: if the scheduler stops running, the Pages Function falls back
-  // to live scraping rather than serving indefinitely-stale data.
-  await env.SCHEDULE.put('schedule:cache', payload, { expirationTtl: 7200 });
+  return data;
 }
 
 function json(body) {

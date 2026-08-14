@@ -3,18 +3,26 @@
 // Run with: node scripts/audit-rinks.js
 //
 // Periodically scans every rink's upstream data source for session/event
-// names we might not be capturing as Stick & Puck. Prints anything new or
+// names we might not be capturing as an approved ice-time activity. Prints anything new or
 // unrecognized so a human can decide whether to add it.
 
-const HOCKEY_HINTS = /stick|puck|hockey/i;
-const EXCLUDE_HINTS = /gift card|lesson|figure|freestyle|speed skat|curling|broomball|birthday|public skate|punch card|video lab|skate helper|adult skate|membership/i;
+import {
+  DAYSMART_DROP_IN_LABELS,
+  DAYSMART_EXCLUDED_DROP_IN_LABELS,
+  EVERETT_DROP_IN_LABELS,
+} from '../lib/activities.js';
 
-// ── Known items/leagues already wired into stick-and-puck/index.html ──────
+const HOCKEY_HINTS = /stick|puck|hockey|drop.?in|pickup|shinny|rat hockey/i;
+// Do not globally exclude "learn to play": an approved Sno-King 3v3 drop-in
+// uses that wording, so future variants must reach human review.
+const EXCLUDE_HINTS = /gift card|lesson|try hockey|camp|figure|freestyle|speed skat|curling|broomball|birthday|public skate|punch card|video lab|skate helper|adult skate|membership/i;
+
+// ── Known items/leagues already handled by lib/scrapers/*.js ─────────────
 // Keep this list in sync manually when you add a new session.
 const KNOWN = {
   fareharbor: {
-    lynnwoodicecenter: [245296, 737473],
-    olympicviewarena: [313860, 283939], // 283939 = Lunch Hockey (intentionally excluded)
+    lynnwoodicecenter: [245296, 380350, 737473],
+    olympicviewarena: [313860, 283939],
   },
   daysmart: {
     // DaySmart filters on description text ("stick", "full hockey gear"),
@@ -24,13 +32,16 @@ const KNOWN = {
       'LTP Family Stick & Puck (14 and under)',
       'Stick & Puck for female and non-binary identifying players only.',
       'Stick & Puck (Female only)',
+      ...DAYSMART_DROP_IN_LABELS.kraken,
+      ...DAYSMART_EXCLUDED_DROP_IN_LABELS.kraken,
     ],
-    snoking: [], // matched generically via sport filter + text; see KNOWN_PATTERNS below
+    snoking: [
+      ...DAYSMART_DROP_IN_LABELS.snoking,
+      ...DAYSMART_EXCLUDED_DROP_IN_LABELS.snoking,
+    ],
   },
   ical: {
-    everett: ['Stick & Puck'],
-    // Kent Valley excluded: KVIC uses freeform time-embedded SUMMARY strings
-    // that are unique per event, making exact-match auditing impractical.
+    kentValley: [],
   },
 };
 
@@ -39,6 +50,12 @@ const KNOWN = {
 const KNOWN_PATTERNS = {
   snoking: [
     /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - stick n puck$/i,
+    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - rookies stick n puck$/i,
+  ],
+  kentValley: [
+    /stick\s*(?:&|and|n[’']?)\s*puck/i,
+    /(?:adult|adults|cross ice adult)\s+drop.?in(?:\s+hockey)?/i,
+    /\blearn to play hockey(?: classes)?$/i,
   ],
 };
 
@@ -74,10 +91,11 @@ async function auditFareHarbor(companySlug) {
 
 // ── DaySmart: list every league per company, flag unrecognized hockey-ish names ──
 async function auditDaySmart(companySlug) {
-  // Pull events for the next 30 days, collect unique league_ids, then resolve names.
+  // Match the production hockey sport and use 45 days to catch less-frequent
+  // sessions before an exact allowlist silently misses them.
   const today = new Date().toISOString().slice(0, 10);
-  const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-  const eventsUrl = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?company=${companySlug}&filter[start__gte]=${today}&filter[start__lte]=${future}&page[size]=300`;
+  const future = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+  const eventsUrl = `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?company=${companySlug}&filter[homeTeam.sport_id__in]=20&filter[start__gte]=${today}&filter[start__lte]=${future}&page[size]=500`;
   const eventsData = await fetchJson(eventsUrl);
   const leagueIds = [...new Set(
     (eventsData.data ?? [])
@@ -121,7 +139,34 @@ async function auditIcal(key, url) {
   const ical = await fetchText(url);
   const summaries = parseIcalSummaries(ical);
   const known = new Set(KNOWN.ical[key] ?? []);
-  return summaries.filter(s => !known.has(s) && HOCKEY_HINTS.test(s) && !EXCLUDE_HINTS.test(s));
+  const patterns = KNOWN_PATTERNS[key] ?? [];
+  return summaries.filter(s =>
+    !known.has(s) &&
+    !patterns.some(re => re.test(s)) &&
+    HOCKEY_HINTS.test(s) &&
+    !EXCLUDE_HINTS.test(s)
+  );
+}
+
+async function auditEverett() {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const data = await fetchJson(
+    `https://us-central1-aotw-arena.cloudfunctions.net/api/calendar/417/443?startDate=${today}&endDate=${future}`
+  );
+  const titles = new Set(
+    data
+      .filter(rink => rink.name === 'Community Rink')
+      .flatMap(rink => rink.slots ?? [])
+      .map(slot => slot.title ?? '')
+  );
+  return [...titles].filter(title =>
+    !EVERETT_DROP_IN_LABELS.includes(title) &&
+    !/stick\s*(?:&|and)\s*puck/i.test(title) &&
+    !/^KHL-/i.test(title) &&
+    HOCKEY_HINTS.test(title) &&
+    !EXCLUDE_HINTS.test(title)
+  );
 }
 
 // ── Run everything ──────────────────────────────────────────────────────
@@ -163,10 +208,22 @@ async function main() {
     }
   }
 
+  console.log('── Everett calendar ──');
+  try {
+    const flagged = await auditEverett();
+    if (flagged.length === 0) {
+      console.log('  ✅ No new hockey-related titles found.\n');
+    } else {
+      for (const title of flagged) console.log(`  🆕 "${title}"`);
+      console.log('');
+    }
+  } catch (e) {
+    console.log(`  ❌ Error: ${e.message}\n`);
+  }
+
   // iCal feeds
-  // (Kent Valley removed — freeform time-embedded SUMMARY strings make exact-match auditing impractical)
   const icalFeeds = {
-    // Everett goes through the Cloudflare proxy normally; add URL here if direct audit is needed.
+    kentValley: 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics',
   };
   for (const [key, url] of Object.entries(icalFeeds)) {
     console.log(`── iCal: ${key} ──`);
@@ -184,7 +241,7 @@ async function main() {
   }
 
   console.log('═══ Audit complete ═══');
-  console.log('Anything flagged 🆕 above is NOT currently captured by stick-and-puck/index.html.');
+  console.log('Anything flagged 🆕 above is not classified by the shared schedule scrapers.');
   console.log('Update the KNOWN list in this script once you decide to add or ignore it.');
 }
 

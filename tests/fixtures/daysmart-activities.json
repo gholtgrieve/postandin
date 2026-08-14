@@ -1,0 +1,114 @@
+{
+  "company": "snoking",
+  "resourceIds": [11, 12, 13],
+  "resourceMap": {
+    "11": "Renton Ice",
+    "12": "Renton Rink",
+    "13": "Snoqualmie Ice"
+  },
+  "leagueMap": {
+    "3254": "Women's Drop-In",
+    "3248": "Adult Weekend Drop-In",
+    "3251": "SKAHL Beginner Drop-In",
+    "3249": "Adult Learn to Play 3v3 Drop-In",
+    "3247": "Rocco's Drop-In (Invite Only)",
+    "9999": "Figure Skating Drop-In"
+  },
+  "events": [
+    {
+      "id": "stick-1",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 12,
+        "league_id": null,
+        "desc": "Stick N Puck",
+        "start": "2026-08-01T10:00:00",
+        "end": "2026-08-01T11:00:00",
+        "register_capacity": 20
+      }
+    },
+    {
+      "id": "women-skater",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 13,
+        "league_id": 3254,
+        "desc": "Skater - Women's Drop-In",
+        "start": "2026-08-01T20:00:00",
+        "end": "2026-08-01T21:15:00",
+        "register_capacity": 18
+      }
+    },
+    {
+      "id": "women-goalie",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 13,
+        "league_id": 3254,
+        "desc": "Goalie - Women's Drop-In",
+        "start": "2026-08-01T20:00:00",
+        "end": "2026-08-01T21:15:00",
+        "register_capacity": 2
+      }
+    },
+    {
+      "id": "weekend-skater",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 11,
+        "league_id": 3248,
+        "desc": "Skater - Adult Weekend Drop-In",
+        "start": "2026-08-02T09:20:00",
+        "end": "2026-08-02T10:20:00",
+        "register_capacity": 18
+      }
+    },
+    {
+      "id": "beginner-goalie",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 11,
+        "league_id": 3251,
+        "desc": "Goalie - SKAHL Beginner Drop-In",
+        "start": "2026-08-02T09:20:00",
+        "end": "2026-08-02T10:20:00",
+        "register_capacity": 2
+      }
+    },
+    {
+      "id": "ltp-skater",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 12,
+        "league_id": 3249,
+        "desc": "Skater - Adult LTP 3v3 Drop-In",
+        "best_description": "Designed for new and beginning learn to play participants.",
+        "start": "2026-08-03T18:00:00",
+        "end": "2026-08-03T19:00:00",
+        "register_capacity": 18
+      }
+    },
+    {
+      "id": "invite-only",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 12,
+        "league_id": 3247,
+        "desc": "Skater - Rocco's Drop-In (Invite Only)",
+        "start": "2026-08-04T18:00:00",
+        "end": "2026-08-04T19:00:00"
+      }
+    },
+    {
+      "id": "figure-drop-in",
+      "attributes": {
+        "event_type_id": "E",
+        "resource_id": 11,
+        "league_id": 9999,
+        "desc": "Figure Skating Drop-In",
+        "start": "2026-08-05T18:00:00",
+        "end": "2026-08-05T19:00:00"
+      }
+    }
+  ]
+}
