@@ -142,7 +142,95 @@ test('DaySmart combines only a genuine same-league skater/goalie pair', () => {
     skater: { capacity: 18 },
     goalie: { capacity: 2 },
   });
+  assert.equal(women.eligibility.ageMin, 18);
   assert.match(women.id, /^daysmart-snoking-3254-13-/);
+});
+
+test('DaySmart uses published team names to combine roleless Kraken registrations', () => {
+  const sessions = normalizeDaySmartEvents({
+    company: 'kraken',
+    resourceIds: [2],
+    resourceMap: { 2: 'Smartsheet Rink 2' },
+    leagueMap: { 3012: 'Drop-In' },
+    teamMap: {
+      13096: 'Drop-In Skater',
+      13095: 'Drop-in Goalie',
+    },
+    activities: ALL_ACTIVITIES,
+    events: [
+      {
+        id: 'kraken-skater',
+        attributes: {
+          event_type_id: 'k',
+          resource_id: 2,
+          league_id: 3012,
+          hteam_id: 13096,
+          desc: '',
+          best_description: 'Drop-in Hockey at KCI!',
+          start: '2026-08-14T12:00:00',
+          end: '2026-08-14T13:15:00',
+          register_capacity: 20,
+        },
+      },
+      {
+        id: 'kraken-goalie',
+        attributes: {
+          event_type_id: 'k',
+          resource_id: 2,
+          league_id: 3012,
+          hteam_id: 13095,
+          desc: '',
+          best_description: 'Drop-in Hockey at KCI!',
+          start: '2026-08-14T12:00:00',
+          end: '2026-08-14T13:15:00',
+          register_capacity: 2,
+        },
+      },
+    ],
+  });
+
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].subtitle, 'Adult 18+');
+  assert.deepEqual(sessions[0].eligibility, {
+    ageMin: 18,
+    ageMax: null,
+    audience: 'adult',
+    skill: null,
+    notes: null,
+  });
+  assert.deepEqual(sessions[0].registration.roles, {
+    skater: { capacity: 20 },
+    goalie: { capacity: 2 },
+  });
+  assert.deepEqual(sessions[0].sourceIds, ['kraken-goalie', 'kraken-skater']);
+});
+
+test('DaySmart never applies a Drop-in team role to Stick & Puck', () => {
+  const sessions = normalizeDaySmartEvents({
+    company: 'kraken',
+    resourceIds: [2],
+    resourceMap: { 2: 'Smartsheet Rink 2' },
+    leagueMap: {},
+    teamMap: { 13096: 'Drop-In Skater' },
+    events: [{
+      id: 'stick-with-colliding-team-id',
+      attributes: {
+        event_type_id: 'k',
+        resource_id: 2,
+        league_id: null,
+        hteam_id: 13096,
+        desc: 'Stick & Puck',
+        start: '2026-08-14T14:00:00',
+        end: '2026-08-14T15:15:00',
+        register_capacity: 24,
+      },
+    }],
+  });
+
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].activity, ACTIVITY_STICK_AND_PUCK);
+  assert.equal(sessions[0].registration.capacity, 24);
+  assert.deepEqual(sessions[0].registration.roles, {});
 });
 
 test('DaySmart does not merge unrelated leagues sharing a resource and start', () => {

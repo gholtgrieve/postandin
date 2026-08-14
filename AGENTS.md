@@ -48,9 +48,11 @@ files that contain unrelated changes.
   run destructive/admin scripts unless the owner explicitly asks for that
   action.
 - A push to `main` deploys the Pages site automatically.
-- Changes under `group-do/` or `scheduler/` also require a separate
-  `wrangler deploy` from that directory. Never imply that `git push` deployed
-  those Workers.
+- Changes under `group-do/` or `scheduler/`, and changes to shared runtime files
+  imported by either Worker (for example `lib/activities.js`, `lib/scrapeAll.js`,
+  or `lib/scrapers/*.js` for the scheduler), also require a separate
+  `wrangler deploy` from the affected Worker's directory. Never imply that
+  `git push` deployed those Workers.
 - Do not use real secrets for testing. If live credentials or production writes
   would be required, stop and explain exactly what the owner must do.
 

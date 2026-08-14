@@ -32,6 +32,8 @@ const KNOWN = {
       'LTP Family Stick & Puck (14 and under)',
       'Stick & Puck for female and non-binary identifying players only.',
       'Stick & Puck (Female only)',
+      'KSA/KYHA - Prep Hockey (Session #5)',
+      'KSA/KYHA - Prep Hockey (Fall)',
       ...DAYSMART_DROP_IN_LABELS.kraken,
       ...DAYSMART_EXCLUDED_DROP_IN_LABELS.kraken,
     ],
@@ -41,8 +43,16 @@ const KNOWN = {
     ],
   },
   ical: {
-    kentValley: [],
+    // Historical one-off typo from 2024; production's 30-day window never
+    // reaches it, but the full-history audit feed does.
+    kentValley: ['Open Stic & Puck'],
   },
+  everett: [
+    '🏒 Adult Hockey Skating (Adult 4+) - Wed - 06:10 pm',
+    '🏒⚡ Advanced Hockey: Power Skating - Thu - 06:00 pm',
+    '🏒 Hockey Tots - Sat - 10:45 am',
+    '🏒 Hockey 1-4 - Sat - 11:20 am',
+  ],
 };
 
 // Regex patterns for league names that are already captured but vary over time
@@ -51,6 +61,7 @@ const KNOWN_PATTERNS = {
   snoking: [
     /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - stick n puck$/i,
     /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - rookies stick n puck$/i,
+    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w* - rookies stick n puck$/i,
   ],
   kentValley: [
     /stick\s*(?:&|and|n[’']?)\s*puck/i,
@@ -160,7 +171,9 @@ async function auditEverett() {
       .flatMap(rink => rink.slots ?? [])
       .map(slot => slot.title ?? '')
   );
+  const known = new Set(KNOWN.everett);
   return [...titles].filter(title =>
+    !known.has(title) &&
     !EVERETT_DROP_IN_LABELS.includes(title) &&
     !/stick\s*(?:&|and)\s*puck/i.test(title) &&
     !/^KHL-/i.test(title) &&
@@ -241,8 +254,8 @@ async function main() {
   }
 
   console.log('═══ Audit complete ═══');
-  console.log('Anything flagged 🆕 above is not classified by the shared schedule scrapers.');
-  console.log('Update the KNOWN list in this script once you decide to add or ignore it.');
+  console.log('Anything flagged 🆕 above is not yet accounted for by the audit expectations.');
+  console.log('Verify the production classifier, then update it or the KNOWN list after review.');
 }
 
 main().catch(e => {

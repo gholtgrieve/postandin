@@ -307,7 +307,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   admin-purge.js           → Local-only destructive-operation script; backs up before deleting
 ```
 
-**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js` or `scheduler/src/*.js` needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in that Worker's directory — pushing alone will not change its live behavior.
+**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js`, `scheduler/src/*.js`, or shared runtime imported by either Worker needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in the affected Worker's directory. For the scheduler, shared runtime includes `lib/activities.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`. Pushing alone will not change the Worker's live behavior.
 
 ---
 
@@ -802,6 +802,19 @@ legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
+
+The 2026-08-14 pre-launch coverage review resolved newly observed source names
+conservatively. Kraken's `Adult Morning Skills Goalie Drop-in` remains excluded
+because its published description identifies it as adult skills development,
+not an open-hockey session. Sno-King's month-spanning `Rookies Stick N Puck`
+labels are already classified as Stick & Puck and are recognized by the audit.
+Everett's flagged hockey-skating, power-skating, Hockey Tots, and Hockey 1-4
+titles remain excluded as instructional sessions. Kent Valley's `Open Stic &
+Puck` was a one-off 2024 typo outside the production 30-day window and is
+ignored by the full-history audit. Kraken's current Drop-In and Novice Drop-In
+metadata establishes an 18+ minimum; its blank-description skater and goalie
+registrations are combined using their published DaySmart team names rather
+than an inferred capacity threshold.
 
 ---
 
