@@ -15,7 +15,7 @@ import {
   classifyEverettActivity,
   classifyRecTimesActivity,
 } from '../lib/activities.js';
-import { normalizeDaySmartEvents } from '../lib/scrapers/daysmart.js';
+import { includedTeamMap, normalizeDaySmartEvents } from '../lib/scrapers/daysmart.js';
 import { normalizeRecTimesBookings } from '../lib/scrapers/rectimes.js';
 import { normalizeEverettData } from '../lib/scrapers/everett.js';
 import { parseIcal } from '../lib/scrapers/kentvalley.js';
@@ -147,15 +147,18 @@ test('DaySmart combines only a genuine same-league skater/goalie pair', () => {
 });
 
 test('DaySmart uses published team names to combine roleless Kraken registrations', () => {
+  assert.deepEqual(includedTeamMap(null), {});
+  const teamMap = includedTeamMap([
+    { type: 'teams', id: '13096', attributes: { name: 'Drop-In Skater' } },
+    { type: 'teams', id: '13095', attributes: { name: 'Drop-in Goalie' } },
+    { type: 'resources', id: '2', attributes: { name: 'Smartsheet Rink 2' } },
+  ]);
   const sessions = normalizeDaySmartEvents({
     company: 'kraken',
     resourceIds: [2],
     resourceMap: { 2: 'Smartsheet Rink 2' },
     leagueMap: { 3012: 'Drop-In' },
-    teamMap: {
-      13096: 'Drop-In Skater',
-      13095: 'Drop-in Goalie',
-    },
+    teamMap,
     activities: ALL_ACTIVITIES,
     events: [
       {
