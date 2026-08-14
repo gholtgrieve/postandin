@@ -214,7 +214,11 @@ test('Everett defaults to Stick & Puck and includes only reviewed Community Rink
   const all = normalizeEverettData(data, { activities: ALL_ACTIVITIES });
   assert.deepEqual(
     all.map(s => s.sourceLabel),
-    ['Stick & Puck (LR 1 & 3)', 'Drop in - Pay At Desk (LR 1 & 3)'],
+    [
+      'Stick & Puck (LR 1 & 3)',
+      'Drop in - Pay At Desk (LR 1 & 3)',
+      'Drop in - Pay At Desk (LR 2 & 4)',
+    ],
   );
   const dropIn = all[1];
   assert.equal(dropIn.registration.method, 'pay-at-desk');

@@ -262,7 +262,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
       rsvp.js              → GET/POST session RSVPs (validates memberId — see Groups/RSVPs below)
       session.js           → GET/POST session sync
       nudge.js             → GET share text (no KV reads)
-    schedule.js             → GET pre-scraped schedule from KV (written by scheduler Worker)
+    schedule.js             → GET pre-scraped Stick & Puck schedule from KV
+                              (`schedule:cache`, written by scheduler Worker)
     rectimes.js, everett.js → per-rink live-scrape proxies
   /coaches/
     [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
@@ -285,7 +286,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               via `wrangler deploy` from this directory (not part of the Pages
                               auto-deploy). See Groups/RSVPs below for why.
 /scheduler/                 → Separate Cloudflare Worker running on a cron schedule: scrapes
-                              all rinks every 30 min into schedule:cache (KV), and backs up
+                              all rinks once every 30 min and writes activity-specific KV
+                              caches (`schedule:cache` for Stick & Puck and
+                              `schedule:cache:drop-in-hockey` for Drop-in Hockey), then backs up
                               GROUPS KV + Durable Object group data to R2 daily. Also deployed
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
@@ -599,7 +602,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus `schedule:cache` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). All cache keys store `{data, fetchedAt}` with a 24 h `expirationTtl`, so they self-expire and are safe to delete at any time (they regenerate on the next request).
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache` and `schedule:cache:drop-in-hockey` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. All are regenerable and safe to delete.
 - Session key format: `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`
 - KV reads are gated by a non-HttpOnly cookie (`sp_has_session=1`) to prevent unnecessary reads from non-group visitors.
 - The $5/month Workers Paid plan provides higher KV operation limits than the free tier.
@@ -614,7 +617,7 @@ destructive KV operation.
 
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
-  incidentally captures `schedule:cache` and the `coaches:list:v3` /
+  incidentally captures both `schedule:cache` keys and the `coaches:list:v3` /
   `coaches:profile:v3:{slug}` cache keys, since they share the namespace). These
   cache entries are regenerable and harmless in a backup; they're not group data.
 - `backups/groups-do-YYYY-MM-DD.json` — a best-effort sweep of Durable Object
@@ -787,10 +790,11 @@ monitoring/discovery tool, separate from the live data path above. Run
 periodically, especially when rinks update their schedules.
 
 The shared scraper layer normalizes every emitted session with an `activity`
-value. Supported values are `stick-and-puck` and `drop-in-hockey`. Existing
-callers default to Stick & Puck only; Drop-in Hockey collection is opt-in until
-the activity-aware API is implemented. Drop-in classification uses reviewed,
-source-specific exact labels rather than a broad fuzzy match. DaySmart
+value. Supported values are `stick-and-puck` and `drop-in-hockey`. Callers
+still default to Stick & Puck for backward compatibility. The scheduler opts
+into both activities during one scrape, then writes separate activity caches;
+the existing `/api/schedule` contract continues to read only `schedule:cache`.
+Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
 
@@ -891,7 +895,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 |---|---|---|
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." Footer and metadata advertise both launched sections. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
-| Drop-in Hockey data collection | **In development; not public** | Shared scrapers can normalize approved Drop-in Hockey labels when explicitly requested. Existing API/scheduler calls remain Stick & Puck-only. The activity-aware API and `/drop-in-hockey/` destination are separate later increments. |
+| Drop-in Hockey data collection | **In development; not public** | Shared scrapers normalize approved Drop-in Hockey labels, and the scheduler writes them to `schedule:cache:drop-in-hockey` while preserving the legacy Stick & Puck cache. The activity-aware API and `/drop-in-hockey/` destination are separate later increments. |
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, Stick & Puck, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live | Durable-Object-backed (migrated from direct KV), gated by cookie — see External Services below |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |

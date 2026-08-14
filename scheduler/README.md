@@ -2,9 +2,12 @@
 
 A standalone Cloudflare Worker with two independent cron jobs:
 
-1. **Schedule cache** (every 30 min) — scrapes all rink schedules and writes the
-   result to KV. The Pages site's `/api/schedule` endpoint reads from this cache
-   instead of scraping on every visitor request.
+1. **Schedule caches** (every 30 min) — scrapes all rink schedules once and
+   writes separate Stick & Puck and Drop-in Hockey results to KV. The Pages
+   site's `/api/schedule` endpoint currently reads the legacy Stick & Puck key;
+   the Drop-in Hockey key is ready for the activity-aware API increment.
+   The two KV writes are sequential, Drop-in first: if the legacy write fails,
+   Drop-in may be newer while the intact legacy value remains until the next run.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
    [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
    *before* you need it, i.e. before running any bulk-delete/reset operation.
@@ -45,7 +48,8 @@ A standalone Cloudflare Worker with two independent cron jobs:
      ```sh
      curl https://postandin-scheduler.<your-subdomain>.workers.dev/trigger
      ```
-   - After the first successful run, check KV for the `schedule:cache` key
+   - After the first successful run, check KV for both `schedule:cache` and
+     `schedule:cache:drop-in-hockey`
 
 ## GROUPS backups (data-safety layer)
 
@@ -58,9 +62,9 @@ KV namespace in production with no backup and no safeguard. Read this section
 1. `backups/groups-YYYY-MM-DD.json` — the entire GROUPS KV namespace: every
    remaining `group:`, `session:`, and `rsvp:`-style key. Note that GROUPS and
    SCHEDULE are bound to the *same underlying KV namespace* (see
-   `wrangler.toml`), so this also captures the `schedule:cache` key. That's
-   harmless (it's regenerated every 30 min) — it just means this file is a
-   full namespace snapshot, not strictly "groups only".
+   `wrangler.toml`), so this also captures both `schedule:cache` keys. That's
+   harmless (they are regenerated every 30 min) — it just means this file is
+   a full namespace snapshot, not strictly "groups only".
 
 2. `backups/groups-do-YYYY-MM-DD.json` — a separate export of group data that
    lives in a **GroupDO Durable Object** instead of KV. Since the
@@ -167,9 +171,9 @@ not present in the backup file are left alone, not deleted.
    console.log('Restoring', bulk.length, 'keys from backup exported at', data.exportedAt);
    "
    ```
-   Optional: to skip restoring the live `schedule:cache` (harmless either way —
-   it's regenerated within 30 min), add
-   `.filter(([k]) => k !== 'schedule:cache')` before `.map(...)` above.
+   Optional: to skip restoring the live schedule caches (harmless either way —
+   they are regenerated within 30 min), add
+   `.filter(([k]) => !k.startsWith('schedule:cache'))` before `.map(...)` above.
 
 3. **Find the GROUPS namespace ID** (also in `scheduler/wrangler.toml`, binding
    `GROUPS`):
@@ -212,6 +216,7 @@ Both the scheduler and the Pages Function at `/api/schedule` import from these.
 | Key | Written by | Read by | Format |
 |---|---|---|---|
 | `schedule:cache` | Scheduler (cron) | `/api/schedule` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
+| `schedule:cache:drop-in-hockey` | Scheduler (cron) | Activity-aware schedule API (planned) | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `rsvp:{groupSlug}` | `/api/groups/rsvp` (POST) | `/api/groups/rsvp` (GET) | `{ [sessionKey]: [displayName,...] }` |
 | `group:{slug}` | `/api/groups/create`, `join` | `/api/groups/join`, `leave` | group metadata |
 | `session:{sessionId}` | `/api/groups/session` | `/api/groups/session` | `{ displayName, groups }` |
