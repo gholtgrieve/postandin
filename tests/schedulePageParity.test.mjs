@@ -55,7 +55,9 @@ test('each page declares its activity and offers normal-link navigation to both 
     assert.match(html, /href="\/drop-in-hockey\/"/);
     assert.equal(matches(html, /\baria-current="(page)"/g).length, 1);
     assert.doesNotMatch(html, /Nudge your group|sheetShareBtn/);
+    assert.doesNotMatch(html, /A Quick Note|sorryModalOverlay|sorryDismissBtn/);
   }
+  assert.doesNotMatch(moduleSource, /postandin_sorry_v2|SorryModal|sorryModalOverlay|sorryDismissBtn/);
 });
 
 test('shared CSS and module cache versions stay synchronized', () => {

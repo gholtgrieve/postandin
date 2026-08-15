@@ -386,27 +386,3 @@ export function maybeShowIntroModal() {
   if (localStorage.getItem('postandin_groups_intro_seen')) return;
   openIntroModal();
 }
-
-function openSorryModal() {
-  const overlay = document.getElementById('sorryModalOverlay');
-  overlay.setAttribute('aria-hidden', 'false');
-  overlay.classList.add('open');
-  requestAnimationFrame(() => overlay.classList.add('visible'));
-}
-
-export function closeSorryModal() {
-  localStorage.setItem('postandin_sorry_v2', '1');
-  const overlay = document.getElementById('sorryModalOverlay');
-  overlay.classList.remove('visible');
-  overlay.addEventListener('transitionend', () => {
-    overlay.classList.remove('open');
-    overlay.setAttribute('aria-hidden', 'true');
-  }, { once: true });
-}
-
-export function maybeShowSorryModal() {
-  if (!GROUPS_ENABLED) return;
-  if (!localStorage.getItem('postandin_groups_intro_seen')) return;
-  if (localStorage.getItem('postandin_sorry_v2')) return;
-  setTimeout(openSorryModal, 300);
-}

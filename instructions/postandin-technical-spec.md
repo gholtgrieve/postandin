@@ -238,7 +238,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               which runs at module-load time (not inside an
                               exported init function).
     groups-ui.js              → All group-related UI: bottom sheet, group info
-                              sheet, manage-groups modal, intro/sorry modals,
+                              sheet, manage-groups modal, intro modal,
                               renderGroupsRow.
     main.js                   → Entry point. Re-exports nothing; just imports
                               from the above and runs the bootstrap wiring
@@ -679,7 +679,6 @@ there is no combined cross-activity attendance view.
 | postandin_groups | Array of {groupName, password, memberId, color} |
 | postandin_displayName | User's display name |
 | postandin_groups_intro_seen | Onboarding modal shown flag |
-| postandin_sorry_v2 | One-time apology popup shown flag — **corrected 2026-07-08: this doc previously said `postandin_sorry_v1`, but `stick-and-puck/modules/groups-ui.js`'s `closeSorryModal()` has always used `postandin_sorry_v2`. Pre-existing doc drift, unrelated to the module split — noticed while reading the actual code closely for an unrelated reason, fixed here.** |
 | postandin_icon_tip_seen | Person icon tooltip shown flag |
 | postandin_join_confirmed | Post-join confirmation shown flag |
 | postandin_data_wiped_v1 | One-time data wipe sentinel |

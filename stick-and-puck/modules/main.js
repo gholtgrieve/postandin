@@ -23,8 +23,8 @@ import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
   showJoinConfirm, openGroupModal, closeGroupModal, closeIntroModal,
-  maybeShowIntroModal, closeSorryModal, maybeShowSorryModal
-} from '/stick-and-puck/modules/groups-ui.js?v=20260814';
+  maybeShowIntroModal
+} from '/stick-and-puck/modules/groups-ui.js?v=20260814-2';
 
 if (GROUPS_ENABLED) {
   migrateStorage();
@@ -221,11 +221,6 @@ if (GROUPS_ENABLED) {
     closeGroupModal();
   });
 
-  document.getElementById('sorryDismissBtn').addEventListener('click', closeSorryModal);
-  document.getElementById('sorryModalOverlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('sorryModalOverlay')) closeSorryModal();
-  });
-
   // Render immediately with whatever is in localStorage, then update from server session.
   renderGroupsRow();
   void (async () => {
@@ -236,6 +231,5 @@ if (GROUPS_ENABLED) {
       void updateGoingIndicators();
     }
     maybeShowIntroModal();
-    maybeShowSorryModal();
   })();
 }
