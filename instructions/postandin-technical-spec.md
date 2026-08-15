@@ -964,6 +964,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 5. ~~Coach intake form~~ — Airtable form is live; the directory offers it as an optional submission path alongside direct email
 6. Showcase/tournament calendar — PNW events scouts attend (Discovery pillar)
 7. Seattle hockey alumni section — where are players who came up through Seattle now?
+8. Public Skate schedule — a page similar to the existing activity schedules that
+   lists public skate sessions across local rinks
 
 ---
 
