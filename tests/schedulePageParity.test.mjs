@@ -21,6 +21,16 @@ function matches(source, pattern) {
   return [...source.matchAll(pattern)].map(match => match[1]);
 }
 
+function cacheVersion(source, assetPath) {
+  const marker = `${assetPath}?v=`;
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `missing cache-busted asset reference: ${assetPath}`);
+  const valueStart = start + marker.length;
+  const relativeEnd = source.slice(valueStart).search(/["'\s]/);
+  assert.notEqual(relativeEnd, -1, `unterminated cache version for: ${assetPath}`);
+  return source.slice(valueStart, valueStart + relativeEnd);
+}
+
 test('both schedule shells contain the same DOM IDs', () => {
   const [stickPath, dropInPath] = pagePaths;
   const stickIds = matches(pages[stickPath], /\bid="([^"]+)"/g).sort();
@@ -60,14 +70,16 @@ test('each page declares its activity and offers normal-link navigation to both 
   assert.doesNotMatch(moduleSource, /postandin_sorry_v2|SorryModal|sorryModalOverlay|sorryDismissBtn/);
 });
 
-test('shared CSS and module cache versions stay synchronized', () => {
-  for (const html of Object.values(pages)) {
-    assert.match(html, /schedule\.css\?v=20260814/);
-    assert.match(html, /main\.js\?v=20260814/);
+test('shared asset cache versions are exact and synchronized across page shells', () => {
+  for (const [path, html] of Object.entries(pages)) {
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260814-2',
+      `${path} has an unexpected schedule.css cache version`);
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260814-2',
+      `${path} has an unexpected main.js cache version`);
   }
-  assert.match(modules['stick-and-puck/modules/main.js'], /schedule\.js\?v=20260814/);
-  assert.match(modules['stick-and-puck/modules/main.js'], /groups-ui\.js\?v=20260814/);
-  assert.match(modules['stick-and-puck/modules/schedule.js'], /activity-config\.js\?v=20260814/);
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260814');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260814-2');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260814');
 });
 
 test('Drop-in Hockey launch metadata and crawl surfaces are complete', () => {

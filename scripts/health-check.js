@@ -7,16 +7,11 @@
 //       ({status} = "Live"). Status is not included in the returned objects, so
 //       checks here assert name and slug instead of status: "Live".
 //
-//   (2) KNOWN_COACH_SLUG is hardcoded to "tj-oshie", confirmed as a live slug
-//       from /api/coaches during initial setup. Update it if that coach is ever
-//       removed from the directory.
-//
-//   (3) To run against a local dev server:
+//   (2) To run against a local dev server:
 //       BASE_URL=http://localhost:8788 node scripts/health-check.js
 //
 
 const BASE = (process.env.BASE_URL ?? 'https://postandin.com').replace(/\/$/, '');
-const KNOWN_COACH_SLUG = 'tj-oshie';
 
 let passed = 0;
 let failed = 0;
@@ -74,11 +69,18 @@ async function checkCoachesList() {
   return body;
 }
 
-async function checkCoachGoodSlug() {
-  const label = `GET /api/coach/${KNOWN_COACH_SLUG} — 200 with coach object`;
+async function checkCoachGoodSlug(slug) {
+  const label = slug
+    ? `GET /api/coach/${slug} — 200 with matching coach object`
+    : 'GET /api/coach/{live-slug} — verified Live coach is available';
+  if (!slug) {
+    fail(label, 'no verified slug available from /api/coaches');
+    return;
+  }
+
   let res, body;
   try {
-    ({ res, body } = await getJson(`/api/coach/${KNOWN_COACH_SLUG}`));
+    ({ res, body } = await getJson(`/api/coach/${slug}`));
   } catch (e) {
     fail(label, `fetch/parse error: ${e.message}`);
     return;
@@ -87,6 +89,7 @@ async function checkCoachGoodSlug() {
   if (res.status !== 200) { fail(label, `HTTP ${res.status}`); return; }
   if (typeof body !== 'object' || Array.isArray(body)) { fail(label, 'expected a coach object'); return; }
   if (!body.name || !body.slug) { fail(label, `missing name or slug in response`); return; }
+  if (body.slug !== slug) { fail(label, `expected slug ${slug}, got ${body.slug}`); return; }
   ok(label);
 }
 
@@ -150,8 +153,8 @@ await checkHtml('GET / — 200', '/');
 await checkHtml('GET /coaches/ — 200', '/coaches/');
 await checkHtml('GET /stick-and-puck/ — 200', '/stick-and-puck/');
 await checkHtml('GET /drop-in-hockey/ — 200', '/drop-in-hockey/');
-await checkCoachesList();
-await checkCoachGoodSlug();
+const coaches = await checkCoachesList();
+await checkCoachGoodSlug(coaches?.[0]?.slug);
 await checkCoachBadSlug();
 await checkNotFound('/this-page-does-not-exist');
 await checkNotFound('/about/', 'deleted section, must not redirect to /');
