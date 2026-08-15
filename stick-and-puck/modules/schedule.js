@@ -9,12 +9,15 @@ import {
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260814';
+
+const activityConfig = getActivityConfig(document.body.dataset.activity);
 
 // ─── Inline fetcher (browser-safe ES module) ──────────────────────────────────
 
 // Aggregate ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  const r = await fetch('/api/schedule');
+  const r = await fetch(activityConfig.scheduleUrl);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const raw = await r.json();
   const now = new Date();

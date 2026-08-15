@@ -1,8 +1,9 @@
-# Seattle Stick & Puck — Post & In
+# Seattle Ice Schedules — Post & In
 
-Aggregates open stick & puck ice times across Seattle-area rinks into a single live page.
+Aggregates Stick & Puck and Drop-in Hockey sessions across Seattle-area rinks into two live schedule pages backed by the same shared interface.
 
-Live at **[postandin.com/stick-and-puck](https://postandin.com/stick-and-puck/)**
+- **[Stick & Puck](https://postandin.com/stick-and-puck/)**
+- **[Drop-in Hockey](https://postandin.com/drop-in-hockey/)**
 
 ---
 
@@ -14,57 +15,54 @@ Live at **[postandin.com/stick-and-puck](https://postandin.com/stick-and-puck/)*
 | Sno-King Ice Arena | Renton | DaySmart | Resources 11, 12 (Large + Small Ice) |
 | Sno-King Ice Arena | Kirkland | DaySmart | Resource 1 |
 | Sno-King Ice Arena | Snoqualmie | DaySmart | Resources 13, 14 (Rink A + B) |
-| Olympic View Arena | Mountlake Terrace | FareHarbor | itemPk 313860, proxied via `/api/fareharbor` |
-| Lynnwood Ice Center | Lynnwood | FareHarbor | itemPk 245296 (general), 737473 (Female Stick & Puck), proxied via `/api/fareharbor` |
-| Everett Community Ice Rink | Everett | Custom (Angel of the Winds) | Proxied via `/api/everett` |
-| Kent Valley Ice Centre | Kent | Google Calendar iCal | Proxied via `/api/kentvalley` |
+| Olympic View Arena | Mountlake Terrace | RecTimes | Booking link still points to FareHarbor |
+| Lynnwood Ice Center | Lynnwood | RecTimes | Includes general and Female Stick & Puck sessions |
+| Everett Community Ice Rink | Everett | Custom (Angel of the Winds) | Shared scraper pipeline |
+| Kent Valley Ice Centre | Kent | Google Calendar iCal | Shared scraper pipeline |
 
 ---
 
 ## Groups feature
 
-Users can create a private group so members can see who's attending each session.
+Users can create a private group so members can see who's attending each session. Group membership is shared across both activity pages: a user joins once and sees the same groups on Stick & Puck and Drop-in Hockey. RSVPs remain activity-specific, and each page's group detail sheet shows signups for the activity currently being viewed rather than combining both schedules into one list.
 
 ### Joining mechanic
 
 - **Create**: enter your display name, a group name (e.g. "SJ 16UAA"), and a password (e.g. "Sno-King sucks"). Share the group name + password out-of-band with teammates.
 - **Join**: enter your display name plus the group name and password a teammate shared with you.
 
-The combination of group name + password identifies the group — neither needs to be globally unique on its own. The KV lookup key is a deterministic slug: `groupName.trim().lower() + "|" + password.trim().lower()`. No random code is generated or stored.
+The combination of group name + password identifies the group — neither needs to be globally unique on its own. The group lookup key is a deterministic slug: `groupName.trim().lower() + "|" + password.trim().lower()`. No random code is generated or stored.
 
 After joining, the group chip in the filter bar shows the group name. Tapping the chip reveals a popover with the group name, the password (for resharing), and a copy button that copies `"Group: [name] / Password: [password]"` to the clipboard.
 
 ### RSVP storage
 
-RSVP records are stored in Cloudflare KV under `rsvp:{groupSlug}:{sessionKey}`. Each record expires 24 hours after the session start time (parsed from the session key, format `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`), so stale RSVPs clean up automatically without any cron job.
+RSVP records live in each group's Durable Object, keyed by session. Stick & Puck keeps the legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` format; Drop-in Hockey appends `|drop-in-hockey`, preventing same-rink/same-time sessions from colliding. Entries more than 24 hours past their session start are pruned on writes.
 
-### KV namespace
+The former “Nudge your group” control was never wired to an action and has been removed from both schedule pages. Its unused API endpoint remains in place for compatibility but has no user-interface caller.
 
-Requires a Cloudflare KV namespace bound as `GROUPS` in the Pages dashboard:
-> Settings → Functions → KV namespace bindings → Variable name: `GROUPS`
+### Cloudflare bindings
+
+Pages uses the `GROUPS` KV binding for browser-session records and schedule caches, plus the `GROUP_DO` Durable Object binding for group membership and RSVPs. The Durable Object class is hosted by the separately deployed `postandin-group-do` Worker.
 
 ---
 
 ## Architecture
 
-All session data is fetched client-side from `stick-and-puck/index.html`. Sources that require a CORS proxy are routed through serverless functions.
+Both static pages use the modules under `stick-and-puck/modules/` and the shared `stick-and-puck/schedule.css`. Each page declares an explicit `data-activity`; the pure activity configuration maps Stick & Puck to the backward-compatible `/api/schedule` request and Drop-in Hockey to `/api/schedule?activity=drop-in-hockey`.
 
 ```
-Browser (stick-and-puck/index.html)
-  ├─ DaySmart API (Kraken, Sno-King ×3)   direct fetch — no CORS issue
-  ├─ FareHarbor API (OVA, Lynnwood)        direct fetch — no CORS issue
-  ├─ /api/fareharbor  ────────────────┐
-  ├─ /api/everett     ────────────────┤
-  └─ /api/kentvalley  ────────────────┴── serverless functions (see below)
+Browser (/stick-and-puck/ or /drop-in-hockey/)
+  └─ /api/schedule[?activity=drop-in-hockey]
+       └─ activity-specific KV cache written by the scheduler Worker
 ```
 
 ### Serverless functions
 
 Cloudflare Pages Functions in `functions/api/`:
 
-- **`fareharbor.js`** — proxies FareHarbor calendar API to avoid CORS; used for both Lynnwood items (general + female)
-- **`everett.js`** — proxies Angel of the Winds schedule API
-- **`kentvalley.js`** — fetches and parses Kent Valley's public Google Calendar iCal feed; caches last good response in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error
+- **`schedule.js`** — reads the selected activity's pre-scraped KV cache and safely falls back to an activity-scoped live scrape on a cache miss
+- **`rectimes.js`** and **`everett.js`** — legacy per-rink endpoints retained alongside the shared schedule path
 
 ---
 
@@ -79,7 +77,7 @@ The controls bar exposes these filters (mutually exclusive; the rink legend chip
 | Today | Sessions starting today |
 | Tomorrow | Sessions starting tomorrow |
 | This Week | Sessions starting within 7 days |
-| Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` — currently Lynnwood Female Stick & Puck and any DaySmart sessions with a qualifying league name |
+| Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` for the current activity |
 
 ## Rink legend and grouping
 
@@ -89,11 +87,11 @@ The legend renders one chip per rink, using city name as the label. Rinks with a
 
 ## Local development
 
-### Static only (DaySmart + FareHarbor rinks)
+### Static pages
 ```bash
-open stick-and-puck/index.html
+python3 -m http.server
 ```
-Kraken, Sno-King, OVA, and Lynnwood fetch live. Everett and Kent Valley will error without their proxy functions running.
+This serves both HTML shells and shared assets, but `/api/schedule` requires the Pages development server below.
 
 ### With Cloudflare Pages (all rinks)
 ```bash
@@ -102,24 +100,9 @@ npx wrangler pages dev . --compatibility-flag=nodejs_compat
 
 ---
 
-## Finding a FareHarbor item PK
-
-From the browser console on the page:
-```js
-await window.discoverLynnwoodPKs()
-// Returns a table of all Lynnwood FareHarbor items
-// Once you have the PK:
-window.setLynnwoodPK(123456)
-loadData()
-```
-
-Then update `itemPk` in the `RINKS` config in `stick-and-puck/index.html`.
-
----
-
 ## Maintenance
 
-Periodically run `node scripts/audit-rinks.js` to check for new session types across all rinks. The script scans FareHarbor item lists, DaySmart league names, and iCal summaries for anything hockey-related that isn't already in `KNOWN` (the allowlist at the top of the script). When you add a new session to `stick-and-puck/index.html`, update `KNOWN` in the audit script to keep it in sync.
+Periodically run `node scripts/audit-rinks.js` to check for new session types across all rinks. The audit covers both Stick & Puck and Drop-in Hockey classifications; reviewed source labels belong in `lib/activities.js` and its tests rather than either HTML shell.
 
 ---
 

@@ -7,7 +7,9 @@
 // see the comment in create.js for why (avoids the old direct-KV race). Each
 // DO holds its own rsvp map: { [sessionKey]: [displayName,...] }, still keyed
 // by displayName (not memberId), matching existing behavior exactly.
-// Session key format: {rinkKey}|{YYYY-MM-DD}|{HH:MM}
+// Session key formats:
+//   Stick & Puck:    {rinkKey}|{YYYY-MM-DD}|{HH:MM}
+//   Drop-in Hockey:  {rinkKey}|{YYYY-MM-DD}|{HH:MM}|drop-in-hockey
 //
 // On every write, entries whose session start is >24h in the past are pruned
 // so the map stays bounded — see pruneStale() in group-do/src/group-do.js.

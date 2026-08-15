@@ -149,6 +149,7 @@ console.log(`\nPost & In health check — ${BASE}\n`);
 await checkHtml('GET / — 200', '/');
 await checkHtml('GET /coaches/ — 200', '/coaches/');
 await checkHtml('GET /stick-and-puck/ — 200', '/stick-and-puck/');
+await checkHtml('GET /drop-in-hockey/ — 200', '/drop-in-hockey/');
 await checkCoachesList();
 await checkCoachGoodSlug();
 await checkCoachBadSlug();

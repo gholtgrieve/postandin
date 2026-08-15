@@ -42,7 +42,7 @@ function makeContext(slug, kv) {
 
 // The cache key both endpoints must share. Kept as a literal (not built from
 // the source) so the test fails if either endpoint's key drifts.
-const CACHE_KEY = (slug) => `coaches:profile:v2:${slug}`;
+const CACHE_KEY = (slug) => `coaches:profile:v3:${slug}`;
 const LEGACY_KEY = (slug) => `coaches:profile:${slug}`;
 
 // Mock KV that records every key read, so tests can assert which namespace was used.
@@ -156,7 +156,7 @@ test('formula sent to Airtable requires slug match AND (Live OR Draft)', async (
 // key, so an Archived record cached pre-change could still be served from KV
 // without the Live/Draft filter ever running.
 
-test('API endpoint reads the v2 cache key', async () => {
+test('API endpoint reads the v3 cache key', async () => {
   const kv = makeRecordingKv({ [CACHE_KEY('jane-doe')]: cachedRecord(fields({ status: 'Live' })) });
   const { fetchImpl } = mockAirtable([]);
   await withMockedFetch(fetchImpl, async () => {
@@ -165,7 +165,7 @@ test('API endpoint reads the v2 cache key', async () => {
   assert.equal(kv.reads[0], CACHE_KEY('jane-doe'));
 });
 
-test('SSR endpoint reads the v2 cache key', async () => {
+test('SSR endpoint reads the v3 cache key', async () => {
   const kv = makeRecordingKv({ [CACHE_KEY('jane-doe')]: cachedRecord(fields({ status: 'Live' })) });
   const { fetchImpl } = mockAirtable([]);
   await withMockedFetch(fetchImpl, async () => {
@@ -214,7 +214,7 @@ test('SSR: legacy-key Archived entry is ignored, Airtable is consulted, result i
   });
 });
 
-test('a valid record cached under the v2 key is served without hitting Airtable', async () => {
+test('a valid record cached under the v3 key is served without hitting Airtable', async () => {
   const kv = makeRecordingKv({ [CACHE_KEY('jane-doe')]: cachedRecord(fields({ status: 'Live' })) });
   let fetchCalls = 0;
   const fetchImpl = async () => { fetchCalls++; return { ok: true, json: async () => ({ records: [] }) }; };
@@ -223,6 +223,6 @@ test('a valid record cached under the v2 key is served without hitting Airtable'
     assert.equal(res.status, 200);
     const json = await res.json();
     assert.equal(json.name, 'Jane Doe');
-    assert.equal(fetchCalls, 0, 'a fresh v2 cache entry must be served directly');
+    assert.equal(fetchCalls, 0, 'a fresh v3 cache entry must be served directly');
   });
 });
