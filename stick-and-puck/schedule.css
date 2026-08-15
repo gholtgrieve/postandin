@@ -180,10 +180,9 @@ header {
 .activity-switch-label {
   margin-right: 4px;
   color: var(--white-3);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.2em;
   white-space: nowrap;
 }
 .activity-switch-link {
@@ -193,6 +192,9 @@ header {
   font-size: 16px;
   letter-spacing: 0.08em;
   padding: 6px 10px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -1189,6 +1191,8 @@ footer a:hover { color: var(--yellow); }
 }
 
 @media (max-width: 480px) {
+  .activity-switch-label { font-size: 11px; }
+
   /* ── Filter rows: label stacks above, chips scroll on their own line ── */
   /* Switch rows to block so filter-label (display:flex = block-level) takes a full
      line; inline-flex chip buttons then flow on the next line, non-wrapping,
