@@ -204,7 +204,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               Both shells link to the shared stylesheet at
                               `/stick-and-puck/schedule.css` and declare their activity
                               explicitly with `<body data-activity="...">`.
-                              The homepage remains unchanged for this launch.
+                              The homepage Ice Time card mentions both activities while
+                              continuing to link to `/stick-and-puck/` by default.
 /stick-and-puck/schedule.css → Shared schedule and Groups styling used by both activity
                               pages. Do not duplicate this CSS into either HTML shell.
 /stick-and-puck/modules/
@@ -939,9 +940,9 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." Footer and metadata advertise both launched sections. |
+| Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises both Stick & Puck and Drop-In Hockey sessions while retaining Stick & Puck as its default destination. Footer and metadata advertise both launched sections. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
-| Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage was deliberately unchanged in this increment. |
+| Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, both schedule activities, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
 | Groups feature | Live on both schedule activities | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across pages, RSVPs are activity-qualified, and each page shows its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
@@ -955,7 +956,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 1. ~~Complete Drop-in Hockey~~ — `/drop-in-hockey/`, its normal-link activity
    switch, activity-aware client configuration, Groups support, sitemap entry,
-   and launch documentation are complete. The homepage remained unchanged.
+   and launch documentation are complete. The homepage Ice Time card advertises
+   both activities while retaining Stick & Puck as its default destination.
 2. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Spotlight modules are not yet built.
 3. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
 4. Player spotlight feature — static, monthly, coach-nominated, one player per month
