@@ -5,14 +5,15 @@ A standalone Cloudflare Worker with two independent cron jobs:
 1. **Schedule caches** (every 30 min) — scrapes all rink schedules once and
    writes separate Stick & Puck, Drop-in Hockey, and Public Skate results to KV. The Pages
    site's `/api/schedule` endpoint defaults to the legacy Stick & Puck key and
-   reads the Drop-in Hockey key when requested with
+   reads the matching activity-specific key for
    `?activity=drop-in-hockey` or `?activity=public-skate`.
    The three KV writes are sequential, activity-specific keys first: if the
    legacy write fails, those keys may be newer while the intact legacy value
    remains until the next run.
-   Kent's Stick & Puck and Public Skate calendars, and each DaySmart activity
-   feed, are fetched independently; if one fails, only that activity uses
-   last-known-good data for that rink.
+   Kent's Stick & Puck and Public Skate calendars are fetched independently.
+   For each DaySmart source, the Public Skate feed is independent of the
+   combined hockey feed; a hockey-feed failure affects that source's Stick &
+   Puck and Drop-in Hockey results together.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
    [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
    *before* you need it, i.e. before running any bulk-delete/reset operation.
@@ -36,9 +37,11 @@ A standalone Cloudflare Worker with two independent cron jobs:
    - Click the namespace that your Pages project uses for `GROUPS`
    - Copy the ID from the URL or the details pane
 
-3. **Set the ID in wrangler.toml**
-   - Edit `scheduler/wrangler.toml`
-   - Replace `REPLACE_WITH_YOUR_GROUPS_KV_NAMESPACE_ID` with the actual ID
+3. **Verify the checked-in bindings**
+   - Confirm the `SCHEDULE` and `GROUPS` bindings in `scheduler/wrangler.toml`
+     point to the same production namespace used by Pages.
+   - Confirm the `BACKUPS` bucket and `GROUP_DO` service binding names match
+     production. Change them only when the corresponding resource changes.
 
 4. **Deploy the scheduler**
    ```sh
@@ -112,11 +115,14 @@ so the DST drift wasn't worth working around.
 ```json
 { "exportedAt": "2026-07-03T10:00:00.000Z", "slugCount": 9, "groups": [ { "slug": "cks|captainusa!", "groupName": "CKs", "members": [...], "rsvp": {...} } ] }
 ```
-Each value is the exact raw string stored in KV — no re-encoding, so it can be
-written straight back with `wrangler kv key put` / `kv bulk put`.
+Each value in part 1's `keys` map is the exact raw string stored in KV — no
+re-encoding, so it can be written straight back with `wrangler kv key put` /
+`kv bulk put`. Part 2 is a read-only Durable Object export and cannot be
+restored with KV commands; see the restore limitations below.
 
-**Retention:** 30 days, via an R2 lifecycle rule on the `backups/` prefix (set
-up once — see below).
+**Expected retention:** 30 days, via an externally managed R2 lifecycle rule on
+the `backups/` prefix. The rule is not declared in this repository; verify it
+with Wrangler or in the dashboard (see below).
 
 **On-demand backup:** force a backup immediately — e.g. right before any
 deliberate risky operation — by hitting:
@@ -124,8 +130,12 @@ deliberate risky operation — by hitting:
 curl https://postandin-scheduler.<your-subdomain>.workers.dev/backup-now
 ```
 This runs synchronously and returns the R2 path once the backup is written.
-`scripts/admin-purge.js` (see repo root) also triggers this automatically
-before it will delete anything.
+The `/backup-now` and `/trigger` routes are currently unauthenticated; treat
+their URLs as operationally sensitive until endpoint authentication is added.
+`scripts/admin-purge.js` (see repo root) does **not** call this endpoint. It
+creates its own dated KV snapshot before deleting KV keys. That local snapshot
+does not include Durable Object exports; run `/backup-now` separately when a
+fresh best-effort DO export is required.
 
 ### One-time R2 setup
 
@@ -153,14 +163,20 @@ before it will delete anything.
 6. **Test end to end:** hit `/backup-now` (see above) and confirm the object
    shows up: `wrangler r2 object get postandin-backups/backups/groups-<today>.json --file /tmp/check.json --remote`
 
-### Restore procedure (disaster recovery)
+### KV restore procedure (partial disaster recovery)
 
-Use this after any incident where GROUPS data was lost or corrupted. It's a
-full overwrite-by-key restore — keys written *after* the backup was taken and
-not present in the backup file are left alone, not deleted.
+This procedure restores the KV snapshot only. It is a full overwrite-by-key
+restore—keys written after the backup and absent from the file are left alone.
 
-1. **Get the backup file** (find the date you want in the dashboard, or
-   `wrangler r2 object get postandin-backups/backups/ --remote` to browse):
+**It does not restore `groups-do-YYYY-MM-DD.json`.** `GroupDO` currently exposes
+read-only `export(slug)` but no import/restore method, so migrated Durable
+Object membership and RSVP data cannot be replayed from that file with the
+current code. Treat the DO file as forensic/best-effort backup material until a
+separately reviewed restore path exists. Do not describe the current backup
+system as complete recovery for migrated groups.
+
+1. **Get the backup file** (find the exact object key in the Cloudflare R2
+   dashboard, then download it):
    ```sh
    wrangler r2 object get postandin-backups/backups/groups-2026-07-03.json --file ./restore.json --remote
    ```
@@ -198,9 +214,10 @@ not present in the backup file are left alone, not deleted.
 
 ## Adding a new rink
 
-Edit **`lib/rinks.js`** only — add the new entry with the correct `system` and `config`.
-The scheduler picks it up automatically on the next cron run (no wrangler.toml changes
-needed unless the system type is entirely new and requires a new scraper).
+Add the rink entry in **`lib/rinks.js`** with the correct `system` and `config`.
+Then update source classification, audit expectations, fixtures/tests, and
+documentation when the new rink introduces labels or behavior not already
+covered. A new scraper system also requires `lib/scrapeAll.js` orchestration.
 
 After updating `lib/rinks.js`:
 - Push to GitHub (Pages redeploys with the new rink in the client RINKS config)
@@ -226,6 +243,9 @@ Both the scheduler and the Pages Function at `/api/schedule` import from these.
 | `schedule:cache` | Scheduler (cron) | `/api/schedule` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `schedule:cache:drop-in-hockey` | Scheduler (cron) | `/api/schedule?activity=drop-in-hockey` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `schedule:cache:public-skate` | Scheduler (cron) | `/api/schedule?activity=public-skate` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
-| `rsvp:{groupSlug}` | `/api/groups/rsvp` (POST) | `/api/groups/rsvp` (GET) | `{ [sessionKey]: [displayName,...] }` |
-| `group:{slug}` | `/api/groups/create`, `join` | `/api/groups/join`, `leave` | group metadata |
+| `rsvp:{groupSlug}` | Legacy only; migrated by `GroupDO` | `GroupDO` lazy migration | Legacy RSVP map; deleted after migration |
+| `group:{slug}` | Legacy only; migrated by `GroupDO` | `GroupDO` lazy migration | Legacy group metadata; deleted after migration |
 | `session:{sessionId}` | `/api/groups/session` | `/api/groups/session` | `{ displayName, groups }` |
+
+Current group membership and RSVP state live in per-group Durable Objects and
+therefore do not appear as current-write KV keys in this table.

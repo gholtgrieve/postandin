@@ -33,6 +33,11 @@ or changing production data.
 - Any `group-do/` or `scheduler/` change includes an accurate deployment and
   rollback note.
 - Tests exercise failure paths as well as the happy path.
+- Documentation changed with the code when routes, bindings, cache keys,
+  activities, deployment paths, or runbooks changed. Historical audit files
+  are not mistaken for live status.
+- Backup documentation distinguishes what is captured from what can actually
+  be restored, including Durable Object limitations.
 
 ## Review output
 
