@@ -10,8 +10,9 @@ A standalone Cloudflare Worker with two independent cron jobs:
    The three KV writes are sequential, activity-specific keys first: if the
    legacy write fails, those keys may be newer while the intact legacy value
    remains until the next run.
-   Kent's Stick & Puck and Public Skate calendars are fetched independently;
-   if one fails, only that activity uses last-known-good Kent data.
+   Kent's Stick & Puck and Public Skate calendars, and each DaySmart activity
+   feed, are fetched independently; if one fails, only that activity uses
+   last-known-good data for that rink.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
    [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
    *before* you need it, i.e. before running any bulk-delete/reset operation.

@@ -45,6 +45,10 @@ const KNOWN = {
       ...DAYSMART_EXCLUDED_DROP_IN_LABELS.snoking,
     ],
   },
+  daysmartPublic: {
+    kraken: ['Public Skate'],
+    snoking: ['Public Skate'],
+  },
   ical: {
     // Historical one-off typo from 2024; production's 30-day window never
     // reaches it, but the full-history audit feed does.
@@ -163,6 +167,40 @@ async function auditDaySmart(companySlug) {
   return flagged;
 }
 
+async function auditDaySmartPublic(companySlug) {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+  const eventFilter = companySlug === 'snoking'
+    ? 'filter[event_type_id]=12'
+    : 'filter[homeTeam.sport_id__in]=30';
+  const eventsData = await fetchJson(
+    `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/events?company=${companySlug}&${eventFilter}&filter[start__gte]=${today}&filter[start__lte]=${future}&page[size]=500`,
+  );
+  const events = (eventsData.data ?? [])
+    .filter(event => event.attributes?.event_type_id !== 'L');
+  const names = new Set();
+
+  if (companySlug === 'snoking') {
+    for (const event of events) names.add(event.attributes?.desc ?? '');
+  } else {
+    const leagueIds = [...new Set(events
+      .map(event => event.attributes?.league_id)
+      .filter(Boolean))];
+    for (const id of leagueIds) {
+      const league = await fetchJson(
+        `https://apps.daysmartrecreation.com/dash/jsonapi/api/v1/leagues/${id}?company=${companySlug}`,
+      );
+      names.add(league?.data?.attributes?.name ?? '');
+    }
+  }
+
+  const known = new Set(KNOWN.daysmartPublic[companySlug] ?? []);
+  return {
+    count: events.length,
+    flagged: [...names].filter(name => name && !known.has(name)),
+  };
+}
+
 // ── iCal feeds: dump unique SUMMARY values, flag unrecognized ones ────────
 function parseIcalSummaries(ical) {
   const blocks = ical.split('BEGIN:VEVENT').slice(1);
@@ -246,6 +284,21 @@ async function main() {
           if (f.error) console.log(`  ⚠️  league ${f.leagueId}: ${f.error}`);
           else console.log(`  🆕 league ${f.leagueId}  "${f.name}"`);
         }
+        console.log('');
+      }
+    } catch (e) {
+      console.log(`  ❌ Error: ${e.message}\n`);
+    }
+  }
+
+  for (const slug of Object.keys(KNOWN.daysmartPublic)) {
+    console.log(`── DaySmart Public Skate: ${slug} ──`);
+    try {
+      const { count, flagged } = await auditDaySmartPublic(slug);
+      if (flagged.length === 0) {
+        console.log(`  ✅ ${count} sessions; no new Public Skate labels found.\n`);
+      } else {
+        for (const name of flagged) console.log(`  🆕 "${name}"`);
         console.log('');
       }
     } catch (e) {

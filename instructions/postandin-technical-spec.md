@@ -833,10 +833,15 @@ parameter; omission and explicit `activity=stick-and-puck` both preserve the
 legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
 `schedule:cache:drop-in-hockey`; `activity=public-skate` reads
 `schedule:cache:public-skate`. Unsupported values return `400`. Public Skate
-currently has Kent Valley infrastructure coverage only and has no public page.
-Kent's Stick & Puck and Public Skate calendars fail independently during the
+currently has Kent Valley and DaySmart (Kraken and all three Sno-King
+locations) infrastructure coverage and has no public page. Kent's separate
+iCal feeds and each DaySmart activity feed fail independently during the
 combined scheduler scrape, so an outage in one feed only invokes
 last-known-good behavior for that activity.
+Kraken Public Skate is selected from DaySmart sport `30`; Sno-King Public
+Skate is selected from event type `12`, then split among the existing Kirkland
+(`1`), Renton (`11`, `12`), and Snoqualmie (`13`, `14`) resource IDs. These
+source-owned categories avoid relying on event-title matching.
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.

@@ -16,7 +16,11 @@ import {
   classifyEverettActivity,
   classifyRecTimesActivity,
 } from '../lib/activities.js';
-import { includedTeamMap, normalizeDaySmartEvents } from '../lib/scrapers/daysmart.js';
+import {
+  includedTeamMap,
+  normalizeDaySmartEvents,
+  scrapeDaySmart,
+} from '../lib/scrapers/daysmart.js';
 import { normalizeRecTimesBookings } from '../lib/scrapers/rectimes.js';
 import { normalizeEverettData } from '../lib/scrapers/everett.js';
 import {
@@ -36,6 +40,11 @@ const fixture = name => JSON.parse(readFileSync(
   new URL(`./fixtures/${name}`, import.meta.url),
   'utf8',
 ));
+
+const jsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 test('source classifiers use reviewed exact Drop-in Hockey labels', () => {
   assert.equal(classifyDaySmartActivity({
@@ -135,6 +144,101 @@ test('DaySmart defaults to Stick & Puck and preserves its existing core fields',
     bookUrl: 'https://apps.daysmartrecreation.com/dash/x/#/online/snoking/event-registration?date=2026-08-01',
   });
   assert.equal(sessions[0].activity, ACTIVITY_STICK_AND_PUCK);
+});
+
+test('DaySmart normalizes authoritative Public Skate feeds without title matching', () => {
+  const base = {
+    company: 'snoking',
+    resourceIds: [1],
+    resourceMap: { 1: 'Kirkland Ice Arena' },
+    leagueMap: { 999: 'Family Public Skate' },
+    activities: [ACTIVITY_PUBLIC_SKATE],
+    sourceActivity: ACTIVITY_PUBLIC_SKATE,
+  };
+  const sessions = normalizeDaySmartEvents({
+    ...base,
+    events: [{
+      id: 'public-1',
+      attributes: {
+        event_type_id: '12',
+        resource_id: 1,
+        league_id: 999,
+        desc: 'Special Holiday Session',
+        start: '2026-08-15T13:00:00',
+        end: '2026-08-15T14:30:00',
+        register_capacity: 350,
+      },
+    }],
+  });
+
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].activity, ACTIVITY_PUBLIC_SKATE);
+  assert.equal(sessions[0].title, 'Public Skate');
+  assert.equal(sessions[0].sourceLabel, 'Family Public Skate');
+  assert.equal(sessions[0].subtitle, null);
+  assert.equal(sessions[0].registration.capacity, 350);
+});
+
+test('DaySmart requests Kraken and Sno-King Public Skate using source-specific filters', async () => {
+  for (const [company, expectedFilter] of [
+    ['kraken', 'filter[homeTeam.sport_id__in]=30'],
+    ['snoking', 'filter[event_type_id]=12'],
+  ]) {
+    const urls = [];
+    const result = await scrapeDaySmart(
+      { company, sportId: 20 },
+      {
+        activities: [ACTIVITY_PUBLIC_SKATE],
+        fetchImpl: async url => {
+          urls.push(url);
+          return jsonResponse(url.includes('/events?') ? { data: [] } : { data: [] });
+        },
+      },
+    );
+
+    assert.deepEqual(result, {
+      sessions: [],
+      attempted: [ACTIVITY_PUBLIC_SKATE],
+      failures: [],
+    });
+    assert.ok(urls.some(url => url.includes(expectedFilter)), `${company} should use ${expectedFilter}`);
+    assert.ok(!urls.some(url => url.includes('sport_id__in]=20')));
+  }
+});
+
+test('DaySmart preserves fresh hockey data when its Public Skate feed fails', async () => {
+  const result = await scrapeDaySmart(
+    { company: 'kraken', sportId: 20 },
+    {
+      activities: ALL_ACTIVITIES,
+      fetchImpl: async url => {
+        if (url.includes('sport_id__in]=30')) return jsonResponse({}, 503);
+        if (url.includes('/resources?')) {
+          return jsonResponse({ data: [{ id: '2', attributes: { name: 'Smartsheet Rink 2' } }] });
+        }
+        if (url.includes('/events?')) {
+          return jsonResponse({
+            data: [{
+              id: 'stick-live',
+              attributes: {
+                event_type_id: 'k',
+                resource_id: 2,
+                league_id: null,
+                desc: 'Stick & Puck',
+                start: '2026-08-15T10:00:00',
+                end: '2026-08-15T11:00:00',
+              },
+            }],
+          });
+        }
+        throw new Error(`Unexpected URL: ${url}`);
+      },
+    },
+  );
+
+  assert.deepEqual(result.attempted, ALL_ACTIVITIES);
+  assert.deepEqual(result.failures, [ACTIVITY_PUBLIC_SKATE]);
+  assert.deepEqual(result.sessions.map(session => session.activity), [ACTIVITY_STICK_AND_PUCK]);
 });
 
 test('DaySmart combines only a genuine same-league skater/goalie pair', () => {
