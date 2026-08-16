@@ -73,6 +73,21 @@ Choose checks based on the files changed and report exactly what ran.
 - Do not claim a check passed if it could not run. State the limitation and the
   remaining manual check.
 
+## Documentation maintenance
+
+- Treat `README.md` as the current developer overview,
+  `instructions/postandin-technical-spec.md` as detailed architecture/product
+  context, and `scheduler/README.md` as the scheduler/backup runbook. Dated
+  backlog or audit files are historical evidence, not live status.
+- Update affected documentation in the same change as routes, bindings, cache
+  keys, activity behavior, deployment requirements, or operational commands.
+- Verify volatile claims directly against code/configuration. Avoid duplicating
+  IDs, exact source labels, and CLI syntax unless the document owns that detail.
+- For operational instructions, distinguish observed configuration from
+  externally managed state that cannot be verified from the repository.
+- Never describe a backup as restorable unless the restore path exists and its
+  scope/limitations are documented and tested.
+
 ## Handoff for Claude review
 
 When implementation and verification are complete, stop before commit/push and

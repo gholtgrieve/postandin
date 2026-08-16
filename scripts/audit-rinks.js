@@ -16,6 +16,7 @@ import {
   RECTIMES_PUBLIC_SKATE_LABELS,
 } from '../lib/activities.js';
 import { ICAL_URLS } from '../lib/scrapers/kentvalley.js';
+import { pathToFileURL } from 'node:url';
 
 const HOCKEY_HINTS = /stick|puck|hockey|drop.?in|pickup|shinny|rat hockey/i;
 // Do not globally exclude "learn to play": an approved Sno-King 3v3 drop-in
@@ -78,12 +79,6 @@ const KNOWN = {
       '4:15pm - 5:15pm Public (Cheapskate)',
     ],
   },
-  everett: [
-    '🏒 Adult Hockey Skating (Adult 4+) - Wed - 06:10 pm',
-    '🏒⚡ Advanced Hockey: Power Skating - Thu - 06:00 pm',
-    '🏒 Hockey Tots - Sat - 10:45 am',
-    '🏒 Hockey 1-4 - Sat - 11:20 am',
-  ],
 };
 
 // Regex patterns for league names that are already captured but vary over time
@@ -103,7 +98,17 @@ const KNOWN_PATTERNS = {
     /public\s+(?:ice\s+)?skat(?:e|ing)/i,
     /holiday\s+skat(?:e|ing)/i,
   ],
+  everett: [
+    /^🏒 Adult Hockey Skating\b/i,
+    /^🏒⚡ Advanced Hockey: Power Skating\b/i,
+    /^🏒 Hockey Tots\b/i,
+    /^🏒 Hockey 1-4\b/i,
+  ],
 };
+
+export function isKnownEverettInstruction(title) {
+  return KNOWN_PATTERNS.everett.some(pattern => pattern.test(title));
+}
 
 async function fetchJson(url) {
   const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
@@ -301,9 +306,8 @@ async function auditEverett() {
       .flatMap(rink => rink.slots ?? [])
       .map(slot => slot.title ?? '')
   );
-  const known = new Set(KNOWN.everett);
   return [...titles].filter(title =>
-    !known.has(title) &&
+    !isKnownEverettInstruction(title) &&
     !EVERETT_DROP_IN_LABELS.includes(title) &&
     !/stick\s*(?:&|and)\s*puck/i.test(title) &&
     !/^KHL-/i.test(title) &&
@@ -436,7 +440,9 @@ async function main() {
   console.log('Verify the production classifier, then update it or the KNOWN list after review.');
 }
 
-main().catch(e => {
-  console.error('Audit script failed:', e);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(e => {
+    console.error('Audit script failed:', e);
+    process.exit(1);
+  });
+}

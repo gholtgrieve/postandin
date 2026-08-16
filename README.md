@@ -1,9 +1,23 @@
 # Seattle Ice Schedules — Post & In
 
-Aggregates Stick & Puck and Drop-in Hockey sessions across Seattle-area rinks into two live schedule pages backed by the same shared interface.
+Aggregates Stick & Puck, Drop-in Hockey, and Public Skate sessions across
+Seattle-area rinks into three live schedule pages backed by one shared client
+and activity-specific schedule caches.
 
 - **[Stick & Puck](https://postandin.com/stick-and-puck/)**
 - **[Drop-in Hockey](https://postandin.com/drop-in-hockey/)**
+- **[Public Skate](https://postandin.com/public-skate/)**
+
+## Documentation map
+
+- `README.md` is the current developer overview and quick-start.
+- `AGENTS.md` and `CLAUDE.md` define implementation and review workflow.
+- `instructions/postandin-technical-spec.md` is the detailed architecture and
+  product handoff; code and configuration remain authoritative.
+- `scheduler/README.md` is the scheduler/backup operations runbook.
+Update the relevant document in the same change as behavior or configuration.
+Operational commands must be verified against the checked-in config and current
+CLI before use. Never place secrets or private identifiers in documentation.
 
 ---
 
@@ -24,22 +38,29 @@ Aggregates Stick & Puck and Drop-in Hockey sessions across Seattle-area rinks in
 
 ## Groups feature
 
-Users can create a private group so members can see who's attending each session. Group membership is shared across both activity pages: a user joins once and sees the same groups on Stick & Puck and Drop-in Hockey. RSVPs remain activity-specific, and each page's group detail sheet shows signups for the activity currently being viewed rather than combining both schedules into one list.
+Users can create a private group so members can see who's attending each hockey
+session. Membership is shared across Stick & Puck and Drop-in Hockey; RSVPs
+remain activity-specific. Public Skate intentionally has no Groups or RSVPs.
 
 ### Joining mechanic
 
-- **Create**: enter your display name, a group name (e.g. "SJ 16UAA"), and a password (e.g. "Sno-King sucks"). Share the group name + password out-of-band with teammates.
+- **Create**: enter your display name, a group name, and a shared password. Share
+  the group name + password out-of-band with teammates.
 - **Join**: enter your display name plus the group name and password a teammate shared with you.
 
 The combination of group name + password identifies the group — neither needs to be globally unique on its own. The group lookup key is a deterministic slug: `groupName.trim().lower() + "|" + password.trim().lower()`. No random code is generated or stored.
 
-After joining, the group chip in the filter bar shows the group name. Tapping the chip reveals a popover with the group name, the password (for resharing), and a copy button that copies `"Group: [name] / Password: [password]"` to the clipboard.
+After joining, the group chip in the filter bar shows the group name. Tapping
+the chip opens a bottom sheet with the shared password and upcoming sessions
+where group members have RSVP'd.
 
 ### RSVP storage
 
 RSVP records live in each group's Durable Object, keyed by session. Stick & Puck keeps the legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` format; Drop-in Hockey appends `|drop-in-hockey`, preventing same-rink/same-time sessions from colliding. Entries more than 24 hours past their session start are pruned on writes.
 
-The former “Nudge your group” control was never wired to an action and has been removed from both schedule pages. Its unused API endpoint remains in place for compatibility but has no user-interface caller.
+The former “Nudge your group” control was never wired to an action and has been
+removed from the schedule pages. Its unused API endpoint remains for
+compatibility but has no user-interface caller.
 
 ### Cloudflare bindings
 
@@ -49,11 +70,15 @@ Pages uses the `GROUPS` KV binding for browser-session records and schedule cach
 
 ## Architecture
 
-Both static pages use the modules under `stick-and-puck/modules/` and the shared `stick-and-puck/schedule.css`. Each page declares an explicit `data-activity`; the pure activity configuration maps Stick & Puck to the backward-compatible `/api/schedule` request and Drop-in Hockey to `/api/schedule?activity=drop-in-hockey`.
+All three static schedule pages use the modules under
+`stick-and-puck/modules/` and the shared `stick-and-puck/schedule.css`. Each
+declares `data-activity`; `activity-config.js` maps it to the appropriate API
+request and page capabilities. Groups and detail badges are disabled for
+Public Skate.
 
 ```
-Browser (/stick-and-puck/ or /drop-in-hockey/)
-  └─ /api/schedule[?activity=drop-in-hockey]
+Browser (one of the three schedule pages)
+  └─ /api/schedule[?activity=drop-in-hockey|public-skate]
        └─ activity-specific KV cache written by the scheduler Worker
 ```
 
@@ -79,9 +104,14 @@ The controls bar exposes these filters (mutually exclusive; the rink legend chip
 | This Week | Sessions starting within 7 days |
 | Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` for the current activity |
 
+Public Skate exposes only All, Today, Tomorrow, and This Week. Its rows show
+time and place without availability, price, subtitle, duration, or RSVP cues.
+
 ## Rink legend and grouping
 
-The legend renders one chip per rink, using city name as the label. Rinks with a `legendKey` field in `RINKS` are hidden from the legend and instead fold into the chip for the rink they reference. Clicking that chip shows sessions from all rinks in the group. Currently `lynnwoodFemale` groups under `lynnwood` so both Lynnwood items appear under a single LYNNWOOD chip.
+The legend renders one chip per rink, using city name as the label. The client
+also supports an optional `legendKey` for grouping future rink entries, though
+the current `RINKS` configuration does not use it.
 
 ---
 
@@ -91,21 +121,55 @@ The legend renders one chip per rink, using city name as the label. Rinks with a
 ```bash
 python3 -m http.server
 ```
-This serves both HTML shells and shared assets, but `/api/schedule` requires the Pages development server below.
+This serves the HTML shells and shared assets, but `/api/schedule` requires the
+Pages development server below.
 
 ### With Cloudflare Pages (all rinks)
 ```bash
-npx wrangler pages dev . --compatibility-flag=nodejs_compat
+npx wrangler pages dev .
 ```
+The Pages compatibility date is managed outside this repository. If runtime
+parity matters for the change being tested, verify the production Pages date in
+Cloudflare and pass that value with `--compatibility-date`.
+
+### Verification
+
+```bash
+node --test tests/*.test.mjs
+node scripts/audit-rinks.js       # live, read-only source classification audit
+node scripts/health-check.js      # live, read-only production smoke test
+git diff --check
+```
+
+Run `node --check` on changed JavaScript files. Frontend work also requires
+desktop/mobile browser checks and console inspection; routing work requires
+checking metadata, `robots.txt`, `sitemap.xml`, `404.html`, and a real unknown
+path together.
+
+## Deployment boundaries
+
+- Pushing `main` deploys the Cloudflare Pages site and Pages Functions.
+- `group-do/` is a separate Worker and requires `wrangler deploy` from that
+  directory when its code/config changes.
+- `scheduler/` is a separate Worker and requires `wrangler deploy` from that
+  directory when its code/config or imported `lib/` runtime changes.
+- Never infer a Worker deployment from a Git push; verify each release path.
 
 ---
 
 ## Maintenance
 
-Periodically run `node scripts/audit-rinks.js` to check for new session types across all rinks. The audit covers both Stick & Puck and Drop-in Hockey classifications; reviewed source labels belong in `lib/activities.js` and its tests rather than either HTML shell.
+Run `node scripts/audit-rinks.js` periodically to check all three activities
+for new source labels. Reviewed production classifications belong in
+`lib/activities.js`; reviewed audit-only exclusions belong in the audit's
+known patterns. Both require tests.
 
 ---
 
 ## Kent Valley iCal notes
 
-Kent Valley's Google Calendar (`kentvalleyicecentre.com@gmail.com`) is fetched as iCal server-side to avoid CORS. Google Calendar pre-expands recurring events into individual VEVENT blocks, so no RRULE handling is needed. Events are filtered to those with `stick` in the summary and a DTSTART that includes a time component (all-day events are skipped). The last good response is cached in the Workers Cache API so transient Google Calendar failures serve stale data instead of an error.
+Kent Valley uses separate iCal feeds for Stick & Puck and Public Skate. The
+scraper parses local/UTC timestamps, Pacific-local timestamps, RRULE weekly
+recurrence, EXDATEs, cancellations, overrides, and orphaned overrides within a
+30-day horizon. Feed failures are isolated by activity; the scheduler carries
+forward recent last-known-good rink/activity data for up to 24 hours.

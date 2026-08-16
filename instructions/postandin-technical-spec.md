@@ -24,13 +24,24 @@
 
 ## Overview
 
-Post & In (postandin.com) is a static site with serverless API functions built for the Seattle youth hockey community. There is no build step, no framework, no bundler, and no package.json at the root. Everything is vanilla HTML, CSS, and JavaScript. Server-side logic lives exclusively in Cloudflare Pages Functions. The design philosophy is deliberate minimalism — add infrastructure only when the simplest possible approach breaks down.
+Post & In (postandin.com) is a static site with serverless API functions built
+for the Seattle hockey community. There is no build step, framework, bundler,
+or root package.json. Everything is vanilla HTML, CSS, and JavaScript.
+Server-side logic lives in Cloudflare Pages Functions plus two separately
+deployed Workers: the schedule/backup Worker and the Groups Durable Object
+Worker. The design philosophy is deliberate minimalism—add infrastructure only
+when the simplest approach breaks down.
 
 The site owner is actively developing this into a mission-driven community platform. New features are scoped and designed conversationally before being handed to Codex for implementation. Do not introduce complexity that wasn't explicitly requested.
 
 ---
 
 ## Hosting & Deployment
+
+The repository proves application code and the two Worker configurations.
+Pages plan level, custom-domain/DNS state, dashboard bindings and variables,
+the GitHub auto-deploy connection, and R2 lifecycle rules are externally
+managed assumptions; verify them in Cloudflare before operational changes.
 
 - Platform: Cloudflare Pages, $5/month Workers Paid plan
 - Deployment: Auto-deploys from the main branch of github.com/gholtgrieve/postandin
@@ -141,7 +152,9 @@ cd ~/Dropbox/Documents/postandin && claude
 
 ## Environment Variables & Secrets
 
-All secrets are stored in Cloudflare Pages as encrypted secrets, never in the codebase.
+Credentials must be stored in Cloudflare Pages rather than the codebase. The
+repository shows which environment variables the code requires, but cannot
+prove their current presence or dashboard storage type.
 
 ### To view or update secrets
 1. Go to dash.cloudflare.com
@@ -149,10 +162,10 @@ All secrets are stored in Cloudflare Pages as encrypted secrets, never in the co
 3. Secrets show as "Value encrypted" — you cannot retrieve them after saving
 4. To rotate a secret: create a new value in the external service, add it here, redeploy
 
-### Current secrets
+### Required environment variables
 | Variable | Description |
 |---|---|
-| AIRTABLE_API_KEY | Personal Access Token from airtable.com/create/tokens. Scopes: data.records:read, data.records:write. Access: PostAndIn base only. |
+| AIRTABLE_API_KEY | Personal Access Token from airtable.com/create/tokens. Required application scope: `data.records:read` for the PostAndIn base. The checked-in code performs no Airtable writes; do not grant write scope unless a separately reviewed workflow requires it. |
 | AIRTABLE_BASE_ID | The PostAndIn base ID. Read the live value from the Cloudflare dashboard (Settings → Environment Variables) or the Airtable API docs for that base — deliberately not written down here, see below. |
 | COACH_INTAKE_FORM_URL | The published Airtable coach-intake form URL. Stored in Cloudflare rather than the public repository because it contains Airtable identifiers. |
 
@@ -320,8 +333,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               push. See Backups below.
 /scripts/
   audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
-                              Drop-in Hockey, and Kent Public Skate terminology
-                              across FareHarbor, DaySmart, Everett, and Kent Valley.
+                              Drop-in Hockey, and Public Skate terminology across
+                              FareHarbor, DaySmart, RecTimes, Everett, and Kent Valley.
   health-check.js          → Node.js script, hits live endpoints, run locally only.
                               Checks every launched top-level page, including all three
                               schedule activities.
@@ -333,7 +346,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   admin-purge.js           → Local-only destructive-operation script; backs up before deleting
 ```
 
-**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js`, `scheduler/src/*.js`, or shared runtime imported by either Worker needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in the affected Worker's directory. For the scheduler, shared runtime includes `lib/activities.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`. Pushing alone will not change the Worker's live behavior.
+**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js`, `scheduler/src/*.js`, or shared runtime imported by either Worker needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in the affected Worker's directory. For the scheduler, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`. Pushing alone will not change the Worker's live behavior.
 
 ---
 
@@ -341,7 +354,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 
 Established 2026-07-22 in commit `f23f83d` and expanded with the Coaches launch.
 The publicly discoverable and indexable pages are `/`, `/stick-and-puck/`,
-`/drop-in-hockey/`, `/coaches/`, and every Live coach profile. Draft coach profiles and other
+`/drop-in-hockey/`, `/public-skate/`, `/coaches/`, and every Live coach profile. Draft coach profiles and other
 unfinished pages remain reachable by direct URL but are kept out of search;
 deleted pages are gone.
 
@@ -368,7 +381,7 @@ Pages currently carrying `noindex, nofollow`: Draft coach profiles and the
 any new unfinished section, add the meta tag to *every* HTML response it can
 emit — server-rendered error pages are easy to miss.
 
-`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/coaches/`, and Live coach profiles must never carry
+`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/public-skate/`, `/coaches/`, and Live coach profiles must never carry
 `noindex`.
 
 ### sitemap.xml conventions
@@ -417,10 +430,12 @@ Cloudflare dashboard → Caching → Configuration → Purge Cached Content → 
 Purge. Verify with a cache-busting query string first to confirm origin
 behavior before concluding a deploy failed.
 
-### Every tracked file is a public URL
-There is no build step, so Cloudflare Pages publishes the repository as-is:
-**any file committed to `main` is served at its path on postandin.com.** This
-is easy to forget for non-web files. When this document became tracked on
+### Static source files may become public URLs
+There is no build step, so ordinary files in the Pages static asset tree may
+be served at their repository-relative paths. Reserved inputs such as
+`functions/` and platform configuration are not ordinary static assets, so do
+not infer exposure from Git tracking alone—verify the deployed URL and
+headers. This is easy to forget for non-web files. When this document became tracked on
 2026-07-22 it immediately became fetchable at
 `https://postandin.com/instructions/postandin-technical-spec.md` (HTTP 200,
 `text/markdown`) — an unintended indexable URL, contradicting the launch
@@ -436,14 +451,14 @@ Before committing any new non-code file, ask whether it should be
 world-readable at a predictable URL.
 
 ### Nav policy
-Unfinished sections must not appear in navigation on `/` or `/stick-and-puck/`,
+Unfinished sections must not appear in navigation on any launched page,
 including small footer links. Coaches is launched: the homepage includes a
 "Find Your Coach" tool card, Stick & Puck
 includes a persistent "Find Your Coach" header action, and the homepage, Stick
 & Puck, and 404 footers link to `/coaches/`.
 
 Homepage metadata (`<title>`, `description`, `og:title`, `og:description`)
-advertises the launched Coaches and Stick & Puck sections, but must not
+advertises the launched Coaches and schedule sections, but must not
 advertise unfinished sections.
 
 ---
@@ -453,14 +468,11 @@ advertise unfinished sections.
 - No JavaScript frameworks. Vanilla JS only.
 - No CSS preprocessors. Plain CSS with custom properties.
 - No npm dependencies in the browser.
-- All pages are self-contained — HTML, CSS, and JS in the same file or co-located.
-  **Exception:** `stick-and-puck/index.html`'s JS lives in `stick-and-puck/modules/*.js`
-  (ES modules, native browser `import`/`export`, no bundler — see File Structure
-  above) rather than inline, following a July 2026 refactor to make the file
-  maintainable. This is co-location (same directory tree), not a build step —
-  still no framework, no bundler, nothing to compile. New pages should still
-  default to fully inline/co-located unless they reach a similar size where
-  splitting genuinely helps.
+- Pages use inline or co-located assets. The three schedule shells share
+  `stick-and-puck/schedule.css` and native ES modules under
+  `stick-and-puck/modules/`; there is still no framework, bundler, or compile
+  step. New pages should default to the simplest local structure and share an
+  existing subsystem only when behavior is genuinely common.
 - Pages share a common nav pattern — copy from stick-and-puck/index.html as the reference implementation.
 - Mobile responsive via CSS media queries. No CSS framework.
 - Type sizing reference: match the Stick & Puck page for body and UI text size across all pages.
@@ -510,7 +522,9 @@ All functions live in /functions/. Cloudflare routes them automatically based on
   `onRequestPost` as needed.
 - Access environment variables via `context.env.VARIABLE_NAME`.
 - Return `Response` objects directly.
-- Cache headers on read-only endpoints: `Cache-Control: public, max-age=300`.
+- Cache headers are endpoint-specific: schedule responses use 120 seconds,
+  coach and legacy proxy reads use 300 seconds, and public errors that should
+  not persist use `no-store` where implemented.
   Note this header only governs *browser* caching — Pages Function responses
   aren't edge-cached by default, so the header alone does not shield an upstream
   (e.g. Airtable) from per-request load. Endpoints that need real server-side
@@ -630,7 +644,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. All are regenerable and safe to delete.
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, displayName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. Only schedule and coach cache keys are freely regenerable. Session and legacy group/RSVP keys are user data and must not be deleted without a verified backup and recovery plan.
 - Session key formats: Stick & Puck preserves
   `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`; Drop-in Hockey uses
   `{rinkKey}|{YYYY-MM-DD}|{HH:MM}|drop-in-hockey`. The activity suffix prevents
@@ -641,10 +655,12 @@ concurrent request to slip into.
 ### Backups
 The `scheduler` Worker backs up group/RSVP data to an R2 bucket
 (`postandin-backups`) daily, plus on-demand via its `/backup-now` endpoint,
-with a 30-day expiry lifecycle rule. This exists because of a prior incident
-where a bad purge wiped GROUPS data with no recovery path — see
-`scripts/admin-purge.js`, which now requires an explicit backup before any
-destructive KV operation.
+with an expected 30-day expiry lifecycle rule managed outside this repository;
+verify the rule in Cloudflare as described under External Configuration. This exists because of a prior incident
+where a bad purge wiped GROUPS data with no recovery path. The local
+`scripts/admin-purge.js` creates a pre-purge KV snapshot before deleting KV
+keys, but it does not export Durable Object data; see the scheduler runbook for
+the distinction and restore limits.
 
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
@@ -686,12 +702,11 @@ there is no combined cross-activity attendance view.
 ### localStorage Keys
 | Key | Purpose |
 |---|---|
-| postandin_groups | Array of {groupName, password, memberId, color} |
+| postandin_groups | Array of {groupName, password, memberId, displayName, color} |
 | postandin_displayName | User's display name |
 | postandin_groups_intro_seen | Onboarding modal shown flag |
 | postandin_icon_tip_seen | Person icon tooltip shown flag |
 | postandin_join_confirmed | Post-join confirmation shown flag |
-| postandin_data_wiped_v1 | One-time data wipe sentinel |
 
 ---
 
@@ -840,9 +855,9 @@ legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
 `schedule:cache:drop-in-hockey`; `activity=public-skate` reads
 `schedule:cache:public-skate`. Unsupported values return `400`. Public Skate
 has all-source infrastructure coverage and a public schedule page. Kent's separate
-iCal feeds and each DaySmart activity feed fail independently during the
-combined scheduler scrape, so an outage in one feed only invokes
-last-known-good behavior for that activity.
+iCal feeds fail independently. For each DaySmart source, the Public Skate feed
+fails independently of the combined hockey feed; a combined hockey-feed outage
+affects that source's Stick & Puck and Drop-in Hockey results together.
 Kraken Public Skate is selected from DaySmart sport `30`; Sno-King Public
 Skate is selected from event type `12`, then split among the existing Kirkland
 (`1`), Renton (`11`, `12`), and Snoqualmie (`13`, `14`) resource IDs. These
@@ -1008,7 +1023,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 - Do not delete `404.html`, and do not add a `_redirects` catch-all such as `/* /index.html 200`. Either one reinstates the soft-404 (unknown URLs served as the homepage with HTTP 200).
 - Do not add `lastmod`, `changefreq`, or `priority` back into `sitemap.xml` without a process that keeps them accurate — they were removed for being stale and misleading.
 - Do not assume a deleted page is gone once deployed — Cloudflare keeps serving its edge-cached copy (`s-maxage=604800`) at the exact URL. Purge that URL manually and verify with a cache-busting query string.
-- Do not write the Airtable base ID, or any other value listed under "Current secrets", into this document or any other tracked file — **this repo and this document are public.**
+- Do not write the Airtable base ID, or any other value listed under "Required environment variables", into this document or any other tracked file — **this repo and this document are public.**
 - Do not change the Stick & Puck page when working on other features
 - Do not add npm dependencies without explicit instruction
 - Do not make strategic, UX, or copy decisions unilaterally — scope those in chat first
