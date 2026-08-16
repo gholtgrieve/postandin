@@ -1191,7 +1191,9 @@ footer a:hover { color: var(--yellow); }
 }
 
 @media (max-width: 480px) {
-  .activity-switch-label { font-size: 11px; }
+  .activity-switch-inner { gap: 3px; }
+  .activity-switch-label { display: none; }
+  .activity-switch-link { font-size: 14px; padding: 6px 7px; }
 
   /* ── Filter rows: label stacks above, chips scroll on their own line ── */
   /* Switch rows to block so filter-label (display:flex = block-level) takes a full

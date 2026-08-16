@@ -5,6 +5,7 @@ import test from 'node:test';
 const pagePaths = [
   'stick-and-puck/index.html',
   'drop-in-hockey/index.html',
+  'public-skate/index.html',
 ];
 const modulePaths = [
   'stick-and-puck/modules/main.js',
@@ -31,11 +32,12 @@ function cacheVersion(source, assetPath) {
   return source.slice(valueStart, valueStart + relativeEnd);
 }
 
-test('both schedule shells contain the same DOM IDs', () => {
-  const [stickPath, dropInPath] = pagePaths;
+test('all schedule shells contain the same DOM IDs', () => {
+  const [stickPath, ...otherPaths] = pagePaths;
   const stickIds = matches(pages[stickPath], /\bid="([^"]+)"/g).sort();
-  const dropInIds = matches(pages[dropInPath], /\bid="([^"]+)"/g).sort();
-  assert.deepEqual(dropInIds, stickIds);
+  for (const path of otherPaths) {
+    assert.deepEqual(matches(pages[path], /\bid="([^"]+)"/g).sort(), stickIds, path);
+  }
 });
 
 test('every queried DOM ID exists in each page or shared generated markup', () => {
@@ -49,20 +51,22 @@ test('every queried DOM ID exists in each page or shared generated markup', () =
   }
 });
 
-test('module-load selectors have targets in both static page shells', () => {
+test('module-load selectors have targets in every static page shell', () => {
   for (const [path, html] of Object.entries(pages)) {
     assert.match(html, /class="[^"]*\bfilter-btn\b/,
       `${path} is missing the .filter-btn controls wired at module load`);
   }
 });
 
-test('each page declares its activity and offers normal-link navigation to both schedules', () => {
+test('each page declares its activity and offers normal-link navigation to all schedules', () => {
   assert.match(pages['stick-and-puck/index.html'], /<body data-activity="stick-and-puck">/);
   assert.match(pages['drop-in-hockey/index.html'], /<body data-activity="drop-in-hockey">/);
+  assert.match(pages['public-skate/index.html'], /<body data-activity="public-skate">/);
 
   for (const html of Object.values(pages)) {
     assert.match(html, /href="\/stick-and-puck\/"/);
     assert.match(html, /href="\/drop-in-hockey\/"/);
+    assert.match(html, /href="\/public-skate\/"/);
     assert.equal(matches(html, /\baria-current="(page)"/g).length, 1);
     assert.doesNotMatch(html, /Nudge your group|sheetShareBtn/);
     assert.doesNotMatch(html, /A Quick Note|sorryModalOverlay|sorryDismissBtn/);
@@ -72,14 +76,41 @@ test('each page declares its activity and offers normal-link navigation to both 
 
 test('shared asset cache versions are exact and synchronized across page shells', () => {
   for (const [path, html] of Object.entries(pages)) {
-    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260814-2',
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260815',
       `${path} has an unexpected schedule.css cache version`);
-    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260814-2',
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260815',
       `${path} has an unexpected main.js cache version`);
   }
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260814');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260814-2');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260814');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260815');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260815');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260815');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260815');
+});
+
+test('Public Skate suppresses every sold-out presentation cue', () => {
+  const schedule = modules['stick-and-puck/modules/schedule.js'];
+  assert.match(schedule, /const showSoldOut = activityConfig\.showSessionDetails && s\.soldOut;/);
+  assert.match(schedule, /const linkAttrs = s\.bookUrl && !showSoldOut/);
+  assert.match(schedule, /session-row\$\{showSoldOut \? " sold-out" : ""\}/);
+});
+
+test('Public Skate launch metadata, limited controls, and crawl surfaces are complete', () => {
+  const publicSkate = pages['public-skate/index.html'];
+  const homepage = fs.readFileSync('index.html', 'utf8');
+  const sitemap = fs.readFileSync('sitemap.xml', 'utf8');
+  const robots = fs.readFileSync('robots.txt', 'utf8');
+  const notFound = fs.readFileSync('404.html', 'utf8');
+
+  assert.match(publicSkate, /<title>Public Skate Seattle \| Post &amp; In<\/title>/);
+  assert.match(publicSkate, /<link rel="canonical" href="https:\/\/postandin\.com\/public-skate\/">/);
+  assert.match(publicSkate, /<meta property="og:url" content="https:\/\/postandin\.com\/public-skate\/">/);
+  assert.doesNotMatch(publicSkate, /data-filter="available"|data-filter="female"/);
+  assert.match(publicSkate, /<div id="groupsRow" hidden><\/div>/);
+  assert.doesNotMatch(publicSkate, /noindex/);
+  assert.match(homepage, /Stick &amp; Puck, Drop-In Hockey, and Public Skate sessions/);
+  assert.match(sitemap, /<loc>https:\/\/postandin\.com\/public-skate\/<\/loc>/);
+  assert.doesNotMatch(robots, /Disallow:\s*\/public-skate\//);
+  assert.match(notFound, /href="\/public-skate\/"/);
 });
 
 test('Drop-in Hockey launch metadata and crawl surfaces are complete', () => {

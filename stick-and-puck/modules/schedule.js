@@ -3,13 +3,13 @@ import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
   mkSessionKey, GOING_PERSON_SVG
 } from '/stick-and-puck/modules/utils.js';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260815';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260814';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260815';
 
 const activityConfig = getActivityConfig(document.body.dataset.activity);
 
@@ -203,29 +203,30 @@ export function renderSessions(data) {
   content.innerHTML = html;
   if (GROUPS_ENABLED && getGroups().length) void updateGoingIndicators();
 
-  const total = all.filter(s => !s.soldOut).length;
+  const total = activityConfig.showSessionDetails ? all.filter(s => !s.soldOut).length : all.length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
   const totalRinks = liveRinks + fallbacks.length;
   const lastUpdated = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const statusHtml =
-    `<strong>${total}</strong> available &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
+    `<strong>${total}</strong> ${activityConfig.showSessionDetails ? 'available' : 'sessions'} &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
   document.getElementById("headerMeta").innerHTML = statusHtml;
   document.getElementById("mobileHeaderMeta").innerHTML = statusHtml;
 }
 
 function sessionRow(s) {
   const timeStr = fmtTime(s.start);
-  const dur = fmtDuration(s.start, s.end);
-  const spotsStr = s.spots != null
+  const dur = activityConfig.showSessionDetails ? fmtDuration(s.start, s.end) : '';
+  const spotsStr = activityConfig.showSessionDetails && s.spots != null
     ? s.spots <= 3
       ? `<span class="badge badge-spots low">${s.spots} spot${s.spots !== 1 ? "s" : ""} left</span>`
       : `<span class="badge badge-spots">${s.spots} spots</span>`
     : "";
-  const priceStr = s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
-  const subtitleBadge = s.subtitle ? `<div class="row-subtitle"><span class="badge badge-subtitle">${s.subtitle}</span></div>` : "";
-  const soldOutBadge = s.soldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
+  const priceStr = activityConfig.showSessionDetails && s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
+  const subtitleBadge = activityConfig.showSessionDetails && s.subtitle ? `<div class="row-subtitle"><span class="badge badge-subtitle">${s.subtitle}</span></div>` : "";
+  const showSoldOut = activityConfig.showSessionDetails && s.soldOut;
+  const soldOutBadge = showSoldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
 
-  const linkAttrs = s.bookUrl && !s.soldOut
+  const linkAttrs = s.bookUrl && !showSoldOut
     ? `href="${escapeHtml(safeUrl(s.bookUrl))}" target="_blank" rel="noopener"`
     : '';
 
@@ -234,7 +235,7 @@ function sessionRow(s) {
     ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going">${GOING_PERSON_SVG}</span>`
     : '';
 
-  return `<a class="session-row${s.soldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
+  return `<a class="session-row${showSoldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
       <div class="row-rink">${s.rink.name}</div>

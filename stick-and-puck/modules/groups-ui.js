@@ -4,7 +4,7 @@ import {
 import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, getGroups, setGroups,
   getDisplayName, setDisplayName, syncSession
-} from '/stick-and-puck/modules/storage.js';
+} from '/stick-and-puck/modules/storage.js?v=20260815';
 import {
   allData, sessionMap, rsvpCache, sheetSession, setSheetSession,
   setActiveGroupSheet, activeFilter
@@ -14,7 +14,7 @@ import {
 } from '/stick-and-puck/modules/rsvp.js';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=ec0dca5';
+} from '/stick-and-puck/modules/schedule.js?v=20260815';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all

@@ -1,6 +1,7 @@
 import { getGroupSlug } from '/stick-and-puck/modules/utils.js';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260815';
 
-export const GROUPS_ENABLED = true;
+export const GROUPS_ENABLED = getActivityConfig(globalThis.document?.body?.dataset.activity).groupsEnabled;
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
