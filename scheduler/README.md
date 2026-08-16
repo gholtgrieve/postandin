@@ -210,10 +210,12 @@ After updating `lib/rinks.js`:
 
 All scraping logic lives in `lib/scrapers/`:
 - `daysmart.js` — DaySmart Recreation (Kraken, Sno-King)
-- `rectimes.js` — RecTimes (Olympic View, Lynnwood)
+- `rectimes.js` — RecTimes (Olympic View, Lynnwood; only Lynnwood currently
+  offers general Public Skate)
 - `kentvalley.js` — Kent Valley (separate Google Calendar iCal feeds for Stick
   & Puck and Public Skate; no current public Drop-in Hockey feed was found)
-- `everett.js` — Everett / Angel of the Winds (Firebase Cloud Function)
+- `everett.js` — Everett / Angel of the Winds (Firebase Cloud Function;
+  Public Skate includes the Main and Community sheets)
 
 Both the scheduler and the Pages Function at `/api/schedule` import from these.
 

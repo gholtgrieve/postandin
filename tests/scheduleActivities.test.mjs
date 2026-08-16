@@ -10,7 +10,9 @@ import {
   DAYSMART_DROP_IN_LABELS,
   DAYSMART_EXCLUDED_DROP_IN_LABELS,
   EVERETT_DROP_IN_LABELS,
+  EVERETT_PUBLIC_SKATE_LABELS,
   RECTIMES_DROP_IN_LABELS,
+  RECTIMES_PUBLIC_SKATE_LABELS,
   activitySet,
   classifyDaySmartActivity,
   classifyEverettActivity,
@@ -75,8 +77,13 @@ test('source classifiers use reviewed exact Drop-in Hockey labels', () => {
 
   assert.equal(classifyRecTimesActivity(1145, 'OVA Lunch Hockey'), ACTIVITY_DROP_IN_HOCKEY);
   assert.equal(classifyRecTimesActivity(1145, 'Figure Skating Session (OVA Drop in)'), null);
+  assert.equal(classifyRecTimesActivity(1146, 'Public Skate'), ACTIVITY_PUBLIC_SKATE);
+  assert.equal(classifyRecTimesActivity(1145, 'Adult Skate'), null);
+  assert.equal(classifyRecTimesActivity(1145, 'Friday Night Skates'), null);
   assert.equal(classifyEverettActivity('Drop in - Pay At Desk'), ACTIVITY_DROP_IN_HOCKEY);
   assert.equal(classifyEverettActivity('Private Drop in - Pay At Desk'), null);
+  assert.equal(classifyEverettActivity('Public Session'), ACTIVITY_PUBLIC_SKATE);
+  assert.equal(classifyEverettActivity('Public Skate Session'), null);
 
   for (const [company, labels] of Object.entries(DAYSMART_DROP_IN_LABELS)) {
     for (const leagueName of labels) {
@@ -110,6 +117,17 @@ test('source classifiers use reviewed exact Drop-in Hockey labels', () => {
   }
   for (const title of EVERETT_DROP_IN_LABELS) {
     assert.equal(classifyEverettActivity(title), ACTIVITY_DROP_IN_HOCKEY);
+  }
+  for (const [venueId, labels] of Object.entries(RECTIMES_PUBLIC_SKATE_LABELS)) {
+    for (const groupName of labels) {
+      assert.equal(
+        classifyRecTimesActivity(Number(venueId), groupName),
+        ACTIVITY_PUBLIC_SKATE,
+      );
+    }
+  }
+  for (const title of EVERETT_PUBLIC_SKATE_LABELS) {
+    assert.equal(classifyEverettActivity(title), ACTIVITY_PUBLIC_SKATE);
   }
 });
 
@@ -405,7 +423,50 @@ test('RecTimes defaults to Stick & Puck and supports exact Drop-in Hockey opt-in
   assert.ok(!all.some(s => s.sourceLabel.includes('Figure Skating')));
 });
 
-test('Everett defaults to Stick & Puck and includes only reviewed Community Rink drop-in labels', () => {
+test('RecTimes includes only Lynnwood general Public Skate sessions', () => {
+  const bookings = [
+    {
+      id: 3001,
+      groupName: 'Public Skate',
+      startTimeLocal: '2026-08-01T10:00:00',
+      endTimeLocal: '2026-08-01T11:30:00',
+    },
+    {
+      id: 3002,
+      groupName: 'Adult Skate',
+      startTimeLocal: '2026-08-01T12:00:00',
+      endTimeLocal: '2026-08-01T13:00:00',
+    },
+    {
+      id: 3003,
+      groupName: 'Friday Night Skates',
+      startTimeLocal: '2026-08-01T19:00:00',
+      endTimeLocal: '2026-08-01T21:00:00',
+    },
+  ];
+
+  const lynnwood = normalizeRecTimesBookings(bookings, {
+    venueId: 1146,
+    activities: [ACTIVITY_PUBLIC_SKATE],
+    pacificNow: '2026-01-01T00:00:00',
+  });
+  assert.equal(lynnwood.length, 1);
+  assert.equal(lynnwood[0].title, 'Public Skate');
+  assert.equal(lynnwood[0].subtitle, null);
+  assert.equal(lynnwood[0].activity, ACTIVITY_PUBLIC_SKATE);
+  assert.equal(
+    lynnwood[0].bookUrl,
+    'https://fareharbor.com/embeds/book/lynnwoodicecenter/items/245312/',
+  );
+
+  assert.deepEqual(normalizeRecTimesBookings(bookings, {
+    venueId: 1145,
+    activities: [ACTIVITY_PUBLIC_SKATE],
+    pacificNow: '2026-01-01T00:00:00',
+  }), []);
+});
+
+test('Everett keeps hockey on Community Rink and includes Public Skate on both ice sheets', () => {
   const data = fixture('everett-activities.json');
   assert.deepEqual(
     normalizeEverettData(data).map(s => s.sourceLabel),
@@ -419,11 +480,19 @@ test('Everett defaults to Stick & Puck and includes only reviewed Community Rink
       'Stick & Puck (LR 1 & 3)',
       'Drop in - Pay At Desk (LR 1 & 3)',
       'Drop in - Pay At Desk (LR 2 & 4)',
+      'Public Session',
+      'Public Skating',
     ],
   );
   const dropIn = all[1];
   assert.equal(dropIn.registration.method, 'pay-at-desk');
   assert.match(dropIn.subtitle, /Eligibility details not published/);
+  const publicSkate = all.filter(session => session.activity === ACTIVITY_PUBLIC_SKATE);
+  assert.equal(publicSkate.length, 2);
+  assert.ok(publicSkate.every(session => session.title === 'Public Skate'));
+  assert.ok(publicSkate.every(session => session.subtitle === null));
+  assert.ok(publicSkate.every(session => session.bookUrl.includes('schedule.bondsports.co')));
+  assert.ok(!all.some(session => session.sourceLabel === 'Public Skate Session'));
 });
 
 test('Kent Valley defaults to Stick & Puck and emits an explicit activity', () => {

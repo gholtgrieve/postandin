@@ -12,6 +12,8 @@ import {
   DAYSMART_DROP_IN_LABELS,
   DAYSMART_EXCLUDED_DROP_IN_LABELS,
   EVERETT_DROP_IN_LABELS,
+  EVERETT_PUBLIC_SKATE_LABELS,
+  RECTIMES_PUBLIC_SKATE_LABELS,
 } from '../lib/activities.js';
 import { ICAL_URLS } from '../lib/scrapers/kentvalley.js';
 
@@ -19,6 +21,7 @@ const HOCKEY_HINTS = /stick|puck|hockey|drop.?in|pickup|shinny|rat hockey/i;
 // Do not globally exclude "learn to play": an approved Sno-King 3v3 drop-in
 // uses that wording, so future variants must reach human review.
 const EXCLUDE_HINTS = /gift card|lesson|try hockey|camp|figure|freestyle|speed skat|curling|broomball|birthday|public skate|punch card|video lab|skate helper|adult skate|membership/i;
+const PUBLIC_SKATE_HINTS = /public\s+(?:ice\s+)?skat(?:e|ing|es|session)|adult skate|friday night skates/i;
 
 // ── Known items/leagues already handled by lib/scrapers/*.js ─────────────
 // Keep this list in sync manually when you add a new session.
@@ -201,6 +204,63 @@ async function auditDaySmartPublic(companySlug) {
   };
 }
 
+async function auditRecTimesPublic() {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+  const res = await fetch('https://api.rectimes.com/api/v1/facilities/ova/bookings/get_for_calendar', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/plain, */*',
+      'Origin': 'https://app.rectimes.com',
+      'Referer': 'https://app.rectimes.com/',
+      'User-Agent': 'Mozilla/5.0',
+    },
+    body: JSON.stringify({
+      venueIds: [1145, 1146],
+      startTimeLocal: `${today}T00:00:00Z`,
+      endTimeLocal: `${future}T00:00:00Z`,
+    }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const bookings = Array.isArray(data) ? data : (data.bookings ?? []);
+  const expectedExclusions = new Set(['1145:Adult Skate', '1145:Friday Night Skates']);
+  const flagged = [];
+  const counts = { 1145: 0, 1146: 0 };
+  for (const booking of bookings) {
+    const venueId = Number(booking.venueId ?? booking.venue_id);
+    const name = booking.groupName ?? '';
+    if (RECTIMES_PUBLIC_SKATE_LABELS[venueId]?.includes(name)) {
+      counts[venueId] = (counts[venueId] ?? 0) + 1;
+      continue;
+    }
+    if (expectedExclusions.has(`${venueId}:${name}`)) continue;
+    if (PUBLIC_SKATE_HINTS.test(name)) flagged.push({ venueId, name });
+  }
+  return { counts, flagged };
+}
+
+async function auditEverettPublic() {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const data = await fetchJson(
+    `https://us-central1-aotw-arena.cloudfunctions.net/api/calendar/417/443?startDate=${today}&endDate=${future}`
+  );
+  const publicRinks = new Set(['Community Rink', 'Main Rink']);
+  const titles = data
+    .filter(rink => publicRinks.has(rink.name))
+    .flatMap(rink => rink.slots ?? [])
+    .map(slot => slot.title ?? '');
+  return {
+    count: titles.filter(title => EVERETT_PUBLIC_SKATE_LABELS.includes(title)).length,
+    flagged: [...new Set(titles.filter(title =>
+      PUBLIC_SKATE_HINTS.test(title) &&
+      !EVERETT_PUBLIC_SKATE_LABELS.includes(title)
+    ))],
+  };
+}
+
 // ── iCal feeds: dump unique SUMMARY values, flag unrecognized ones ────────
 function parseIcalSummaries(ical) {
   const blocks = ical.split('BEGIN:VEVENT').slice(1);
@@ -304,6 +364,32 @@ async function main() {
     } catch (e) {
       console.log(`  ❌ Error: ${e.message}\n`);
     }
+  }
+
+  console.log('── RecTimes Public Skate ──');
+  try {
+    const { counts, flagged } = await auditRecTimesPublic();
+    if (flagged.length === 0) {
+      console.log(`  ✅ Olympic View ${counts[1145]} · Lynnwood ${counts[1146]}; no new labels found.\n`);
+    } else {
+      for (const item of flagged) console.log(`  🆕 venue ${item.venueId} "${item.name}"`);
+      console.log('');
+    }
+  } catch (e) {
+    console.log(`  ❌ Error: ${e.message}\n`);
+  }
+
+  console.log('── Everett Public Skate ──');
+  try {
+    const { count, flagged } = await auditEverettPublic();
+    if (flagged.length === 0) {
+      console.log(`  ✅ ${count} sessions across Main and Community rinks; no new labels found.\n`);
+    } else {
+      for (const title of flagged) console.log(`  🆕 "${title}"`);
+      console.log('');
+    }
+  } catch (e) {
+    console.log(`  ❌ Error: ${e.message}\n`);
   }
 
   console.log('── Everett calendar ──');

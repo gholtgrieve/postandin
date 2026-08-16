@@ -29,6 +29,13 @@
         "startDate": "2026-08-02T00:00:00.000Z",
         "startTime": "20:00:00",
         "endTime": "21:15:00"
+      },
+      {
+        "id": 2006,
+        "title": "Public Session",
+        "startDate": "2026-08-03T00:00:00.000Z",
+        "startTime": "12:00:00",
+        "endTime": "14:00:00"
       }
     ]
   },
@@ -41,6 +48,25 @@
         "startDate": "2026-08-01T00:00:00.000Z",
         "startTime": "20:00:00",
         "endTime": "21:15:00"
+      },
+      {
+        "id": 2007,
+        "title": "Public Skating",
+        "startDate": "2026-08-03T00:00:00.000Z",
+        "startTime": "14:00:00",
+        "endTime": "16:00:00"
+      }
+    ]
+  },
+  {
+    "name": "Check-Ins (Birthday Parties, Groups, Programs)",
+    "slots": [
+      {
+        "id": 2008,
+        "title": "Public Skate Session",
+        "startDate": "2026-08-03T00:00:00.000Z",
+        "startTime": "11:30:00",
+        "endTime": "12:00:00"
       }
     ]
   }
