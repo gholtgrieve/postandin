@@ -7,10 +7,13 @@
 // unrecognized so a human can decide whether to add it.
 
 import {
+  ACTIVITY_PUBLIC_SKATE,
+  ACTIVITY_STICK_AND_PUCK,
   DAYSMART_DROP_IN_LABELS,
   DAYSMART_EXCLUDED_DROP_IN_LABELS,
   EVERETT_DROP_IN_LABELS,
 } from '../lib/activities.js';
+import { ICAL_URLS } from '../lib/scrapers/kentvalley.js';
 
 const HOCKEY_HINTS = /stick|puck|hockey|drop.?in|pickup|shinny|rat hockey/i;
 // Do not globally exclude "learn to play": an approved Sno-King 3v3 drop-in
@@ -46,6 +49,27 @@ const KNOWN = {
     // Historical one-off typo from 2024; production's 30-day window never
     // reaches it, but the full-history audit feed does.
     kentValley: ['Open Stic & Puck'],
+    // Legacy full-history labels. These are not accepted by the production
+    // Public Skate classifier unless they match a reviewed pattern below.
+    kentValleyPublic: [
+      '4:00pm-5:30pm Public',
+      '7pm-8pm Cheap Skate Session',
+      '7pm - 8pm Cheap Skate Session',
+      '4:15pm-5:15pm Cheap Skate',
+      '7:00pm-8:00pm Cheap Skate Public Session',
+      '7:00pm-8:00pm Cheap Skate Session',
+      '12:30pm-2:00pm Public',
+      '12:45pm-2:15pm Public',
+      'Cheap Skate Session',
+      '1:45pm-3:15pm Public',
+      '2:30pm-4:00pm Public',
+      '4:15pm-5:15pmPublic-cheapskate',
+      '3:30pm-5:00pm Public',
+      'Public Session',
+      '10:15am - 11:45am Public',
+      '10:15am-11:45am Public',
+      '4:15pm - 5:15pm Public (Cheapskate)',
+    ],
   },
   everett: [
     '🏒 Adult Hockey Skating (Adult 4+) - Wed - 06:10 pm',
@@ -67,6 +91,10 @@ const KNOWN_PATTERNS = {
     /stick\s*(?:&|and|n[’']?)\s*puck/i,
     /(?:adult|adults|cross ice adult)\s+drop.?in(?:\s+hockey)?/i,
     /\blearn to play hockey(?: classes)?$/i,
+  ],
+  kentValleyPublic: [
+    /public\s+(?:ice\s+)?skat(?:e|ing)/i,
+    /holiday\s+skat(?:e|ing)/i,
   ],
 };
 
@@ -146,7 +174,11 @@ function parseIcalSummaries(ical) {
   return [...summaries];
 }
 
-async function auditIcal(key, url) {
+async function auditIcal(
+  key,
+  url,
+  { hints = HOCKEY_HINTS, excludes = EXCLUDE_HINTS } = {},
+) {
   const ical = await fetchText(url);
   const summaries = parseIcalSummaries(ical);
   const known = new Set(KNOWN.ical[key] ?? []);
@@ -154,8 +186,8 @@ async function auditIcal(key, url) {
   return summaries.filter(s =>
     !known.has(s) &&
     !patterns.some(re => re.test(s)) &&
-    HOCKEY_HINTS.test(s) &&
-    !EXCLUDE_HINTS.test(s)
+    hints.test(s) &&
+    !excludes.test(s)
   );
 }
 
@@ -236,12 +268,19 @@ async function main() {
 
   // iCal feeds
   const icalFeeds = {
-    kentValley: 'https://calendar.google.com/calendar/ical/kentvalleyicecentre.com%40gmail.com/public/basic.ics',
+    kentValley: { url: ICAL_URLS[ACTIVITY_STICK_AND_PUCK] },
+    kentValleyPublic: {
+      url: ICAL_URLS[ACTIVITY_PUBLIC_SKATE],
+      options: {
+        hints: /public|holiday|black.?light|cheap\s+skate/i,
+        excludes: /$^/,
+      },
+    },
   };
-  for (const [key, url] of Object.entries(icalFeeds)) {
+  for (const [key, { url, options }] of Object.entries(icalFeeds)) {
     console.log(`── iCal: ${key} ──`);
     try {
-      const flagged = await auditIcal(key, url);
+      const flagged = await auditIcal(key, url, options);
       if (flagged.length === 0) {
         console.log('  ✅ No new event titles found.\n');
       } else {

@@ -1,9 +1,10 @@
 // Scheduler Worker — runs two independent cron jobs:
 //
 //  1. Schedule caches (every 30 min): scrapes all rinks once, writes Stick &
-//     Puck to schedule:cache and Drop-in Hockey to
-//     schedule:cache:drop-in-hockey. The Pages Function currently reads the
-//     legacy Stick & Puck key.
+//     Puck to schedule:cache, Drop-in Hockey to
+//     schedule:cache:drop-in-hockey, and Public Skate to
+//     schedule:cache:public-skate. The Pages Function defaults to the legacy
+//     Stick & Puck key.
 //  2. GROUPS backup (daily, ~3am Pacific): full export of the GROUPS KV
 //     namespace to R2. See src/backup.js.
 //
@@ -14,6 +15,7 @@
 import { scrapeAll } from '../../lib/scrapeAll.js';
 import {
   ACTIVITY_DROP_IN_HOCKEY,
+  ACTIVITY_PUBLIC_SKATE,
   ACTIVITY_STICK_AND_PUCK,
   SUPPORTED_ACTIVITIES,
 } from '../../lib/activities.js';
@@ -26,6 +28,7 @@ const MAX_CARRY_MS = 24 * 60 * 60 * 1000;
 export const SCHEDULE_CACHE_KEYS = Object.freeze({
   [ACTIVITY_STICK_AND_PUCK]: 'schedule:cache',
   [ACTIVITY_DROP_IN_HOCKEY]: 'schedule:cache:drop-in-hockey',
+  [ACTIVITY_PUBLIC_SKATE]: 'schedule:cache:public-skate',
 });
 
 export default {
@@ -71,9 +74,13 @@ export async function writeScheduleCaches(env, data, { now = new Date() } = {}) 
 
   const fetchedAt = now.toISOString();
 
-  // Write the new Drop-in Hockey cache first. The legacy Stick & Puck key is
+  // Write activity-specific caches first. The legacy Stick & Puck key is
   // written last and keeps its exact response shape for /api/schedule.
-  const writeOrder = [ACTIVITY_DROP_IN_HOCKEY, ACTIVITY_STICK_AND_PUCK];
+  const writeOrder = [
+    ACTIVITY_PUBLIC_SKATE,
+    ACTIVITY_DROP_IN_HOCKEY,
+    ACTIVITY_STICK_AND_PUCK,
+  ];
   for (const activity of writeOrder) {
     const cacheKey = SCHEDULE_CACHE_KEYS[activity];
     const current = selectActivity(data, activity);
@@ -87,13 +94,20 @@ export async function writeScheduleCaches(env, data, { now = new Date() } = {}) 
 }
 
 export function selectActivity(data, activity) {
-  return Object.fromEntries(Object.entries(data).map(([key, entry]) => [
-    key,
-    {
-      ...entry,
+  return Object.fromEntries(Object.entries(data).map(([key, entry]) => {
+    if (entry.activityFailures?.includes(activity)) {
+      return [key, {
+        ok: false,
+        sessions: [],
+        error: 'Schedule temporarily unavailable for this rink.',
+      }];
+    }
+    const { activityFailures: _activityFailures, ...publicEntry } = entry;
+    return [key, {
+      ...publicEntry,
       sessions: (entry.sessions ?? []).filter(session => session.activity === activity),
-    },
-  ]));
+    }];
+  }));
 }
 
 function carryLastKnownGood(data, prev, nowMs, activity) {

@@ -9,6 +9,9 @@ const STICK_DATA = {
 const DROP_IN_DATA = {
   kraken: { ok: true, sessions: [{ activity: 'drop-in-hockey', title: 'Drop-In' }] },
 };
+const PUBLIC_SKATE_DATA = {
+  kent: { ok: true, sessions: [{ activity: 'public-skate', title: 'Public Skate' }] },
+};
 
 function context(url = 'https://postandin.com/api/schedule', groups) {
   return { request: new Request(url), env: groups ? { GROUPS: groups } : {} };
@@ -62,6 +65,19 @@ test('Drop-in Hockey uses its activity-specific cache', async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), DROP_IN_DATA);
   assert.deepEqual(kv.reads.map(read => read.key), ['schedule:cache:drop-in-hockey']);
+});
+
+test('Public Skate uses its activity-specific cache', async () => {
+  const kv = kvWith({
+    'schedule:cache:public-skate': { data: PUBLIC_SKATE_DATA },
+  });
+  const response = await handleScheduleRequest(
+    context('https://postandin.com/api/schedule?activity=public-skate', kv),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), PUBLIC_SKATE_DATA);
+  assert.deepEqual(kv.reads.map(read => read.key), ['schedule:cache:public-skate']);
 });
 
 test('a cache miss scrapes only the requested activity', async () => {

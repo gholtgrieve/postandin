@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   ACTIVITY_DROP_IN_HOCKEY,
+  ACTIVITY_PUBLIC_SKATE,
   ACTIVITY_STICK_AND_PUCK,
   DAYSMART_DROP_IN_LABELS,
   DAYSMART_EXCLUDED_DROP_IN_LABELS,
@@ -18,12 +19,17 @@ import {
 import { includedTeamMap, normalizeDaySmartEvents } from '../lib/scrapers/daysmart.js';
 import { normalizeRecTimesBookings } from '../lib/scrapers/rectimes.js';
 import { normalizeEverettData } from '../lib/scrapers/everett.js';
-import { parseIcal } from '../lib/scrapers/kentvalley.js';
+import {
+  ICAL_URLS,
+  parseIcal,
+  scrapeKentValley,
+} from '../lib/scrapers/kentvalley.js';
 import { mkSessionKey } from '../stick-and-puck/modules/utils.js';
 
 const ALL_ACTIVITIES = [
   ACTIVITY_STICK_AND_PUCK,
   ACTIVITY_DROP_IN_HOCKEY,
+  ACTIVITY_PUBLIC_SKATE,
 ];
 
 const fixture = name => JSON.parse(readFileSync(
@@ -316,7 +322,7 @@ test('Everett defaults to Stick & Puck and includes only reviewed Community Rink
   assert.match(dropIn.subtitle, /Eligibility details not published/);
 });
 
-test('Kent Valley remains Stick & Puck-only but emits an explicit activity', () => {
+test('Kent Valley defaults to Stick & Puck and emits an explicit activity', () => {
   const ical = readFileSync(
     new URL('./fixtures/kentvalley-stick-and-puck.ics', import.meta.url),
     'utf8',
@@ -326,6 +332,219 @@ test('Kent Valley remains Stick & Puck-only but emits an explicit activity', () 
   assert.equal(result.sessions.length, 1);
   assert.equal(result.sessions[0].id, 'kent-stick-1@example.com');
   assert.equal(result.sessions[0].activity, ACTIVITY_STICK_AND_PUCK);
+});
+
+test('Kent Valley parses Public Skate from its separate calendar', () => {
+  const ical = readFileSync(
+    new URL('./fixtures/kentvalley-public-skate.ics', import.meta.url),
+    'utf8',
+  );
+  const result = parseIcal(ical, {
+    activity: ACTIVITY_PUBLIC_SKATE,
+    now: new Date('2026-08-01T12:00:00Z'),
+  });
+
+  assert.deepEqual(result.sessions.map(session => ({
+    id: session.id,
+    start: session.start,
+    end: session.end,
+    activity: session.activity,
+    title: session.title,
+    subtitle: session.subtitle,
+  })), [
+    {
+      id: 'kent-public-recurring@example.com:2026-08-03T10:00:00',
+      start: '2026-08-03T10:00:00',
+      end: '2026-08-03T12:00:00',
+      activity: ACTIVITY_PUBLIC_SKATE,
+      title: 'Public Skate',
+      subtitle: null,
+    },
+    {
+      id: 'kent-public-blacklight@example.com',
+      start: '2026-08-08T16:30:00',
+      end: '2026-08-08T17:45:00',
+      activity: ACTIVITY_PUBLIC_SKATE,
+      title: 'Public Skate',
+      subtitle: null,
+    },
+    {
+      id: 'kent-public-recurring@example.com:2026-08-10T10:00:00',
+      start: '2026-08-10T10:45:00',
+      end: '2026-08-10T12:00:00',
+      activity: ACTIVITY_PUBLIC_SKATE,
+      title: 'Public Skate',
+      subtitle: null,
+    },
+    {
+      id: 'kent-public-recurring@example.com:2026-08-17T10:00:00',
+      start: '2026-08-17T10:00:00',
+      end: '2026-08-17T12:00:00',
+      activity: ACTIVITY_PUBLIC_SKATE,
+      title: 'Public Skate',
+      subtitle: null,
+    },
+  ]);
+  assert.equal(result.rawEventCount, 5);
+  assert.ok(result.sessions.every(session => session.price === null));
+  assert.ok(result.sessions.every(session => session.registration.method === null));
+});
+
+test('Kent Valley rejects an unsupported calendar activity', () => {
+  assert.throws(
+    () => parseIcal('BEGIN:VCALENDAR\nEND:VCALENDAR', { activity: 'private-skate' }),
+    /Unsupported Kent Valley activity/,
+  );
+});
+
+test('Kent Valley fetches only the requested activity calendars', async () => {
+  const stickIcal = readFileSync(
+    new URL('./fixtures/kentvalley-stick-and-puck.ics', import.meta.url),
+    'utf8',
+  );
+  const publicIcal = readFileSync(
+    new URL('./fixtures/kentvalley-public-skate.ics', import.meta.url),
+    'utf8',
+  );
+  const originalFetch = globalThis.fetch;
+  const fetched = [];
+  globalThis.fetch = async url => {
+    fetched.push(url);
+    return new Response(
+      url === ICAL_URLS[ACTIVITY_PUBLIC_SKATE] ? publicIcal : stickIcal,
+    );
+  };
+
+  try {
+    const publicOnly = await scrapeKentValley({
+      activities: [ACTIVITY_PUBLIC_SKATE],
+    });
+    assert.deepEqual(fetched, [ICAL_URLS[ACTIVITY_PUBLIC_SKATE]]);
+    assert.ok(publicOnly.sessions.every(
+      session => session.activity === ACTIVITY_PUBLIC_SKATE,
+    ));
+
+    fetched.length = 0;
+    await scrapeKentValley();
+    assert.deepEqual(fetched, [ICAL_URLS[ACTIVITY_STICK_AND_PUCK]]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('Kent Valley preserves successful activity data when another calendar fails', async () => {
+  const stickIcal = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:partial-success-stick@example.com
+DTSTART:20260820T180000Z
+DTEND:20260820T191500Z
+SUMMARY:Stick & Puck
+END:VEVENT
+END:VCALENDAR`;
+  const originalFetch = globalThis.fetch;
+  const originalError = console.error;
+  globalThis.fetch = async url => {
+    if (url === ICAL_URLS[ACTIVITY_PUBLIC_SKATE]) {
+      throw new Error('Public Skate unavailable');
+    }
+    return new Response(stickIcal);
+  };
+  console.error = () => {};
+
+  try {
+    const result = await scrapeKentValley({ activities: ALL_ACTIVITIES });
+    assert.deepEqual(result.attempted, [
+      ACTIVITY_STICK_AND_PUCK,
+      ACTIVITY_PUBLIC_SKATE,
+    ]);
+    assert.deepEqual(result.failures, [ACTIVITY_PUBLIC_SKATE]);
+    assert.equal(result.sessions.length, 1);
+    assert.equal(result.sessions[0].activity, ACTIVITY_STICK_AND_PUCK);
+    assert.equal(result.sessions[0].id, 'partial-success-stick@example.com');
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalError;
+  }
+});
+
+test('Kent Valley cancelled overrides suppress their recurring occurrence', () => {
+  const ical = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260803T100000
+DTEND;TZID=America/Los_Angeles:20260803T120000
+RRULE:FREQ=WEEKLY;COUNT=3
+UID:cancelled-series@example.com
+SUMMARY:Public Skating
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260810T100000
+DTEND;TZID=America/Los_Angeles:20260810T120000
+RECURRENCE-ID;TZID=America/Los_Angeles:20260810T100000
+UID:cancelled-series@example.com
+STATUS:CANCELLED
+END:VEVENT
+END:VCALENDAR`;
+  const result = parseIcal(ical, {
+    activity: ACTIVITY_PUBLIC_SKATE,
+    now: new Date('2026-08-01T12:00:00Z'),
+  });
+
+  assert.deepEqual(result.sessions.map(session => session.start), [
+    '2026-08-03T10:00:00',
+    '2026-08-17T10:00:00',
+  ]);
+});
+
+test('Kent Valley preserves wall time across DST and applies EXDATE', () => {
+  const ical = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20261025T100000
+DTEND;TZID=America/Los_Angeles:20261025T120000
+RRULE:FREQ=WEEKLY;COUNT=3
+EXDATE;TZID=America/Los_Angeles:20261101T100000
+UID:dst-series@example.com
+SUMMARY:Public Skating
+END:VEVENT
+END:VCALENDAR`;
+  const result = parseIcal(ical, {
+    activity: ACTIVITY_PUBLIC_SKATE,
+    now: new Date('2026-10-20T12:00:00Z'),
+  });
+
+  assert.deepEqual(result.sessions.map(session => session.start), [
+    '2026-10-25T10:00:00',
+    '2026-11-08T10:00:00',
+  ]);
+});
+
+test('Kent Valley orphan override IDs remain stable as the horizon advances', () => {
+  const ical = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260907T100000
+DTEND;TZID=America/Los_Angeles:20260907T120000
+RRULE:FREQ=WEEKLY;COUNT=2
+UID:moved-series@example.com
+SUMMARY:Public Skating
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260828T100000
+DTEND;TZID=America/Los_Angeles:20260828T120000
+RECURRENCE-ID;TZID=America/Los_Angeles:20260907T100000
+UID:moved-series@example.com
+SUMMARY:Public Skating
+END:VEVENT
+END:VCALENDAR`;
+  const parseAt = now => parseIcal(ical, {
+    activity: ACTIVITY_PUBLIC_SKATE,
+    now: new Date(now),
+  }).sessions.find(session => session.start === '2026-08-28T10:00:00');
+
+  const initiallyOrphaned = parseAt('2026-08-01T12:00:00Z');
+  const laterMatched = parseAt('2026-08-15T12:00:00Z');
+  assert.ok(initiallyOrphaned);
+  assert.ok(laterMatched);
+  assert.equal(initiallyOrphaned.id, 'moved-series@example.com:2026-09-07T10:00:00');
+  assert.equal(laterMatched.id, initiallyOrphaned.id);
 });
 
 test('RSVP keys remain legacy-compatible for Stick & Puck and qualify Drop-in Hockey', () => {

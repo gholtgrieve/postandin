@@ -38,6 +38,7 @@ test('selectActivity preserves rink results while selecting one activity', () =>
       sessions: [
         session('stick-and-puck', 'Stick & Puck'),
         session('drop-in-hockey', 'Drop-In'),
+        session('public-skate', 'Public Skate'),
         session('unknown-activity', 'Unknown'),
         { title: 'Missing activity', start: '2026-08-15T12:00:00.000Z' },
       ],
@@ -47,10 +48,32 @@ test('selectActivity preserves rink results while selecting one activity', () =>
   const selected = selectActivity(data, 'drop-in-hockey');
   assert.deepEqual(selected.kraken.sessions.map(s => s.title), ['Drop-In']);
   assert.equal(selected.kraken.ok, true);
-  assert.equal(data.kraken.sessions.length, 4, 'selection must not mutate the combined scrape');
+  assert.equal(data.kraken.sessions.length, 5, 'selection must not mutate the combined scrape');
 });
 
-test('scheduler writes Drop-in Hockey separately and preserves the legacy Stick & Puck cache shape', async () => {
+test('selectActivity fails only the activity whose Kent calendar failed', () => {
+  const data = {
+    kentValley: {
+      ok: true,
+      sessions: [session('stick-and-puck', 'Current Stick & Puck')],
+      activityFailures: ['public-skate'],
+    },
+  };
+
+  const publicSkate = selectActivity(data, 'public-skate');
+  assert.deepEqual(publicSkate.kentValley, {
+    ok: false,
+    sessions: [],
+    error: 'Schedule temporarily unavailable for this rink.',
+  });
+
+  const stick = selectActivity(data, 'stick-and-puck');
+  assert.equal(stick.kentValley.ok, true);
+  assert.deepEqual(stick.kentValley.sessions.map(s => s.title), ['Current Stick & Puck']);
+  assert.equal('activityFailures' in stick.kentValley, false);
+});
+
+test('scheduler writes activity caches separately and preserves the legacy Stick & Puck cache shape', async () => {
   const previousAt = '2026-08-14T00:00:00.000Z';
   const kv = kvWith({
     [SCHEDULE_CACHE_KEYS['stick-and-puck']]: {
@@ -65,6 +88,12 @@ test('scheduler writes Drop-in Hockey separately and preserves the legacy Stick 
         everett: { ok: true, sessions: [session('drop-in-hockey', 'Previous Drop-in')] },
       },
     },
+    [SCHEDULE_CACHE_KEYS['public-skate']]: {
+      fetchedAt: previousAt,
+      data: {
+        everett: { ok: true, sessions: [session('public-skate', 'Previous Public Skate')] },
+      },
+    },
   });
   const data = {
     kraken: {
@@ -72,6 +101,7 @@ test('scheduler writes Drop-in Hockey separately and preserves the legacy Stick 
       sessions: [
         session('stick-and-puck', 'Current Stick & Puck'),
         session('drop-in-hockey', 'Current Drop-in'),
+        session('public-skate', 'Current Public Skate'),
       ],
     },
     everett: { ok: false, sessions: [], error: 'Schedule temporarily unavailable for this rink.' },
@@ -81,17 +111,23 @@ test('scheduler writes Drop-in Hockey separately and preserves the legacy Stick 
 
   assert.equal(result.updated, true);
   assert.deepEqual(kv.writes.map(write => write.key), [
+    'schedule:cache:public-skate',
     'schedule:cache:drop-in-hockey',
     'schedule:cache',
   ]);
   assert.ok(kv.writes.every(write => write.options.expirationTtl === 7200));
 
-  const dropIn = kv.writes[0].value;
+  const publicSkate = kv.writes[0].value;
+  assert.deepEqual(publicSkate.data.kraken.sessions.map(s => s.title), ['Current Public Skate']);
+  assert.equal(publicSkate.data.everett.stale, true);
+  assert.deepEqual(publicSkate.data.everett.sessions.map(s => s.title), ['Previous Public Skate']);
+
+  const dropIn = kv.writes[1].value;
   assert.deepEqual(dropIn.data.kraken.sessions.map(s => s.title), ['Current Drop-in']);
   assert.equal(dropIn.data.everett.stale, true);
   assert.deepEqual(dropIn.data.everett.sessions.map(s => s.title), ['Previous Drop-in']);
 
-  const stick = kv.writes[1].value;
+  const stick = kv.writes[2].value;
   assert.deepEqual(stick.data.kraken.sessions.map(s => s.title), ['Current Stick & Puck']);
   assert.equal(stick.data.everett.stale, true);
   assert.deepEqual(stick.data.everett.sessions.map(s => s.title), ['Previous Stick & Puck']);
@@ -188,7 +224,10 @@ test('a failed legacy write leaves its prior value intact after the Drop-in writ
     /put failed for schedule:cache/,
   );
 
-  assert.deepEqual(kv.writes.map(write => write.key), ['schedule:cache:drop-in-hockey']);
+  assert.deepEqual(kv.writes.map(write => write.key), [
+    'schedule:cache:public-skate',
+    'schedule:cache:drop-in-hockey',
+  ]);
   assert.deepEqual(kv.values.get('schedule:cache'), priorLegacy);
   assert.deepEqual(
     kv.values.get('schedule:cache:drop-in-hockey').data.kraken.sessions.map(s => s.title),

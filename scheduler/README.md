@@ -3,12 +3,15 @@
 A standalone Cloudflare Worker with two independent cron jobs:
 
 1. **Schedule caches** (every 30 min) — scrapes all rink schedules once and
-   writes separate Stick & Puck and Drop-in Hockey results to KV. The Pages
+   writes separate Stick & Puck, Drop-in Hockey, and Public Skate results to KV. The Pages
    site's `/api/schedule` endpoint defaults to the legacy Stick & Puck key and
    reads the Drop-in Hockey key when requested with
-   `?activity=drop-in-hockey`.
-   The two KV writes are sequential, Drop-in first: if the legacy write fails,
-   Drop-in may be newer while the intact legacy value remains until the next run.
+   `?activity=drop-in-hockey` or `?activity=public-skate`.
+   The three KV writes are sequential, activity-specific keys first: if the
+   legacy write fails, those keys may be newer while the intact legacy value
+   remains until the next run.
+   Kent's Stick & Puck and Public Skate calendars are fetched independently;
+   if one fails, only that activity uses last-known-good Kent data.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
    [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
    *before* you need it, i.e. before running any bulk-delete/reset operation.
@@ -49,8 +52,8 @@ A standalone Cloudflare Worker with two independent cron jobs:
      ```sh
      curl https://postandin-scheduler.<your-subdomain>.workers.dev/trigger
      ```
-   - After the first successful run, check KV for both `schedule:cache` and
-     `schedule:cache:drop-in-hockey`
+   - After the first successful run, check KV for `schedule:cache`,
+     `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate`
 
 ## GROUPS backups (data-safety layer)
 
@@ -63,7 +66,7 @@ KV namespace in production with no backup and no safeguard. Read this section
 1. `backups/groups-YYYY-MM-DD.json` — the entire GROUPS KV namespace: every
    remaining `group:`, `session:`, and `rsvp:`-style key. Note that GROUPS and
    SCHEDULE are bound to the *same underlying KV namespace* (see
-   `wrangler.toml`), so this also captures both `schedule:cache` keys. That's
+  `wrangler.toml`), so this also captures all three `schedule:cache` keys. That's
    harmless (they are regenerated every 30 min) — it just means this file is
    a full namespace snapshot, not strictly "groups only".
 
@@ -207,7 +210,8 @@ After updating `lib/rinks.js`:
 All scraping logic lives in `lib/scrapers/`:
 - `daysmart.js` — DaySmart Recreation (Kraken, Sno-King)
 - `rectimes.js` — RecTimes (Olympic View, Lynnwood)
-- `kentvalley.js` — Kent Valley (Google Calendar iCal)
+- `kentvalley.js` — Kent Valley (separate Google Calendar iCal feeds for Stick
+  & Puck and Public Skate; no current public Drop-in Hockey feed was found)
 - `everett.js` — Everett / Angel of the Winds (Firebase Cloud Function)
 
 Both the scheduler and the Pages Function at `/api/schedule` import from these.
@@ -218,6 +222,7 @@ Both the scheduler and the Pages Function at `/api/schedule` import from these.
 |---|---|---|---|
 | `schedule:cache` | Scheduler (cron) | `/api/schedule` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `schedule:cache:drop-in-hockey` | Scheduler (cron) | `/api/schedule?activity=drop-in-hockey` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
+| `schedule:cache:public-skate` | Scheduler (cron) | `/api/schedule?activity=public-skate` | `{ fetchedAt, data: { [rinkKey]: { ok, sessions } } }` |
 | `rsvp:{groupSlug}` | `/api/groups/rsvp` (POST) | `/api/groups/rsvp` (GET) | `{ [sessionKey]: [displayName,...] }` |
 | `group:{slug}` | `/api/groups/create`, `join` | `/api/groups/join`, `leave` | group metadata |
 | `session:{sessionId}` | `/api/groups/session` | `/api/groups/session` | `{ displayName, groups }` |

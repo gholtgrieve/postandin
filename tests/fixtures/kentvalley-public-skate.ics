@@ -1,0 +1,35 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260803T100000
+DTEND;TZID=America/Los_Angeles:20260803T120000
+RRULE:FREQ=WEEKLY;COUNT=3
+UID:kent-public-recurring@example.com
+SUMMARY:Public Skating
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260810T104500
+DTEND;TZID=America/Los_Angeles:20260810T120000
+RECURRENCE-ID;TZID=America/Los_Angeles:20260810T100000
+UID:kent-public-recurring@example.com
+SUMMARY:Public Skating
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260808T233000Z
+DTEND:20260809T004500Z
+UID:kent-public-blacklight@example.com
+SUMMARY:Public Skating (under the black lights)
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260809T130000
+DTEND;TZID=America/Los_Angeles:20260809T140000
+UID:kent-freestyle@example.com
+SUMMARY:Freestyle Drop-In
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20260915T130000
+DTEND;TZID=America/Los_Angeles:20260915T141500
+UID:kent-public-outside-window@example.com
+SUMMARY:Public Skating
+END:VEVENT
+END:VCALENDAR

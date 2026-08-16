@@ -5,6 +5,7 @@
 import { scrapeAll } from '../../lib/scrapeAll.js';
 import {
   ACTIVITY_DROP_IN_HOCKEY,
+  ACTIVITY_PUBLIC_SKATE,
   ACTIVITY_STICK_AND_PUCK,
   SUPPORTED_ACTIVITIES,
 } from '../../lib/activities.js';
@@ -18,6 +19,7 @@ const HEADERS = {
 const SCHEDULE_CACHE_KEYS = Object.freeze({
   [ACTIVITY_STICK_AND_PUCK]: 'schedule:cache',
   [ACTIVITY_DROP_IN_HOCKEY]: 'schedule:cache:drop-in-hockey',
+  [ACTIVITY_PUBLIC_SKATE]: 'schedule:cache:public-skate',
 });
 
 export async function onRequest(context) {

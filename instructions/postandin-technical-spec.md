@@ -280,8 +280,10 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               the unused endpoint remains for compatibility.
     schedule.js             → GET pre-scraped schedule from KV. Defaults to Stick &
                               Puck (`schedule:cache`) and accepts
-                              `?activity=drop-in-hockey` for the activity-specific
-                              cache written by the scheduler Worker.
+                              `?activity=drop-in-hockey` or `?activity=public-skate`
+                              for activity-specific caches written by the
+                              scheduler Worker. Public Skate is infrastructure-only;
+                              no public page has launched yet.
     rectimes.js, everett.js → per-rink live-scrape proxies
   /coaches/
     [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
@@ -305,15 +307,16 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               auto-deploy). See Groups/RSVPs below for why.
 /scheduler/                 → Separate Cloudflare Worker running on a cron schedule: scrapes
                               all rinks once every 30 min and writes activity-specific KV
-                              caches (`schedule:cache` for Stick & Puck and
-                              `schedule:cache:drop-in-hockey` for Drop-in Hockey), then backs up
+                              caches (`schedule:cache` for Stick & Puck,
+                              `schedule:cache:drop-in-hockey` for Drop-in Hockey,
+                              and `schedule:cache:public-skate` for Public Skate), then backs up
                               GROUPS KV + Durable Object group data to R2 daily. Also deployed
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
 /scripts/
-  audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck
-                              and Drop-in Hockey terminology across FareHarbor,
-                              DaySmart, Everett, and Kent Valley.
+  audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
+                              Drop-in Hockey, and Kent Public Skate terminology
+                              across FareHarbor, DaySmart, Everett, and Kent Valley.
   health-check.js          → Node.js script, hits live endpoints, run locally only.
                               Checks every launched top-level page, including both
                               schedule activities.
@@ -622,7 +625,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache` and `schedule:cache:drop-in-hockey` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. All are regenerable and safe to delete.
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. All are regenerable and safe to delete.
 - Session key formats: Stick & Puck preserves
   `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`; Drop-in Hockey uses
   `{rinkKey}|{YYYY-MM-DD}|{HH:MM}|drop-in-hockey`. The activity suffix prevents
@@ -640,7 +643,7 @@ destructive KV operation.
 
 Two backup files are written per run:
 - `backups/groups-YYYY-MM-DD.json` — full GROUPS KV namespace snapshot (also
-  incidentally captures both `schedule:cache` keys and the `coaches:list:v3` /
+  incidentally captures all three `schedule:cache` keys and the `coaches:list:v3` /
   `coaches:profile:v3:{slug}` cache keys, since they share the namespace). These
   cache entries are regenerable and harmless in a backup; they're not group data.
 - `backups/groups-do-YYYY-MM-DD.json` — a best-effort sweep of Durable Object
@@ -804,7 +807,7 @@ As of the last resync, the actual per-rink sources are:
 | Olympic View Arena (Mountlake Terrace) | RecTimes | **Not FareHarbor** — migrated at some point after this doc was first written; `lib/scrapers/rectimes.js` still links out to the FareHarbor booking URL for the "book" action, but session data itself comes from RecTimes |
 | Lynnwood Ice Center (Lynnwood) | RecTimes | Same migration as Olympic View |
 | Everett Community Ice Rink | Custom (Angel of the Winds) | |
-| Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | |
+| Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | Separate feeds for Stick & Puck and Public Skate. No current public Drop-in Hockey feed was found. |
 
 The legacy Pages proxies `functions/api/kentvalley.js` and
 `functions/api/fareharbor.js` were deleted in commit `92e53ad`. Kent Valley is
@@ -821,13 +824,19 @@ monitoring/discovery tool, separate from the live data path above. Run
 periodically, especially when rinks update their schedules.
 
 The shared scraper layer normalizes every emitted session with an `activity`
-value. Supported values are `stick-and-puck` and `drop-in-hockey`. Callers
+value. Supported values are `stick-and-puck`, `drop-in-hockey`, and
+`public-skate`. Callers
 still default to Stick & Puck for backward compatibility. The scheduler opts
-into both activities during one scrape, then writes separate activity caches.
+into all supported activities during one scrape, then writes separate activity caches.
 `/api/schedule` accepts those same values through the optional `activity` query
 parameter; omission and explicit `activity=stick-and-puck` both preserve the
 legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
-`schedule:cache:drop-in-hockey`. Unsupported values return `400`.
+`schedule:cache:drop-in-hockey`; `activity=public-skate` reads
+`schedule:cache:public-skate`. Unsupported values return `400`. Public Skate
+currently has Kent Valley infrastructure coverage only and has no public page.
+Kent's Stick & Puck and Public Skate calendars fail independently during the
+combined scheduler scrape, so an outage in one feed only invokes
+last-known-good behavior for that activity.
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
