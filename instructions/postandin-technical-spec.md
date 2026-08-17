@@ -869,6 +869,25 @@ skating. Everett accepts the exact labels `Public Session`, `Public Skate`, and
 separate check-in calendar. Everett's official site links to Bond Sports; the
 existing calendar endpoint currently exposes the same event IDs and times and
 remains the production data source.
+
+### Outstanding Everett classification issue — confirm with rink
+
+Everett's published calendar contains at least one event whose visible title
+and sport metadata conflict. On Monday, 2026-08-17, the Main Rink event from
+12:45–2:00 p.m. is titled `👪 Public Skate Session`, but opening the event on
+the published site displays the sport tag `Hockey` (the calendar API exposes
+`sportIds: [10]`). The event is followed by a 2:00–2:10 p.m. ice cut and is not
+marked cancelled. Post & In currently excludes `Public Skate Session` from all
+activities by design: it is not in Everett's reviewed Public Skate allowlist,
+and the Hockey sport tag alone is not used to classify Drop-in Hockey.
+
+This may be a mislabeled Public Skate session or a hockey walk-on/drop-in
+session. The rink must confirm which interpretation is correct, along with any
+age, equipment, goalie, or registration requirements, before the label is
+added to either activity classifier. Until then, preserve the current
+fail-closed behavior and do not infer the activity from either the title or
+the broad `Hockey` tag alone.
+
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
