@@ -3,13 +3,13 @@ import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
   mkSessionKey, sessionLocationLabel, GOING_PERSON_SVG
 } from '/stick-and-puck/modules/utils.js';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260817';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260818';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260817';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260818';
 
 const activityConfig = getActivityConfig(document.body.dataset.activity);
 

@@ -1,4 +1,4 @@
-import { RINKS } from '/lib/rinks.js';
+import { RINKS } from '/lib/rinks.js?v=20260818';
 import {
   escapeHtml, safeUrl, safeColor, fmtTime, fmtDuration,
   dayKey, fmtDayLabel, mkSessionKey, getGroupSlug, GOING_PERSON_SVG
@@ -7,7 +7,7 @@ import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, migrateStorage,
   getGroups, setGroups, getDisplayName, setDisplayName, syncSession,
   initSession, ensureGroupColors
-} from '/stick-and-puck/modules/storage.js?v=20260817';
+} from '/stick-and-puck/modules/storage.js?v=20260818';
 import {
   sessionMap, rsvpCache, selectedRinks,
   allData, setAllData, activeFilter, setActiveFilter,
@@ -18,13 +18,13 @@ import {
   updateGoingIndicators, maybeShowIconTip, doToggleGoing,
   _refreshSheetContent, backfillRsvpForGroup
 } from '/stick-and-puck/modules/rsvp.js';
-import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260817';
+import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260818';
 import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
   showJoinConfirm, openGroupModal, closeGroupModal, closeIntroModal,
   maybeShowIntroModal
-} from '/stick-and-puck/modules/groups-ui.js?v=20260817';
+} from '/stick-and-puck/modules/groups-ui.js?v=20260818';
 
 if (GROUPS_ENABLED) {
   migrateStorage();

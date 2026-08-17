@@ -76,15 +76,15 @@ test('each page declares its activity and offers normal-link navigation to all s
 
 test('shared asset cache versions are exact and synchronized across page shells', () => {
   for (const [path, html] of Object.entries(pages)) {
-    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260817',
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260818',
       `${path} has an unexpected schedule.css cache version`);
-    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260817',
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260818',
       `${path} has an unexpected main.js cache version`);
   }
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260817');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260817');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260817');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260817');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260818');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260818');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260818');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260818');
 });
 
 test('Public Skate suppresses every sold-out presentation cue', () => {

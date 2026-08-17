@@ -776,7 +776,7 @@ test('RSVP keys distinguish a second ice sheet without changing legacy sheet key
 });
 
 test('Everett display labels identify the city and source sheet', () => {
-  const rink = { name: 'Angel of the Winds Arena', city: 'Everett' };
+  const rink = { name: 'Angel Of The Winds Arena', city: 'Everett' };
   assert.equal(
     sessionLocationLabel({ rink, sheet: 'Community Rink', sheetKey: null }),
     'Everett · Community Rink',

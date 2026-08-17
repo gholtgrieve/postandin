@@ -827,7 +827,7 @@ As of the last resync, the actual per-rink sources are:
 | Sno-King Ice Arena — Renton, Kirkland, Snoqualmie | DaySmart | Three separate rink entries, one per location |
 | Olympic View Arena (Mountlake Terrace) | RecTimes | **Not FareHarbor** — migrated at some point after this doc was first written; `lib/scrapers/rectimes.js` still links out to the FareHarbor booking URL for the "book" action, but session data itself comes from RecTimes |
 | Lynnwood Ice Center (Lynnwood) | RecTimes | Same migration as Olympic View |
-| Angel of the Winds Arena | Custom | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
+| Angel Of The Winds Arena | Custom | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
 | Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | Separate feeds for Stick & Puck and Public Skate. No current public Drop-in Hockey feed was found. |
 
 The legacy Pages proxies `functions/api/kentvalley.js` and
@@ -903,7 +903,7 @@ than an inferred capacity threshold.
 | specialty | Multiple select | Power Skating, Edge Work, Goalie, Shooting / Finishing, Stickhandling, Defense, Hockey IQ, Strength & Conditioning, Overall Development, Video / Game Analysis, Mental Skills / Sports Psychology, Checking & Physical Play, Special Teams, Other |
 | age_groups | Multiple select | 4U, 6U, 8U, 10U, 12U, 14U, 16U, 18U, Junior, Adult |
 | levels | Multiple select | House / Recreational, Select / Tier 3, AA / Tier 2, AAA / Tier 1, Junior (USPHL / NAHL / BCHL / WHL), College (NCAA D1 / D3 / ACHA), Adult League, All Levels |
-| rinks | Multiple select | Olympic View Arena, Lynnwood Ice Center, Sno-King Kirkland, Sno-King Renton, Sno-King Snoqualmie, Kraken Community Iceplex, Kent Valley Ice Centre, Angel of the Winds Arena, Everett Community Rink, Tacoma Twin Rinks, Sprinker Recreation Center, Bremerton Ice Center |
+| rinks | Multiple select | Olympic View Arena, Lynnwood Ice Center, Sno-King Kirkland, Sno-King Renton, Sno-King Snoqualmie, Kraken Community Iceplex, Kent Valley Ice Centre, Angel Of The Winds Arena, Everett Community Rink, Tacoma Twin Rinks, Sprinker Recreation Center, Bremerton Ice Center |
 | private_lessons | Checkbox | |
 | lessons_detail | Single line text | e.g. Year-round · Individual & small group |
 | bio | Long text | 150–250 words |
