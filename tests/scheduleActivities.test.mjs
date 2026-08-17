@@ -30,7 +30,7 @@ import {
   parseIcal,
   scrapeKentValley,
 } from '../lib/scrapers/kentvalley.js';
-import { mkSessionKey } from '../stick-and-puck/modules/utils.js';
+import { mkSessionKey, sessionLocationLabel } from '../stick-and-puck/modules/utils.js';
 
 const ALL_ACTIVITIES = [
   ACTIVITY_STICK_AND_PUCK,
@@ -773,4 +773,17 @@ test('RSVP keys distinguish a second ice sheet without changing legacy sheet key
   assert.equal(community, 'everett|2026-08-01|19:30');
   assert.equal(main, `${community}|main-rink`);
   assert.equal(mainDropIn, `${community}|main-rink|drop-in-hockey`);
+});
+
+test('Everett display labels identify the city and source sheet', () => {
+  const rink = { name: 'Angel of the Winds Arena', city: 'Everett' };
+  assert.equal(
+    sessionLocationLabel({ rink, sheet: 'Community Rink', sheetKey: null }),
+    'Everett · Community Rink',
+  );
+  assert.equal(
+    sessionLocationLabel({ rink, sheet: 'Main Rink', sheetKey: 'main-rink' }),
+    'Everett · Main Rink',
+  );
+  assert.equal(sessionLocationLabel({ rink: { city: 'Seattle' } }), 'Seattle');
 });

@@ -58,6 +58,11 @@ export function mkSessionKey(s) {
   return s.activity === 'drop-in-hockey' ? `${base}|drop-in-hockey` : base;
 }
 
+export function sessionLocationLabel(s) {
+  if (!s.sheet) return s.rink?.city ?? '';
+  return `${s.rink?.city ?? ''} · ${s.sheet}`;
+}
+
 export function getGroupSlug(group) {
   return group.groupName.trim().toLowerCase() + '|' + group.password.trim().toLowerCase();
 }

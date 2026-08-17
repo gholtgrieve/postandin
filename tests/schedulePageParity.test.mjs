@@ -76,15 +76,15 @@ test('each page declares its activity and offers normal-link navigation to all s
 
 test('shared asset cache versions are exact and synchronized across page shells', () => {
   for (const [path, html] of Object.entries(pages)) {
-    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260816',
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260817',
       `${path} has an unexpected schedule.css cache version`);
-    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260816',
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260817',
       `${path} has an unexpected main.js cache version`);
   }
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260816');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260816');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260816');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260816');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260817');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260817');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260817');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260817');
 });
 
 test('Public Skate suppresses every sold-out presentation cue', () => {
@@ -92,6 +92,18 @@ test('Public Skate suppresses every sold-out presentation cue', () => {
   assert.match(schedule, /const showSoldOut = activityConfig\.showSessionDetails && s\.soldOut;/);
   assert.match(schedule, /const linkAttrs = s\.bookUrl && !showSoldOut/);
   assert.match(schedule, /session-row\$\{showSoldOut \? " sold-out" : ""\}/);
+});
+
+test('all activity pages render session location independently of hockey details', () => {
+  const schedule = modules['stick-and-puck/modules/schedule.js'];
+  const groupsUi = modules['stick-and-puck/modules/groups-ui.js'];
+  assert.match(schedule, /const locationLabel = sessionLocationLabel\(s\);/);
+  assert.match(schedule, /locationLabel \? `<div class="row-city">/);
+  assert.doesNotMatch(
+    schedule,
+    /activityConfig\.showSessionDetails\s*&&\s*locationLabel|locationLabel\s*&&\s*activityConfig\.showSessionDetails/,
+  );
+  assert.equal((groupsUi.match(/sessionLocationLabel\(s\)/g) ?? []).length, 2);
 });
 
 test('Public Skate launch metadata, limited controls, and crawl surfaces are complete', () => {

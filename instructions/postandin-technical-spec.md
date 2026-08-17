@@ -827,7 +827,7 @@ As of the last resync, the actual per-rink sources are:
 | Sno-King Ice Arena — Renton, Kirkland, Snoqualmie | DaySmart | Three separate rink entries, one per location |
 | Olympic View Arena (Mountlake Terrace) | RecTimes | **Not FareHarbor** — migrated at some point after this doc was first written; `lib/scrapers/rectimes.js` still links out to the FareHarbor booking URL for the "book" action, but session data itself comes from RecTimes |
 | Lynnwood Ice Center (Lynnwood) | RecTimes | Same migration as Olympic View |
-| Everett Ice Rinks | Custom (Angel of the Winds) | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
+| Angel of the Winds Arena | Custom | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
 | Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | Separate feeds for Stick & Puck and Public Skate. No current public Drop-in Hockey feed was found. |
 
 The legacy Pages proxies `functions/api/kentvalley.js` and

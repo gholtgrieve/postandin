@@ -1,10 +1,11 @@
 import {
-  escapeHtml, safeColor, fmtTime, dayKey, mkSessionKey, getGroupSlug
+  escapeHtml, safeColor, fmtTime, dayKey, mkSessionKey, getGroupSlug,
+  sessionLocationLabel
 } from '/stick-and-puck/modules/utils.js';
 import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, getGroups, setGroups,
   getDisplayName, setDisplayName, syncSession
-} from '/stick-and-puck/modules/storage.js?v=20260816';
+} from '/stick-and-puck/modules/storage.js?v=20260817';
 import {
   allData, sessionMap, rsvpCache, sheetSession, setSheetSession,
   setActiveGroupSheet, activeFilter
@@ -14,7 +15,7 @@ import {
 } from '/stick-and-puck/modules/rsvp.js';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=20260816';
+} from '/stick-and-puck/modules/schedule.js?v=20260817';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
@@ -99,7 +100,8 @@ function openGroupSheet(group) {
   }
 
   function renderSession({ s, names }) {
-    const rinkLabel = `${s.rink.name}${s.sheet ? ` · ${s.sheet}` : ''}`;
+    const locationLabel = sessionLocationLabel(s);
+    const rinkLabel = `${s.rink.name}${locationLabel ? ` — ${locationLabel}` : ''}`;
     const header  = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(rinkLabel)}`;
     const nameHtml = names.map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
     return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${nameHtml}</div>`;
@@ -237,10 +239,12 @@ async function leaveGroup(g) {
 // Bottom sheet
 export function openBottomSheet(s, sk) {
   setSheetSession({ s, sk });
-  document.getElementById('sheetRink').textContent =
-    `${s.rink.name}${s.sheet ? ` · ${s.sheet}` : ''}`.toUpperCase();
-  document.getElementById('sheetDatetime').textContent =
+  const locationLabel = sessionLocationLabel(s);
+  const datetimeLabel =
     `${s.start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })} · ${fmtTime(s.start)}`;
+  document.getElementById('sheetRink').textContent = s.rink.name.toUpperCase();
+  document.getElementById('sheetDatetime').textContent =
+    [locationLabel, datetimeLabel].filter(Boolean).join(' · ');
   _refreshSheetContent(sk);
   const overlay = document.getElementById('sheetOverlay');
   const sheet   = document.getElementById('bottomSheet');

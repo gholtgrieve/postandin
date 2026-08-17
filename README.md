@@ -31,7 +31,7 @@ CLI before use. Never place secrets or private identifiers in documentation.
 | Sno-King Ice Arena | Snoqualmie | DaySmart | Resources 13, 14 (Rink A + B) |
 | Olympic View Arena | Mountlake Terrace | RecTimes | Booking link still points to FareHarbor |
 | Lynnwood Ice Center | Lynnwood | RecTimes | Includes general and Female Stick & Puck sessions |
-| Everett Ice Rinks | Everett | Custom (Angel of the Winds) | One venue covering the Community Rink and Main Rink sheets |
+| Angel of the Winds Arena | Everett | Custom | One venue record covering the Community Rink and Main Rink sheets |
 | Kent Valley Ice Centre | Kent | Google Calendar iCal | Shared scraper pipeline |
 
 ---

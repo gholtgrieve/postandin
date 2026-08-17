@@ -1,15 +1,15 @@
 import { RINKS } from '/lib/rinks.js';
 import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
-  mkSessionKey, GOING_PERSON_SVG
+  mkSessionKey, sessionLocationLabel, GOING_PERSON_SVG
 } from '/stick-and-puck/modules/utils.js';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260816';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260817';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260816';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260817';
 
 const activityConfig = getActivityConfig(document.body.dataset.activity);
 
@@ -215,6 +215,7 @@ export function renderSessions(data) {
 
 function sessionRow(s) {
   const timeStr = fmtTime(s.start);
+  const locationLabel = sessionLocationLabel(s);
   const dur = activityConfig.showSessionDetails ? fmtDuration(s.start, s.end) : '';
   const spotsStr = activityConfig.showSessionDetails && s.spots != null
     ? s.spots <= 3
@@ -239,7 +240,7 @@ function sessionRow(s) {
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
       <div class="row-rink">${s.rink.name}</div>
-      <div class="row-city">${s.rink.city}${s.sheet ? ` · ${escapeHtml(s.sheet)}` : ''}</div>
+      ${locationLabel ? `<div class="row-city">${escapeHtml(locationLabel)}</div>` : ''}
       ${subtitleBadge}
     </div>
     <div class="row-right">
