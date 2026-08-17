@@ -3,13 +3,13 @@ import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
   mkSessionKey, GOING_PERSON_SVG
 } from '/stick-and-puck/modules/utils.js';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260815';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260816';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260815';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260816';
 
 const activityConfig = getActivityConfig(document.body.dataset.activity);
 
@@ -239,7 +239,7 @@ function sessionRow(s) {
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
       <div class="row-rink">${s.rink.name}</div>
-      <div class="row-city">${s.rink.city}</div>
+      <div class="row-city">${s.rink.city}${s.sheet ? ` · ${escapeHtml(s.sheet)}` : ''}</div>
       ${subtitleBadge}
     </div>
     <div class="row-right">

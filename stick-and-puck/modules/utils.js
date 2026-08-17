@@ -53,7 +53,8 @@ export function mkSessionKey(s) {
   const date = d.toLocaleDateString('en-CA');
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  const base = `${s.rinkKey}|${date}|${hh}:${mm}`;
+  const sheetSuffix = s.sheetKey ? `|${s.sheetKey}` : '';
+  const base = `${s.rinkKey}|${date}|${hh}:${mm}${sheetSuffix}`;
   return s.activity === 'drop-in-hockey' ? `${base}|drop-in-hockey` : base;
 }
 

@@ -16,6 +16,7 @@ import {
   RECTIMES_PUBLIC_SKATE_LABELS,
 } from '../lib/activities.js';
 import { ICAL_URLS } from '../lib/scrapers/kentvalley.js';
+import { EVERETT_SHEETS } from '../lib/scrapers/everett.js';
 import { pathToFileURL } from 'node:url';
 
 const HOCKEY_HINTS = /stick|puck|hockey|drop.?in|pickup|shinny|rat hockey/i;
@@ -252,9 +253,8 @@ async function auditEverettPublic() {
   const data = await fetchJson(
     `https://us-central1-aotw-arena.cloudfunctions.net/api/calendar/417/443?startDate=${today}&endDate=${future}`
   );
-  const publicRinks = new Set(['Community Rink', 'Main Rink']);
   const titles = data
-    .filter(rink => publicRinks.has(rink.name))
+    .filter(rink => EVERETT_SHEETS.includes(rink.name))
     .flatMap(rink => rink.slots ?? [])
     .map(slot => slot.title ?? '');
   return {
@@ -302,7 +302,7 @@ async function auditEverett() {
   );
   const titles = new Set(
     data
-      .filter(rink => rink.name === 'Community Rink')
+      .filter(rink => EVERETT_SHEETS.includes(rink.name))
       .flatMap(rink => rink.slots ?? [])
       .map(slot => slot.title ?? '')
   );

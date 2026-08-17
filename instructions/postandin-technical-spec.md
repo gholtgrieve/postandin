@@ -827,7 +827,7 @@ As of the last resync, the actual per-rink sources are:
 | Sno-King Ice Arena — Renton, Kirkland, Snoqualmie | DaySmart | Three separate rink entries, one per location |
 | Olympic View Arena (Mountlake Terrace) | RecTimes | **Not FareHarbor** — migrated at some point after this doc was first written; `lib/scrapers/rectimes.js` still links out to the FareHarbor booking URL for the "book" action, but session data itself comes from RecTimes |
 | Lynnwood Ice Center (Lynnwood) | RecTimes | Same migration as Olympic View |
-| Everett Community Ice Rink | Custom (Angel of the Winds) | |
+| Everett Ice Rinks | Custom (Angel of the Winds) | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
 | Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | Separate feeds for Stick & Puck and Public Skate. No current public Drop-in Hockey feed was found. |
 
 The legacy Pages proxies `functions/api/kentvalley.js` and
@@ -864,9 +864,13 @@ Skate is selected from event type `12`, then split among the existing Kirkland
 source-owned categories avoid relying on event-title matching.
 Lynnwood contributes the exact RecTimes label `Public Skate`; Olympic View
 contributes none because the rink explicitly does not offer general public
-skating. Everett accepts the exact labels `Public Session`, `Public Skate`, and
-`Public Skating` from both its Main and Community sheets, while excluding its
-separate check-in calendar. Everett's official site links to Bond Sports; the
+skating. Everett collects reviewed Stick & Puck, Drop-in Hockey, and Public
+Skate labels from both its `Community Rink` and `Main Rink` sheets, while
+excluding its separate check-in calendar. Each normalized Everett session
+retains its source sheet so the UI can identify it and simultaneous sessions on
+the two sheets remain separate listings. Community Rink keeps the legacy RSVP
+key; Main Rink adds `|main-rink` before any activity suffix to prevent
+same-time RSVP collisions. Everett's official site links to Bond Sports; the
 existing calendar endpoint currently exposes the same event IDs and times and
 remains the production data source.
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart

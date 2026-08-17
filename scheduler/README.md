@@ -232,7 +232,8 @@ All scraping logic lives in `lib/scrapers/`:
 - `kentvalley.js` — Kent Valley (separate Google Calendar iCal feeds for Stick
   & Puck and Public Skate; no current public Drop-in Hockey feed was found)
 - `everett.js` — Everett / Angel of the Winds (Firebase Cloud Function;
-  Public Skate includes the Main and Community sheets)
+  reviewed activities include the Main and Community sheets, and each session
+  preserves its source sheet)
 
 Both the scheduler and the Pages Function at `/api/schedule` import from these.
 

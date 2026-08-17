@@ -466,11 +466,11 @@ test('RecTimes includes only Lynnwood general Public Skate sessions', () => {
   }), []);
 });
 
-test('Everett keeps hockey on Community Rink and includes Public Skate on both ice sheets', () => {
+test('Everett includes reviewed activities from both ice sheets and preserves sheet identity', () => {
   const data = fixture('everett-activities.json');
   assert.deepEqual(
     normalizeEverettData(data).map(s => s.sourceLabel),
-    ['Stick & Puck (LR 1 & 3)'],
+    ['Stick & Puck (LR 1 & 3)', 'Stick & Puck (LR 1 & 3)'],
   );
 
   const all = normalizeEverettData(data, { activities: ALL_ACTIVITIES });
@@ -478,13 +478,15 @@ test('Everett keeps hockey on Community Rink and includes Public Skate on both i
     all.map(s => s.sourceLabel),
     [
       'Stick & Puck (LR 1 & 3)',
+      'Stick & Puck (LR 1 & 3)',
       'Drop in - Pay At Desk (LR 1 & 3)',
+      'Drop in - Pay At Desk',
       'Drop in - Pay At Desk (LR 2 & 4)',
       'Public Session',
       'Public Skating',
     ],
   );
-  const dropIn = all[1];
+  const dropIn = all.find(session => session.id === 'everett-2002');
   assert.equal(dropIn.registration.method, 'pay-at-desk');
   assert.match(dropIn.subtitle, /Eligibility details not published/);
   const publicSkate = all.filter(session => session.activity === ACTIVITY_PUBLIC_SKATE);
@@ -493,6 +495,25 @@ test('Everett keeps hockey on Community Rink and includes Public Skate on both i
   assert.ok(publicSkate.every(session => session.subtitle === null));
   assert.ok(publicSkate.every(session => session.bookUrl.includes('schedule.bondsports.co')));
   assert.ok(!all.some(session => session.sourceLabel === 'Public Skate Session'));
+  assert.ok(!all.some(session => session.id === 'everett-2010'));
+
+  const simultaneousStick = all.filter(session =>
+    session.activity === ACTIVITY_STICK_AND_PUCK && session.start === '2026-08-01T10:00:00'
+  );
+  assert.equal(simultaneousStick.length, 2);
+  assert.deepEqual(
+    simultaneousStick.map(session => session.sheet).sort(),
+    ['Community Rink', 'Main Rink'],
+  );
+  assert.deepEqual(
+    Object.fromEntries(simultaneousStick.map(session => [session.sheet, session.sheetKey])),
+    { 'Community Rink': null, 'Main Rink': 'main-rink' },
+  );
+  assert.equal(new Set(simultaneousStick.map(session => session.id)).size, 2);
+
+  const mainDropIn = all.find(session => session.id === 'everett-2004');
+  assert.equal(mainDropIn.activity, ACTIVITY_DROP_IN_HOCKEY);
+  assert.equal(mainDropIn.sheet, 'Main Rink');
 });
 
 test('Kent Valley defaults to Stick & Puck and emits an explicit activity', () => {
@@ -736,4 +757,20 @@ test('RSVP keys remain legacy-compatible for Stick & Puck and qualify Drop-in Ho
 
   assert.equal(explicitStick, base);
   assert.equal(dropIn, `${base}|drop-in-hockey`);
+});
+
+test('RSVP keys distinguish a second ice sheet without changing legacy sheet keys', () => {
+  const start = new Date(2026, 7, 1, 19, 30);
+  const community = mkSessionKey({ rinkKey: 'everett', start, sheetKey: null });
+  const main = mkSessionKey({ rinkKey: 'everett', start, sheetKey: 'main-rink' });
+  const mainDropIn = mkSessionKey({
+    rinkKey: 'everett',
+    start,
+    sheetKey: 'main-rink',
+    activity: ACTIVITY_DROP_IN_HOCKEY,
+  });
+
+  assert.equal(community, 'everett|2026-08-01|19:30');
+  assert.equal(main, `${community}|main-rink`);
+  assert.equal(mainDropIn, `${community}|main-rink|drop-in-hockey`);
 });

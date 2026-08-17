@@ -10,6 +10,7 @@
 // Session key formats:
 //   Stick & Puck:    {rinkKey}|{YYYY-MM-DD}|{HH:MM}
 //   Drop-in Hockey:  {rinkKey}|{YYYY-MM-DD}|{HH:MM}|drop-in-hockey
+//   Everett Main:    {rinkKey}|{YYYY-MM-DD}|{HH:MM}|main-rink[|drop-in-hockey]
 //
 // On every write, entries whose session start is >24h in the past are pruned
 // so the map stays bounded — see pruneStale() in group-do/src/group-do.js.

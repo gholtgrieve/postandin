@@ -4,7 +4,7 @@ import {
 import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, getGroups, setGroups,
   getDisplayName, setDisplayName, syncSession
-} from '/stick-and-puck/modules/storage.js?v=20260815';
+} from '/stick-and-puck/modules/storage.js?v=20260816';
 import {
   allData, sessionMap, rsvpCache, sheetSession, setSheetSession,
   setActiveGroupSheet, activeFilter
@@ -14,7 +14,7 @@ import {
 } from '/stick-and-puck/modules/rsvp.js';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=20260815';
+} from '/stick-and-puck/modules/schedule.js?v=20260816';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
@@ -99,7 +99,8 @@ function openGroupSheet(group) {
   }
 
   function renderSession({ s, names }) {
-    const header  = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(s.rink.name)}`;
+    const rinkLabel = `${s.rink.name}${s.sheet ? ` · ${s.sheet}` : ''}`;
+    const header  = `${sessionDayLabel(s.start)} ${fmtTime(s.start)} — ${escapeHtml(rinkLabel)}`;
     const nameHtml = names.map(n => `<div class="group-sheet-session-name">${escapeHtml(n)}</div>`).join('');
     return `<div class="group-sheet-session"><div class="group-sheet-session-header">${header}</div>${nameHtml}</div>`;
   }
@@ -236,7 +237,8 @@ async function leaveGroup(g) {
 // Bottom sheet
 export function openBottomSheet(s, sk) {
   setSheetSession({ s, sk });
-  document.getElementById('sheetRink').textContent     = s.rink.name.toUpperCase();
+  document.getElementById('sheetRink').textContent =
+    `${s.rink.name}${s.sheet ? ` · ${s.sheet}` : ''}`.toUpperCase();
   document.getElementById('sheetDatetime').textContent =
     `${s.start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })} · ${fmtTime(s.start)}`;
   _refreshSheetContent(sk);
