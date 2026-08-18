@@ -9,6 +9,14 @@
 > between this document and the real code as the document being wrong, and
 > flag it rather than assuming the document is current.
 >
+> **Mandatory pre-commit documentation check.** Before every commit, compare
+> the behavior, architecture, routes, data sources, labels, cache
+> keys, bindings, deployment requirements, and operational workflow against
+> this document. Update this document in the same commit whenever the change
+> affects any of those facts. Do not create the commit until this check is
+> complete. If no documentation update is required, explicitly record that
+> conclusion in the task handoff after the commit.
+>
 > **Tracked in git as of 2026-07-22.** This file used to live only in the
 > gitignored `instructions/` directory. It is now version-controlled at
 > `instructions/postandin-technical-spec.md` and travels with the code, so it
@@ -82,6 +90,7 @@ claude
 # "Review git diff main...HEAD and any uncommitted changes. Follow CLAUDE.md.
 # Do not edit files."
 git add -A
+# Required before every commit: reconcile this technical spec with the change.
 git commit -m "Description of what changed"
 git switch main
 git merge --ff-only codex/brief-task-name
@@ -827,7 +836,7 @@ As of the last resync, the actual per-rink sources are:
 | Sno-King Ice Arena — Renton, Kirkland, Snoqualmie | DaySmart | Three separate rink entries, one per location |
 | Olympic View Arena (Mountlake Terrace) | RecTimes | **Not FareHarbor** — migrated at some point after this doc was first written; `lib/scrapers/rectimes.js` still links out to the FareHarbor booking URL for the "book" action, but session data itself comes from RecTimes |
 | Lynnwood Ice Center (Lynnwood) | RecTimes | Same migration as Olympic View |
-| Angel Of The Winds Arena | Custom | One venue record covers both the `Community Rink` and `Main Rink` sheets. |
+| Angel Of The Winds Arena (Everett) | Custom | One `everett` venue record covers both the `Community Rink` and `Main Rink` source sheets. |
 | Kent Valley Ice Centre (Kent) | iCal (Google Calendar) | Separate feeds for Stick & Puck and Public Skate. No current public Drop-in Hockey feed was found. |
 
 The legacy Pages proxies `functions/api/kentvalley.js` and
@@ -867,12 +876,39 @@ contributes none because the rink explicitly does not offer general public
 skating. Everett collects reviewed Stick & Puck, Drop-in Hockey, and Public
 Skate labels from both its `Community Rink` and `Main Rink` sheets, while
 excluding its separate check-in calendar. Each normalized Everett session
-retains its source sheet so the UI can identify it and simultaneous sessions on
-the two sheets remain separate listings. Community Rink keeps the legacy RSVP
-key; Main Rink adds `|main-rink` before any activity suffix to prevent
-same-time RSVP collisions. Everett's official site links to Bond Sports; the
-existing calendar endpoint currently exposes the same event IDs and times and
-remains the production data source.
+retains its source sheet. On Stick & Puck, Drop-in Hockey, and Public Skate,
+the listing title is `Angel Of The Winds Arena` and the location subtitle is
+exactly `Everett · Community Rink` or `Everett · Main Rink`. The same venue and
+location distinction is preserved in the Groups attendance and RSVP views.
+The location subtitle is independent of hockey-only session details, so Public
+Skate displays it as well. Simultaneous sessions on the two sheets remain
+separate listings. Community Rink keeps the legacy RSVP key; Main Rink adds
+`|main-rink` before any activity suffix to prevent same-time RSVP collisions.
+Everett's official site links to Bond Sports; the existing calendar endpoint
+currently exposes the same event IDs and times and remains the production data
+source. The source sheet allowlist, activity classifiers, display-label helper,
+and RSVP-key behavior are implemented in `lib/scrapers/everett.js`,
+`lib/activities.js`, `stick-and-puck/modules/utils.js`, and their schedule and
+Groups consumers.
+
+### Outstanding Everett classification issue — confirm with rink
+
+Everett's published calendar contains at least one event whose visible title
+and sport metadata conflict. On Monday, 2026-08-17, the Main Rink event from
+12:45–2:00 p.m. was titled `👪 Public Skate Session`, but opening the event on
+the published site displayed the sport tag `Hockey` (the calendar API exposed
+`sportIds: [10]`). The event was followed by a 2:00–2:10 p.m. ice cut and was
+not marked cancelled. Post & In excludes `Public Skate Session` from all
+activities by design: it is not in Everett's reviewed Public Skate allowlist,
+and the Hockey sport tag alone is not used to classify Drop-in Hockey.
+
+This may have been a mislabeled Public Skate session or a hockey walk-on/drop-in
+session. The rink must confirm which interpretation is correct, along with any
+age, equipment, goalie, or registration requirements, before the label is
+added to either activity classifier. Until then, preserve the current
+fail-closed behavior and do not infer the activity from either the title or the
+broad `Hockey` tag alone.
+
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
 resource, start, end, and role-stripped base description all match.
@@ -903,7 +939,7 @@ than an inferred capacity threshold.
 | specialty | Multiple select | Power Skating, Edge Work, Goalie, Shooting / Finishing, Stickhandling, Defense, Hockey IQ, Strength & Conditioning, Overall Development, Video / Game Analysis, Mental Skills / Sports Psychology, Checking & Physical Play, Special Teams, Other |
 | age_groups | Multiple select | 4U, 6U, 8U, 10U, 12U, 14U, 16U, 18U, Junior, Adult |
 | levels | Multiple select | House / Recreational, Select / Tier 3, AA / Tier 2, AAA / Tier 1, Junior (USPHL / NAHL / BCHL / WHL), College (NCAA D1 / D3 / ACHA), Adult League, All Levels |
-| rinks | Multiple select | Olympic View Arena, Lynnwood Ice Center, Sno-King Kirkland, Sno-King Renton, Sno-King Snoqualmie, Kraken Community Iceplex, Kent Valley Ice Centre, Angel Of The Winds Arena, Everett Community Rink, Tacoma Twin Rinks, Sprinker Recreation Center, Bremerton Ice Center |
+| rinks | Multiple select | Olympic View Arena, Lynnwood Ice Center, Sno-King Kirkland, Sno-King Renton, Sno-King Snoqualmie, Kraken Community Iceplex, Kent Valley Ice Centre, Angel Of The Winds Arena, Tacoma Twin Rinks, Sprinker Recreation Center, Bremerton Ice Center |
 | private_lessons | Checkbox | |
 | lessons_detail | Single line text | e.g. Year-round · Individual & small group |
 | bio | Long text | 150–250 words |
