@@ -36,6 +36,13 @@
         "startDate": "2026-08-03T00:00:00.000Z",
         "startTime": "12:00:00",
         "endTime": "14:00:00"
+      },
+      {
+        "id": 2011,
+        "title": "👪 Public Skate Session",
+        "startDate": "2026-08-04T00:00:00.000Z",
+        "startTime": "12:45:00",
+        "endTime": "14:00:00"
       }
     ]
   },
@@ -62,6 +69,13 @@
         "startDate": "2026-08-03T00:00:00.000Z",
         "startTime": "14:00:00",
         "endTime": "16:00:00"
+      },
+      {
+        "id": 2012,
+        "title": "👪 Public Skate Session",
+        "startDate": "2026-08-04T00:00:00.000Z",
+        "startTime": "12:45:00",
+        "endTime": "14:00:00"
       }
     ]
   },

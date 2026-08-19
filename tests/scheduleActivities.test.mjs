@@ -83,6 +83,7 @@ test('source classifiers use reviewed exact Drop-in Hockey labels', () => {
   assert.equal(classifyEverettActivity('Drop in - Pay At Desk'), ACTIVITY_DROP_IN_HOCKEY);
   assert.equal(classifyEverettActivity('Private Drop in - Pay At Desk'), null);
   assert.equal(classifyEverettActivity('Public Session'), ACTIVITY_PUBLIC_SKATE);
+  assert.equal(classifyEverettActivity('👪 Public Skate Session'), ACTIVITY_PUBLIC_SKATE);
   assert.equal(classifyEverettActivity('Public Skate Session'), null);
 
   for (const [company, labels] of Object.entries(DAYSMART_DROP_IN_LABELS)) {
@@ -484,17 +485,32 @@ test('Everett includes reviewed activities from both ice sheets and preserves sh
       'Drop in - Pay At Desk (LR 2 & 4)',
       'Public Session',
       'Public Skating',
+      '👪 Public Skate Session',
+      '👪 Public Skate Session',
     ],
   );
   const dropIn = all.find(session => session.id === 'everett-2002');
   assert.equal(dropIn.registration.method, 'pay-at-desk');
   assert.match(dropIn.subtitle, /Eligibility details not published/);
   const publicSkate = all.filter(session => session.activity === ACTIVITY_PUBLIC_SKATE);
-  assert.equal(publicSkate.length, 2);
+  assert.equal(publicSkate.length, 4);
   assert.ok(publicSkate.every(session => session.title === 'Public Skate'));
   assert.ok(publicSkate.every(session => session.subtitle === null));
   assert.ok(publicSkate.every(session => session.bookUrl.includes('schedule.bondsports.co')));
-  assert.ok(!all.some(session => session.sourceLabel === 'Public Skate Session'));
+  const confirmedPublicSkate = all.filter(session =>
+    session.sourceLabel === '👪 Public Skate Session'
+  );
+  assert.equal(confirmedPublicSkate.length, 2);
+  assert.deepEqual(
+    confirmedPublicSkate.map(session => session.sheet).sort(),
+    ['Community Rink', 'Main Rink'],
+  );
+  assert.ok(confirmedPublicSkate.every(session => session.activity === ACTIVITY_PUBLIC_SKATE));
+  assert.ok(!all.some(session =>
+    session.sourceLabel === '👪 Public Skate Session' &&
+    session.activity === ACTIVITY_DROP_IN_HOCKEY
+  ));
+  assert.ok(!all.some(session => session.id === 'everett-2008'));
   assert.ok(!all.some(session => session.id === 'everett-2010'));
 
   const simultaneousStick = all.filter(session =>

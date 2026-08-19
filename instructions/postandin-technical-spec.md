@@ -891,23 +891,25 @@ and RSVP-key behavior are implemented in `lib/scrapers/everett.js`,
 `lib/activities.js`, `stick-and-puck/modules/utils.js`, and their schedule and
 Groups consumers.
 
-### Outstanding Everett classification issue — confirm with rink
+### Resolved Everett classification issue — `Public Skate Session`
 
-Everett's published calendar contains at least one event whose visible title
-and sport metadata conflict. On Monday, 2026-08-17, the Main Rink event from
+Everett's published calendar contained an event whose visible title and sport
+metadata conflicted. On Monday, 2026-08-17, the Main Rink event from
 12:45–2:00 p.m. was titled `👪 Public Skate Session`, but opening the event on
 the published site displayed the sport tag `Hockey` (the calendar API exposed
 `sportIds: [10]`). The event was followed by a 2:00–2:10 p.m. ice cut and was
-not marked cancelled. Post & In excludes `Public Skate Session` from all
-activities by design: it is not in Everett's reviewed Public Skate allowlist,
-and the Hockey sport tag alone is not used to classify Drop-in Hockey.
+not marked cancelled.
 
-This may have been a mislabeled Public Skate session or a hockey walk-on/drop-in
-session. The rink must confirm which interpretation is correct, along with any
-age, equipment, goalie, or registration requirements, before the label is
-added to either activity classifier. Until then, preserve the current
-fail-closed behavior and do not infer the activity from either the title or the
-broad `Hockey` tag alone.
+On 2026-08-18, the rink confirmed by phone that this is an open public ice
+skating session, not Drop-in Hockey, and that the `Hockey` sport tag is a source
+metadata mistake that should be `Ice Skating`. Post & In therefore treats the
+API title `👪 Public Skate Session` as an exact, Everett-specific Public Skate
+label. It normalizes the displayed title to `Public Skate`, preserves the
+source label internally, and does not classify the event as Drop-in Hockey.
+Continue to ignore the erroneous broad sport tag for activity classification;
+new Everett titles must still be reviewed and added explicitly rather than
+matched fuzzily. The separate check-in calendar remains excluded before title
+classification, even if it contains the same label.
 
 Drop-in classification uses reviewed, source-specific exact labels rather than a broad fuzzy match. DaySmart
 skater/goalie registration records are combined only when their league,
