@@ -648,6 +648,7 @@ BEGIN:VEVENT
 UID:partial-success-stick@example.com
 DTSTART:20260820T180000Z
 DTEND:20260820T191500Z
+RRULE:FREQ=WEEKLY
 SUMMARY:Stick & Puck
 END:VEVENT
 END:VCALENDAR`;
@@ -668,9 +669,13 @@ END:VCALENDAR`;
       ACTIVITY_PUBLIC_SKATE,
     ]);
     assert.deepEqual(result.failures, [ACTIVITY_PUBLIC_SKATE]);
-    assert.equal(result.sessions.length, 1);
-    assert.equal(result.sessions[0].activity, ACTIVITY_STICK_AND_PUCK);
-    assert.equal(result.sessions[0].id, 'partial-success-stick@example.com');
+    assert.ok(result.sessions.length > 0);
+    assert.ok(result.sessions.every(
+      session => session.activity === ACTIVITY_STICK_AND_PUCK,
+    ));
+    assert.ok(result.sessions.every(
+      session => /^partial-success-stick@example\.com:/.test(session.id),
+    ));
   } finally {
     globalThis.fetch = originalFetch;
     console.error = originalError;
