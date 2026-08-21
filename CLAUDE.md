@@ -5,9 +5,17 @@ primary implementation agent. Unless the owner explicitly asks for a fix,
 review the work without editing files, committing, pushing, merging, deploying,
 or changing production data.
 
+The owner launches Claude and carries the report back to Codex; Codex does not
+launch Claude as part of the normal workflow. Review only the canonical
+checkout opened through `/Users/gordonholtgrieve/Dropbox/Documents/postandin`.
+At the start, run `pwd`, `git rev-parse --show-toplevel`, and `git status
+--short`. If the checkout is under `/Users/gordonholtgrieve/Documents/Codex/`,
+a dated/generated task folder, or another clone, stop and report the path
+mismatch instead of reviewing or moving files.
+
 ## Review procedure
 
-1. Read `AGENTS.md`.
+1. Verify the canonical checkout as described above, then read `AGENTS.md`.
 2. Inspect `git status`, `git diff`, and `git diff main...HEAD`.
 3. Read the actual changed files and their callers, not just the patch.
 4. Consult relevant sections of

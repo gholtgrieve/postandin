@@ -10,6 +10,9 @@ import {
 } from '/stick-and-puck/modules/state.js';
 import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
 import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260818';
+import {
+  CALENDAR_SVG, downloadCalendarEvent, hasExactCalendarTimes
+} from '/stick-and-puck/modules/calendar.js?v=20260821';
 
 const activityConfig = getActivityConfig(document.body.dataset.activity);
 
@@ -192,7 +195,7 @@ export function renderSessions(data) {
         </div>
         <div class="session-rows">
           ${sessions.map(s => {
-            if (GROUPS_ENABLED) sessionMap[mkSessionKey(s)] = s;
+            sessionMap[mkSessionKey(s)] = s;
             return sessionRow(s);
           }).join("")}
         </div>
@@ -236,6 +239,13 @@ function sessionRow(s) {
     ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going">${GOING_PERSON_SVG}</span>`
     : '';
 
+  const activityName = activityConfig.id === 'drop-in-hockey'
+    ? 'Drop-in Hockey'
+    : activityConfig.id === 'public-skate' ? 'Public Skate' : 'Stick & Puck';
+  const calendarBtn = hasExactCalendarTimes(s)
+    ? `<span role="button" tabindex="0" class="calendar-btn" data-session-key="${mkSessionKey(s)}" aria-label="Add ${escapeHtml(activityName)} at ${escapeHtml(s.rink.name)} to calendar" title="Add to calendar">${CALENDAR_SVG}</span>`
+    : '';
+
   return `<a class="session-row${showSoldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
@@ -248,8 +258,25 @@ function sessionRow(s) {
       ${goingBtn}
       <div class="row-badges">${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
+    ${calendarBtn}
   </a>`;
 }
+
+function exportSession(event) {
+  const btn = event.target.closest('.calendar-btn');
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const session = sessionMap[btn.dataset.sessionKey];
+  if (session) {
+    downloadCalendarEvent({ ...session, calendarLocation: sessionLocationLabel(session) }, activityConfig.id);
+  }
+}
+
+document.getElementById('content').addEventListener('click', exportSession);
+document.getElementById('content').addEventListener('keydown', event => {
+  if (event.key === 'Enter' || event.key === ' ') exportSession(event);
+});
 
 // ─── App bootstrap ────────────────────────────────────────────────────────────
 

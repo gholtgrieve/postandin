@@ -74,10 +74,18 @@ managed assumptions; verify them in Cloudflare before operational changes.
 
 ### Making changes
 - All file edits are done locally via Codex, never directly on GitHub
-- Local repo lives at ~/Dropbox/Documents/postandin
+- The one canonical local repo is `~/Dropbox/Documents/postandin`. This short
+  path is a symlink to Dropbox's managed team folder; always open and refer to
+  the repository through the short path.
+- Never implement, review, or preserve Post & In changes in a dated
+  `~/Documents/Codex/...` task directory or another clone. At the start of every
+  Codex or Claude session, verify `pwd`, `git rev-parse --show-toplevel`, branch,
+  and `git status --short`; stop on a path mismatch before editing.
 - Dropbox sync is active — the local repo is also backed up to Dropbox cloud storage
 - Codex implements on a short-lived `codex/<task>` branch
-- Claude Code reviews the completed diff before it is merged to `main`
+- The owner runs Claude Code in the canonical repo and returns its report to
+  Codex. Codex supplies a complete review prompt but does not invoke Claude
+  directly unless the owner explicitly requests that external action.
 
 ### Standard git workflow
 ```bash
@@ -85,7 +93,7 @@ cd ~/Dropbox/Documents/postandin
 git switch main && git pull --ff-only
 git switch -c codex/brief-task-name
 # open the repository in Codex and ask it to implement + verify the change
-# then run Claude Code and ask it to review without editing:
+# Codex gives the owner a complete Claude review prompt. The owner then runs:
 claude
 # "Review git diff main...HEAD and any uncommitted changes. Follow CLAUDE.md.
 # Do not edit files."
@@ -128,17 +136,23 @@ for creating the task branch, committing, merging with `--ff-only`, and pushing
 ### How to use Codex effectively
 - Write a detailed prompt describing exactly what to build before opening Codex
 - Include: which files to touch, what the output should look like, any design system constraints
+- Open Codex from `~/Dropbox/Documents/postandin`. If Codex reports a path under
+  `~/Documents/Codex/` or another clone, stop and reopen the canonical repo
+  before allowing any edits.
 - Codex reads `AGENTS.md`, inspects the repository, makes the change, and runs relevant checks
 - Stop before commit, push, merge, or deploy unless explicitly requested
-- Ask Codex for a concise handoff containing changed files, checks, risks, and a suggested commit message
+- Ask Codex for a concise handoff containing changed files, checks, risks, a
+  suggested commit message, and a complete copyable Claude review prompt.
 
 ### How to use Claude Code for review
 ```bash
 cd ~/Dropbox/Documents/postandin && claude
 ```
+- The owner runs this command; Codex does not launch Claude during the normal
+  review handoff.
 - Prompt: `Review git diff main...HEAD and any uncommitted changes. Follow CLAUDE.md. Do not edit files.`
 - Claude Code should lead with concrete findings ordered by severity
-- Send each finding back to Codex to investigate and fix
+- The owner sends Claude's complete report back to Codex to investigate and fix
 - Ask Claude Code to re-review after fixes
 - Merge to `main` only after Claude reports `ready to merge` and you understand the checks that ran
 
@@ -264,7 +278,12 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               renderSessions, sessionRow, loadData. Also owns the
                               filter-button/refresh-button/auto-refresh wiring,
                               which runs at module-load time (not inside an
-                              exported init function).
+                              exported init function), plus the delegated calendar
+                              action on every session row.
+    calendar.js               → Pure iCalendar serialization plus the client-side
+                              `.ics` download helper and calendar icon. Exports UTC
+                              start/end times, activity, rink/location, and the original
+                              source URL when present; no account or backend state.
     groups-ui.js              → All group-related UI: bottom sheet, group info
                               sheet, manage-groups modal, intro modal,
                               renderGroupsRow.
@@ -707,6 +726,15 @@ RSVP records are isolated by the activity-qualified
 session key. The current group detail sheet is page-scoped, so Stick & Puck shows
 that group's Stick & Puck signups and Drop-in Hockey shows its Drop-in signups;
 there is no combined cross-activity attendance view.
+
+Every activity schedule session with source-provided exact start and end times
+has a 44px, keyboard-accessible “Add to calendar” action, including sold-out
+hockey sessions. It stops the row's source-link navigation and immediately
+downloads a client-generated `.ics` event; a session without an exact end omits
+the action rather than fabricating a duration or exposing a control that cannot
+work. There is no provider menu, confirmation dialog, calendar permission,
+persistence, account, or backend request. The rest of the row retains its
+existing source/session URL behavior.
 
 ### localStorage Keys
 | Key | Purpose |

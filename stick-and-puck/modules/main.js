@@ -18,7 +18,7 @@ import {
   updateGoingIndicators, maybeShowIconTip, doToggleGoing,
   _refreshSheetContent, backfillRsvpForGroup
 } from '/stick-and-puck/modules/rsvp.js';
-import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260818';
+import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260821';
 import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,

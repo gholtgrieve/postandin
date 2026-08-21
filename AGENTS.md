@@ -6,14 +6,22 @@ separate second opinion.
 
 ## Start every task this way
 
-1. Read this file.
-2. Inspect `git status` and the actual files relevant to the request.
-3. Read only the relevant sections of
+1. Confirm the task is running in the canonical checkout by running `pwd`,
+   `git rev-parse --show-toplevel`, and `git status --short`. The owner-facing
+   path is `/Users/gordonholtgrieve/Dropbox/Documents/postandin` (a symlink to
+   Dropbox's managed team folder). If the repository is under
+   `/Users/gordonholtgrieve/Documents/Codex/`, another dated/generated folder,
+   or any other clone, stop before editing and direct the owner to reopen the
+   canonical checkout. Never copy or implement repository work in a generated
+   Codex task folder.
+2. Read this file.
+3. Inspect `git status` and the actual files relevant to the request.
+4. Read only the relevant sections of
    `instructions/postandin-technical-spec.md`.
-4. Treat the codebase as the source of truth. If the technical spec disagrees
+5. Treat the codebase as the source of truth. If the technical spec disagrees
    with the code, flag the mismatch and update the spec in the same change when
    appropriate.
-5. Restate the requested outcome and identify any product, UX, or copy decision
+6. Restate the requested outcome and identify any product, UX, or copy decision
    that still belongs to the owner.
 
 Do not overwrite or discard pre-existing uncommitted work. Ask before touching
@@ -100,6 +108,13 @@ give the owner:
 - the exact comparison Claude should review (normally
   `git diff main...HEAD` plus uncommitted changes);
 - a suggested commit message.
+
+The owner mediates every Claude review. Codex prepares a complete, copyable
+review prompt and gives it to the owner. Codex must not invoke the Claude CLI,
+Claude API, a Claude connector, or another external reviewer itself unless the
+owner explicitly asks Codex to run that external service in the current
+request. The normal workflow is: owner runs Claude in the canonical checkout,
+owner returns Claude's report to Codex, then Codex investigates each finding.
 
 If Claude reports a possible issue, investigate it against the code and tests.
 Do not accept or dismiss review feedback automatically; explain the evidence.

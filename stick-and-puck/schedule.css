@@ -462,7 +462,8 @@ main {
   transition: background 0.1s;
 }
 .session-row:hover:not(.sold-out) { background: var(--black-3); }
-.session-row.sold-out { opacity: 0.4; cursor: default; }
+.session-row.sold-out { cursor: default; }
+.session-row.sold-out > :not(.calendar-btn) { opacity: 0.4; }
 
 .row-time {
   font-family: 'Bebas Neue', sans-serif;
@@ -516,6 +517,26 @@ main {
   gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.calendar-btn {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white-3);
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+}
+.calendar-btn svg { width: 20px; height: 20px; }
+.calendar-btn:hover,
+.calendar-btn:focus-visible {
+  color: var(--yellow);
+  background: var(--black-4);
+  outline: 1px solid var(--yellow);
+  outline-offset: -1px;
 }
 
 /* ── Badges ── */
@@ -1299,7 +1320,7 @@ footer a:hover { color: var(--yellow); }
   /* ── Session cards ── */
   .session-row {
     padding: 8px 10px;
-    gap: 10px;
+    gap: 8px;
   }
   .row-time {
     font-size: 20px;
@@ -1307,6 +1328,8 @@ footer a:hover { color: var(--yellow); }
   }
   .row-rink { font-size: 10px; }
   .row-city { font-size: 10px; }
+
+  .calendar-btn { margin-right: -6px; }
 
   /* ── RSVP tap target: 44×44 minimum ── */
   .going-btn {
