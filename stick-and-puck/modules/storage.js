@@ -1,5 +1,5 @@
-import { getGroupSlug } from '/stick-and-puck/modules/utils.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260818';
+import { getGroupSlug } from '/stick-and-puck/modules/utils.js?v=20260826a';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260826b';
 
 export const GROUPS_ENABLED = getActivityConfig(globalThis.document?.body?.dataset.activity).groupsEnabled;
 

@@ -13,7 +13,8 @@ test('Stick & Puck remains the default schedule activity', () => {
     id: ACTIVITY_STICK_AND_PUCK,
     scheduleUrl: '/api/schedule',
     groupsEnabled: true,
-    showSessionDetails: true,
+    showDuration: true,
+    showSessionSubtitles: true,
   });
 });
 
@@ -22,16 +23,18 @@ test('Drop-in Hockey selects the activity-specific schedule API', () => {
     id: ACTIVITY_DROP_IN_HOCKEY,
     scheduleUrl: '/api/schedule?activity=drop-in-hockey',
     groupsEnabled: true,
-    showSessionDetails: true,
+    showDuration: true,
+    showSessionSubtitles: true,
   });
 });
 
-test('Public Skate selects its schedule without Groups or session detail badges', () => {
+test('Public Skate enables Groups and duration without hockey program subtitles', () => {
   assert.deepEqual(getActivityConfig(ACTIVITY_PUBLIC_SKATE), {
     id: ACTIVITY_PUBLIC_SKATE,
     scheduleUrl: '/api/schedule?activity=public-skate',
-    groupsEnabled: false,
-    showSessionDetails: false,
+    groupsEnabled: true,
+    showDuration: true,
+    showSessionSubtitles: false,
   });
 });
 

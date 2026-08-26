@@ -762,7 +762,7 @@ END:VCALENDAR`;
   assert.equal(laterMatched.id, initiallyOrphaned.id);
 });
 
-test('RSVP keys remain legacy-compatible for Stick & Puck and qualify Drop-in Hockey', () => {
+test('RSVP keys remain legacy-compatible for Stick & Puck and qualify other activities', () => {
   const start = new Date(2026, 7, 1, 19, 30);
   const base = mkSessionKey({ rinkKey: 'kci', start });
   const explicitStick = mkSessionKey({
@@ -775,9 +775,16 @@ test('RSVP keys remain legacy-compatible for Stick & Puck and qualify Drop-in Ho
     start,
     activity: ACTIVITY_DROP_IN_HOCKEY,
   });
+  const publicSkate = mkSessionKey({
+    rinkKey: 'kci',
+    start,
+    activity: ACTIVITY_PUBLIC_SKATE,
+  });
 
   assert.equal(explicitStick, base);
   assert.equal(dropIn, `${base}|drop-in-hockey`);
+  assert.equal(publicSkate, `${base}|public-skate`);
+  assert.notEqual(publicSkate, dropIn);
 });
 
 test('RSVP keys distinguish a second ice sheet without changing legacy sheet keys', () => {

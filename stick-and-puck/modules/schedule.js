@@ -2,14 +2,14 @@ import { RINKS } from '/lib/rinks.js';
 import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
   mkSessionKey, sessionLocationLabel, GOING_PERSON_SVG
-} from '/stick-and-puck/modules/utils.js';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260818';
+} from '/stick-and-puck/modules/utils.js?v=20260826a';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260826b';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
-import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js';
-import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260818';
+import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js?v=20260826b';
+import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260826b';
 import {
   CALENDAR_SVG, downloadCalendarEvent, hasExactCalendarTimes
 } from '/stick-and-puck/modules/calendar.js?v=20260821';
@@ -118,7 +118,6 @@ export function renderSessions(data) {
   all = all.filter(s => {
     const effectiveRinkKey = s.rink.legendKey ?? s.rinkKey;
     if (selectedRinks.size > 0 && !selectedRinks.has(effectiveRinkKey)) return false;
-    if (activeFilter === "available") return !s.soldOut;
     if (activeFilter === "female") return !!(s.subtitle && /female|non.binary|women/i.test(s.subtitle));
     if (activeFilter === "today") {
       const d = s.start; const t = new Date();
@@ -206,12 +205,12 @@ export function renderSessions(data) {
   content.innerHTML = html;
   if (GROUPS_ENABLED && getGroups().length) void updateGoingIndicators();
 
-  const total = activityConfig.showSessionDetails ? all.filter(s => !s.soldOut).length : all.length;
+  const total = all.length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
   const totalRinks = liveRinks + fallbacks.length;
   const lastUpdated = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const statusHtml =
-    `<strong>${total}</strong> ${activityConfig.showSessionDetails ? 'available' : 'sessions'} &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
+    `<strong>${total}</strong> session${total !== 1 ? 's' : ''} &nbsp;·&nbsp; <strong>${totalRinks}</strong> rinks &nbsp;·&nbsp; ${lastUpdated}`;
   document.getElementById("headerMeta").innerHTML = statusHtml;
   document.getElementById("mobileHeaderMeta").innerHTML = statusHtml;
 }
@@ -219,18 +218,10 @@ export function renderSessions(data) {
 function sessionRow(s) {
   const timeStr = fmtTime(s.start);
   const locationLabel = sessionLocationLabel(s);
-  const dur = activityConfig.showSessionDetails ? fmtDuration(s.start, s.end) : '';
-  const spotsStr = activityConfig.showSessionDetails && s.spots != null
-    ? s.spots <= 3
-      ? `<span class="badge badge-spots low">${s.spots} spot${s.spots !== 1 ? "s" : ""} left</span>`
-      : `<span class="badge badge-spots">${s.spots} spots</span>`
-    : "";
-  const priceStr = activityConfig.showSessionDetails && s.price ? `<span class="badge badge-price">${s.price}</span>` : "";
-  const subtitleBadge = activityConfig.showSessionDetails && s.subtitle ? `<div class="row-subtitle"><span class="badge badge-subtitle">${s.subtitle}</span></div>` : "";
-  const showSoldOut = activityConfig.showSessionDetails && s.soldOut;
-  const soldOutBadge = showSoldOut ? `<span class="badge badge-sold-out">Sold out</span>` : "";
+  const dur = activityConfig.showDuration ? fmtDuration(s.start, s.end) : '';
+  const subtitleBadge = activityConfig.showSessionSubtitles && s.subtitle ? `<div class="row-subtitle"><span class="badge badge-subtitle">${s.subtitle}</span></div>` : "";
 
-  const linkAttrs = s.bookUrl && !showSoldOut
+  const linkAttrs = s.bookUrl
     ? `href="${escapeHtml(safeUrl(s.bookUrl))}" target="_blank" rel="noopener"`
     : '';
 
@@ -246,7 +237,7 @@ function sessionRow(s) {
     ? `<span role="button" tabindex="0" class="calendar-btn" data-session-key="${mkSessionKey(s)}" aria-label="Add ${escapeHtml(activityName)} at ${escapeHtml(s.rink.name)} to calendar" title="Add to calendar">${CALENDAR_SVG}</span>`
     : '';
 
-  return `<a class="session-row${showSoldOut ? " sold-out" : ""}" style="--rink-color:${s.rink.color}" ${linkAttrs}>
+  return `<a class="session-row" style="--rink-color:${s.rink.color}" ${linkAttrs}>
     <div class="row-time">${timeStr}</div>
     <div class="row-info">
       <div class="row-rink">${s.rink.name}</div>
@@ -255,7 +246,6 @@ function sessionRow(s) {
     </div>
     <div class="row-right">
       ${dur ? `<div class="row-duration">${dur}</div>` : ''}
-      <div class="row-badges">${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
     <div class="row-actions">${goingBtn}${calendarBtn}</div>
   </a>`;

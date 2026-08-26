@@ -38,9 +38,9 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ## Groups feature
 
-Users can create a private group so members can see who's attending each hockey
-session. Membership is shared across Stick & Puck and Drop-in Hockey; RSVPs
-remain activity-specific. Public Skate intentionally has no Groups or RSVPs.
+Users can create a private group so members can see who's attending each
+session. Membership is shared across all three schedules; RSVPs remain
+activity-specific.
 
 ### Joining mechanic
 
@@ -56,7 +56,7 @@ where group members have RSVP'd.
 
 ### RSVP storage
 
-RSVP records live in each group's Durable Object, keyed by session. Stick & Puck keeps the legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` format; Drop-in Hockey appends `|drop-in-hockey`, preventing same-rink/same-time sessions from colliding. Entries more than 24 hours past their session start are pruned on writes.
+RSVP records live in each group's Durable Object, keyed by session. Stick & Puck keeps the legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` format; Drop-in Hockey appends `|drop-in-hockey`, and Public Skate appends `|public-skate`, preventing same-rink/same-time sessions from colliding. Entries more than 24 hours past their session start are pruned on writes.
 
 The former “Nudge your group” control was never wired to an action and has been
 removed from the schedule pages. Its unused API endpoint remains for
@@ -73,8 +73,8 @@ Pages uses the `GROUPS` KV binding for browser-session records and schedule cach
 All three static schedule pages use the modules under
 `stick-and-puck/modules/` and the shared `stick-and-puck/schedule.css`. Each
 declares `data-activity`; `activity-config.js` maps it to the appropriate API
-request and page capabilities. Groups and detail badges are disabled for
-Public Skate.
+request and page capabilities. Public Skate enables Groups and duration while
+keeping hockey-specific detail badges disabled.
 
 ```
 Browser (one of the three schedule pages)
@@ -98,14 +98,17 @@ The controls bar exposes these filters (mutually exclusive; the rink legend chip
 | Filter | Shows |
 |--------|-------|
 | All | Every upcoming session |
-| Available | Sessions not marked sold out |
 | Today | Sessions starting today |
 | Tomorrow | Sessions starting tomorrow |
 | This Week | Sessions starting within 7 days |
 | Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` for the current activity |
 
-Public Skate exposes only All, Today, Tomorrow, and This Week. Its rows show
-time and place without availability, price, subtitle, duration, or RSVP cues.
+Public Skate exposes only All, Today, Tomorrow, and This Week; the hockey pages
+also expose Female/Non-Binary. Every schedule shows time, place, duration, RSVP
+attendance, and calendar actions. The site never presents source-provided price,
+reservation, remaining-spots, availability, or sold-out information; users
+follow the session row to the source booking page for those details. Public
+Skate also omits hockey program subtitles.
 
 ## Rink legend and grouping
 

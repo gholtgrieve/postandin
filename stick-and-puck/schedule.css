@@ -461,9 +461,7 @@ main {
   color: inherit;
   transition: background 0.1s;
 }
-.session-row:hover:not(.sold-out) { background: var(--black-3); }
-.session-row.sold-out { cursor: default; }
-.session-row.sold-out > :not(.row-actions) { opacity: 0.4; }
+.session-row:hover { background: var(--black-3); }
 
 .row-time {
   font-family: 'Bebas Neue', sans-serif;
@@ -512,13 +510,6 @@ main {
   color: var(--white-3);
 }
 
-.row-badges {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 .row-actions {
   display: flex;
   align-items: center;
@@ -555,10 +546,6 @@ main {
   padding: 3px 8px;
   border: 1px solid;
 }
-.badge-price { border-color: var(--black-4); color: var(--white-3); }
-.badge-spots { border-color: #2A5C2A; color: #1A5C1A; }
-.badge-spots.low { border-color: #7A3020; color: var(--red-lt); }
-.badge-sold-out { border-color: #7A2020; color: var(--red); }
 .badge-subtitle {
   border-color: var(--black-4);
   color: var(--white-2);

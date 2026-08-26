@@ -241,8 +241,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               while continuing to link to `/stick-and-puck/` by default.
 /public-skate/             → index.html (Public Skate schedule). Uses the same shared
                               schedule shell and normal-link activity switch, but has
-                              Groups/RSVPs and hockey-specific availability/detail
-                              controls disabled. Session rows show time and rink only.
+                              Groups/RSVPs and duration enabled, while hockey program
+                              subtitles remain disabled.
                               All three shells link to the shared stylesheet at
                               `/stick-and-puck/schedule.css` and declare their activity
                               explicitly with `<body data-activity="...">`.
@@ -252,7 +252,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
     activity-config.js      → Pure activity-to-API configuration. Missing activity keeps
                               the legacy Stick & Puck default; unsupported explicit values
                               fail rather than silently showing the wrong schedule. It
-                              also owns page-level Groups and session-detail settings.
+                              also owns page-level Groups, duration, and session-subtitle
+                              settings.
     utils.js                → Pure helpers: escapeHtml, safeUrl, safeColor,
                               fmtTime/fmtDuration/dayKey/fmtDayLabel, mkSessionKey,
                               getGroupSlug, GOING_PERSON_SVG. No app-state deps.
@@ -674,9 +675,10 @@ concurrent request to slip into.
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
 - Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, displayName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. Only schedule and coach cache keys are freely regenerable. Session and legacy group/RSVP keys are user data and must not be deleted without a verified backup and recovery plan.
 - Session key formats: Stick & Puck preserves
-  `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`; Drop-in Hockey uses
-  `{rinkKey}|{YYYY-MM-DD}|{HH:MM}|drop-in-hockey`. The activity suffix prevents
-  cross-activity RSVP collisions without changing legacy Stick & Puck records.
+  `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`; Drop-in Hockey and Public Skate append
+  `|drop-in-hockey` and `|public-skate`, respectively. The activity suffix
+  prevents cross-activity RSVP collisions without changing legacy Stick & Puck
+  records.
 - KV reads are gated by a non-HttpOnly cookie (`sp_has_session=1`) to prevent unnecessary reads from non-group visitors.
 - The $5/month Workers Paid plan provides higher KV operation limits than the free tier.
 
@@ -720,23 +722,24 @@ No user accounts. Identity is established per-device via:
 
 Groups are identified by a name + password pair. No email, no OAuth, no third-party auth.
 Membership, display name, localStorage, and the site-wide session cookies are
-shared across the two hockey activity pages: a user joins a group once and that group is
-available on both hockey schedules. Public Skate does not enable Groups or RSVPs.
+shared across all three activity pages: a user joins a group once and that group is
+available on every schedule.
 RSVP records are isolated by the activity-qualified
-session key. The current group detail sheet is page-scoped, so Stick & Puck shows
-that group's Stick & Puck signups and Drop-in Hockey shows its Drop-in signups;
-there is no combined cross-activity attendance view.
+session key. The current group detail sheet is page-scoped, so each activity
+shows only that activity's signups; there is no combined cross-activity
+attendance view.
 
-For group members, every hockey session row includes a visible, 44px-minimum
+For group members, every session row includes a visible, 44px-minimum
 “RSVP” action beside the calendar action. It is keyboard accessible, identifies
 itself to assistive technology as the place to RSVP and see who is going, and
 stops the row's source-link navigation. The one-time RSVP tip anchors to the
-first RSVP action even when a session has no existing attendees. Public Skate
-does not render this action because Groups are disabled there.
+first RSVP action even when a session has no existing attendees.
 
-Every activity schedule session with source-provided exact start and end times
-has a 44px, keyboard-accessible “Add to calendar” action, including sold-out
-hockey sessions. It stops the row's source-link navigation and immediately
+The schedule UI never displays source-provided price, reservation, remaining-spots,
+availability, or sold-out information. Every session row with a source URL stays
+linked to that booking page, where users can check those details. Every activity
+schedule session with source-provided exact start and end times has a 44px,
+keyboard-accessible “Add to calendar” action. It stops the row's source-link navigation and immediately
 downloads a client-generated `.ics` event; a session without an exact end omits
 the action rather than fabricating a duration or exposing a control that cannot
 work. There is no provider menu, confirmation dialog, calendar permission,
@@ -849,9 +852,10 @@ two allowed workflow states with
 4. User RSVPs to a session → POST to `/api/groups/rsvp` with sessionKey, groupSlug, memberId, displayName, going
 5. `rsvp.js` forwards the call to that group's `GroupDO` Durable Object instance, which validates `memberId` against the group's actual member list before accepting the write (403 if it doesn't match — see Cloudflare KV + Durable Objects above)
 6. Session key identifies the specific rink session. Stick & Puck uses the
-   legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` key; Drop-in Hockey appends
-   `|drop-in-hockey`. Group membership is shared across pages, while the current
-   page only resolves and displays RSVPs for its own loaded activity schedule.
+   legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` key; Drop-in Hockey and Public Skate
+   append `|drop-in-hockey` and `|public-skate`, respectively. Group membership
+   is shared across pages, while the current page only resolves and displays
+   RSVPs for its own loaded activity schedule.
 7. User leaves a group → POST to `/api/groups/leave` → `leave()` on that
    group's `GroupDO` removes the member AND purges their display name from
    every session's RSVP list (see Cloudflare KV + Durable Objects above for
@@ -1061,9 +1065,9 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |
-| Public Skate (/public-skate/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with `data-activity="public-skate"`, fetches `/api/schedule?activity=public-skate`, and limits presentation to time and place. Groups/RSVPs, availability controls, and session detail badges are disabled. Linked from the three-way activity switch and 404 page and listed in `sitemap.xml`. |
+| Public Skate (/public-skate/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with `data-activity="public-skate"`, fetches `/api/schedule?activity=public-skate`, and shows time, place, duration, Groups/RSVPs, and calendar actions while omitting hockey program subtitles. Like every schedule, it does not present price, reservation, availability, remaining-spots, or sold-out information. Linked from the three-way activity switch and 404 page and listed in `sitemap.xml`. |
 | 404 page (/404.html) | Live | Added 2026-07-22. Branded, links to Home, all three schedule activities, and Coaches. Its existence is load-bearing — deleting it silently restores Cloudflare Pages' soft-404 (HTTP 200 homepage for unknown URLs). See Search Visibility & Routing. |
-| Groups feature | Live on Stick & Puck and Drop-in Hockey only | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across the hockey pages, RSVPs are activity-qualified, and each page shows its activity's signups. Public Skate deliberately has no Groups/RSVP UI. |
+| Groups feature | Live on all three schedules | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across all schedules, RSVPs are activity-qualified, and each page shows only its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |

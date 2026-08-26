@@ -55,7 +55,7 @@ export function mkSessionKey(s) {
   const mm = String(d.getMinutes()).padStart(2, '0');
   const sheetSuffix = s.sheetKey ? `|${s.sheetKey}` : '';
   const base = `${s.rinkKey}|${date}|${hh}:${mm}${sheetSuffix}`;
-  return s.activity === 'drop-in-hockey' ? `${base}|drop-in-hockey` : base;
+  return s.activity && s.activity !== 'stick-and-puck' ? `${base}|${s.activity}` : base;
 }
 
 export function sessionLocationLabel(s) {

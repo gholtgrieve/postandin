@@ -1,21 +1,21 @@
 import {
   escapeHtml, safeColor, fmtTime, dayKey, mkSessionKey, getGroupSlug,
   sessionLocationLabel
-} from '/stick-and-puck/modules/utils.js';
+} from '/stick-and-puck/modules/utils.js?v=20260826a';
 import {
   GROUPS_ENABLED, GROUP_COLORS, _lsAvailable, getGroups, setGroups,
   getDisplayName, setDisplayName, syncSession
-} from '/stick-and-puck/modules/storage.js?v=20260818';
+} from '/stick-and-puck/modules/storage.js?v=20260826b';
 import {
   allData, sessionMap, rsvpCache, sheetSession, setSheetSession,
   setActiveGroupSheet, activeFilter
 } from '/stick-and-puck/modules/state.js';
 import {
   updateIndicatorEl, _refreshSheetContent
-} from '/stick-and-puck/modules/rsvp.js';
+} from '/stick-and-puck/modules/rsvp.js?v=20260826b';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=20260826';
+} from '/stick-and-puck/modules/schedule.js?v=20260826b';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
