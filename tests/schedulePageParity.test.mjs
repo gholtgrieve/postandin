@@ -76,19 +76,19 @@ test('each page declares its activity and offers normal-link navigation to all s
 
 test('shared asset cache versions are exact and synchronized across page shells', () => {
   for (const [path, html] of Object.entries(pages)) {
-    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260821',
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260826',
       `${path} has an unexpected schedule.css cache version`);
-    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260821',
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260826',
       `${path} has an unexpected main.js cache version`);
   }
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260821');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260826');
   assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260818');
   assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260818');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260821');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260826');
 
   const scheduleVersions = Object.values(modules)
     .flatMap(source => matches(source, /\/stick-and-puck\/modules\/schedule\.js\?v=([^'"\s]+)/g));
-  assert.deepEqual([...new Set(scheduleVersions)], ['20260821'],
+  assert.deepEqual([...new Set(scheduleVersions)], ['20260826'],
     'every schedule.js importer must use one URL so module side effects run once');
 });
 
@@ -114,6 +114,19 @@ test('all activity pages render session location independently of hockey details
 test('session rows render calendar controls only when exact times are exportable', () => {
   const schedule = modules['stick-and-puck/modules/schedule.js'];
   assert.match(schedule, /const calendarBtn = hasExactCalendarTimes\(s\)\s*\? `[\s\S]*?calendar-btn[\s\S]*?`\s*:\s*'';/);
+});
+
+test('hockey session rows present RSVP as a labeled action beside calendar', () => {
+  const schedule = modules['stick-and-puck/modules/schedule.js'];
+  const rsvp = modules['stick-and-puck/modules/rsvp.js'];
+  assert.match(schedule, /class="going-btn"[\s\S]*?<span class="going-label">RSVP<\/span>/);
+  assert.match(schedule, /<div class="row-actions">\$\{goingBtn\}\$\{calendarBtn\}<\/div>/);
+  assert.match(schedule, /aria-label="RSVP and see who’s going"/);
+  assert.doesNotMatch(schedule, /class="going-btn"[^>]*\btitle=/);
+  assert.match(rsvp, /document\.querySelector\('\.going-btn'\)/);
+  assert.match(rsvp, /Tap RSVP to see who’s going and add yourself/);
+  assert.match(rsvp, /`RSVP and see who’s going, \$\{count\} going`/);
+  assert.match(rsvp, /count \? `<span class="going-count">\$\{count\}<\/span>` : ''/);
 });
 
 test('Public Skate launch metadata, limited controls, and crawl surfaces are complete', () => {

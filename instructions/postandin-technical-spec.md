@@ -727,6 +727,13 @@ session key. The current group detail sheet is page-scoped, so Stick & Puck show
 that group's Stick & Puck signups and Drop-in Hockey shows its Drop-in signups;
 there is no combined cross-activity attendance view.
 
+For group members, every hockey session row includes a visible, 44px-minimum
+“RSVP” action beside the calendar action. It is keyboard accessible, identifies
+itself to assistive technology as the place to RSVP and see who is going, and
+stops the row's source-link navigation. The one-time RSVP tip anchors to the
+first RSVP action even when a session has no existing attendees. Public Skate
+does not render this action because Groups are disabled there.
+
 Every activity schedule session with source-provided exact start and end times
 has a 44px, keyboard-accessible “Add to calendar” action, including sold-out
 hockey sessions. It stops the row's source-link navigation and immediately

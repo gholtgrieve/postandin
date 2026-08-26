@@ -23,13 +23,16 @@ export function activeUniqueGoing(sk) {
 
 export function updateIndicatorEl(btn, sk) {
   const activeNames = activeUniqueGoing(sk);
+  const count = activeNames.length;
+  btn.setAttribute('aria-label', count
+    ? `RSVP and see who’s going, ${count} going`
+    : 'RSVP and see who’s going');
+  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-label">RSVP</span>${count ? `<span class="going-count">${count}</span>` : ''}`;
   if (!activeNames.length) {
-    btn.innerHTML = GOING_PERSON_SVG;
     btn.classList.remove('has-going');
     return;
   }
   btn.classList.add('has-going');
-  btn.innerHTML = `${GOING_PERSON_SVG}<span class="going-count">${activeNames.length}</span>`;
 }
 
 export async function updateGoingIndicators() {
@@ -61,12 +64,12 @@ export async function updateGoingIndicators() {
 
 export function maybeShowIconTip() {
   if (localStorage.getItem('postandin_icon_tip_seen')) return;
-  const firstGoing = document.querySelector('.going-btn.has-going');
+  const firstGoing = document.querySelector('.going-btn');
   if (!firstGoing) return;
 
   const tip = document.createElement('div');
   tip.className = 'icon-tip';
-  tip.textContent = "Tap the person icon to see who’s going and add yourself";
+  tip.textContent = "Tap RSVP to see who’s going and add yourself";
   document.body.appendChild(tip);
 
   const rect = firstGoing.getBoundingClientRect();

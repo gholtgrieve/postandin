@@ -18,7 +18,7 @@ import {
   updateGoingIndicators, maybeShowIconTip, doToggleGoing,
   _refreshSheetContent, backfillRsvpForGroup
 } from '/stick-and-puck/modules/rsvp.js';
-import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260821';
+import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260826';
 import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
@@ -30,8 +30,8 @@ if (GROUPS_ENABLED) {
   migrateStorage();
   ensureGroupColors();
 
-  // Event delegation: going-btn clicks inside session rows
-  document.getElementById('content').addEventListener('click', async e => {
+  // Event delegation: RSVP actions inside session rows
+  const activateRsvp = async e => {
     const btn = e.target.closest('.going-btn');
     if (!btn) return;
     e.preventDefault();
@@ -46,6 +46,12 @@ if (GROUPS_ENABLED) {
       await doToggleGoing(s, sk, true);
     } else {
       openBottomSheet(s, sk);
+    }
+  };
+  document.getElementById('content').addEventListener('click', activateRsvp);
+  document.getElementById('content').addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.going-btn')) {
+      void activateRsvp(e);
     }
   });
 

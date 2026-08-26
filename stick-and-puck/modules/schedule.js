@@ -236,7 +236,7 @@ function sessionRow(s) {
 
   // Going indicator — only rendered when flag is on and user is in at least one group
   const goingBtn = GROUPS_ENABLED && getGroups().length
-    ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="Who's going">${GOING_PERSON_SVG}</span>`
+    ? `<span role="button" tabindex="0" class="going-btn" data-session-key="${mkSessionKey(s)}" aria-label="RSVP and see who’s going">${GOING_PERSON_SVG}<span class="going-label">RSVP</span></span>`
     : '';
 
   const activityName = activityConfig.id === 'drop-in-hockey'
@@ -255,10 +255,9 @@ function sessionRow(s) {
     </div>
     <div class="row-right">
       ${dur ? `<div class="row-duration">${dur}</div>` : ''}
-      ${goingBtn}
       <div class="row-badges">${priceStr}${spotsStr}${soldOutBadge}</div>
     </div>
-    ${calendarBtn}
+    <div class="row-actions">${goingBtn}${calendarBtn}</div>
   </a>`;
 }
 
