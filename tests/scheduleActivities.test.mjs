@@ -442,7 +442,7 @@ test('RecTimes normalizes the reviewed Female Stick & Puck label at either venue
       venueId,
       pacificNow: '2026-01-01T00:00:00',
     });
-    assert.equal(session.subtitle, 'Female');
+    assert.equal(session.subtitle, 'Female only');
     assert.equal(session.eligibility.audience, 'female');
     assert.equal(isFemaleOrNonBinarySession(session), true);
   }

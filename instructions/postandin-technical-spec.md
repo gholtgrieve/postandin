@@ -887,8 +887,9 @@ assuming any rink system is current.
 
 RecTimes Stick & Puck audience classification is shared across Olympic View
 and Lynnwood. Reviewed exact labels are normalized into structured
-`eligibility.audience` data in the shared scraper; unrelated clinics remain
-excluded even when their names contain audience terms. The browser's
+`eligibility.audience` data in the shared scraper and use the harmonized
+display subtitle `Female only`; unrelated clinics remain excluded even when
+their names contain audience terms. The browser's
 Female/Non-Binary filter uses that structured audience first, with a bounded
 subtitle/title/source-label fallback for schedule caches written before the
 structured field was populated. Adding a newly observed source label requires
