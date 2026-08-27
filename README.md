@@ -101,7 +101,7 @@ The controls bar exposes these filters (mutually exclusive; the rink legend chip
 | Today | Sessions starting today |
 | Tomorrow | Sessions starting tomorrow |
 | This Week | Sessions starting within 7 days |
-| Female/Non-Binary | Sessions whose subtitle matches `female`, `non-binary`, or `women` for the current activity |
+| Female/Non-Binary | Hockey sessions with normalized female/women/non-binary audience metadata; reviewed title/source-label matching supports older cached records |
 
 Public Skate exposes only All, Today, Tomorrow, and This Week; the hockey pages
 also expose Female/Non-Binary. Every schedule shows time, place, duration, RSVP

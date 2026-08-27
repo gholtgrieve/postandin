@@ -1,5 +1,5 @@
-import { escapeHtml, safeColor, GOING_PERSON_SVG, getGroupSlug } from '/stick-and-puck/modules/utils.js?v=20260826a';
-import { GROUPS_ENABLED, GROUP_COLORS, getGroups, getDisplayName } from '/stick-and-puck/modules/storage.js?v=20260826b';
+import { escapeHtml, safeColor, GOING_PERSON_SVG, getGroupSlug } from '/stick-and-puck/modules/utils.js?v=20260827';
+import { GROUPS_ENABLED, GROUP_COLORS, getGroups, getDisplayName } from '/stick-and-puck/modules/storage.js?v=20260827';
 import { rsvpCache, sheetSession } from '/stick-and-puck/modules/state.js';
 
 // Deduplicated names across ALL groups for a session (for amGoing checks)

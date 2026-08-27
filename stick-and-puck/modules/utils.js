@@ -48,6 +48,21 @@ export function safeColor(color, fallback, allowedColors) {
   return allowedColors.includes(color) ? color : fallback;
 }
 
+export function isFemaleOrNonBinarySession(session) {
+  const audience = String(session.eligibility?.audience ?? '').toLowerCase();
+  if (['female', 'women', 'non-binary', 'female-non-binary'].includes(audience)) {
+    return true;
+  }
+
+  // Compatibility fallback for schedule caches written before structured
+  // audience metadata was normalized. Only already-classified activity
+  // sessions reach this client-side filter.
+  const legacyLabel = [session.subtitle, session.title, session.sourceLabel]
+    .filter(Boolean)
+    .join(' ');
+  return /\b(?:female|women|woman|non[\s-]?binary)\b/i.test(legacyLabel);
+}
+
 export function mkSessionKey(s) {
   const d = s.start;
   const date = d.toLocaleDateString('en-CA');

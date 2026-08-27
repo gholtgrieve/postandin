@@ -1,4 +1,4 @@
-import { getGroupSlug } from '/stick-and-puck/modules/utils.js?v=20260826a';
+import { getGroupSlug } from '/stick-and-puck/modules/utils.js?v=20260827';
 import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260826b';
 
 export const GROUPS_ENABLED = getActivityConfig(globalThis.document?.body?.dataset.activity).groupsEnabled;

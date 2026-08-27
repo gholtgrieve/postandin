@@ -30,7 +30,11 @@ import {
   parseIcal,
   scrapeKentValley,
 } from '../lib/scrapers/kentvalley.js';
-import { mkSessionKey, sessionLocationLabel } from '../stick-and-puck/modules/utils.js';
+import {
+  isFemaleOrNonBinarySession,
+  mkSessionKey,
+  sessionLocationLabel,
+} from '../stick-and-puck/modules/utils.js';
 
 const ALL_ACTIVITIES = [
   ACTIVITY_STICK_AND_PUCK,
@@ -80,6 +84,7 @@ test('source classifiers use reviewed exact Drop-in Hockey labels', () => {
   assert.equal(classifyRecTimesActivity(1146, 'Public Skate'), ACTIVITY_PUBLIC_SKATE);
   assert.equal(classifyRecTimesActivity(1145, 'Adult Skate'), null);
   assert.equal(classifyRecTimesActivity(1145, 'Friday Night Skates'), null);
+  assert.equal(classifyRecTimesActivity(1145, '3sneaks Womens Clinic'), null);
   assert.equal(classifyEverettActivity('Drop in - Pay At Desk'), ACTIVITY_DROP_IN_HOCKEY);
   assert.equal(classifyEverettActivity('Private Drop in - Pay At Desk'), null);
   assert.equal(classifyEverettActivity('Public Session'), ACTIVITY_PUBLIC_SKATE);
@@ -422,6 +427,44 @@ test('RecTimes defaults to Stick & Puck and supports exact Drop-in Hockey opt-in
     'rectimes|1145|2026-08-02T12:00:00|2026-08-02T13:15:00|OVA Lunch Hockey',
   );
   assert.ok(!all.some(s => s.sourceLabel.includes('Figure Skating')));
+});
+
+test('RecTimes normalizes the reviewed Female Stick & Puck label at either venue', () => {
+  const booking = {
+    id: 8347379,
+    groupName: 'Female Stick & Puck',
+    startTimeLocal: '2026-08-28T18:45:00',
+    endTimeLocal: '2026-08-28T19:50:00',
+  };
+
+  for (const venueId of [1145, 1146]) {
+    const [session] = normalizeRecTimesBookings([booking], {
+      venueId,
+      pacificNow: '2026-01-01T00:00:00',
+    });
+    assert.equal(session.subtitle, 'Female');
+    assert.equal(session.eligibility.audience, 'female');
+    assert.equal(isFemaleOrNonBinarySession(session), true);
+  }
+});
+
+test('Female/Non-Binary filtering supports structured and legacy cached sessions', () => {
+  assert.equal(isFemaleOrNonBinarySession({
+    eligibility: { audience: 'women' },
+    title: 'Drop-In Hockey',
+  }), true);
+  assert.equal(isFemaleOrNonBinarySession({
+    eligibility: { audience: null },
+    title: 'Female Stick & Puck',
+    sourceLabel: 'Female Stick & Puck',
+    subtitle: null,
+  }), true);
+  assert.equal(isFemaleOrNonBinarySession({
+    eligibility: { audience: null },
+    title: 'Stick & Puck',
+    sourceLabel: 'Stick & Puck',
+    subtitle: null,
+  }), false);
 });
 
 test('RecTimes includes only Lynnwood general Public Skate sessions', () => {

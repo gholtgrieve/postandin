@@ -1,14 +1,15 @@
 import { RINKS } from '/lib/rinks.js';
 import {
   escapeHtml, safeUrl, fmtTime, fmtDuration, dayKey, fmtDayLabel,
-  mkSessionKey, sessionLocationLabel, GOING_PERSON_SVG
-} from '/stick-and-puck/modules/utils.js?v=20260826a';
-import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260826b';
+  mkSessionKey, sessionLocationLabel, isFemaleOrNonBinarySession,
+  GOING_PERSON_SVG
+} from '/stick-and-puck/modules/utils.js?v=20260827';
+import { GROUPS_ENABLED, getGroups } from '/stick-and-puck/modules/storage.js?v=20260827';
 import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
-import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js?v=20260826b';
+import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js?v=20260827';
 import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260826b';
 import {
   CALENDAR_SVG, downloadCalendarEvent, hasExactCalendarTimes
@@ -118,7 +119,7 @@ export function renderSessions(data) {
   all = all.filter(s => {
     const effectiveRinkKey = s.rink.legendKey ?? s.rinkKey;
     if (selectedRinks.size > 0 && !selectedRinks.has(effectiveRinkKey)) return false;
-    if (activeFilter === "female") return !!(s.subtitle && /female|non.binary|women/i.test(s.subtitle));
+    if (activeFilter === "female") return isFemaleOrNonBinarySession(s);
     if (activeFilter === "today") {
       const d = s.start; const t = new Date();
       return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();

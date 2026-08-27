@@ -885,6 +885,18 @@ FareHarbor is not a live session-data source. The FareHarbor URLs retained in
 `lib/scrapers/rectimes.js` are booking links only. Check `lib/rinks.js` before
 assuming any rink system is current.
 
+RecTimes Stick & Puck audience classification is shared across Olympic View
+and Lynnwood. Reviewed exact labels are normalized into structured
+`eligibility.audience` data in the shared scraper; unrelated clinics remain
+excluded even when their names contain audience terms. The browser's
+Female/Non-Binary filter uses that structured audience first, with a bounded
+subtitle/title/source-label fallback for schedule caches written before the
+structured field was populated. Adding a newly observed source label requires
+review and an explicit mapping rather than broad automatic classification.
+Because `lib/scrapers/rectimes.js` is imported by the scheduler Worker, changes
+to this normalization require both a Pages deployment and a separate scheduler
+Worker deployment.
+
 The audit script (`scripts/audit-rinks.js`, run locally with
 `node scripts/audit-rinks.js`) independently checks FareHarbor item lists,
 DaySmart league names, Everett calendar titles, and Kent Valley iCal summaries
