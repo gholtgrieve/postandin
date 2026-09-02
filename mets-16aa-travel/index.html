@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Seattle Jr. Mets 16AA Travel Information — Post &amp; In</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper: #E8E3D8;
+  --panel: #EFEBE2;
+  --card: #DED9CD;
+  --rule: #B8B2A4;
+  --ink: #141210;
+  --ink2: #3D3A34;
+  --ink3: #6E6A61;
+  --mustard: #9A7B00;
+  --mustard2: #7C6300;
+  --urgent: #A5371A;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  min-width: 320px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+a { color: inherit; }
+
+.site-header {
+  background: var(--ink);
+  border-bottom: 2px solid var(--mustard);
+}
+
+.header-inner {
+  width: min(100%, 980px);
+  min-height: 52px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.brand a {
+  color: var(--paper);
+  font-size: 23px;
+  text-decoration: none;
+}
+
+.brand-separator { color: var(--mustard); }
+
+.brand-section {
+  overflow: hidden;
+  color: var(--rule);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero {
+  border-bottom: 2px solid var(--mustard);
+}
+
+.hero-inner,
+.content {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.hero-inner { padding-top: 30px; padding-bottom: 28px; }
+
+.eyebrow,
+.section-label,
+.status,
+.fact-label,
+.day-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.eyebrow { margin-bottom: 8px; color: var(--mustard2); }
+
+h1,
+h2,
+h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.98;
+}
+
+h1 { max-width: 720px; font-size: clamp(50px, 15vw, 92px); }
+h1 .accent { color: var(--mustard); }
+
+.season {
+  margin-top: 15px;
+  color: var(--ink2);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.updated { margin-top: 5px; color: var(--ink3); font-size: 12px; }
+
+.update-note {
+  max-width: 680px;
+  margin-top: 20px;
+  padding-left: 13px;
+  border-left: 3px solid var(--mustard);
+  color: var(--ink2);
+}
+
+.content { padding-top: 26px; padding-bottom: 56px; }
+
+.section-label { margin-bottom: 10px; color: var(--ink3); }
+
+.glance-list {
+  display: grid;
+  gap: 2px;
+  background: var(--rule);
+  list-style: none;
+}
+
+.glance-link {
+  min-height: 64px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: center;
+  background: var(--panel);
+  border-left: 4px solid transparent;
+  text-decoration: none;
+}
+
+.glance-link:hover,
+.glance-link:focus-visible { border-left-color: var(--mustard); }
+
+.glance-place {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.glance-dates { color: var(--ink3); font-size: 12px; }
+
+.status {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  padding: 5px 7px;
+  border: 1px solid var(--rule);
+  color: var(--ink3);
+  white-space: nowrap;
+}
+
+.status.action { border-color: var(--urgent); color: var(--urgent); }
+
+.trips { margin-top: 40px; display: grid; gap: 30px; }
+
+.trip {
+  scroll-margin-top: 12px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.trip.priority { border-top: 5px solid var(--urgent); }
+.trip:not(.priority) { border-top: 5px solid var(--mustard); }
+
+.trip-heading { padding: 20px 16px 18px; border-bottom: 1px solid var(--rule); }
+.trip-heading h2 { font-size: clamp(40px, 12vw, 64px); }
+.trip-dates { margin-top: 5px; color: var(--mustard2); font-weight: 700; }
+
+.travel-callout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.travel-fact { padding: 18px 16px; }
+.travel-fact + .travel-fact { border-left: 1px solid var(--ink2); }
+.fact-label { display: block; margin-bottom: 4px; color: var(--rule); }
+.fact-value {
+  display: block;
+  color: var(--paper);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.trip-body { padding: 20px 16px 24px; }
+
+.trip-block + .trip-block {
+  margin-top: 25px;
+  padding-top: 23px;
+  border-top: 1px solid var(--rule);
+}
+
+.trip-block h3 { margin-bottom: 12px; font-size: 27px; }
+.lodging-name { font-weight: 700; color: var(--ink); }
+.muted { color: var(--ink3); }
+.rate { margin-top: 12px; font-size: 18px; font-weight: 700; }
+
+.deadline {
+  margin-top: 13px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--urgent);
+  background: var(--card);
+  color: var(--urgent);
+  font-weight: 700;
+}
+
+.tbd {
+  padding: 14px;
+  border: 1px dashed var(--rule);
+  background: var(--paper);
+  color: var(--ink2);
+}
+
+.tbd strong { display: block; color: var(--ink2); }
+
+.actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-link {
+  min-height: 44px;
+  padding: 11px 13px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--mustard);
+  color: var(--mustard2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.action-link::after { margin-left: 7px; content: '\2197'; }
+.action-link:hover,
+.action-link:focus-visible { background: var(--mustard); color: var(--ink); }
+
+.games { display: grid; gap: 18px; }
+.game-day { display: grid; gap: 8px; }
+.day-label { color: var(--mustard2); }
+
+.game {
+  padding: 11px 0 11px 13px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 4px 10px;
+  border-left: 3px solid var(--rule);
+}
+
+.game time { grid-row: 1 / span 2; font-weight: 700; }
+.matchup { color: var(--ink2); }
+.venue { color: var(--ink3); font-size: 12px; }
+
+.trip-footer {
+  padding: 0 16px;
+  border-top: 1px solid var(--rule);
+  text-align: right;
+}
+
+.back-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--mustard2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.back-link:hover,
+.back-link:focus-visible { text-decoration: underline; }
+
+body > footer {
+  padding: 18px 16px;
+  background: var(--ink);
+  border-top: 2px solid var(--mustard);
+  color: var(--rule);
+  font-size: 11px;
+  text-align: center;
+}
+
+:focus-visible { outline: 3px solid var(--mustard); outline-offset: 3px; }
+
+@media (min-width: 640px) {
+  .hero-inner,
+  .content { padding-right: 28px; padding-left: 28px; }
+  .glance-list { grid-template-columns: 1fr 1fr; }
+  .glance-list li:first-child { grid-column: 1 / -1; }
+  .trip-heading,
+  .trip-body { padding-right: 24px; padding-left: 24px; }
+  .travel-fact { padding-right: 24px; padding-left: 24px; }
+  .game { grid-template-columns: 88px minmax(0, 1fr) 190px; align-items: baseline; }
+  .game time { grid-row: auto; }
+  .venue { font-size: 13px; text-align: right; }
+}
+
+@media (min-width: 860px) {
+  .glance-list { grid-template-columns: repeat(3, 1fr); }
+  .glance-list li:first-child { grid-column: auto; }
+  .trip-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr); gap: 36px; }
+  .trip-block + .trip-block { margin-top: 0; padding-top: 0; border-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body id="top">
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <a href="/">Post &amp; In</a>
+      <span class="brand-separator">/</span>
+      <span class="brand-section">Mets 16AA Travel</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="page-title">
+    <div class="hero-inner">
+      <p class="eyebrow">Seattle Jr. Mets 16AA</p>
+      <h1 id="page-title">Travel<br><span class="accent">Information</span></h1>
+      <p class="season">2026–27 Season</p>
+      <p class="updated">Last updated: September 2, 2026</p>
+      <p class="update-note">Travel information will be updated as lodging and schedules are confirmed. All game times are local to the venue.</p>
+    </div>
+  </section>
+
+  <div class="content">
+    <nav id="trips" aria-label="Travel weekends">
+      <p class="section-label">At a glance</p>
+      <ul class="glance-list">
+        <li>
+          <a class="glance-link" href="#tacoma">
+            <span class="glance-place">Tacoma</span>
+            <span class="glance-dates">Sept. 25–27 · Arrive Friday</span>
+            <span class="status action">Book by Sept. 10</span>
+          </a>
+        </li>
+        <li>
+          <a class="glance-link" href="#spokane">
+            <span class="glance-place">Spokane</span>
+            <span class="glance-dates">Oct. 30–Nov. 1 · Arrive Friday</span>
+            <span class="status">Link coming</span>
+          </a>
+        </li>
+        <li>
+          <a class="glance-link" href="#tri-cities">
+            <span class="glance-place">Tri-Cities</span>
+            <span class="glance-dates">Nov. 12–15 · Arrive Thursday</span>
+            <span class="status">Hotel TBD</span>
+          </a>
+        </li>
+        <li>
+          <a class="glance-link" href="#new-mexico">
+            <span class="glance-place">New Mexico</span>
+            <span class="glance-dates">Dec. 3–6 · Arrive Thursday</span>
+            <span class="status">Hotel TBD</span>
+          </a>
+        </li>
+        <li>
+          <a class="glance-link" href="#medford">
+            <span class="glance-place">Medford, Oregon</span>
+            <span class="glance-dates">Additional travel weekend</span>
+            <span class="status">Dates TBD</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="trips">
+      <article class="trip priority" id="tacoma">
+        <header class="trip-heading">
+          <p class="eyebrow">Next trip</p>
+          <h2>Tacoma</h2>
+          <p class="trip-dates">September 25–27, 2026</p>
+        </header>
+        <div class="travel-callout">
+          <div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Friday</span></div>
+          <div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div>
+        </div>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="tacoma-hotel">
+            <h3 id="tacoma-hotel">Team lodging</h3>
+            <p class="lodging-name">Hampton Inn &amp; Suites DuPont</p>
+            <p class="muted">800 Station Drive, DuPont, WA 98327</p>
+            <p class="rate">$142 per night</p>
+            <p class="muted">Standard double queen room, before tax</p>
+            <p class="deadline">Book by September 10 for the group rate.</p>
+            <div class="tbd" style="margin-top: 14px"><strong>Booking link coming soon</strong>Booking details will be added here as soon as they are available.</div>
+            <div class="actions">
+              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Hampton+Inn+%26+Suites+DuPont+800+Station+Dr+DuPont+WA+98327" target="_blank" rel="noopener">Hampton Inn directions</a>
+            </div>
+            <p class="muted" style="margin-top: 13px">Staying at the team hotel is not required for this Super Weekend.</p>
+          </section>
+          <section class="trip-block" aria-labelledby="tacoma-games">
+            <h3 id="tacoma-games">Games</h3>
+            <div class="games">
+              <div class="game-day">
+                <p class="day-label">Friday, September 25</p>
+                <div class="game"><time datetime="2026-09-25T13:30">1:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Team Wyoming</span><span class="venue">Tacoma Twin Rinks</span></div>
+              </div>
+              <div class="game-day">
+                <p class="day-label">Saturday, September 26</p>
+                <div class="game"><time datetime="2026-09-26T08:30">8:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">Sprinker Rec Center</span></div>
+                <div class="game"><time datetime="2026-09-26T14:45">2:45 PM</time><span class="matchup">Montana Wolves 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Sprinker Rec Center</span></div>
+              </div>
+              <div class="game-day">
+                <p class="day-label">Sunday, September 27</p>
+                <div class="game"><time datetime="2026-09-27T07:00">7:00 AM</time><span class="matchup">Utah Jr. Grizzlies @ Seattle Jr. Mets 16AA</span><span class="venue">Tacoma Twin Rinks</span></div>
+              </div>
+            </div>
+            <div class="actions">
+              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Tacoma+Twin+Rinks+Tacoma+WA" target="_blank" rel="noopener">Tacoma Twin Rinks directions</a>
+              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Sprinker+Recreation+Center+Tacoma+WA" target="_blank" rel="noopener">Sprinker Rec Center directions</a>
+            </div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
+      <article class="trip" id="spokane">
+        <header class="trip-heading"><h2>Spokane</h2><p class="trip-dates">October 30–November 1, 2026</p></header>
+        <div class="travel-callout">
+          <div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Friday</span></div>
+          <div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div>
+        </div>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="spokane-hotel">
+            <h3 id="spokane-hotel">Team lodging</h3>
+            <p class="lodging-name">Holiday Inn Express &amp; Suites Cheney</p>
+            <p class="muted">111 Betz Road, Cheney, WA 99004</p>
+            <div class="tbd" style="margin-top: 14px"><strong>Booking link coming soon</strong>Rate and booking deadline are still to be confirmed.</div>
+            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Holiday+Inn+Express+%26+Suites+Cheney+111+Betz+Rd+Cheney+WA+99004" target="_blank" rel="noopener">Holiday Inn directions</a></div>
+          </section>
+          <section class="trip-block" aria-labelledby="spokane-games">
+            <h3 id="spokane-games">Games</h3>
+            <p class="muted" style="margin-bottom: 15px">All games at Eastern Washington University Rink in Cheney.</p>
+            <div class="games">
+              <div class="game-day"><p class="day-label">Friday, October 30</p><div class="game"><time datetime="2026-10-30T18:45">6:45 PM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, October 31</p><div class="game"><time datetime="2026-10-31T08:15">8:15 AM</time><span class="matchup">Boise Jr. Steelheads @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div><div class="game"><time datetime="2026-10-31T17:30">5:30 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, November 1</p><div class="game"><time datetime="2026-11-01T09:45">9:45 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">EWU Rink</span></div></div>
+            </div>
+            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Eastern+Washington+University+Ice+Rink+Cheney+WA" target="_blank" rel="noopener">EWU Rink directions</a></div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
+      <article class="trip" id="tri-cities">
+        <header class="trip-heading"><h2>Tri-Cities</h2><p class="trip-dates">November 12–15, 2026</p></header>
+        <div class="travel-callout"><div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Thursday</span></div><div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div></div>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="tricities-hotel"><h3 id="tricities-hotel">Team lodging</h3><div class="tbd"><strong>Hotel TBD</strong>Hotel, rate, deadline, and booking link will be added when confirmed.</div></section>
+          <section class="trip-block" aria-labelledby="tricities-games">
+            <h3 id="tricities-games">Games</h3><p class="muted" style="margin-bottom: 15px">All games at Toyota Arena Rink B in Kennewick.</p>
+            <div class="games">
+              <div class="game-day"><p class="day-label">Friday, November 13</p><div class="game"><time datetime="2026-11-13T09:45">9:45 AM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div><div class="game"><time datetime="2026-11-13T16:45">4:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, November 14</p><div class="game"><time datetime="2026-11-14T10:30">10:30 AM</time><span class="matchup">Boise Jr. Steelheads @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, November 15</p><div class="game"><time datetime="2026-11-15T14:00">2:00 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+            </div>
+            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Arena+Kennewick+WA" target="_blank" rel="noopener">Toyota Arena directions</a></div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
+      <article class="trip" id="new-mexico">
+        <header class="trip-heading"><h2>New Mexico</h2><p class="trip-dates">December 3–6, 2026</p></header>
+        <div class="travel-callout"><div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Thursday</span></div><div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div></div>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="newmexico-hotel"><h3 id="newmexico-hotel">Team lodging</h3><div class="tbd"><strong>Hotel TBD</strong>Hotel, rate, deadline, and booking link will be added when confirmed.</div></section>
+          <section class="trip-block" aria-labelledby="newmexico-games">
+            <h3 id="newmexico-games">Games</h3><p class="muted" style="margin-bottom: 15px">All games at Outpost Ice Arenas in Albuquerque.</p>
+            <div class="games">
+              <div class="game-day"><p class="day-label">Friday, December 4</p><div class="game"><time datetime="2026-12-04T13:15">1:15 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Utah Jr. Grizzlies</span><span class="venue">Outpost Ice Arenas</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, December 5</p><div class="game"><time datetime="2026-12-05T09:15">9:15 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ New Mexico Ice Wolves</span><span class="venue">Outpost Ice Arenas</span></div><div class="game"><time datetime="2026-12-05T14:15">2:15 PM</time><span class="matchup">Monument Hockey Club @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, December 6</p><div class="game"><time datetime="2026-12-06T11:30">11:30 AM</time><span class="matchup">Monument Hockey Club @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
+            </div>
+            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Outpost+Ice+Arenas+Albuquerque+NM" target="_blank" rel="noopener">Outpost Ice Arenas directions</a></div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
+      <article class="trip" id="medford">
+        <header class="trip-heading"><h2>Medford, Oregon</h2><p class="trip-dates">Dates TBD</p></header>
+        <div class="trip-body" style="display: block">
+          <section class="trip-block" aria-labelledby="medford-details"><h3 id="medford-details">Details coming</h3><div class="tbd"><strong>Additional travel weekend</strong>Dates, travel timing, lodging, and game information will be added when confirmed.</div></section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer>Seattle Jr. Mets 16AA travel information · Hosted by Post &amp; In</footer>
+
+</body>
+</html>

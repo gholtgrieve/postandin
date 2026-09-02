@@ -309,6 +309,11 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   defined but have zero call sites anywhere in the codebase. Safe to remove
   whenever convenient; not urgent.
 /coaches/                  → index.html (public, indexable coach directory)
+/mets-16aa-travel/         → Direct-link static travel logistics page for the
+                              Seattle Jr. Mets 16AA 2026–27 season. Mobile-first,
+                              unlinked, omitted from sitemap.xml, and protected
+                              from indexing by both page metadata and _headers.
+                              Contains no player-specific or private family data.
                              (/about/ was deleted 2026-07-22 — see Search Visibility &
                               Routing below. It is now a normal missing URL served by
                               /404.html, not a redirect.)
@@ -406,7 +411,8 @@ URL by design.
 
 Pages currently carrying `noindex, nofollow`: Draft coach profiles and the
 "Coach Not Found" 404 response in
-`functions/coaches/[slug].js`. Live coach profiles are indexable. When adding
+`functions/coaches/[slug].js`, plus the direct-link static team logistics page
+at `/mets-16aa-travel/`. Live coach profiles are indexable. When adding
 any new unfinished section, add the meta tag to *every* HTML response it can
 emit — server-rendered error pages are easy to miss.
 
@@ -450,6 +456,11 @@ copy: cache invalidation on deploy covers assets that *changed*, and a deleted
 path is no longer in the asset manifest. Static HTML is cached with
 `s-maxage=604800` (7 days), so the deleted page keeps being served at its exact
 URL until that expires.
+
+`/mets-16aa-travel/` is an intentional exception: its `_headers` rule sets
+`Cache-Control: no-cache` so frequently changing logistics revalidate. Treat
+that as intended configuration until deployment, then confirm the actual
+response header rather than assuming the repository rule was applied.
 
 This bit `/about/` on 2026-07-22: the deploy was correct (`/about/?cb=1`
 returned a proper 404 immediately) but the bare `/about/` URL kept serving the
@@ -1083,6 +1094,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | Groups feature | Live on all three schedules | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across all schedules, RSVPs are activity-qualified, and each page shows only its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
+| Mets 16AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Jr. Mets 16AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | **Deleted 2026-07-30** | The unfinished guide was removed entirely. `/pathway/` is now a normal missing URL served by `/404.html`, with no redirect and no sitemap or robots entry. It can be recovered from Git history if the project is revisited. |
 

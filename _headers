@@ -12,3 +12,9 @@
 # directive. See Search Visibility & Routing in the technical spec.
 /instructions/*
   X-Robots-Tag: noindex, nofollow
+
+# Direct-link team travel page. Keep it crawlable so robots can read noindex,
+# but require revalidation because logistics change frequently.
+/mets-16aa-travel/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
