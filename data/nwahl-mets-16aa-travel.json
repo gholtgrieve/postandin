@@ -1,0 +1,22 @@
+[
+  { "id": "156", "date": "2026-09-25", "time": "13:30:00", "home": "Seattle Jr. Mets 16AA", "away": "Team Wyoming", "rink": "Tacoma Twin Rinks", "city": "Tacoma" },
+  { "id": "381", "date": "2026-09-26", "time": "08:30:00", "home": "Seattle Jr. Mets 16AA", "away": "Boise JR Steelheads", "rink": "Sprinker Recreation Center", "city": "Tacoma" },
+  { "id": "183", "date": "2026-09-26", "time": "14:45:00", "home": "Montana Wolves 16U", "away": "Seattle Jr. Mets 16AA", "rink": "Sprinker Recreation Center", "city": "Tacoma" },
+  { "id": "382", "date": "2026-09-27", "time": "07:00:00", "home": "Utah Jr. Grizzlies", "away": "Seattle Jr. Mets 16AA", "rink": "Tacoma Twin Rinks", "city": "Tacoma" },
+  { "id": "1205", "date": "2026-10-30", "time": "18:45:00", "home": "Spokane Jr Chiefs", "away": "Seattle Jr. Mets 16AA", "rink": "Eastern Washington University", "city": "Cheney" },
+  { "id": "1206", "date": "2026-10-31", "time": "08:15:00", "home": "Boise JR Steelheads", "away": "Seattle Jr. Mets 16AA", "rink": "Eastern Washington University", "city": "Cheney" },
+  { "id": "1209", "date": "2026-10-31", "time": "17:30:00", "home": "Tri-Cities Jr. Americans 16U", "away": "Seattle Jr. Mets 16AA", "rink": "Eastern Washington University", "city": "Cheney" },
+  { "id": "1212", "date": "2026-11-01", "time": "09:45:00", "home": "Seattle Jr. Mets 16AA", "away": "Spokane Jr Chiefs", "rink": "Eastern Washington University", "city": "Cheney" },
+  { "id": "384", "date": "2026-11-13", "time": "09:45:00", "home": "Spokane Jr Chiefs", "away": "Seattle Jr. Mets 16AA", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
+  { "id": "342", "date": "2026-11-13", "time": "16:45:00", "home": "Seattle Jr. Mets 16AA", "away": "Tri-Cities Jr. Americans 16U", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
+  { "id": "769", "date": "2026-11-14", "time": "10:30:00", "home": "Boise JR Steelheads", "away": "Seattle Jr. Mets 16AA", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
+  { "id": "231", "date": "2026-11-15", "time": "14:00:00", "home": "Tri-Cities Jr. Americans 16U", "away": "Seattle Jr. Mets 16AA", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
+  { "id": "3755", "date": "2026-12-04", "time": "13:15:00", "home": "Seattle Jr. Mets 16AA", "away": "Utah Jr. Grizzlies", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
+  { "id": "3759", "date": "2026-12-05", "time": "09:15:00", "home": "Seattle Jr. Mets 16AA", "away": "New Mexico Ice Wolves", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
+  { "id": "3761", "date": "2026-12-05", "time": "14:15:00", "home": "Monument Hockey Club", "away": "Seattle Jr. Mets 16AA", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
+  { "id": "3765", "date": "2026-12-06", "time": "11:30:00", "home": "Monument Hockey Club", "away": "Seattle Jr. Mets 16AA", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
+  { "id": "377", "date": "2027-01-09", "time": null, "home": "Portland Jr Winterhawks", "away": "Seattle Jr. Mets 16AA", "rink": null, "city": null },
+  { "id": "378", "date": "2027-01-09", "time": null, "home": "Portland Jr Winterhawks", "away": "Seattle Jr. Mets 16AA", "rink": null, "city": null },
+  { "id": "314", "date": "2027-01-30", "time": null, "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" },
+  { "id": "315", "date": "2027-01-30", "time": null, "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" }
+]
