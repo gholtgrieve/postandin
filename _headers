@@ -13,6 +13,11 @@
 /instructions/*
   X-Robots-Tag: noindex, nofollow
 
+# Machine-readable team schedule baselines support the private travel-page
+# monitor and should not appear in search results.
+/data/*
+  X-Robots-Tag: noindex, nofollow
+
 # Direct-link team travel page. Keep it crawlable so robots can read noindex,
 # but require revalidation because logistics change frequently.
 /mets-16aa-travel/*

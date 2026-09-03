@@ -285,7 +285,9 @@ h1 .accent { color: var(--mustard); }
   border-left: 3px solid var(--rule);
 }
 
-.game time { grid-row: 1 / span 2; font-weight: 700; }
+.game time,
+.game-time-tbd { grid-row: 1 / span 2; font-weight: 700; }
+.game-time-tbd { color: var(--ink3); }
 .matchup { color: var(--ink2); }
 .venue { color: var(--ink3); font-size: 12px; }
 
@@ -330,7 +332,8 @@ body > footer {
   .trip-body { padding-right: 24px; padding-left: 24px; }
   .travel-fact { padding-right: 24px; padding-left: 24px; }
   .game { grid-template-columns: 88px minmax(0, 1fr) 190px; align-items: baseline; }
-  .game time { grid-row: auto; }
+  .game time,
+  .game-time-tbd { grid-row: auto; }
   .venue { font-size: 13px; text-align: right; }
 }
 
@@ -400,9 +403,23 @@ body > footer {
           </a>
         </li>
         <li>
+          <a class="glance-link" href="#portland">
+            <span class="glance-place">Portland, Oregon</span>
+            <span class="glance-dates">Jan. 9 · Two games</span>
+            <span class="status">Travel plan TBD</span>
+          </a>
+        </li>
+        <li>
           <a class="glance-link" href="#congressional-cup">
             <span class="glance-place">Washington, DC</span>
             <span class="glance-dates">Jan. 15–18 · Arrive Friday</span>
+            <span class="status">Details TBD</span>
+          </a>
+        </li>
+        <li>
+          <a class="glance-link" href="#medford">
+            <span class="glance-place">Medford, Oregon</span>
+            <span class="glance-dates">Jan. 30 · Two games</span>
             <span class="status">Details TBD</span>
           </a>
         </li>
@@ -411,13 +428,6 @@ body > footer {
             <span class="glance-place">Minneapolis, Minnesota</span>
             <span class="glance-dates">Feb. 12–15 · Arrive Friday</span>
             <span class="status">Details TBD</span>
-          </a>
-        </li>
-        <li>
-          <a class="glance-link" href="#medford">
-            <span class="glance-place">Medford, Oregon</span>
-            <span class="glance-dates">Additional travel weekend</span>
-            <span class="status">Dates TBD</span>
           </a>
         </li>
       </ul>
@@ -453,16 +463,16 @@ body > footer {
             <div class="games">
               <div class="game-day">
                 <p class="day-label">Friday, September 25</p>
-                <div class="game"><time datetime="2026-09-25T13:30">1:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Team Wyoming</span><span class="venue">Tacoma Twin Rinks</span></div>
+                <div class="game"><time datetime="2026-09-25T13:30">1:30 PM</time><span class="matchup">Team Wyoming @ Seattle Jr. Mets 16AA</span><span class="venue">Tacoma Twin Rinks</span></div>
               </div>
               <div class="game-day">
                 <p class="day-label">Saturday, September 26</p>
-                <div class="game"><time datetime="2026-09-26T08:30">8:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">Sprinker Rec Center</span></div>
-                <div class="game"><time datetime="2026-09-26T14:45">2:45 PM</time><span class="matchup">Montana Wolves 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Sprinker Rec Center</span></div>
+                <div class="game"><time datetime="2026-09-26T08:30">8:30 AM</time><span class="matchup">Boise Jr. Steelheads @ Seattle Jr. Mets 16AA</span><span class="venue">Sprinker Rec Center</span></div>
+                <div class="game"><time datetime="2026-09-26T14:45">2:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Montana Wolves 16U</span><span class="venue">Sprinker Rec Center</span></div>
               </div>
               <div class="game-day">
                 <p class="day-label">Sunday, September 27</p>
-                <div class="game"><time datetime="2026-09-27T07:00">7:00 AM</time><span class="matchup">Utah Jr. Grizzlies @ Seattle Jr. Mets 16AA</span><span class="venue">Tacoma Twin Rinks</span></div>
+                <div class="game"><time datetime="2026-09-27T07:00">7:00 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Utah Jr. Grizzlies</span><span class="venue">Tacoma Twin Rinks</span></div>
               </div>
             </div>
             <div class="actions">
@@ -492,9 +502,9 @@ body > footer {
             <h3 id="spokane-games">Games</h3>
             <p class="muted" style="margin-bottom: 15px">All games at Eastern Washington University Rink in Cheney.</p>
             <div class="games">
-              <div class="game-day"><p class="day-label">Friday, October 30</p><div class="game"><time datetime="2026-10-30T18:45">6:45 PM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
-              <div class="game-day"><p class="day-label">Saturday, October 31</p><div class="game"><time datetime="2026-10-31T08:15">8:15 AM</time><span class="matchup">Boise Jr. Steelheads @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div><div class="game"><time datetime="2026-10-31T17:30">5:30 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
-              <div class="game-day"><p class="day-label">Sunday, November 1</p><div class="game"><time datetime="2026-11-01T09:45">9:45 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">EWU Rink</span></div></div>
+              <div class="game-day"><p class="day-label">Friday, October 30</p><div class="game"><time datetime="2026-10-30T18:45">6:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">EWU Rink</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, October 31</p><div class="game"><time datetime="2026-10-31T08:15">8:15 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">EWU Rink</span></div><div class="game"><time datetime="2026-10-31T17:30">5:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">EWU Rink</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, November 1</p><div class="game"><time datetime="2026-11-01T09:45">9:45 AM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
             </div>
             <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Eastern+Washington+University+Ice+Rink+Cheney+WA" target="_blank" rel="noopener">EWU Rink directions</a></div>
           </section>
@@ -510,9 +520,9 @@ body > footer {
           <section class="trip-block" aria-labelledby="tricities-games">
             <h3 id="tricities-games">Games</h3><p class="muted" style="margin-bottom: 15px">All games at Toyota Arena Rink B in Kennewick.</p>
             <div class="games">
-              <div class="game-day"><p class="day-label">Friday, November 13</p><div class="game"><time datetime="2026-11-13T09:45">9:45 AM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div><div class="game"><time datetime="2026-11-13T16:45">4:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">Toyota Arena · Rink B</span></div></div>
-              <div class="game-day"><p class="day-label">Saturday, November 14</p><div class="game"><time datetime="2026-11-14T10:30">10:30 AM</time><span class="matchup">Boise Jr. Steelheads @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
-              <div class="game-day"><p class="day-label">Sunday, November 15</p><div class="game"><time datetime="2026-11-15T14:00">2:00 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              <div class="game-day"><p class="day-label">Friday, November 13</p><div class="game"><time datetime="2026-11-13T09:45">9:45 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">Toyota Arena · Rink B</span></div><div class="game"><time datetime="2026-11-13T16:45">4:45 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, November 14</p><div class="game"><time datetime="2026-11-14T10:30">10:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, November 15</p><div class="game"><time datetime="2026-11-15T14:00">2:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">Toyota Arena · Rink B</span></div></div>
             </div>
             <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Arena+Kennewick+WA" target="_blank" rel="noopener">Toyota Arena directions</a></div>
           </section>
@@ -528,11 +538,28 @@ body > footer {
           <section class="trip-block" aria-labelledby="newmexico-games">
             <h3 id="newmexico-games">Games</h3><p class="muted" style="margin-bottom: 15px">All games at Outpost Ice Arenas in Albuquerque.</p>
             <div class="games">
-              <div class="game-day"><p class="day-label">Friday, December 4</p><div class="game"><time datetime="2026-12-04T13:15">1:15 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Utah Jr. Grizzlies</span><span class="venue">Outpost Ice Arenas</span></div></div>
-              <div class="game-day"><p class="day-label">Saturday, December 5</p><div class="game"><time datetime="2026-12-05T09:15">9:15 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ New Mexico Ice Wolves</span><span class="venue">Outpost Ice Arenas</span></div><div class="game"><time datetime="2026-12-05T14:15">2:15 PM</time><span class="matchup">Monument Hockey Club @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
-              <div class="game-day"><p class="day-label">Sunday, December 6</p><div class="game"><time datetime="2026-12-06T11:30">11:30 AM</time><span class="matchup">Monument Hockey Club @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
+              <div class="game-day"><p class="day-label">Friday, December 4</p><div class="game"><time datetime="2026-12-04T13:15">1:15 PM</time><span class="matchup">Utah Jr. Grizzlies @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
+              <div class="game-day"><p class="day-label">Saturday, December 5</p><div class="game"><time datetime="2026-12-05T09:15">9:15 AM</time><span class="matchup">New Mexico Ice Wolves @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div><div class="game"><time datetime="2026-12-05T14:15">2:15 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Monument Hockey Club</span><span class="venue">Outpost Ice Arenas</span></div></div>
+              <div class="game-day"><p class="day-label">Sunday, December 6</p><div class="game"><time datetime="2026-12-06T11:30">11:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Monument Hockey Club</span><span class="venue">Outpost Ice Arenas</span></div></div>
             </div>
             <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Outpost+Ice+Arenas+Albuquerque+NM" target="_blank" rel="noopener">Outpost Ice Arenas directions</a></div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
+      <article class="trip" id="portland">
+        <header class="trip-heading"><h2>Portland, Oregon</h2><p class="trip-dates">January 9, 2027</p></header>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="portland-logistics">
+            <h3 id="portland-logistics">Travel &amp; lodging</h3>
+            <div class="tbd"><strong>Travel plan TBD</strong>This may be an overnight trip or a same-day down-and-back. Lodging and travel timing will be added when confirmed.</div>
+          </section>
+          <section class="trip-block" aria-labelledby="portland-games">
+            <h3 id="portland-games">Games</h3>
+            <div class="games">
+              <div class="game-day"><p class="day-label">Saturday, January 9</p><div class="game"><span class="game-time-tbd">Game 1</span><span class="matchup">Seattle Jr. Mets 16AA @ Portland Jr. Winterhawks</span><span class="venue">Time and rink TBD</span></div><div class="game"><span class="game-time-tbd">Game 2</span><span class="matchup">Seattle Jr. Mets 16AA @ Portland Jr. Winterhawks</span><span class="venue">Time and rink TBD</span></div></div>
+            </div>
           </section>
         </div>
         <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
@@ -563,6 +590,25 @@ body > footer {
         <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
       </article>
 
+      <article class="trip" id="medford">
+        <header class="trip-heading"><h2>Medford, Oregon</h2><p class="trip-dates">January 30, 2027</p></header>
+        <div class="trip-body">
+          <section class="trip-block" aria-labelledby="medford-logistics">
+            <h3 id="medford-logistics">Travel &amp; lodging</h3>
+            <div class="tbd"><strong>Details TBD</strong>Travel timing, lodging, and booking information will be added when confirmed.</div>
+          </section>
+          <section class="trip-block" aria-labelledby="medford-games">
+            <h3 id="medford-games">Games</h3>
+            <p class="muted" style="margin-bottom: 15px">Two games against Cascade Selects at The RRRink in Medford.</p>
+            <div class="games">
+              <div class="game-day"><p class="day-label">Saturday, January 30</p><div class="game"><span class="game-time-tbd">Game 1</span><span class="matchup">Seattle Jr. Mets 16AA @ Cascade Selects</span><span class="venue">Time TBD · The RRRink</span></div><div class="game"><span class="game-time-tbd">Game 2</span><span class="matchup">Seattle Jr. Mets 16AA @ Cascade Selects</span><span class="venue">Time TBD · The RRRink</span></div></div>
+            </div>
+            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=The+RRRink+Medford+OR" target="_blank" rel="noopener">The RRRink directions</a></div>
+          </section>
+        </div>
+        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+      </article>
+
       <article class="trip" id="gopher-state">
         <header class="trip-heading">
           <p class="eyebrow">Gopher State Presidents Cup</p>
@@ -587,13 +633,6 @@ body > footer {
         <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
       </article>
 
-      <article class="trip" id="medford">
-        <header class="trip-heading"><h2>Medford, Oregon</h2><p class="trip-dates">Dates TBD</p></header>
-        <div class="trip-body" style="display: block">
-          <section class="trip-block" aria-labelledby="medford-details"><h3 id="medford-details">Details coming</h3><div class="tbd"><strong>Additional travel weekend</strong>Dates, travel timing, lodging, and game information will be added when confirmed.</div></section>
-        </div>
-        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
-      </article>
     </div>
   </div>
 </main>

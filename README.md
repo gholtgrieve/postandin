@@ -141,6 +141,7 @@ Cloudflare and pass that value with `--compatibility-date`.
 node --test tests/*.test.mjs
 node scripts/audit-rinks.js       # live, read-only source classification audit
 node scripts/health-check.js      # live, read-only production smoke test
+node scripts/check-nwahl-travel.mjs # live, read-only NWAHL travel comparison
 git diff --check
 ```
 
