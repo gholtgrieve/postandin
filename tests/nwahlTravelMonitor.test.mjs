@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { fingerprintTeamSchedule, selectTravelGames } from '../scripts/check-nwahl-travel.mjs';
+import { buildChangeReport, fingerprintTeamSchedule, selectTeamGames } from '../scripts/check-nwahl-travel.mjs';
 
-test('selectTravelGames includes travel weekends and excludes home series', () => {
+test('selectTeamGames includes travel weekends and home series', () => {
   const base = { team_name: 'Seattle Jr. Mets 16AA', opponent_team_name: 'Example Team', rink_name: 'Entry Rink', rink_city: 'Entry City' };
   const payload = { entries: [
     { ...base, weekend_date: '2026-09-25', super_weekend_id: 21, games: [{ id: 2, game_date: '2026-09-25', start_time: '13:30:00' }] },
@@ -11,13 +11,14 @@ test('selectTravelGames includes travel weekends and excludes home series', () =
     { ...base, weekend_date: '2027-01-09', super_weekend_id: null, games: [{ id: 1, game_date: '2027-01-09', rink_name: 'Game Rink', rink_city: 'Game City' }] },
   ] };
 
-  assert.deepEqual(selectTravelGames(payload), [
+  assert.deepEqual(selectTeamGames(payload), [
     { id: '2', date: '2026-09-25', time: '13:30:00', home: 'Seattle Jr. Mets 16AA', away: 'Example Team', rink: 'Entry Rink', city: 'Entry City' },
+    { id: '3', date: '2026-11-07', time: null, home: 'Seattle Jr. Mets 16AA', away: 'Example Team', rink: 'Entry Rink', city: 'Entry City' },
     { id: '1', date: '2027-01-09', time: null, home: 'Seattle Jr. Mets 16AA', away: 'Example Team', rink: 'Game Rink', city: 'Game City' },
   ]);
 });
 
-test('selectTravelGames preserves the feed home and away sides and excludes other teams', () => {
+test('selectTeamGames preserves the feed home and away sides and excludes other teams', () => {
   const team = 'Seattle Jr. Mets 16AA';
   const payload = { entries: [
     {
@@ -31,7 +32,7 @@ test('selectTravelGames preserves the feed home and away sides and excludes othe
     },
   ] };
 
-  assert.deepEqual(selectTravelGames(payload), [
+  assert.deepEqual(selectTeamGames(payload), [
     { id: '10', date: '2027-01-30', time: null, home: 'Cascade Selects', away: team, rink: 'The RRRink', city: 'Medford' },
     { id: '11', date: '2027-01-30', time: null, home: 'Cascade Selects', away: team, rink: 'The RRRink', city: 'Medford' },
   ]);
@@ -70,4 +71,17 @@ test('full-team fingerprint is stable when entries and games are reordered', () 
   });
 
   assert.equal(reordered, ordered);
+});
+
+test('change report explains schedule differences in plain language', () => {
+  const original = { id: '1', date: '2026-10-30', time: '18:45:00', home: 'Spokane Jr Chiefs', away: 'Seattle Jr. Mets 16AA', rink: 'EWU', city: 'Cheney' };
+  const changed = { ...original, time: '13:45:00' };
+  const added = { id: '2', date: '2027-02-20', time: null, home: 'Boise', away: 'Seattle Jr. Mets 16AA', rink: null, city: null };
+  const report = buildChangeReport([original], [changed, added]);
+
+  assert.match(report, /time changed from 6:45 PM to 1:45 PM/);
+  assert.match(report, /New game added: Sat, Feb 20, 2027, time TBD/);
+  assert.match(report, /You can check the official schedule for the latest information/);
+  assert.doesNotMatch(report, /travel page will be updated/i);
+  assert.doesNotMatch(report, /fingerprint|baseline|workflow|JSON/i);
 });
