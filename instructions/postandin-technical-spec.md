@@ -314,9 +314,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               unlinked, omitted from sitemap.xml, and protected
                               from indexing by both page metadata and _headers.
                               Contains no player-specific or private family data.
-                              A daily GitHub Actions workflow compares its NWAHL
-                              travel games and full team schedule with reviewed
-                              baselines and opens one
+                              A daily GitHub Actions workflow compares every NWAHL
+                              game involving the team with today's reviewed
+                              baseline and opens one
                               issue for human review when the schedule changes or
                               the comparison cannot complete. It never edits or
                               deploys the page automatically.
@@ -1100,17 +1100,28 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | Groups feature | Live on all three schedules | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across all schedules, RSVPs are activity-qualified, and each page shows only its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
-| Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. The daily `check-nwahl-travel.yml` workflow compares relevant NWAHL travel games with the reviewed JSON baseline and fingerprints the full team schedule so new weekends, status changes, and rink moves also alert. It opens one GitHub issue when human review is needed and does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
+| Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. The daily `check-nwahl-travel.yml` workflow compares every NWAHL game involving the team—including home games—with the reviewed JSON baseline and fingerprints the full team schedule so entry-level changes also alert. It opens one GitHub issue and, when SMTP secrets are configured, emails the private recipient list; it does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | **Deleted 2026-07-30** | The unfinished guide was removed entirely. `/pathway/` is now a normal missing URL served by `/404.html`, with no redirect and no sitemap or robots entry. It can be recovered from Git history if the project is revisited. |
 
 ### NWAHL travel-schedule monitor runbook
 
-The monitor covers NWAHL league games only; it does not check the Congressional
-Cup or Gopher State tournament sites. Its reviewed travel-game baseline is
-`data/nwahl-mets-16aa-travel.json`, and `data/nwahl-mets-16aa-team.sha256`
-fingerprints every NWAHL entry involving the team so a newly added weekend or
-relocated local series is not missed.
+The monitor covers every NWAHL league game involving the team, home and away; it
+does not check the Congressional Cup or Gopher State tournament sites. The JSON
+baseline captured September 4, 2026 lives at
+`data/nwahl-mets-16aa-travel.json` (the legacy filename is retained), and
+`data/nwahl-mets-16aa-team.sha256` fingerprints every NWAHL entry involving the
+team so entry-level changes are not missed.
+
+Email recipients are stored only in the `NWAHL_ALERT_RECIPIENTS` GitHub Actions
+secret. Gmail delivery additionally requires `NWAHL_ALERT_SMTP_USERNAME` and an
+app password in `NWAHL_ALERT_SMTP_PASSWORD`. If any email secret is missing, the
+email step is skipped and the GitHub issue remains the fallback alert. Never put
+recipient addresses or SMTP credentials in tracked files. Change emails describe
+added, removed, and modified games in plain language; an upstream outage sends a
+separate message only to the SMTP owner saying that no schedule change has been
+confirmed. The full recipient list is emailed only for confirmed schedule
+differences.
 
 When the workflow opens or updates an issue, inspect the workflow's current
 schedule output against NWAHL, update the travel page if appropriate, then

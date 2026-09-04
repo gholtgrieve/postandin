@@ -1,9 +1,15 @@
-name: Check NWAHL travel schedule
+name: Check NWAHL team schedule
 
 on:
   schedule:
     - cron: '17 15 * * *'
   workflow_dispatch:
+    inputs:
+      send_test_email:
+        description: Send a test email only to the SMTP owner
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,6 +19,12 @@ jobs:
   compare:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      MAIL_USERNAME: ${{ secrets.NWAHL_ALERT_SMTP_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.NWAHL_ALERT_SMTP_PASSWORD }}
+      MAIL_RECIPIENTS: ${{ secrets.NWAHL_ALERT_RECIPIENTS }}
+      NWAHL_REPORT_PATH: nwahl-schedule-report.txt
+      NWAHL_ERROR_REPORT_PATH: nwahl-check-error.txt
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,7 +37,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const title = 'NWAHL travel schedule needs review';
+            const title = 'NWAHL team schedule needs review';
             const existing = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -48,5 +60,49 @@ jobs:
                 body: `The latest daily comparison also needs review: ${runUrl}`,
               });
             }
+      - name: Email the team schedule alert
+        if: steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'change' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' && env.MAIL_RECIPIENTS != ''
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ env.MAIL_PASSWORD }}
+          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          to: ${{ env.MAIL_RECIPIENTS }}
+          subject: Seattle Junior Mets 16U AA schedule update
+          body: file://nwahl-schedule-report.txt
+      - name: Email Gordon if the checker fails
+        if: steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'error' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != ''
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ env.MAIL_PASSWORD }}
+          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          to: ${{ env.MAIL_USERNAME }}
+          subject: NWAHL schedule check could not run
+          body: file://nwahl-check-error.txt
+      - name: Send a test email only to Gordon
+        if: github.event_name == 'workflow_dispatch' && inputs.send_test_email && steps.schedule.outcome == 'success' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != ''
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ env.MAIL_PASSWORD }}
+          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          to: ${{ env.MAIL_USERNAME }}
+          subject: NWAHL schedule monitor test
+          body: |
+            Hello,
+
+            This is a test of the Seattle Junior Mets 16U AA schedule monitor. The email connection is working.
+
+            No schedule change was detected or reported by this test.
       - if: steps.schedule.outcome == 'failure'
         run: exit 1
