@@ -30,3 +30,14 @@ test('travel page remains direct-link and non-indexed', () => {
     assert.doesNotMatch(publicPage, /href="\/mets-16aa-travel(?:["/?#])/, path);
   }
 });
+
+test('every trip with published game times includes the warmup reminder', () => {
+  const trips = [...travelPage.matchAll(/<article class="trip(?: priority)?" id="([^"]+)">([\s\S]*?)<\/article>/g)];
+  assert.ok(trips.length > 0);
+
+  for (const [, id, content] of trips) {
+    const hasPublishedTime = /<time datetime=/.test(content);
+    const hasReminder = /class="game-arrival-note"/.test(content);
+    assert.equal(hasReminder, hasPublishedTime, id);
+  }
+});
