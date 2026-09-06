@@ -35,7 +35,7 @@ const pages = [
   },
 ];
 
-const socialImageUrl = 'https://postandin.com/social-preview.png';
+const socialImageUrl = 'https://postandin.com/social-preview-v2.png';
 
 for (const page of pages) {
   test(`${page.path} provides the site-wide large-image social preview`, () => {
@@ -62,7 +62,7 @@ for (const page of pages) {
 }
 
 test('site-wide social preview is a genuine 1200×630 PNG', () => {
-  const image = readFileSync(new URL('../social-preview.png', import.meta.url));
+  const image = readFileSync(new URL('../social-preview-v2.png', import.meta.url));
 
   assert.ok(image.length > 10_000);
   assert.deepEqual(
