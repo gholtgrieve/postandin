@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const travelPage = fs.readFileSync('mets-16aa-travel/index.html', 'utf8');
+const socialPreview = fs.readFileSync('mets-16aa-travel/social-preview.png');
 const sitemap = fs.readFileSync('sitemap.xml', 'utf8');
 const robots = fs.readFileSync('robots.txt', 'utf8');
 const headers = fs.readFileSync('_headers', 'utf8');
@@ -40,4 +41,23 @@ test('every trip with published game times includes the warmup reminder', () => 
     const hasReminder = /class="game-arrival-note"/.test(content);
     assert.equal(hasReminder, hasPublishedTime, id);
   }
+});
+
+test('travel page provides a complete large-image social preview', () => {
+  assert.match(travelPage, /<meta property="og:type" content="website">/);
+  assert.match(travelPage, /<meta property="og:title" content="Seattle Junior Mets 16U AA Travel Information">/);
+  assert.match(travelPage, /<meta property="og:description" content="[^"]+">/);
+  assert.match(travelPage, /<meta property="og:url" content="https:\/\/postandin\.com\/mets-16aa-travel\/">/);
+  assert.match(travelPage, /<meta property="og:image" content="https:\/\/postandin\.com\/mets-16aa-travel\/social-preview\.png">/);
+  assert.match(travelPage, /<meta property="og:image:width" content="1200">/);
+  assert.match(travelPage, /<meta property="og:image:height" content="630">/);
+  assert.match(travelPage, /<meta property="og:image:alt" content="[^"]+">/);
+  assert.match(travelPage, /<meta name="twitter:card" content="summary_large_image">/);
+  assert.ok(socialPreview.length > 10_000);
+  assert.deepEqual(
+    [...socialPreview.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  );
+  assert.equal(socialPreview.readUInt32BE(16), 1200);
+  assert.equal(socialPreview.readUInt32BE(20), 630);
 });
