@@ -131,10 +131,20 @@ async function fetchSchedule(url, attempts = 3) {
   throw lastError;
 }
 
+async function loadSchedule() {
+  if (process.env.NWAHL_SCHEDULE_FIXTURE_PATH) {
+    console.error('WARNING: using a local schedule fixture instead of the live NWAHL feed (test mode only).');
+    return JSON.parse(await fs.readFile(process.env.NWAHL_SCHEDULE_FIXTURE_PATH, 'utf8'));
+  }
+  return fetchSchedule(process.env.NWAHL_SCHEDULE_API ?? DEFAULT_API);
+}
+
 async function main() {
-  const baseline = JSON.parse(await fs.readFile(new URL('../data/nwahl-mets-16aa-travel.json', import.meta.url), 'utf8'));
-  const baselineTeamHash = (await fs.readFile(new URL('../data/nwahl-mets-16aa-team.sha256', import.meta.url), 'utf8')).trim();
-  const payload = await fetchSchedule(process.env.NWAHL_SCHEDULE_API ?? DEFAULT_API);
+  const baselinePath = process.env.NWAHL_BASELINE_PATH ?? new URL('../data/nwahl-mets-16aa-travel.json', import.meta.url);
+  const baselineTeamHashPath = process.env.NWAHL_TEAM_HASH_PATH ?? new URL('../data/nwahl-mets-16aa-team.sha256', import.meta.url);
+  const baseline = JSON.parse(await fs.readFile(baselinePath, 'utf8'));
+  const baselineTeamHash = (await fs.readFile(baselineTeamHashPath, 'utf8')).trim();
+  const payload = await loadSchedule();
   const current = selectTeamGames(payload);
   const currentTeamHash = fingerprintTeamSchedule(payload);
   if (JSON.stringify(current) !== JSON.stringify(baseline) || currentTeamHash !== baselineTeamHash) {
@@ -146,9 +156,9 @@ async function main() {
     console.error('\nReviewed full-team fingerprint:', baselineTeamHash);
     console.error('Current full-team fingerprint:', currentTeamHash);
     console.error('\nCurrent full-team schedule:\n', JSON.stringify(selectTeamEntries(payload), null, 2));
-    process.exitCode = 1;
     return;
   }
+  await setWorkflowResult('match');
   console.log(`NWAHL team schedule matches the reviewed baseline (${current.length} games).`);
 }
 

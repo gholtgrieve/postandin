@@ -22,7 +22,7 @@
   { "id": "769", "date": "2026-11-14", "time": "10:30:00", "home": "Boise JR Steelheads", "away": "Seattle Jr. Mets 16AA", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
   { "id": "231", "date": "2026-11-15", "time": "14:00:00", "home": "Tri-Cities Jr. Americans 16U", "away": "Seattle Jr. Mets 16AA", "rink": "Toyota Arena Rink B", "city": "Kennewick" },
   { "id": "848", "date": "2026-11-21", "time": "09:15:00", "home": "Seattle Jr. Mets 16AA", "away": "New Mexico Ice Wolves", "rink": "Olympic View Arena (OVA)", "city": "Mountlake Terrace" },
-  { "id": "849", "date": "2026-11-22", "time": "16:45:00", "home": "Seattle Jr. Mets 16AA", "away": "New Mexico Ice Wolves", "rink": "Olympic View Arena (OVA)", "city": "Mountlake Terrace" },
+  { "id": "849", "date": "2026-11-22", "time": "13:45:00", "home": "Seattle Jr. Mets 16AA", "away": "New Mexico Ice Wolves", "rink": "Olympic View Arena (OVA)", "city": "Mountlake Terrace" },
   { "id": "3755", "date": "2026-12-04", "time": "13:15:00", "home": "Seattle Jr. Mets 16AA", "away": "Utah Jr. Grizzlies", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
   { "id": "3759", "date": "2026-12-05", "time": "09:15:00", "home": "Seattle Jr. Mets 16AA", "away": "New Mexico Ice Wolves", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },
   { "id": "3761", "date": "2026-12-05", "time": "14:15:00", "home": "Monument Hockey Club", "away": "Seattle Jr. Mets 16AA", "rink": "Outpost Ice Arenas", "city": "Albuquerque" },

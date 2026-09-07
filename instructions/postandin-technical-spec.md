@@ -1115,7 +1115,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 The monitor covers every NWAHL league game involving the team, home and away; it
 does not check the Congressional Cup or Gopher State tournament sites. The JSON
-baseline captured September 4, 2026 lives at
+baseline last reviewed September 7, 2026 lives at
 `data/nwahl-mets-16aa-travel.json` (the legacy filename is retained), and
 `data/nwahl-mets-16aa-team.sha256` fingerprints every NWAHL entry involving the
 team so entry-level changes are not missed.
@@ -1130,14 +1130,26 @@ separate message only to the SMTP owner saying that no schedule change has been
 confirmed. The full recipient list is emailed only for confirmed schedule
 differences.
 
+A confirmed difference is an alert condition, not a broken workflow: the checker
+sets `kind=change`, sends the group message, opens or updates the review issue,
+and normally finishes successfully. Only an actual checker error sets
+`kind=error` and sends the failure message solely to the SMTP owner. A run is
+left red for `kind=error`, for a schedule step that dies without emitting a
+`kind`, for failed email delivery, or for a failure to open or update the GitHub
+issue. That last failure can occur after the team email was delivered. Check
+which step failed before re-running: re-running a confirmed-change job can send
+the team alert again, so update the issue manually if email delivery succeeded.
+
 When the workflow opens or updates an issue, inspect the workflow's current
 schedule output against NWAHL, update the travel page if appropriate, then
 replace the JSON baseline and regenerate the full-team fingerprint. Run
 `node scripts/check-nwahl-travel.mjs`, copy its printed `Current full-team
-fingerprint` value into `data/nwahl-mets-16aa-team.sha256`, and rerun the command
-before closing the issue. GitHub can disable scheduled workflows after 60 days
-without repository activity; if that happens, re-enable it with a manual
-workflow run and confirm it passes.
+fingerprint` value into `data/nwahl-mets-16aa-team.sha256`, and rerun the command.
+Before closing the issue, confirm that it prints `NWAHL team schedule matches the
+reviewed baseline` (and emits `kind=match` in Actions); exit status alone is not
+enough because both a match and a confirmed change exit successfully. GitHub can
+disable scheduled workflows after 60 days without repository activity; if that
+happens, re-enable it with a manual workflow run and confirm it reports a match.
 
 ---
 

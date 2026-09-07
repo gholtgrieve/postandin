@@ -33,11 +33,16 @@ jobs:
       - id: schedule
         continue-on-error: true
         run: node scripts/check-nwahl-travel.mjs
-      - if: steps.schedule.outcome == 'failure'
+      - id: issue
+        continue-on-error: true
+        if: steps.schedule.outputs.kind == 'change' || steps.schedule.outcome == 'failure'
         uses: actions/github-script@v7
+        env:
+          KIND: ${{ steps.schedule.outputs.kind }}
         with:
           script: |
             const title = 'NWAHL team schedule needs review';
+            const kind = process.env.KIND;
             const existing = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -45,23 +50,26 @@ jobs:
             });
             const prior = existing.find(issue => !issue.pull_request && issue.title === title);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const message = kind === 'change'
+              ? `The daily comparison found a confirmed team schedule change. Review the workflow output and update the baseline after checking whether any travel details are affected: ${runUrl}`
+              : `The daily schedule checker could not complete. No schedule change has been confirmed: ${runUrl}`;
             if (!prior) {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body: `The daily comparison found a schedule difference or could not complete. Review the workflow output before updating the travel page: ${runUrl}`,
+                body: message,
               });
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prior.number,
-                body: `The latest daily comparison also needs review: ${runUrl}`,
+                body: message,
               });
             }
       - name: Email the team schedule alert
-        if: steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'change' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' && env.MAIL_RECIPIENTS != ''
+        if: ${{ !cancelled() && steps.schedule.outputs.kind == 'change' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' && env.MAIL_RECIPIENTS != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
           server_address: smtp.gmail.com
@@ -74,7 +82,7 @@ jobs:
           subject: Seattle Junior Mets 16U AA schedule update
           body: file://nwahl-schedule-report.txt
       - name: Email Gordon if the checker fails
-        if: steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'error' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != ''
+        if: ${{ !cancelled() && steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'error' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
           server_address: smtp.gmail.com
@@ -87,7 +95,7 @@ jobs:
           subject: NWAHL schedule check could not run
           body: file://nwahl-check-error.txt
       - name: Send a test email only to Gordon
-        if: github.event_name == 'workflow_dispatch' && inputs.send_test_email && steps.schedule.outcome == 'success' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != ''
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.send_test_email && steps.schedule.outputs.kind == 'match' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
           server_address: smtp.gmail.com
@@ -104,5 +112,7 @@ jobs:
             This is a test of the Seattle Junior Mets 16U AA schedule monitor. The email connection is working.
 
             No schedule change was detected or reported by this test.
-      - if: steps.schedule.outcome == 'failure'
-        run: exit 1
+      - if: ${{ !cancelled() && (steps.schedule.outcome == 'failure' || steps.issue.outcome == 'failure') }}
+        run: |
+          echo "::error::The checker or GitHub issue update failed. If the team email step succeeded, recipients were already notified; do not re-run this job because that could resend the alert. Update the issue manually instead."
+          exit 1
