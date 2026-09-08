@@ -1115,7 +1115,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 The monitor covers every NWAHL league game involving the team, home and away; it
 does not check the Congressional Cup or Gopher State tournament sites. The JSON
-baseline last reviewed September 7, 2026 lives at
+baseline last reviewed September 8, 2026 lives at
 `data/nwahl-mets-16aa-travel.json` (the legacy filename is retained), and
 `data/nwahl-mets-16aa-team.sha256` fingerprints every NWAHL entry involving the
 team so entry-level changes are not missed.
