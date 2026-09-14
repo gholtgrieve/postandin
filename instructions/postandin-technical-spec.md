@@ -1107,49 +1107,92 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | Groups feature | Live on all three schedules | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across all schedules, RSVPs are activity-qualified, and each page shows only its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
-| Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Open Graph and Twitter Card metadata use the page's own 1200×630 `/mets-16aa-travel/social-preview.png` (not the site-wide `/social-preview-v2.png`) so direct shares can render a branded large-image preview without making the page indexable. Every trip with published game times repeats the reminder that the displayed times are game times, players must be in warmup attire and ready for pre-game warmups one hour earlier, and families should plan to arrive about 1 hour 15 minutes early; add that reminder when currently-TBD times are published. The travel-page visibility test enforces both the social metadata and that reminders appear if and only if a trip contains a published `<time datetime>`. The daily `check-nwahl-travel.yml` workflow compares every NWAHL game involving the team—including home games—with the reviewed JSON baseline and fingerprints the full team schedule so entry-level changes also alert. It opens one GitHub issue and, when SMTP secrets are configured, emails the private recipient list; it does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
+| Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Open Graph and Twitter Card metadata use the page's own 1200×630 `/mets-16aa-travel/social-preview.png` (not the site-wide `/social-preview-v2.png`) so direct shares can render a branded large-image preview without making the page indexable. Every trip with published game times repeats the reminder that the displayed times are game times, players must be in warmup attire and ready for pre-game warmups one hour earlier, and families should plan to arrive about 1 hour 15 minutes early; add that reminder when currently-TBD times are published. The travel-page visibility test enforces both the social metadata and that reminders appear if and only if a trip contains a published `<time datetime>`. The daily workflow compares the complete NWAHL and SportsEngine team schedules with each other and with the travel-page games. Group email is limited to a discrepancy newly created by an NWAHL game change when no related SportsEngine game changed; travel-page mismatches, ambiguous related source changes, and checker failures go only to the SMTP owner. It records successful state in a closed GitHub issue and does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | **Deleted 2026-07-30** | The unfinished guide was removed entirely. `/pathway/` is now a normal missing URL served by `/404.html`, with no redirect and no sitemap or robots entry. It can be recovered from Git history if the project is revisited. |
 
-### NWAHL travel-schedule monitor runbook
+### Three-way team-schedule monitor runbook
 
-The monitor covers every NWAHL league game involving the team, home and away; it
-does not check the Congressional Cup or Gopher State tournament sites. The JSON
-baseline last reviewed September 8, 2026 lives at
-`data/nwahl-mets-16aa-travel.json` (the legacy filename is retained), and
-`data/nwahl-mets-16aa-team.sha256` fingerprints every NWAHL entry involving the
-team so entry-level changes are not missed.
+The monitor covers every NWAHL and SportsEngine game involving the team, home
+and away, and compares travel-relevant games with `/mets-16aa-travel/`. It does
+not check the Congressional Cup or Gopher State tournament sites. SportsEngine
+practices, dryland sessions, and other non-game events are ignored. Events whose
+SportsEngine title says `time is TBD` are compared without treating the
+placeholder `DTSTART` time as a real game time.
+
+The reviewed bootstrap files are `data/nwahl-mets-16aa-travel.json`,
+`data/nwahl-mets-16aa-team.sha256`, `data/sportsengine-mets-16aa-games.json`, and
+`data/mets-16aa-travel-page-games.json`. The legacy NWAHL filenames and workflow
+filename `.github/workflows/check-nwahl-travel.yml` are retained. After the first
+successful run, the workflow stores all three current baselines in the closed
+GitHub issue `[automation] Team schedule monitor state`. Only an issue authored
+by `github-actions[bot]` may be loaded or updated, and the checker validates the
+decoded state before comparison. The compact encoded state is capped below the
+GitHub issue-body limit. This prevents public issue authors from supplying a
+forged baseline and prevents a failed notification from silently advancing the
+baseline. If the bot-authored state issue exists without a valid state marker,
+the run fails instead of silently falling back to older repository baselines.
 
 Email recipients are stored only in the `NWAHL_ALERT_RECIPIENTS` GitHub Actions
 secret. Gmail delivery additionally requires `NWAHL_ALERT_SMTP_USERNAME` and an
 app password in `NWAHL_ALERT_SMTP_PASSWORD`. If any email secret is missing, the
 email step is skipped and the GitHub issue remains the fallback alert. Never put
-recipient addresses or SMTP credentials in tracked files. Change emails describe
-added, removed, and modified games in plain language; an upstream outage sends a
-separate message only to the SMTP owner saying that no schedule change has been
-confirmed. The full recipient list is emailed only for confirmed schedule
-differences.
+recipient addresses or SMTP credentials in tracked files. Messages describe
+added, removed, and modified games in plain language. Routing is intentional:
 
-A confirmed difference is an alert condition, not a broken workflow: the checker
-sets `kind=change`, sends the group message, opens or updates the review issue,
-and normally finishes successfully. Only an actual checker error sets
-`kind=error` and sends the failure message solely to the SMTP owner. A run is
-left red for `kind=error`, for a schedule step that dies without emitting a
-`kind`, for failed email delivery, or for a failure to open or update the GitHub
-issue. That last failure can occur after the team email was delivered. Check
-which step failed before re-running: re-running a confirmed-change job can send
-the team alert again, so update the issue manually if email delivery succeeded.
+- If an NWAHL game change creates a new disagreement with SportsEngine and no
+  related SportsEngine game changed, send the group email. An unrelated
+  SportsEngine edit does not suppress that alert. Gordon is already included in
+  the group recipient list. Attribute each changed game independently; a
+  simultaneous correction or an already-recorded discrepancy in the same
+  opponent/weekend cohort must not cancel out a newly created discrepancy.
+- If SportsEngine alone changes, never email the group. Email Gordon only when
+  SportsEngine then disagrees with the travel page.
+- If NWAHL and SportsEngine both change and still disagree, email only Gordon
+  because attribution is ambiguous.
+- If either source newly disagrees with the travel page, tell Gordon which source
+  disagrees (or that both do). A group message caused by NWAHL includes only the
+  NWAHL travel-page warning. If the same run also has an ambiguous change, an
+  opaque NWAHL change, or a SportsEngine travel-page mismatch, write and send a
+  separate owner report even though the group report also runs.
+- If no actionable discrepancy is created, update the successful state without
+  email. Successfully reported discrepancies become part of the saved state, so
+  unresolved differences do not generate daily repeat email. A later change that
+  merely resolves a recorded discrepancy also produces no email.
+- Removing games whose dates have already passed from the travel page does not
+  create an owner alert. Determine whether a date has passed in
+  `America/Los_Angeles`, matching the team's local calendar day rather than UTC.
+- If NWAHL, SportsEngine, or the local travel page cannot be read, send the error
+  message only to Gordon and do not advance state.
 
-When the workflow opens or updates an issue, inspect the workflow's current
-schedule output against NWAHL, update the travel page if appropriate, then
-replace the JSON baseline and regenerate the full-team fingerprint. Run
-`node scripts/check-nwahl-travel.mjs`, copy its printed `Current full-team
-fingerprint` value into `data/nwahl-mets-16aa-team.sha256`, and rerun the command.
-Before closing the issue, confirm that it prints `NWAHL team schedule matches the
-reviewed baseline` (and emits `kind=match` in Actions); exit status alone is not
-enough because both a match and a confirmed change exit successfully. GitHub can
-disable scheduled workflows after 60 days without repository activity; if that
-happens, re-enable it with a manual workflow run and confirm it reports a match.
+Every alert also opens or comments on the `Team schedule needs review` GitHub
+issue as a fallback. A schedule discrepancy is not itself a failed workflow.
+The run is left red only when the checker, GitHub issue update, required email,
+or state save fails. Before re-running a red job, inspect which step failed:
+re-running after successful email delivery but failed state persistence can send
+the same email again. This exceptional retry is preferable to silently losing an
+alert; under normal successful operation each newly identified discrepancy is
+emailed once.
+
+The September 14, 2026 bootstrap intentionally records the already-identified
+November 1 Spokane discrepancy: SportsEngine lists 9:45 AM while NWAHL and the
+travel page list 11:30 AM. Do not notify for that standing difference. If
+SportsEngine later changes to 11:30 AM, treat it as resolved and advance state
+without email.
+
+The September 14 bootstrap also includes the newly published Medford games at
+5:00 PM on January 30 and 9:00 AM on January 31. The group notification for this
+change was already delivered before finalization, so these NWAHL entries and the
+current full-team fingerprint are intentionally advanced to prevent a resend.
+SportsEngine and the travel page may remain TBD as a recorded discrepancy until
+they are updated; merely resolving that discrepancy does not send group email.
+
+For a local live check, run `node scripts/team-schedule-monitor.mjs`. It compares
+the current sources with the repository bootstrap baselines unless
+`TEAM_MONITOR_STATE_PATH` points to saved workflow state. Tests should use local
+fixtures and temporary state paths. GitHub can disable scheduled workflows after
+60 days without repository activity; if that happens, re-enable it with a manual
+workflow run and confirm it reports a match.
 
 ---
 

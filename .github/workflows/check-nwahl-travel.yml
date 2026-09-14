@@ -1,4 +1,4 @@
-name: Check NWAHL team schedule
+name: Check team schedules
 
 on:
   schedule:
@@ -15,6 +15,10 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: team-schedule-monitor
+  cancel-in-progress: false
+
 jobs:
   compare:
     runs-on: ubuntu-latest
@@ -23,53 +27,97 @@ jobs:
       MAIL_USERNAME: ${{ secrets.NWAHL_ALERT_SMTP_USERNAME }}
       MAIL_PASSWORD: ${{ secrets.NWAHL_ALERT_SMTP_PASSWORD }}
       MAIL_RECIPIENTS: ${{ secrets.NWAHL_ALERT_RECIPIENTS }}
-      NWAHL_REPORT_PATH: nwahl-schedule-report.txt
-      NWAHL_ERROR_REPORT_PATH: nwahl-check-error.txt
+      TEAM_MONITOR_STATE_PATH: team-schedule-state.json
+      TEAM_MONITOR_NEXT_STATE_PATH: team-schedule-state-next.json
+      TEAM_GROUP_REPORT_PATH: team-schedule-group-report.txt
+      TEAM_OWNER_REPORT_PATH: team-schedule-owner-report.txt
+      TEAM_ERROR_REPORT_PATH: team-schedule-error-report.txt
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - id: schedule
+
+      - id: load_state
+        name: Load the last successful schedule state
         continue-on-error: true
-        run: node scripts/check-nwahl-travel.mjs
-      - id: issue
-        continue-on-error: true
-        if: steps.schedule.outputs.kind == 'change' || steps.schedule.outcome == 'failure'
-        uses: actions/github-script@v7
-        env:
-          KIND: ${{ steps.schedule.outputs.kind }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const title = 'NWAHL team schedule needs review';
-            const kind = process.env.KIND;
-            const existing = await github.paginate(github.rest.issues.listForRepo, {
+            const fs = require('fs');
+            const title = '[automation] Team schedule monitor state';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
+            const issue = issues.find(item => !item.pull_request
+              && item.title === title
+              && item.user?.login === 'github-actions[bot]');
+            const marker = issue?.body?.match(/<!-- team-schedule-state:([A-Za-z0-9+/=]+) -->/);
+            if (marker) {
+              fs.writeFileSync(process.env.TEAM_MONITOR_STATE_PATH, Buffer.from(marker[1], 'base64'));
+              core.info(`Loaded state from issue #${issue.number}.`);
+            } else if (issue) {
+              core.setFailed(`State issue #${issue.number} exists but does not contain a valid state marker.`);
+            } else {
+              core.info('No saved workflow state found; using the reviewed repository baselines.');
+            }
+
+      - name: Prepare a safe fallback error message
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            fs.writeFileSync(process.env.TEAM_ERROR_REPORT_PATH, 'Hello Gordon,\n\nThe automatic team schedule checker could not complete. No schedule change has been confirmed.\n\nThe checker will try again tomorrow.\n');
+
+      - id: schedule
+        continue-on-error: true
+        env:
+          TEAM_MONITOR_STATE_LOAD_FAILED: ${{ steps.load_state.outcome == 'failure' }}
+        run: node scripts/team-schedule-monitor.mjs
+
+      - id: alert
+        name: Record a schedule alert for review
+        continue-on-error: true
+        if: steps.schedule.outputs.kind == 'group' || steps.schedule.outputs.kind == 'owner' || steps.schedule.outputs.kind == 'error' || steps.schedule.outcome == 'failure'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          KIND: ${{ steps.schedule.outputs.kind }}
+          OWNER_NEEDED: ${{ steps.schedule.outputs.owner_needed }}
+        with:
+          script: |
+            const fs = require('fs');
+            const title = 'Team schedule needs review';
+            const kind = process.env.KIND || 'error';
+            const reportPath = kind === 'group'
+              ? process.env.TEAM_GROUP_REPORT_PATH
+              : kind === 'owner'
+                ? process.env.TEAM_OWNER_REPORT_PATH
+                : process.env.TEAM_ERROR_REPORT_PATH;
+            let report = fs.existsSync(reportPath) ? fs.readFileSync(reportPath, 'utf8') : 'The team schedule checker did not complete normally.';
+            if (kind === 'group' && process.env.OWNER_NEEDED === 'true' && fs.existsSync(process.env.TEAM_OWNER_REPORT_PATH)) {
+              report += `\n\n--- Additional owner follow-up ---\n\n${fs.readFileSync(process.env.TEAM_OWNER_REPORT_PATH, 'utf8')}`;
+            }
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
             });
-            const prior = existing.find(issue => !issue.pull_request && issue.title === title);
+            const prior = issues.find(item => !item.pull_request
+              && item.title === title
+              && item.user?.login === 'github-actions[bot]');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const message = kind === 'change'
-              ? `The daily comparison found a confirmed team schedule change. Review the workflow output and update the baseline after checking whether any travel details are affected: ${runUrl}`
-              : `The daily schedule checker could not complete. No schedule change has been confirmed: ${runUrl}`;
+            const body = `${report}\n\nWorkflow run: ${runUrl}`;
             if (!prior) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                body: message,
-              });
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
             } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prior.number,
-                body: message,
-              });
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prior.number, body });
             }
-      - name: Email the team schedule alert
-        if: ${{ !cancelled() && steps.schedule.outputs.kind == 'change' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' && env.MAIL_RECIPIENTS != '' }}
+
+      - id: group_email
+        name: Email the group when NWAHL creates a discrepancy
+        if: ${{ !cancelled() && steps.alert.outcome == 'success' && steps.schedule.outputs.kind == 'group' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' && env.MAIL_RECIPIENTS != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
           server_address: smtp.gmail.com
@@ -77,12 +125,14 @@ jobs:
           secure: true
           username: ${{ env.MAIL_USERNAME }}
           password: ${{ env.MAIL_PASSWORD }}
-          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          from: Team Schedule Monitor <${{ env.MAIL_USERNAME }}>
           to: ${{ env.MAIL_RECIPIENTS }}
           subject: Seattle Junior Mets 16U AA schedule update
-          body: file://nwahl-schedule-report.txt
-      - name: Email Gordon if the checker fails
-        if: ${{ !cancelled() && steps.schedule.outcome == 'failure' && steps.schedule.outputs.kind == 'error' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
+          body: file://team-schedule-group-report.txt
+
+      - id: owner_email
+        name: Email Gordon about a schedule discrepancy
+        if: ${{ !cancelled() && steps.alert.outcome == 'success' && steps.schedule.outputs.owner_needed == 'true' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
           server_address: smtp.gmail.com
@@ -90,10 +140,26 @@ jobs:
           secure: true
           username: ${{ env.MAIL_USERNAME }}
           password: ${{ env.MAIL_PASSWORD }}
-          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          from: Team Schedule Monitor <${{ env.MAIL_USERNAME }}>
           to: ${{ env.MAIL_USERNAME }}
-          subject: NWAHL schedule check could not run
-          body: file://nwahl-check-error.txt
+          subject: Team schedule needs your review
+          body: file://team-schedule-owner-report.txt
+
+      - id: error_email
+        name: Email Gordon if the checker fails
+        if: ${{ !cancelled() && steps.schedule.outcome == 'failure' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ env.MAIL_PASSWORD }}
+          from: Team Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          to: ${{ env.MAIL_USERNAME }}
+          subject: Team schedule check could not run
+          body: file://team-schedule-error-report.txt
+
       - name: Send a test email only to Gordon
         if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.send_test_email && steps.schedule.outputs.kind == 'match' && env.MAIL_USERNAME != '' && env.MAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
@@ -103,16 +169,44 @@ jobs:
           secure: true
           username: ${{ env.MAIL_USERNAME }}
           password: ${{ env.MAIL_PASSWORD }}
-          from: NWAHL Schedule Monitor <${{ env.MAIL_USERNAME }}>
+          from: Team Schedule Monitor <${{ env.MAIL_USERNAME }}>
           to: ${{ env.MAIL_USERNAME }}
-          subject: NWAHL schedule monitor test
+          subject: Team schedule monitor test
           body: |
-            Hello,
+            Hello Gordon,
 
             This is a test of the Seattle Junior Mets 16U AA schedule monitor. The email connection is working.
 
             No schedule change was detected or reported by this test.
-      - if: ${{ !cancelled() && (steps.schedule.outcome == 'failure' || steps.issue.outcome == 'failure') }}
+
+      - id: save_state
+        name: Save the successful schedule state
+        if: ${{ !cancelled() && steps.schedule.outcome == 'success' && steps.alert.outcome != 'failure' && steps.group_email.outcome != 'failure' && steps.owner_email.outcome != 'failure' }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const title = '[automation] Team schedule monitor state';
+            const encoded = fs.readFileSync(process.env.TEAM_MONITOR_NEXT_STATE_PATH).toString('base64');
+            if (encoded.length > 60000) throw new Error('Encoded schedule state exceeds the safe GitHub issue-body limit.');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Internal state for the team schedule monitor. The issue is closed to keep it out of the active work queue.\n\nLast successful run: ${new Date().toISOString()}\n\n${runUrl}\n\n<!-- team-schedule-state:${encoded} -->`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
+            const prior = issues.find(item => !item.pull_request
+              && item.title === title
+              && item.user?.login === 'github-actions[bot]');
+            if (!prior) {
+              const created = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: created.data.number, state: 'closed' });
+            } else {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prior.number, body, state: 'closed' });
+            }
+
+      - if: ${{ !cancelled() && (steps.schedule.outcome == 'failure' || steps.alert.outcome == 'failure' || steps.group_email.outcome == 'failure' || steps.owner_email.outcome == 'failure' || steps.error_email.outcome == 'failure' || steps.save_state.outcome == 'failure') }}
         run: |
-          echo "::error::The checker or GitHub issue update failed. If the team email step succeeded, recipients were already notified; do not re-run this job because that could resend the alert. Update the issue manually instead."
+          echo "::error::The checker, alert, email, or state update failed. Inspect the completed steps before re-running to avoid duplicate email."
           exit 1

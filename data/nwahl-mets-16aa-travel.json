@@ -33,6 +33,6 @@
   { "id": "378", "date": "2027-01-09", "time": null, "home": "Portland Jr Winterhawks", "away": "Seattle Jr. Mets 16AA", "rink": null, "city": null },
   { "id": "988", "date": "2027-01-23", "time": "16:30:00", "home": "Seattle Jr. Mets 16AA", "away": "Tri-Cities Jr. Americans 16U", "rink": "Olympic View Arena (OVA)", "city": "Mountlake Terrace" },
   { "id": "989", "date": "2027-01-24", "time": "08:45:00", "home": "Seattle Jr. Mets 16AA", "away": "Tri-Cities Jr. Americans 16U", "rink": "Olympic View Arena (OVA)", "city": "Mountlake Terrace" },
-  { "id": "314", "date": "2027-01-30", "time": null, "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" },
-  { "id": "315", "date": "2027-01-30", "time": null, "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" }
+  { "id": "314", "date": "2027-01-30", "time": "17:00:00", "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" },
+  { "id": "315", "date": "2027-01-31", "time": "09:00:00", "home": "Cascade Selects", "away": "Seattle Jr. Mets 16AA", "rink": "The RRRink", "city": "Medford" }
 ]

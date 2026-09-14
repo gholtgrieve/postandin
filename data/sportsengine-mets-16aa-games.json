@@ -1,0 +1,345 @@
+[
+  {
+    "id": "6f506974-05c5-42c4-b791-b8a3517a7196",
+    "date": "2026-09-12",
+    "time": "21:00:00",
+    "away": "16U AA Jr Mets",
+    "home": "Sno-King Jr Thunderbirds",
+    "rink": "35323 Southeast Douglas Street, Snoqualmie, WA 98065, US",
+    "city": null
+  },
+  {
+    "id": "13f5cff0-d403-494c-974b-d92fe02094a3",
+    "date": "2026-09-13",
+    "time": "11:30:00",
+    "away": "16U AA Jr Mets",
+    "home": "Sno-King Jr Thunderbirds",
+    "rink": "14326 124th Avenue Northeast, Kirkland, WA, 98034, US",
+    "city": null
+  },
+  {
+    "id": "58892d3b-981e-4c5d-ab6e-9a953ac251f3",
+    "date": "2026-09-19",
+    "time": "16:30:00",
+    "away": "Tacoma Rockets",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "2a669e0a-4ab6-4cee-9e9e-56b2dba2f0c3",
+    "date": "2026-09-20",
+    "time": "08:45:00",
+    "away": "Tacoma Rockets",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "da1553a8-bef5-430a-98b5-b0aeeeeba4a9",
+    "date": "2026-09-25",
+    "time": "15:15:00",
+    "away": "Team Wyoming",
+    "home": "16U AA Jr Mets",
+    "rink": "2645 South 80th Street, Tacoma, WA 98409, US",
+    "city": null
+  },
+  {
+    "id": "3feb4567-3881-4671-8148-ba70c1a91589",
+    "date": "2026-09-26",
+    "time": "08:30:00",
+    "away": "Boise JR Steelheads",
+    "home": "16U AA Jr Mets",
+    "rink": "521 Military Road South, Tacoma, WA 98444, US",
+    "city": null
+  },
+  {
+    "id": "a378912c-e4d9-4b73-93b0-d2afdd032de7",
+    "date": "2026-09-26",
+    "time": "14:45:00",
+    "away": "Montana Wolves 16U",
+    "home": "16U AA Jr Mets",
+    "rink": "521 Military Road South, Tacoma, WA 98444, US",
+    "city": null
+  },
+  {
+    "id": "d4b24d5f-a24d-45c4-9591-63440cdd12a8",
+    "date": "2026-09-27",
+    "time": "07:00:00",
+    "away": "Utah Jr. Grizzlies",
+    "home": "16U AA Jr Mets",
+    "rink": "2645 South 80th Street, Tacoma, WA, 98409, US",
+    "city": null
+  },
+  {
+    "id": "514bd581-5934-4efc-862a-4e9f7195f2c6",
+    "date": "2026-10-17",
+    "time": "16:30:00",
+    "away": "Sno-King Jr Thunderbirds",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "6b7a09bc-d61d-4ed0-9880-1db2e446f5db",
+    "date": "2026-10-18",
+    "time": "08:45:00",
+    "away": "Sno-King Jr Thunderbirds",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "ecd9868a-a99d-47dd-bd3f-d235adeaaf65",
+    "date": "2026-10-24",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Tacoma Rockets",
+    "rink": null,
+    "city": null
+  },
+  {
+    "id": "e63cb969-9696-49df-bd69-118e91c90fff",
+    "date": "2026-10-25",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Tacoma Rockets",
+    "rink": null,
+    "city": null
+  },
+  {
+    "id": "90dff922-b0ef-4392-b4c7-6f8a8a54bc18",
+    "date": "2026-10-30",
+    "time": "13:45:00",
+    "away": "16U AA Jr Mets",
+    "home": "Spokane Jr. Chiefs",
+    "rink": "526 5th Street, Cheney, WA 99004, US",
+    "city": null
+  },
+  {
+    "id": "45393050-327b-4a5a-95ce-9b7dbf050d5c",
+    "date": "2026-10-31",
+    "time": "08:15:00",
+    "away": "16U AA Jr Mets",
+    "home": "Boise Jr. Steelheads",
+    "rink": "526 5th Street, Cheney, WA, 99004, US",
+    "city": null
+  },
+  {
+    "id": "07114d05-f3fc-4a19-81ed-e519c8b48476",
+    "date": "2026-10-31",
+    "time": "19:15:00",
+    "away": "16U AA Jr Mets",
+    "home": "Tri-Cities Jr Americans",
+    "rink": "526 5th Street, Cheney, WA, 99004, US",
+    "city": null
+  },
+  {
+    "id": "3f8c68ae-48f4-4a05-9a72-0c61b8fdcfc4",
+    "date": "2026-11-01",
+    "time": "09:45:00",
+    "away": "16U AA Jr Mets",
+    "home": "Spokane Jr Chiefs",
+    "rink": "526 5th Street, Cheney, WA, 99004, US",
+    "city": null
+  },
+  {
+    "id": "cc151b12-c86a-41cf-a105-f512721f863c",
+    "date": "2026-11-07",
+    "time": "16:30:00",
+    "away": "Portland Jr Winterhawks",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "e7dcd378-5cb8-4003-9d46-7c499d4ce722",
+    "date": "2026-11-08",
+    "time": "08:45:00",
+    "away": "Portland Jr Winterhawks",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "92772476-cbdb-4bf4-9497-476f4094f68d",
+    "date": "2026-11-13",
+    "time": "09:45:00",
+    "away": "16U AA Jr Mets",
+    "home": "Spokane Jr Chiefs",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA 99336, US",
+    "city": null
+  },
+  {
+    "id": "8e65208f-32dc-4fb8-bcdb-decbb2581390",
+    "date": "2026-11-13",
+    "time": "16:45:00",
+    "away": "16U AA Jr Mets",
+    "home": "Tri-Cities Jr. Americans 16U",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
+    "city": null
+  },
+  {
+    "id": "e5714d4f-f65c-4d96-9de2-aebf9dae3afd",
+    "date": "2026-11-14",
+    "time": "10:30:00",
+    "away": "16U AA Jr Mets",
+    "home": "Boise Jr Steelheads",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
+    "city": null
+  },
+  {
+    "id": "15b8d6d7-4f69-407e-8e80-ac15d27004ab",
+    "date": "2026-11-15",
+    "time": "14:00:00",
+    "away": "16U AA Jr Mets",
+    "home": "Tri-Cities Jr. Americans 16U",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
+    "city": null
+  },
+  {
+    "id": "8249e0a5-2f17-4689-844c-e774ec037494",
+    "date": "2026-11-21",
+    "time": "09:15:00",
+    "away": "New Mexico Ice Wolves",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "093a6d83-b631-460c-a229-3ecbb82690c4",
+    "date": "2026-11-22",
+    "time": "13:45:00",
+    "away": "New Mexico Ice Wolves",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "00d59882-f368-4ea1-ad69-23f7a7d6c2f4",
+    "date": "2026-12-04",
+    "time": "13:15:00",
+    "away": "16U AA Jr Mets",
+    "home": "Utah Jr. Grizzlies",
+    "rink": "9530 Tramway Blvd NE, Albuquerque, NM, 87122, US",
+    "city": null
+  },
+  {
+    "id": "eb98b963-c997-482a-aa36-a9c7fef0e7a0",
+    "date": "2026-12-05",
+    "time": "09:15:00",
+    "away": "16U AA Jr Mets",
+    "home": "New Mexico Ice Wolves",
+    "rink": "9530 Tramway Blvd NE, Albuquerque, NM 87122, US",
+    "city": null
+  },
+  {
+    "id": "53ef5643-bb85-4764-a898-1057839e7771",
+    "date": "2026-12-05",
+    "time": "14:15:00",
+    "away": "16U AA Jr Mets",
+    "home": "Monument Hockey Club",
+    "rink": "9530 Tramway Blvd NE, Albuquerque, NM, 87122, US",
+    "city": null
+  },
+  {
+    "id": "ad571288-0e8d-4a52-9e39-d943206a62dd",
+    "date": "2026-12-06",
+    "time": "11:30:00",
+    "away": "16U AA Jr Mets",
+    "home": "Monument Hockey Club",
+    "rink": "9530 Tramway Blvd NE, Albuquerque, NM, 87122, US",
+    "city": null
+  },
+  {
+    "id": "e87efae5-4117-46d8-8eed-9aeff323ccda",
+    "date": "2027-01-02",
+    "time": "16:30:00",
+    "away": "Cascade Selects",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "1b5445b8-399d-4e74-b7d0-adab8b1ddec0",
+    "date": "2027-01-03",
+    "time": "08:45:00",
+    "away": "Cascade Selects",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "dce59f26-a323-448f-ba01-2641cc7b1db5",
+    "date": "2027-01-09",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Portland Jr. Winterhawks",
+    "rink": "1 North Center Court Street, Portland, OR, 97227, US",
+    "city": null
+  },
+  {
+    "id": "142aa25c-92cd-4ff0-baca-37c2cfc6d0e6",
+    "date": "2027-01-10",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Portland Jr Winterhawks",
+    "rink": "1 North Center Court Street, Portland, OR, 97227, US",
+    "city": null
+  },
+  {
+    "id": "800e2c87-760e-437c-898a-b1bf80b84bbf",
+    "date": "2027-01-23",
+    "time": "16:30:00",
+    "away": "Tri-Cities Jr Americans 16U",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "ab4adaac-9bcd-4160-b4be-9d535dfbda2a",
+    "date": "2027-01-24",
+    "time": "08:45:00",
+    "away": "Tri-Cities Jr Americans 16U",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue W, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "8252ba71-392a-4e3a-b841-4215c03ef234",
+    "date": "2027-01-30",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Cascade Selects",
+    "rink": "1349 Center Dr, Medford, OR, 97501, US",
+    "city": null
+  },
+  {
+    "id": "b539a1c0-dfcf-4f55-a441-53b3777433d3",
+    "date": "2027-01-31",
+    "time": null,
+    "away": "16U AA Jr Mets",
+    "home": "Cascade Selects",
+    "rink": "1349 Center Dr, Medford, OR, 97501, US",
+    "city": null
+  },
+  {
+    "id": "10da81ee-4d6c-42f1-b4d8-68db2a972b3c",
+    "date": "2027-02-20",
+    "time": "16:30:00",
+    "away": "Alaska Wolves",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue West, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  },
+  {
+    "id": "403cda72-183c-4946-beef-0e294b40325f",
+    "date": "2027-02-21",
+    "time": "08:45:00",
+    "away": "Alaska Wolves",
+    "home": "16U AA Jr Mets",
+    "rink": "22202 70th Avenue W, Mountlake Terrace, WA, 98043, US",
+    "city": null
+  }
+]
+
