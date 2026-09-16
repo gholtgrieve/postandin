@@ -342,15 +342,16 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               `?activity=drop-in-hockey` or `?activity=public-skate`
                               for activity-specific caches written by the
                               scheduler Worker.
-    rectimes.js, everett.js → per-rink live-scrape proxies
+    rectimes.js, everett.js → compatibility shims for older clients; reshape
+                              the shared schedule snapshot without live scraping
   /coaches/
     [slug].js              → Server-rendered coach profile pages (KV read-through cached, shares key `coaches:profile:v3:{slug}` with /api/coach/[slug].js)
 /lib/
   activities.js             → Shared activity constants plus exact, source-specific
                               Drop-in Hockey allowlists/classifiers. Stick & Puck is
                               the default activity for backward compatibility.
-  rinks.js                 → Rink config used by both schedule.js and the scheduler Worker
-  scrapeAll.js              → Shared scraper orchestration, used by schedule.js (fallback) and the scheduler cron
+  rinks.js                 → Rink config used by the scheduler Worker
+  scrapeAll.js              → Shared scraper orchestration used by the scheduler cron
   kvCache.js                → Generic KV read-through cache (stale-while-revalidate +
                               serve-stale-on-error). `readThrough(kv, key, freshMs,
                               staleTtlS, fetchFresh, waitUntil)`. Used by all three
@@ -697,7 +698,7 @@ concurrent request to slip into.
   in KV under those legacy keys.
 - Namespace: GROUPS. Bound as variable name GROUPS in both the Pages project
   and (cross-Worker) the `scheduler` Worker's `wrangler.toml`.
-- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, displayName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 2-hour TTL; coaches cache keys use a 24-hour TTL. Only schedule and coach cache keys are freely regenerable. Session and legacy group/RSVP keys are user data and must not be deleted without a verified backup and recovery plan.
+- Remaining KV keys: `session:{sessionId}` → `{displayName, groups:[{groupName, displayName, password, memberId, color}]}` (still KV, not part of the DO migration), plus any not-yet-migrated `group:{slug}` / `rsvp:{slug}` records, plus the activity-specific schedule keys `schedule:cache`, `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate` (see Rink Data Sources), plus the coaches read-through cache keys `coaches:list:v3` and `coaches:profile:v3:{slug}` (the cache family was added 2026-07-16 in commit `2b20051`; both current keys are versioned — see Data Flow — Coaches Directory). Schedule cache keys use a 48-hour retention TTL, although the public API serves them for at most 24 hours; coaches cache keys use a 24-hour TTL. Only schedule and coach cache keys are freely regenerable. Session and legacy group/RSVP keys are user data and must not be deleted without a verified backup and recovery plan.
 - Session key formats: Stick & Puck preserves
   `{rinkKey}|{YYYY-MM-DD}|{HH:MM}`; Drop-in Hockey and Public Skate append
   `|drop-in-hockey` and `|public-skate`, respectively. The activity suffix
@@ -889,7 +890,11 @@ two allowed workflow states with
 
 ## Rink Data Sources
 
-Single source of truth: `lib/rinks.js` (the `RINKS` config). Both `functions/api/schedule.js`'s cold-start fallback and the `scheduler` Worker's cron import this same file via `lib/scrapeAll.js` — add a new rink there and nothing else needs updating.
+Single source of truth: `lib/rinks.js` (the `RINKS` config). The scheduler
+Worker imports it through `lib/scrapeAll.js`; public Pages requests read the
+resulting KV snapshots and never invoke a rink scraper. Add a new rink to the
+config and update its source classification, tests, and audit expectations as
+needed.
 
 As of the last resync, the actual per-rink sources are:
 
@@ -938,11 +943,18 @@ into all supported activities during one scrape, then writes separate activity c
 parameter; omission and explicit `activity=stick-and-puck` both preserve the
 legacy `schedule:cache` behavior, while `activity=drop-in-hockey` reads
 `schedule:cache:drop-in-hockey`; `activity=public-skate` reads
-`schedule:cache:public-skate`. Unsupported values return `400`. Public Skate
+`schedule:cache:public-skate`. Unsupported values return `400`. A missing,
+malformed, future-dated, or more-than-24-hour-old snapshot returns `503` and
+does not trigger a live scrape. The scheduler retains snapshots in KV for 48
+hours so operators have a recovery window; values older than 45 minutes are
+marked stale, and per-rink carried results are masked after 24 hours. Public Skate
 has all-source infrastructure coverage and a public schedule page. Kent's separate
-iCal feeds fail independently. For each DaySmart source, the Public Skate feed
-fails independently of the combined hockey feed; a combined hockey-feed outage
-affects that source's Stick & Puck and Drop-in Hockey results together.
+iCal feeds fail independently. For each DaySmart source, the Public Skate event
+feed is separate from the combined hockey event feed, while resource and league
+JSON lookups are shared within one scheduler run. Each DaySmart JSON request is
+retried once; a failed shared lookup can still affect both feeds. A combined
+hockey-event-feed outage affects that source's Stick & Puck and Drop-in Hockey
+results together.
 Kraken Public Skate is selected from DaySmart sport `30`; Sno-King Public
 Skate is selected from event type `12`, then split among the existing Kirkland
 (`1`), Renton (`11`, `12`), and Snoqualmie (`13`, `14`) resource IDs. These

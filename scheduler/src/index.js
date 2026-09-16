@@ -8,9 +8,8 @@
 //  2. GROUPS backup (daily, ~3am Pacific): full export of the GROUPS KV
 //     namespace to R2. See src/backup.js.
 //
-// Manual triggers for testing (do not run in production on their own):
-//   curl https://<worker-subdomain>.workers.dev/trigger      (schedule cache)
-//   curl https://<worker-subdomain>.workers.dev/backup-now   (GROUPS backup)
+// Manual triggers require POST and the ADMIN_TRIGGER_TOKEN bearer secret.
+// See scheduler/README.md. Never include the token in a URL or logs.
 
 import { scrapeAll } from '../../lib/scrapeAll.js';
 import {
@@ -19,17 +18,14 @@ import {
   ACTIVITY_STICK_AND_PUCK,
   SUPPORTED_ACTIVITIES,
 } from '../../lib/activities.js';
+import { SCHEDULE_CACHE_KEYS, SCHEDULE_RETENTION_SECONDS } from '../../lib/scheduleCache.js';
 import { backupGroups } from './backup.js';
+import { handleManualRequest } from './manual.js';
+
+export { SCHEDULE_CACHE_KEYS } from '../../lib/scheduleCache.js';
 
 const BACKUP_CRON = '0 10 * * *';
-const CACHE_TTL_SECONDS = 2 * 60 * 60;
 const MAX_CARRY_MS = 24 * 60 * 60 * 1000;
-
-export const SCHEDULE_CACHE_KEYS = Object.freeze({
-  [ACTIVITY_STICK_AND_PUCK]: 'schedule:cache',
-  [ACTIVITY_DROP_IN_HOCKEY]: 'schedule:cache:drop-in-hockey',
-  [ACTIVITY_PUBLIC_SKATE]: 'schedule:cache:public-skate',
-});
 
 export default {
   async scheduled(event, env, ctx) {
@@ -42,21 +38,8 @@ export default {
     ctx.waitUntil(runScrape(env, { jitterRecTimes: true }));
   },
 
-  async fetch(req, env, _ctx) {
-    const path = new URL(req.url).pathname;
-
-    if (path === '/trigger') {
-      // Manual trigger: run immediately, no jitter, so testing isn't slow.
-      await runScrape(env);
-      return json({ ok: true, updatedAt: new Date().toISOString() });
-    }
-
-    if (path === '/backup-now') {
-      const result = await backupGroups(env);
-      return json({ ok: true, ...result });
-    }
-
-    return new Response('Not found', { status: 404 });
+  async fetch(req, env) {
+    return handleManualRequest(req, env, { scrape: runScrape, backup: backupGroups });
   },
 };
 
@@ -87,7 +70,7 @@ export async function writeScheduleCaches(env, data, { now = new Date() } = {}) 
     const prev = await env.SCHEDULE.get(cacheKey, { type: 'json' });
     const merged = carryLastKnownGood(current, prev, now.getTime(), activity);
     const payload = JSON.stringify({ fetchedAt, data: merged });
-    await env.SCHEDULE.put(cacheKey, payload, { expirationTtl: CACHE_TTL_SECONDS });
+    await env.SCHEDULE.put(cacheKey, payload, { expirationTtl: SCHEDULE_RETENTION_SECONDS });
   }
 
   return { updated: true, fetchedAt };
@@ -122,10 +105,4 @@ function carryLastKnownGood(data, prev, nowMs, activity) {
     console.error(`runScrape: ${activity}:${key} failed, carrying forward data from ${prevTs}`);
   }
   return data;
-}
-
-function json(body) {
-  return new Response(JSON.stringify(body), {
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

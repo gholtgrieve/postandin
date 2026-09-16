@@ -86,8 +86,8 @@ Browser (one of the three schedule pages)
 
 Cloudflare Pages Functions in `functions/api/`:
 
-- **`schedule.js`** — reads the selected activity's pre-scraped KV cache and safely falls back to an activity-scoped live scrape on a cache miss
-- **`rectimes.js`** and **`everett.js`** — legacy per-rink endpoints retained alongside the shared schedule path
+- **`schedule.js`** — reads the selected activity's scheduler-owned KV snapshot. Public requests never scrape; an unusable or more-than-24-hour-old snapshot returns `503`.
+- **`rectimes.js`** and **`everett.js`** — compatibility endpoints for older cached clients; they reshape the shared scheduler snapshot and do not scrape upstream
 
 ---
 

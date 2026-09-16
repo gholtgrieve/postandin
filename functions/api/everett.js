@@ -1,43 +1,59 @@
-// functions/api/everett.js
-// Cloudflare Pages Function — proxies the Angel of the Winds arena schedule API.
-// On fetch failure, serves the last good response from the Workers Cache API.
+// Compatibility endpoint for older cached clients. Reconstruct the legacy
+// response from the scheduler snapshot instead of scraping Everett again.
+import { handleScheduleRequest } from './schedule.js';
 
-const CACHE_KEY = new Request('https://cache.internal/postandin/everett-v1');
-const RESPONSE_HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Cache-Control': 'public, max-age=300',
-};
-
-export async function onRequest(ctx) {
-  const url = new URL(ctx.request.url);
+export async function onRequest(context) {
+  const url = new URL(context.request.url);
   const startDate = url.searchParams.get('startDate');
-  const endDate   = url.searchParams.get('endDate');
-  if (!startDate || !endDate)
-    return new Response(JSON.stringify({ error: 'Missing params' }), { status: 400 });
+  const endDate = url.searchParams.get('endDate');
+  if (!startDate || !endDate) return json(400, { error: 'Missing params' });
 
-  const upstream = `https://us-central1-aotw-arena.cloudfunctions.net/api/calendar/417/443?startDate=${startDate}&endDate=${endDate}`;
-  const cache = caches.default;
-
-  try {
-    const res = await fetch(upstream, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-
-    const body = await res.text();
-
-    // Cache the fresh payload; client always filters by date so stale data is still useful.
-    ctx.waitUntil(cache.put(CACHE_KEY, new Response(body, {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
-    })));
-
-    return new Response(body, { headers: RESPONSE_HEADERS });
-  } catch (e) {
-    const cached = await cache.match(CACHE_KEY);
-    if (cached) return new Response(await cached.text(), { headers: RESPONSE_HEADERS });
-    console.error(e.message, e.stack);
-    return new Response(JSON.stringify({ error: 'Everett schedule temporarily unavailable.' }), { status: 502 });
+  const isHead = context.request.method === 'HEAD';
+  const scheduleContext = isHead
+    ? { ...context, request: new Request(context.request.url, { method: 'GET', headers: context.request.headers }) }
+    : context;
+  const schedule = await handleScheduleRequest(scheduleContext);
+  if (!schedule.ok) return isHead ? head(schedule) : schedule;
+  const data = await schedule.json();
+  const rink = data.everett;
+  if (!rink?.ok) {
+    const failure = json(502, { error: 'Everett schedule temporarily unavailable.' });
+    return isHead ? head(failure) : failure;
   }
+  if (isHead) return head(schedule);
+
+  const bySheet = new Map([
+    ['Community Rink', []],
+    ['Main Rink', []],
+  ]);
+  for (const session of rink.sessions ?? []) {
+    const date = String(session.start ?? '').slice(0, 10);
+    if (!bySheet.has(session.sheet) || date < startDate || date > endDate) continue;
+    bySheet.get(session.sheet).push({
+      id: String(session.id ?? '').replace(/^everett-/, ''),
+      title: session.sourceLabel ?? session.title,
+      startDate: date,
+      startTime: String(session.start ?? '').slice(11),
+      endTime: String(session.end ?? '').slice(11),
+    });
+  }
+
+  return json(200, [...bySheet].map(([name, slots]) => ({ name, slots })), schedule.headers);
+}
+
+function head(source) {
+  return new Response(null, { status: source.status, headers: source.headers });
+}
+
+function json(status, body, sourceHeaders) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': sourceHeaders?.get('Cache-Control') ?? 'no-store',
+      ...(sourceHeaders?.get('X-Cache') ? { 'X-Cache': sourceHeaders.get('X-Cache') } : {}),
+      ...(sourceHeaders?.get('X-Fetched-At') ? { 'X-Fetched-At': sourceHeaders.get('X-Fetched-At') } : {}),
+    },
+  });
 }

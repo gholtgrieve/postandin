@@ -9,7 +9,7 @@ import {
   allData, setAllData, activeFilter, setActiveFilter,
   selectedRinks, sessionMap
 } from '/stick-and-puck/modules/state.js';
-import { updateGoingIndicators } from '/stick-and-puck/modules/rsvp.js?v=20260827';
+import { updateGoingIndicators, updateIndicatorEl } from '/stick-and-puck/modules/rsvp.js?v=20260916';
 import { getActivityConfig } from '/stick-and-puck/modules/activity-config.js?v=20260826b';
 import {
   CALENDAR_SVG, downloadCalendarEvent, hasExactCalendarTimes
@@ -102,7 +102,7 @@ function renderLegend(data) {
   }
 }
 
-export function renderSessions(data) {
+export function renderSessions(data, { refreshRsvp = false } = {}) {
   const content = document.getElementById("content");
   const now = new Date();
   const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
@@ -204,7 +204,11 @@ export function renderSessions(data) {
   }
 
   content.innerHTML = html;
-  if (GROUPS_ENABLED && getGroups().length) void updateGoingIndicators();
+  if (GROUPS_ENABLED && getGroups().length) {
+    if (refreshRsvp) void updateGoingIndicators();
+    else document.querySelectorAll('.going-btn').forEach(btn =>
+      updateIndicatorEl(btn, btn.dataset.sessionKey));
+  }
 
   const total = all.length;
   const liveRinks = new Set(all.map(s => s.rinkKey)).size;
@@ -270,7 +274,16 @@ document.getElementById('content').addEventListener('keydown', event => {
 
 // ─── App bootstrap ────────────────────────────────────────────────────────────
 
+let loadPromise = null;
+let lastLoadedAt = 0;
+
 async function loadData() {
+  if (loadPromise) return loadPromise;
+  loadPromise = loadDataOnce().finally(() => { loadPromise = null; });
+  return loadPromise;
+}
+
+async function loadDataOnce() {
   const btn = document.getElementById("refreshBtn");
   btn.classList.add("spinning");
   showSkeletons();
@@ -281,7 +294,8 @@ async function loadData() {
     const totalSessions = Object.values(allData).reduce((n, r) => n + r.sessions.length, 0);
     showStatus(`Loaded ${totalSessions} sessions`, "success");
     renderLegend(allData);
-    renderSessions(allData);
+    renderSessions(allData, { refreshRsvp: true });
+    lastLoadedAt = Date.now();
   } catch (err) {
     showStatus("We couldn't load today's schedule. Try refreshing in a moment.", "error");
     document.getElementById("content").innerHTML = `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Load failed</h3><p>We couldn't load today's schedule. Try refreshing in a moment.</p></div>`;
@@ -303,8 +317,14 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
 // Refresh button
 document.getElementById("refreshBtn").addEventListener("click", loadData);
 
-// Auto-refresh every 10 minutes
-setInterval(loadData, 10 * 60 * 1000);
+// Keep active tabs current without polling while the page is hidden.
+const AUTO_REFRESH_MS = 10 * 60 * 1000;
+setInterval(() => {
+  if (!document.hidden) void loadData();
+}, AUTO_REFRESH_MS);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Date.now() - lastLoadedAt >= AUTO_REFRESH_MS) void loadData();
+});
 
 // Initial load
 loadData();

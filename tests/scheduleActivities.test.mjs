@@ -19,6 +19,7 @@ import {
   classifyRecTimesActivity,
 } from '../lib/activities.js';
 import {
+  createDaySmartJsonLoader,
   includedTeamMap,
   normalizeDaySmartEvents,
   scrapeDaySmart,
@@ -50,6 +51,35 @@ const fixture = name => JSON.parse(readFileSync(
 const jsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
   headers: { 'Content-Type': 'application/json' },
+});
+
+test('one DaySmart scrape fetches each identical JSON URL once', async () => {
+  let calls = 0;
+  const loadJson = createDaySmartJsonLoader(async () => {
+    calls++;
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return jsonResponse({ ok: true });
+  });
+
+  const [first, second] = await Promise.all([
+    loadJson('https://example.test/shared-feed'),
+    loadJson('https://example.test/shared-feed'),
+  ]);
+  assert.deepEqual(first, { ok: true });
+  assert.deepEqual(second, { ok: true });
+  assert.equal(calls, 1);
+});
+
+test('DaySmart retries a transient shared JSON failure once', async () => {
+  let calls = 0;
+  const loadJson = createDaySmartJsonLoader(async () => {
+    calls++;
+    if (calls === 1) throw new Error('temporary network error');
+    return jsonResponse({ recovered: true });
+  });
+
+  assert.deepEqual(await loadJson('https://example.test/transient'), { recovered: true });
+  assert.equal(calls, 2);
 });
 
 test('source classifiers use reviewed exact Drop-in Hockey labels', () => {

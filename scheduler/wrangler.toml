@@ -36,3 +36,8 @@ bucket_name = "postandin-backups"
 name = "GROUP_DO"
 class_name = "GroupDO"
 script_name = "postandin-group-do"
+
+# Cloudflare analytics for Sep 1-16, 2026 showed ~1.9s scheduler CPU p99;
+# 10s preserves >5x headroom while bounding a runaway scrape.
+[limits]
+cpu_ms = 10000

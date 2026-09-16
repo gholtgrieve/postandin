@@ -134,7 +134,8 @@ export class GroupDO extends DurableObject {
     const members = (await this.ctx.storage.get('members')) ?? [];
     const existing = members.find(m => m.id === memberId);
     if (existing) {
-      if (displayName) existing.displayName = displayName;
+      if (!displayName || existing.displayName === displayName) return { ok: true };
+      existing.displayName = displayName;
     } else {
       members.push({ id: memberId, displayName: displayName || '' });
     }
@@ -161,16 +162,17 @@ export class GroupDO extends DurableObject {
 
     const rsvp = (await this.ctx.storage.get('rsvp')) ?? {};
 
-    if (!rsvp[sessionKey]) rsvp[sessionKey] = [];
+    const before = JSON.stringify(rsvp);
     if (going) {
+      if (!rsvp[sessionKey]) rsvp[sessionKey] = [];
       if (!rsvp[sessionKey].includes(displayName)) rsvp[sessionKey].push(displayName);
-    } else {
+    } else if (rsvp[sessionKey]) {
       rsvp[sessionKey] = rsvp[sessionKey].filter(n => n !== displayName);
     }
 
     pruneStale(rsvp);
 
-    await this.ctx.storage.put('rsvp', rsvp);
+    if (JSON.stringify(rsvp) !== before) await this.ctx.storage.put('rsvp', rsvp);
 
     return { going: rsvp[sessionKey] ?? [] };
   }

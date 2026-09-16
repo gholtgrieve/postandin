@@ -1,29 +1,38 @@
-// functions/api/rectimes.js
-// Thin wrapper around the shared scraper.
+// Compatibility endpoint for older cached clients. Read the scheduler snapshot
+// instead of starting another RecTimes scrape on every request.
+import { handleScheduleRequest } from './schedule.js';
 
-import { scrapeRecTimes } from '../../lib/scrapers/rectimes.js';
-
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Cache-Control': 'public, max-age=300',
-};
+const RINK_BY_VENUE = Object.freeze({ 1145: 'olympicview', 1146: 'lynnwood' });
 
 export async function onRequest(context) {
-  const url = new URL(context.request.url);
-  const venueId = parseInt(url.searchParams.get('venueId'), 10);
-  if (!venueId) {
-    return new Response(JSON.stringify({ error: 'Missing venueId' }), { status: 400, headers: HEADERS });
-  }
+  const venueId = Number.parseInt(new URL(context.request.url).searchParams.get('venueId'), 10);
+  const rinkKey = RINK_BY_VENUE[venueId];
+  if (!rinkKey) return json(400, { error: 'Missing or unsupported venueId' });
 
-  try {
-    const sessions = await scrapeRecTimes({ venueId });
-    return new Response(JSON.stringify({ ok: true, sessions }), { headers: HEADERS });
-  } catch (e) {
-    console.error(e.message, e.stack);
-    return new Response(
-      JSON.stringify({ ok: false, error: 'RecTimes schedule temporarily unavailable.', sessions: [] }),
-      { status: 200, headers: HEADERS },
-    );
-  }
+  const schedule = await handleScheduleRequest(context);
+  if (!schedule.ok) return schedule;
+  if (context.request.method === 'HEAD') return head(schedule);
+  const data = await schedule.json();
+  const rink = data[rinkKey];
+  return json(200, rink?.ok
+    ? { ok: true, sessions: rink.sessions ?? [] }
+    : { ok: false, error: rink?.error ?? 'RecTimes schedule temporarily unavailable.', sessions: [] },
+  schedule.headers);
+}
+
+function head(source) {
+  return new Response(null, { status: source.status, headers: source.headers });
+}
+
+function json(status, body, sourceHeaders) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': sourceHeaders?.get('Cache-Control') ?? 'no-store',
+      ...(sourceHeaders?.get('X-Cache') ? { 'X-Cache': sourceHeaders.get('X-Cache') } : {}),
+      ...(sourceHeaders?.get('X-Fetched-At') ? { 'X-Fetched-At': sourceHeaders.get('X-Fetched-At') } : {}),
+    },
+  });
 }

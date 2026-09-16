@@ -79,22 +79,22 @@ test('shared asset cache versions are exact and synchronized across page shells'
   for (const [path, html] of Object.entries(pages)) {
     assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260826b',
       `${path} has an unexpected schedule.css cache version`);
-    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260827',
+    assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260916',
       `${path} has an unexpected main.js cache version`);
   }
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260827');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260827');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/schedule.js'), '20260916');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/main.js'], '/stick-and-puck/modules/groups-ui.js'), '20260916');
   assert.equal(cacheVersion(modules['stick-and-puck/modules/schedule.js'], '/stick-and-puck/modules/activity-config.js'), '20260826b');
-  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260827');
+  assert.equal(cacheVersion(modules['stick-and-puck/modules/groups-ui.js'], '/stick-and-puck/modules/schedule.js'), '20260916');
 
   const scheduleVersions = Object.values(modules)
     .flatMap(source => matches(source, /\/stick-and-puck\/modules\/schedule\.js\?v=([^'"\s]+)/g));
-  assert.deepEqual([...new Set(scheduleVersions)], ['20260827'],
+  assert.deepEqual([...new Set(scheduleVersions)], ['20260916'],
     'every schedule.js importer must use one URL so module side effects run once');
 
   const rsvpVersions = Object.values(modules)
     .flatMap(source => matches(source, /\/stick-and-puck\/modules\/rsvp\.js\?v=([^'"\s]+)/g));
-  assert.deepEqual([...new Set(rsvpVersions)], ['20260827'],
+  assert.deepEqual([...new Set(rsvpVersions)], ['20260916'],
     'every rsvp.js importer must use one URL so shared RSVP state stays unified');
 
   const utilsVersions = Object.values(modules)
@@ -106,6 +106,20 @@ test('shared asset cache versions are exact and synchronized across page shells'
     .flatMap(source => matches(source, /\/stick-and-puck\/modules\/storage\.js\?v=([^'"\s]+)/g));
   assert.deepEqual([...new Set(storageVersions)], ['20260827'],
     'every storage.js importer must use one URL so Groups state stays unified');
+});
+
+test('filters repaint cached RSVP state without network calls and background refresh pauses while hidden', () => {
+  const schedule = modules['stick-and-puck/modules/schedule.js'];
+  const rsvp = modules['stick-and-puck/modules/rsvp.js'];
+  assert.match(schedule, /renderSessions\(data, \{ refreshRsvp = false \} = \{\}\)/);
+  assert.match(schedule, /if \(refreshRsvp\) void updateGoingIndicators\(\)/);
+  assert.match(schedule, /if \(!document\.hidden\) void loadData\(\)/);
+  assert.match(schedule, /visibilitychange/);
+  assert.match(schedule, /if \(loadPromise\) return loadPromise/);
+  assert.match(rsvp, /currentRequestKey !== requestKey/,
+    'an RSVP response for a previous group selection must not repaint current state');
+  assert.match(rsvp, /activeRsvpWrites \|\| mutationVersion !== rsvpMutationVersion/,
+    'an in-flight RSVP read must not overwrite a newer RSVP write');
 });
 
 test('Female/Non-Binary filtering uses normalized audience data with legacy cache fallback', () => {

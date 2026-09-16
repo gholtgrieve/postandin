@@ -118,6 +118,48 @@ test('cold cache fetches upstream and stores the result', async () => {
   assert.equal(JSON.parse(kv.store.get('k-cold')).data, 'first-fetch');
 });
 
+test('concurrent cold requests share one upstream fetch', async () => {
+  const kv = makeKv();
+  let calls = 0;
+  const fetchFresh = async () => {
+    calls++;
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return 'first-fetch';
+  };
+  const results = await Promise.all([
+    readThrough(kv, 'k-cold-concurrent', FRESH_MS, STALE_TTL_S, fetchFresh, () => {}),
+    readThrough(kv, 'k-cold-concurrent', FRESH_MS, STALE_TTL_S, fetchFresh, () => {}),
+    readThrough(kv, 'k-cold-concurrent', FRESH_MS, STALE_TTL_S, fetchFresh, () => {}),
+  ]);
+
+  assert.deepEqual(results, ['first-fetch', 'first-fetch', 'first-fetch']);
+  assert.equal(calls, 1);
+});
+
+test('a cold KV write failure does not discard successful upstream data', async () => {
+  const kv = {
+    async get() { return null; },
+    async put() { throw new Error('KV write unavailable'); },
+  };
+  const pending = collectWaitUntil();
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const result = await readThrough(
+      kv,
+      'k-cold-write-fail',
+      FRESH_MS,
+      STALE_TTL_S,
+      async () => 'usable-upstream-data',
+      pending.waitUntil,
+    );
+    assert.equal(result, 'usable-upstream-data');
+    await assert.doesNotReject(pending.flush());
+  } finally {
+    console.error = originalError;
+  }
+});
+
 test('cold cache rethrows when the upstream fetch fails', async () => {
   const kv = makeKv();
   const { waitUntil } = collectWaitUntil();

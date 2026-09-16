@@ -35,30 +35,50 @@ export function updateIndicatorEl(btn, sk) {
   btn.classList.add('has-going');
 }
 
+const rsvpRequests = new Map();
+let rsvpMutationVersion = 0;
+let activeRsvpWrites = 0;
+
 export async function updateGoingIndicators() {
   if (!GROUPS_ENABLED) return;
   const groups = getGroups();
   if (!groups.length) return;
   const btns = [...document.querySelectorAll('.going-btn')];
   if (!btns.length) return;
-  const keys = [...new Set(btns.map(b => b.dataset.sessionKey))];
-
   // One request for all groups instead of one per (session × group).
-  const slugs = groups.map(g => getGroupSlug(g));
+  const slugs = [...new Set(groups.map(g => getGroupSlug(g)))];
+  const requestKey = slugs.join(',');
+  const mutationVersion = rsvpMutationVersion;
   let groupMaps = {};
   try {
-    const r = await fetch(`/api/groups/rsvp?groupSlugs=${slugs.map(encodeURIComponent).join(',')}`);
-    if (r.ok) groupMaps = await r.json();
+    if (!rsvpRequests.has(requestKey)) {
+      const request = (async () => {
+        const r = await fetch(`/api/groups/rsvp?groupSlugs=${slugs.map(encodeURIComponent).join(',')}`);
+        return r.ok ? r.json() : {};
+      })().finally(() => {
+        rsvpRequests.delete(requestKey);
+      });
+      rsvpRequests.set(requestKey, request);
+    }
+    groupMaps = await rsvpRequests.get(requestKey);
   } catch {}
 
-  for (const sk of keys) {
+  // A create/join/leave can change the active groups while this request is in
+  // flight. Ignore the old response instead of repainting the new group state.
+  const currentRequestKey = [...new Set(getGroups().map(g => getGroupSlug(g)))].join(',');
+  if (currentRequestKey !== requestKey || activeRsvpWrites || mutationVersion !== rsvpMutationVersion) return;
+
+  // The DOM can be rerendered while the shared request is in flight.
+  const currentBtns = [...document.querySelectorAll('.going-btn')];
+  const currentKeys = [...new Set(currentBtns.map(b => b.dataset.sessionKey))];
+  for (const sk of currentKeys) {
     rsvpCache[sk] = {};
     for (const slug of slugs) {
       rsvpCache[sk][slug] = (groupMaps[slug] ?? {})[sk] ?? [];
     }
   }
 
-  btns.forEach(btn => updateIndicatorEl(btn, btn.dataset.sessionKey));
+  currentBtns.forEach(btn => updateIndicatorEl(btn, btn.dataset.sessionKey));
   maybeShowIconTip();
 }
 
@@ -93,17 +113,23 @@ export async function doToggleGoing(s, sk, goingValue) {
   const displayName = getDisplayName();
   if (!groups.length || !displayName) return;
   rsvpCache[sk] = rsvpCache[sk] ?? {};
-  await Promise.all(groups.map(async g => {
-    const slug = getGroupSlug(g);
-    try {
-      const r = await fetch('/api/groups/rsvp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: goingValue }),
-      });
-      rsvpCache[sk][slug] = (await r.json()).going ?? [];
-    } catch(e) { console.error('RSVP error', e); }
-  }));
+  rsvpMutationVersion++;
+  activeRsvpWrites++;
+  try {
+    await Promise.all(groups.map(async g => {
+      const slug = getGroupSlug(g);
+      try {
+        const r = await fetch('/api/groups/rsvp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: goingValue }),
+        });
+        rsvpCache[sk][slug] = (await r.json()).going ?? [];
+      } catch(e) { console.error('RSVP error', e); }
+    }));
+  } finally {
+    activeRsvpWrites--;
+  }
   document.querySelectorAll(`.going-btn[data-session-key="${CSS.escape(sk)}"]`).forEach(btn => {
     updateIndicatorEl(btn, sk);
   });
@@ -146,18 +172,24 @@ export async function backfillRsvpForGroup(g) {
   const displayName = getDisplayName();
   if (!displayName) return;
   const slug = getGroupSlug(g);
-  await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
-    const amGoing = Object.values(byGroup).some(names =>
-      names.some(n => n.toLowerCase() === displayName.toLowerCase())
-    );
-    if (!amGoing) return;
-    try {
-      const r = await fetch('/api/groups/rsvp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: true }),
-      });
-      if (r.ok) rsvpCache[sk][slug] = (await r.json()).going ?? [];
-    } catch {}
-  }));
+  rsvpMutationVersion++;
+  activeRsvpWrites++;
+  try {
+    await Promise.all(Object.entries(rsvpCache).map(async ([sk, byGroup]) => {
+      const amGoing = Object.values(byGroup).some(names =>
+        names.some(n => n.toLowerCase() === displayName.toLowerCase())
+      );
+      if (!amGoing) return;
+      try {
+        const r = await fetch('/api/groups/rsvp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionKey: sk, groupSlug: slug, memberId: g.memberId, displayName, going: true }),
+        });
+        if (r.ok) rsvpCache[sk][slug] = (await r.json()).going ?? [];
+      } catch {}
+    }));
+  } finally {
+    activeRsvpWrites--;
+  }
 }

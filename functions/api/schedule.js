@@ -1,64 +1,62 @@
-// GET /api/schedule
-// Serves the pre-scraped schedule from KV (written by the scheduler Worker every 30 min).
-// Falls back to a live scrape on first deploy before the scheduler has run.
-
-import { scrapeAll } from '../../lib/scrapeAll.js';
+// Public reads never scrape. Only the scheduler writes these snapshots.
 import {
-  ACTIVITY_DROP_IN_HOCKEY,
-  ACTIVITY_PUBLIC_SKATE,
-  ACTIVITY_STICK_AND_PUCK,
-  SUPPORTED_ACTIVITIES,
-} from '../../lib/activities.js';
-
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Cache-Control': 'public, max-age=120',
-};
-
-const SCHEDULE_CACHE_KEYS = Object.freeze({
-  [ACTIVITY_STICK_AND_PUCK]: 'schedule:cache',
-  [ACTIVITY_DROP_IN_HOCKEY]: 'schedule:cache:drop-in-hockey',
-  [ACTIVITY_PUBLIC_SKATE]: 'schedule:cache:public-skate',
-});
+  SCHEDULE_CACHE_KEYS, SCHEDULE_CLOCK_SKEW_MS, SCHEDULE_FRESH_MS, SCHEDULE_MAX_AGE_MS,
+} from '../../lib/scheduleCache.js';
 
 export async function onRequest(context) {
   return handleScheduleRequest(context);
 }
 
-export async function handleScheduleRequest(context, { scrape = scrapeAll } = {}) {
-  const activity = new URL(context.request.url).searchParams.get('activity')
-    ?? ACTIVITY_STICK_AND_PUCK;
-
-  if (!SUPPORTED_ACTIVITIES.includes(activity)) {
-    return errorResponse(400, 'Unsupported activity.');
+export async function handleScheduleRequest(context, { now = Date.now() } = {}) {
+  if (!['GET', 'HEAD'].includes(context.request.method)) {
+    return unavailable(405, 'Method not allowed.', { Allow: 'GET, HEAD' });
   }
-
+  const activity = new URL(context.request.url).searchParams.get('activity') ?? 'stick-and-puck';
+  if (!Object.hasOwn(SCHEDULE_CACHE_KEYS, activity)) {
+    return unavailable(400, 'Unsupported activity.');
+  }
   try {
-    const { GROUPS } = context.env;
-    if (GROUPS) {
-      const cached = await GROUPS.get(SCHEDULE_CACHE_KEYS[activity], { type: 'json' });
-      if (cached?.data) {
-        return new Response(JSON.stringify(cached.data), {
-          headers: { ...HEADERS, 'X-Cache': 'HIT', 'X-Fetched-At': cached.fetchedAt ?? '' },
-        });
-      }
+    const cached = await context.env.GROUPS?.get(SCHEDULE_CACHE_KEYS[activity], { type: 'json' });
+    const rawAge = now - Date.parse(cached?.fetchedAt);
+    if (!cached?.data || !Number.isFinite(rawAge) || rawAge < -SCHEDULE_CLOCK_SKEW_MS || rawAge > SCHEDULE_MAX_AGE_MS) {
+      return unavailable(503, 'Schedule temporarily unavailable.', { 'Retry-After': '300' });
     }
-
-    // Cold-start fallback: live scrape (runs only until the first cron fires).
-    const data = await scrape({ activities: [activity] });
-    return new Response(JSON.stringify(data), {
-      headers: { ...HEADERS, 'X-Cache': 'MISS' },
+    const age = Math.max(0, rawAge);
+    let stale = age > SCHEDULE_FRESH_MS;
+    const data = Object.fromEntries(Object.entries(cached.data).map(([key, entry]) => {
+      // A carried rink result has its own age; a healthy sibling must not
+      // keep that older result alive indefinitely.
+      const fetchedAt = entry.fetchedAt ?? cached.fetchedAt;
+      const rawRinkAge = now - Date.parse(fetchedAt);
+      if (entry.ok && (!Number.isFinite(rawRinkAge) || rawRinkAge < -SCHEDULE_CLOCK_SKEW_MS || rawRinkAge > SCHEDULE_MAX_AGE_MS)) {
+        stale = true;
+        return [key, { ok: false, sessions: [], error: 'Schedule temporarily unavailable for this rink.' }];
+      }
+      const rinkAge = Math.max(0, rawRinkAge);
+      if (entry.stale || (entry.ok && rinkAge > SCHEDULE_FRESH_MS)) {
+        stale = true;
+        return [key, { ...entry, stale: true, fetchedAt }];
+      }
+      return [key, entry];
+    }));
+    return new Response(context.request.method === 'HEAD' ? null : JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=120',
+        'X-Cache': stale ? 'STALE' : 'HIT',
+        'X-Fetched-At': cached.fetchedAt,
+      },
     });
   } catch (error) {
-    console.error('schedule request failed:', error?.message, error?.stack);
-    return errorResponse(502, 'Schedule temporarily unavailable.');
+    console.error('schedule cache read failed', activity, error?.message, error?.stack);
+    return unavailable(503, 'Schedule temporarily unavailable.', { 'Retry-After': '300' });
   }
 }
 
-function errorResponse(status, message) {
-  return new Response(JSON.stringify({ error: message }), {
+function unavailable(status, error, extra = {}) {
+  return new Response(JSON.stringify({ error }), {
     status,
-    headers: { ...HEADERS, 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store', ...extra },
   });
 }

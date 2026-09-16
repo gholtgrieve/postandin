@@ -15,16 +15,16 @@ import {
 } from '/stick-and-puck/modules/state.js';
 import {
   allUniqueGoing, activeUniqueGoing, updateIndicatorEl,
-  updateGoingIndicators, maybeShowIconTip, doToggleGoing,
+  maybeShowIconTip, doToggleGoing,
   _refreshSheetContent, backfillRsvpForGroup
-} from '/stick-and-puck/modules/rsvp.js?v=20260827';
-import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260827';
+} from '/stick-and-puck/modules/rsvp.js?v=20260916';
+import { renderSessions, showStatus } from '/stick-and-puck/modules/schedule.js?v=20260916';
 import {
   closeGroupSheet, renderGroupsRow, renderModalGroupsList, openBottomSheet,
   closeBottomSheet, _refreshModalNameSection, updateDisplayNameAndBackfill,
   showJoinConfirm, openGroupModal, closeGroupModal, closeIntroModal,
   maybeShowIntroModal
-} from '/stick-and-puck/modules/groups-ui.js?v=20260827';
+} from '/stick-and-puck/modules/groups-ui.js?v=20260916';
 
 if (GROUPS_ENABLED) {
   migrateStorage();
@@ -144,7 +144,7 @@ if (GROUPS_ENABLED) {
       _refreshModalNameSection();
       renderModalGroupsList();
       renderGroupsRow();
-      if (allData) renderSessions(allData);
+      if (allData) renderSessions(allData, { refreshRsvp: true });
       if (!localStorage.getItem('postandin_join_confirmed')) {
         showJoinConfirm('Group created!');
       } else {
@@ -196,7 +196,7 @@ if (GROUPS_ENABLED) {
       _refreshModalNameSection();
       renderModalGroupsList();
       renderGroupsRow();
-      if (allData) renderSessions(allData);
+      if (allData) renderSessions(allData, { refreshRsvp: true });
       if (!localStorage.getItem('postandin_join_confirmed')) {
         showJoinConfirm("You're in!");
       } else {
@@ -233,8 +233,7 @@ if (GROUPS_ENABLED) {
     await initSession();
     renderGroupsRow();
     if (allData) {
-      renderSessions(allData);
-      void updateGoingIndicators();
+      renderSessions(allData, { refreshRsvp: true });
     }
     maybeShowIntroModal();
   })();

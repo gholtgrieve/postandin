@@ -11,9 +11,14 @@ A standalone Cloudflare Worker with two independent cron jobs:
    legacy write fails, those keys may be newer while the intact legacy value
    remains until the next run.
    Kent's Stick & Puck and Public Skate calendars are fetched independently.
-   For each DaySmart source, the Public Skate feed is independent of the
-   combined hockey feed; a hockey-feed failure affects that source's Stick &
-   Puck and Drop-in Hockey results together.
+   For each DaySmart source, the Public Skate event feed is independent of the
+   combined hockey event feed; a hockey-feed failure affects that source's Stick
+   & Puck and Drop-in Hockey results together. Resource and league JSON lookups
+   are shared within one run, so a failed shared lookup can affect both feeds;
+   each JSON request gets one retry before that run is treated as failed.
+   Identical DaySmart JSON URLs are fetched once per cron run and shared across
+   rink normalizers. Snapshots remain in KV for 48 hours for recovery, but the
+   public API refuses to serve a snapshot or carried rink result after 24 hours.
 2. **GROUPS backup** (daily) — exports the entire GROUPS KV namespace to R2. See
    [GROUPS backups](#groups-backups-data-safety-layer) below — read that section
    *before* you need it, i.e. before running any bulk-delete/reset operation.
@@ -27,6 +32,20 @@ A standalone Cloudflare Worker with two independent cron jobs:
 
 **Pushing to GitHub does NOT update the scheduler.** Run `wrangler deploy` from
 `scheduler/` each time you change scraping *or backup* logic.
+
+For the cache-reader hardening change, deploy in this order after review:
+
+1. Set `ADMIN_TRIGGER_TOKEN`, deploy `scheduler/`, and run one authenticated
+   `/trigger` request so all three snapshots have the 48-hour retention TTL.
+2. Deploy `group-do/` to enable the no-op write reductions.
+3. Merge the Pages changes only after the fresh snapshots are present. Pages
+   then switches to cache-only public reads and keeps the old RecTimes/Everett
+   routes as snapshot-backed compatibility shims.
+
+To roll back, restore the prior Pages revision first so cache misses can use its
+old behavior, then deploy the prior `scheduler/` and `group-do/` revisions.
+Each Worker has a separate deployment history; a Pages rollback does not roll
+either Worker back.
 
 ## First-time setup
 
@@ -43,18 +62,28 @@ A standalone Cloudflare Worker with two independent cron jobs:
    - Confirm the `BACKUPS` bucket and `GROUP_DO` service binding names match
      production. Change them only when the corresponding resource changes.
 
-4. **Deploy the scheduler**
+4. **Configure the manual-operation secret.** Generate a random value of at
+   least 32 characters, store it in a password manager, then add it as a Worker
+   secret. Do not put the value in `wrangler.toml`, shell history, or a URL.
+   ```sh
+   cd scheduler
+   wrangler secret put ADMIN_TRIGGER_TOKEN
+   ```
+
+5. **Deploy the scheduler**
    ```sh
    cd scheduler
    wrangler deploy
    ```
 
-5. **Verify**
+6. **Verify**
    - In the Cloudflare dashboard, go to Workers & Pages → `postandin-scheduler`
    - Check the Cron Triggers tab — you should see `*/30 * * * *`
-   - Optionally trigger a manual run via the `/trigger` endpoint:
+   - Optionally trigger a manual run via the authenticated `/trigger` endpoint:
      ```sh
-     curl https://postandin-scheduler.<your-subdomain>.workers.dev/trigger
+     read -s ADMIN_TRIGGER_TOKEN
+     curl -X POST -H "Authorization: Bearer $ADMIN_TRIGGER_TOKEN" https://postandin-scheduler.<your-subdomain>.workers.dev/trigger
+     unset ADMIN_TRIGGER_TOKEN
      ```
    - After the first successful run, check KV for `schedule:cache`,
      `schedule:cache:drop-in-hockey`, and `schedule:cache:public-skate`
@@ -127,11 +156,14 @@ with Wrangler or in the dashboard (see below).
 **On-demand backup:** force a backup immediately — e.g. right before any
 deliberate risky operation — by hitting:
 ```sh
-curl https://postandin-scheduler.<your-subdomain>.workers.dev/backup-now
+read -s ADMIN_TRIGGER_TOKEN
+curl -X POST -H "Authorization: Bearer $ADMIN_TRIGGER_TOKEN" https://postandin-scheduler.<your-subdomain>.workers.dev/backup-now
+unset ADMIN_TRIGGER_TOKEN
 ```
-This runs synchronously and returns the R2 path once the backup is written.
-The `/backup-now` and `/trigger` routes are currently unauthenticated; treat
-their URLs as operationally sensitive until endpoint authentication is added.
+This runs synchronously and returns `{ "ok": true }` once the backup is written.
+Both manual routes accept only `POST` and require the `ADMIN_TRIGGER_TOKEN`
+bearer secret. They fail closed when the secret is missing or shorter than 32
+characters.
 `scripts/admin-purge.js` (see repo root) does **not** call this endpoint. It
 creates its own dated KV snapshot before deleting KV keys. That local snapshot
 does not include Durable Object exports; run `/backup-now` separately when a
@@ -160,7 +192,8 @@ fresh best-effort DO export is required.
    ```sh
    wrangler r2 bucket lifecycle list postandin-backups
    ```
-6. **Test end to end:** hit `/backup-now` (see above) and confirm the object
+6. **Test end to end:** call `/backup-now` with the authenticated `POST` request
+   above and confirm the object
    shows up: `wrangler r2 object get postandin-backups/backups/groups-<today>.json --file /tmp/check.json --remote`
 
 ### KV restore procedure (partial disaster recovery)
@@ -235,7 +268,8 @@ All scraping logic lives in `lib/scrapers/`:
   reviewed activities include the Main and Community sheets, and each session
   preserves its source sheet)
 
-Both the scheduler and the Pages Function at `/api/schedule` import from these.
+Only the scheduler imports these scraper modules. The Pages schedule endpoints
+read and reshape scheduler-owned KV snapshots.
 
 ## KV key layout (for reference)
 

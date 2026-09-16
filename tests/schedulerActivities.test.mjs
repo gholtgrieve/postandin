@@ -115,7 +115,7 @@ test('scheduler writes activity caches separately and preserves the legacy Stick
     'schedule:cache:drop-in-hockey',
     'schedule:cache',
   ]);
-  assert.ok(kv.writes.every(write => write.options.expirationTtl === 7200));
+  assert.ok(kv.writes.every(write => write.options.expirationTtl === 172800));
 
   const publicSkate = kv.writes[0].value;
   assert.deepEqual(publicSkate.data.kraken.sessions.map(s => s.title), ['Current Public Skate']);

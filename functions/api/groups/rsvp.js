@@ -35,7 +35,11 @@ async function handleGet(context) {
 
   const url   = new URL(context.request.url);
   const raw   = url.searchParams.get('groupSlugs') ?? '';
-  const slugs = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (raw.length > 4096) return json(400, { error: 'Too many groups.' });
+  const slugs = [...new Set(raw.split(',').map(s => s.trim()).filter(Boolean))];
+  if (slugs.length > 20 || slugs.some(slug => slug.length > 81 || !slug.includes('|'))) {
+    return json(400, { error: 'Invalid group list.' });
+  }
   if (!slugs.length) return json(400, { error: 'groupSlugs is required' });
 
   const results = await Promise.all(

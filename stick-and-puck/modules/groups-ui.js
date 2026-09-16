@@ -12,10 +12,10 @@ import {
 } from '/stick-and-puck/modules/state.js';
 import {
   updateIndicatorEl, _refreshSheetContent
-} from '/stick-and-puck/modules/rsvp.js?v=20260827';
+} from '/stick-and-puck/modules/rsvp.js?v=20260916';
 import {
   renderSessions, showStatus
-} from '/stick-and-puck/modules/schedule.js?v=20260827';
+} from '/stick-and-puck/modules/schedule.js?v=20260916';
 
 // ─── Group feature ─────────────────────────────────────────────────────────────
 // Multi-group model: displayName is stored at a top-level key shared across all
@@ -218,7 +218,7 @@ export function renderModalGroupsList() {
       setGroups(current.filter((_, i) => i !== idx));
       renderModalGroupsList();
       renderGroupsRow();
-      if (allData) renderSessions(allData);
+      if (allData) renderSessions(allData, { refreshRsvp: true });
     });
   });
 }
