@@ -320,6 +320,11 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               issue for human review when the schedule changes or
                               the comparison cannot complete. It never edits or
                               deploys the page automatically.
+/mets-16aa-stats/          → Direct-link static season statistics page for the
+                              Seattle Junior Mets 16U AA 2026–27 season. Unlinked,
+                              omitted from sitemap.xml, and protected from indexing
+                              by both page metadata and _headers. It contains the
+                              public team roster and player-level season totals.
                              (/about/ was deleted 2026-07-22 — see Search Visibility &
                               Routing below. It is now a normal missing URL served by
                               /404.html, not a redirect.)
@@ -417,8 +422,9 @@ URL by design.
 
 Pages currently carrying `noindex, nofollow`: Draft coach profiles and the
 "Coach Not Found" 404 response in
-`functions/coaches/[slug].js`, plus the direct-link static team logistics page
-at `/mets-16aa-travel/`. Live coach profiles are indexable. When adding
+`functions/coaches/[slug].js`, plus the direct-link static team logistics and
+statistics pages at `/mets-16aa-travel/` and `/mets-16aa-stats/`. Live coach
+profiles are indexable. When adding
 any new unfinished section, add the meta tag to *every* HTML response it can
 emit — server-rendered error pages are easy to miss.
 
@@ -463,10 +469,11 @@ path is no longer in the asset manifest. Static HTML is cached with
 `s-maxage=604800` (7 days), so the deleted page keeps being served at its exact
 URL until that expires.
 
-`/mets-16aa-travel/` is an intentional exception: its `_headers` rule sets
-`Cache-Control: no-cache` so frequently changing logistics revalidate. Treat
-that as intended configuration until deployment, then confirm the actual
-response header rather than assuming the repository rule was applied.
+`/mets-16aa-travel/` and `/mets-16aa-stats/` are intentional exceptions: their
+`_headers` rules set `Cache-Control: no-cache` so frequently changing logistics
+and season totals revalidate. Treat that as intended configuration until
+deployment, then confirm the actual response header rather than assuming the
+repository rule was applied.
 
 This bit `/about/` on 2026-07-22: the deploy was correct (`/about/?cb=1`
 returned a proper 404 immediately) but the bare `/about/` URL kept serving the
@@ -1108,6 +1115,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
 | Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Open Graph and Twitter Card metadata use the page's own 1200×630 `/mets-16aa-travel/social-preview.png` (not the site-wide `/social-preview-v2.png`) so direct shares can render a branded large-image preview without making the page indexable. Every trip with published game times repeats the reminder that the displayed times are game times, players must be in warmup attire and ready for pre-game warmups one hour earlier, and families should plan to arrive about 1 hour 15 minutes early; add that reminder when currently-TBD times are published. The travel-page visibility test enforces both the social metadata and that reminders appear if and only if a trip contains a published `<time datetime>`. The daily workflow compares the complete NWAHL and SportsEngine team schedules with each other and with the travel-page games. Group email is limited to a discrepancy newly created by an NWAHL game change when no related SportsEngine game changed; travel-page mismatches, ambiguous related source changes, and checker failures go only to the SMTP owner. It records successful state in a closed GitHub issue and does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
+| Mets 16U AA stats (/mets-16aa-stats/) | **Direct-link, unlinked, and noindex** | Static unofficial season-statistics page using the public team roster and player-level totals. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Tables are sortable in the browser. Updates are currently manual. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |
 | Pathway (/pathway/) | **Deleted 2026-07-30** | The unfinished guide was removed entirely. `/pathway/` is now a normal missing URL served by `/404.html`, with no redirect and no sitemap or robots entry. It can be recovered from Git history if the project is revisited. |
 

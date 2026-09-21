@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Seattle Junior Mets 16U AA Season Stats</title>
+<meta name="description" content="Unofficial 2026-27 Seattle Junior Mets 16U AA player statistics.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Seattle Junior Mets 16U AA Season Stats">
+<meta property="og:description" content="Unofficial player statistics for the 2026-27 season.">
+<meta property="og:url" content="https://postandin.com/mets-16aa-stats/">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper: #E8E3D8;
+  --panel: #EFEBE2;
+  --card: #DED9CD;
+  --rule: #B8B2A4;
+  --ink: #141210;
+  --ink2: #3D3A34;
+  --ink3: #6E6A61;
+  --mustard: #9A7B00;
+  --mustard2: #7C6300;
+}
+
+body {
+  min-width: 320px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.site-header { background: var(--ink); border-bottom: 2px solid var(--mustard); }
+.header-inner,
+.hero-inner,
+.content {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.header-inner { min-height: 52px; padding-top: 10px; padding-bottom: 10px; display: flex; align-items: center; }
+.brand { display: flex; align-items: baseline; gap: 9px; min-width: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: .08em; line-height: 1; }
+.brand-home { color: var(--paper); font-size: 23px; }
+.brand-separator { color: var(--mustard); }
+.brand-section { overflow: hidden; color: var(--rule); font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+
+.hero { border-bottom: 2px solid var(--mustard); }
+.hero-inner { padding-top: 30px; padding-bottom: 28px; }
+.eyebrow,
+.section-label,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.eyebrow { margin-bottom: 8px; color: var(--mustard2); font-size: clamp(19px, 4vw, 25px); line-height: 1.15; }
+h1,
+h2 { font-family: 'Bebas Neue', sans-serif; font-weight: 400; letter-spacing: .04em; line-height: .98; }
+h1 { max-width: 820px; font-size: clamp(48px, 14vw, 88px); }
+h1 .accent { color: var(--mustard); }
+.season { margin-top: 15px; color: var(--ink2); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.updated { margin-top: 5px; color: var(--ink2); font-size: 12px; }
+
+.content { padding-top: 26px; padding-bottom: 58px; }
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.summary-stat { min-width: 0; padding: 15px; background: var(--panel); }
+.stat-label { display: block; margin-bottom: 4px; color: var(--ink3); }
+.stat-value { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: .04em; line-height: 1; }
+
+.stats-section { margin-top: 38px; }
+.section-label { margin-bottom: 9px; color: var(--ink3); }
+.stats-section h2 { margin-bottom: 14px; font-size: 38px; }
+.table-shell { overflow-x: auto; border: 1px solid var(--rule); background: var(--panel); }
+table { width: 100%; min-width: 670px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+caption { padding: 10px 12px; color: var(--ink3); font-size: 11px; text-align: left; }
+th,
+td { padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+th { background: var(--ink); color: var(--paper); font-size: 11px; letter-spacing: .1em; text-align: right; text-transform: uppercase; }
+th:nth-child(2) { text-align: left; }
+.sort-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+}
+.sort-indicator { color: var(--rule); }
+th[aria-sort='ascending'] .sort-indicator,
+th[aria-sort='descending'] .sort-indicator { color: var(--mustard); }
+.sort-button:focus-visible { outline: 2px solid var(--mustard); outline-offset: 4px; }
+td { text-align: right; }
+td:nth-child(2) { font-weight: 700; text-align: left; white-space: nowrap; }
+tbody tr:nth-child(even) { background: var(--card); }
+tbody tr:last-child td { border-bottom: 0; }
+.number { color: var(--ink2); }
+td:nth-child(2) { position: sticky; left: 0; z-index: 1; background: var(--panel); }
+tbody tr:nth-child(even) td:nth-child(2) { background: var(--card); }
+.points { font-weight: 700; }
+.goalie-table { min-width: 560px; }
+.note { margin-top: 12px; color: var(--ink3); font-size: 12px; }
+
+footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-size: 11px; text-align: center; }
+
+@media (max-width: 620px) {
+  .summary { grid-template-columns: 1fr; }
+  .summary-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .stat-label { margin-bottom: 0; }
+  .stat-value { font-size: 30px; }
+  th, td { padding: 9px 10px; }
+}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand" aria-label="Post and In hosted page">
+      <span class="brand-home">Post &amp; In</span>
+      <span class="brand-separator">/</span>
+      <span class="brand-section">Unofficial team stats</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Seattle Junior Mets 16U AA</p>
+      <h1>2026-27 Season <span class="accent">Stats</span></h1>
+      <p class="updated">Through September 20, 2026</p>
+    </div>
+  </section>
+
+  <div class="content">
+    <section class="summary" aria-label="Team season summary">
+      <div class="summary-stat"><span class="stat-label">Games</span><span class="stat-value">4</span></div>
+      <div class="summary-stat"><span class="stat-label">Record</span><span class="stat-value">0-3-1</span></div>
+      <div class="summary-stat"><span class="stat-label">Goals For / Against</span><span class="stat-value">7 / 13</span></div>
+    </section>
+
+    <section class="stats-section" aria-labelledby="skaters-heading">
+      <h2 id="skaters-heading">Skaters</h2>
+      <div class="table-shell" tabindex="0" role="region" aria-label="Skater statistics table">
+        <table data-sortable>
+          <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Player</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Pos</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">G</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">A</button></th><th scope="col" aria-sort="descending"><button class="sort-button" type="button" data-type="number">PTS</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PIM</button></th></tr></thead>
+          <tbody>
+            <tr><td class="number">40</td><td data-sort-value="Mendes, Mateus">Mateus Mendes</td><td>F</td><td>4</td><td>3</td><td>1</td><td class="points">4</td><td>0</td></tr>
+            <tr><td class="number">14</td><td data-sort-value="Salmon, Sebastian">Sebastian Salmon</td><td>F</td><td>4</td><td>1</td><td>1</td><td class="points">2</td><td>4</td></tr>
+            <tr><td class="number">10</td><td data-sort-value="Simpson, Austin">Austin Simpson</td><td>F</td><td>4</td><td>1</td><td>0</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">65</td><td data-sort-value="Osborn, Eliot">Eliot Osborn</td><td>F</td><td>4</td><td>1</td><td>0</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">7</td><td data-sort-value="Haglof McCallum, Max">Max Haglof McCallum</td><td>F</td><td>4</td><td>1</td><td>0</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">9</td><td data-sort-value="Lupton, Blake">Blake Lupton</td><td>F</td><td>2</td><td>0</td><td>1</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">23</td><td data-sort-value="Clark, Jesper">Jesper Clark</td><td>F</td><td>4</td><td>0</td><td>1</td><td class="points">1</td><td>2</td></tr>
+            <tr><td class="number">87</td><td data-sort-value="Kim, Juone">Juone Kim</td><td>F</td><td>4</td><td>0</td><td>1</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">21</td><td data-sort-value="Hulse, Reed">Reed Hulse</td><td>F</td><td>4</td><td>0</td><td>1</td><td class="points">1</td><td>0</td></tr>
+            <tr><td class="number">3</td><td data-sort-value="Perrin, Broderick">Broderick Perrin</td><td>D</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>2</td></tr>
+            <tr><td class="number">12</td><td data-sort-value="Pocholski, Chase">Chase Pocholski</td><td>D</td><td>3</td><td>0</td><td>0</td><td class="points">0</td><td>17</td></tr>
+            <tr><td class="number">13</td><td data-sort-value="Lagerholm, Christian">Christian Lagerholm</td><td>F</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>0</td></tr>
+            <tr><td class="number">22</td><td data-sort-value="Bugeaud, Cruz">Cruz Bugeaud</td><td>F</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>0</td></tr>
+            <tr><td class="number">57</td><td data-sort-value="Hines, Ethan">Ethan Hines</td><td>D</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>4</td></tr>
+            <tr><td class="number">17</td><td data-sort-value="Holtgrieve, Felix">Felix Holtgrieve</td><td>D</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>0</td></tr>
+            <tr><td class="number">6</td><td data-sort-value="Haglof McCallum, Joshua">Joshua Haglof McCallum</td><td>D</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>2</td></tr>
+            <tr><td class="number">11</td><td data-sort-value="Oakland, Thor">Thor Oakland</td><td>F</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>0</td></tr>
+            <tr><td class="number">64</td><td data-sort-value="Longley, Zaedan">Zaedan Longley</td><td>F/D</td><td>4</td><td>0</td><td>0</td><td class="points">0</td><td>2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Pos = position; GP = games played; G = goals; A = assists; PTS = points; PIM = penalty minutes.</p>
+    </section>
+
+    <section class="stats-section" aria-labelledby="goalies-heading">
+      <h2 id="goalies-heading">Goaltenders</h2>
+      <div class="table-shell" tabindex="0" role="region" aria-label="Goaltender statistics table">
+        <table class="goalie-table" data-sortable>
+          <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Goaltender</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">W</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">L</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">T</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">SA</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GA</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">SV</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">SV%</button></th></tr></thead>
+          <tbody>
+            <tr><td class="number">26</td><td data-sort-value="O'Donnell, Anthony">Anthony O'Donnell</td><td>2</td><td>0</td><td>1</td><td>1</td><td>70</td><td>5</td><td>65</td><td class="points" data-sort-value="92.9">92.9%</td></tr>
+            <tr><td class="number">35</td><td data-sort-value="Martinez, Miguel">Miguel Martinez</td><td>2</td><td>0</td><td>2</td><td>0</td><td>81</td><td>8</td><td>73</td><td class="points" data-sort-value="90.1">90.1%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">SA = shots against; GA = goals against; SV = saves; SV% = SV ÷ SA.</p>
+    </section>
+  </div>
+</main>
+
+<footer>Unofficial Seattle Junior Mets 16U AA statistics · Hosted on Post &amp; In</footer>
+<script>
+document.querySelectorAll('table[data-sortable]').forEach((table) => {
+  const headers = [...table.querySelectorAll('thead th')];
+  const body = table.tBodies[0];
+
+  headers.forEach((header, columnIndex) => {
+    const button = header.querySelector('.sort-button');
+    if (!button) return;
+
+    const indicator = document.createElement('span');
+    indicator.className = 'sort-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    indicator.textContent = header.getAttribute('aria-sort') === 'descending' ? ' ↓' : ' ↕';
+    button.appendChild(indicator);
+
+    button.addEventListener('click', () => {
+      const type = button.dataset.type;
+      const currentDirection = header.getAttribute('aria-sort');
+      const direction = currentDirection
+        ? (currentDirection === 'ascending' ? 'descending' : 'ascending')
+        : (type === 'number' && columnIndex !== 0 ? 'descending' : 'ascending');
+      const multiplier = direction === 'ascending' ? 1 : -1;
+      const rows = [...body.rows];
+
+      rows.sort((left, right) => {
+        const aCell = left.cells[columnIndex];
+        const bCell = right.cells[columnIndex];
+        const a = aCell.dataset.sortValue || aCell.textContent.trim();
+        const b = bCell.dataset.sortValue || bCell.textContent.trim();
+        if (type === 'number') return (Number(a) - Number(b)) * multiplier;
+        return a.localeCompare(b, undefined, { sensitivity: 'base' }) * multiplier;
+      });
+
+      headers.forEach((item) => {
+        item.removeAttribute('aria-sort');
+        const itemIndicator = item.querySelector('.sort-indicator');
+        if (itemIndicator) itemIndicator.textContent = ' ↕';
+      });
+      header.setAttribute('aria-sort', direction);
+      indicator.textContent = direction === 'ascending' ? ' ↑' : ' ↓';
+      rows.forEach((row) => body.appendChild(row));
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -23,3 +23,9 @@
 /mets-16aa-travel/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
+
+# Direct-link unofficial team stats page. Keep it crawlable so robots can read
+# noindex, but require revalidation when season totals change.
+/mets-16aa-stats/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
