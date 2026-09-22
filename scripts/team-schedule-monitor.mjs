@@ -2,6 +2,9 @@ import fs from 'node:fs/promises';
 
 import { fingerprintTeamSchedule, selectTeamGames } from './check-nwahl-travel.mjs';
 
+// The October Tri-Cities games are friendlies managed in SportsEngine, not NWAHL fixtures.
+export const NON_NWAHL_TRIPS = new Set(['tri-cities-october']);
+
 const SPORTSENGINE_URL = 'https://ical.sportngin.com/v3/calendar/ical?team_ids=11f14b0a-1f31-fa76-9f63-42f5b12328f2';
 const NWAHL_URL = 'https://nwahl-portal.onrender.com/api/nwahl/public/schedule';
 const TEAM_NAMES = new Set(['seattlejrmets', 'jrmets']);
@@ -173,15 +176,17 @@ function dateInTimeZone(isoDateTime, timeZone = 'America/Los_Angeles') {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-function sourceCreatesPageMismatch(beforeSource, afterSource, beforePage, afterPage, asOfDate) {
+function sourceCreatesPageMismatch(beforeSource, afterSource, beforePage, afterPage, asOfDate, pageRelevantToSource = () => true) {
+  const relevantBeforePage = beforePage.filter(pageRelevantToSource);
+  const relevantAfterPage = afterPage.filter(pageRelevantToSource);
   const sourceCreated = gameChanges(beforeSource, afterSource).some(change =>
     transitionCreatesMismatch(
-      change, beforeSource, afterSource, beforePage, afterPage,
+      change, beforeSource, afterSource, relevantBeforePage, relevantAfterPage,
       game => pageRelevant(game, afterPage.length ? afterPage : beforePage),
     ));
-  const pageCreated = gameChanges(beforePage, afterPage).some(change => {
+  const pageCreated = gameChanges(relevantBeforePage, relevantAfterPage).some(change => {
     if (!change.after && asOfDate && change.before?.date < asOfDate) return false;
-    return transitionCreatesMismatch(change, beforePage, afterPage, beforeSource, afterSource);
+    return transitionCreatesMismatch(change, relevantBeforePage, relevantAfterPage, beforeSource, afterSource);
   });
   return sourceCreated || pageCreated;
 }
@@ -385,7 +390,8 @@ export function classifyScheduleChanges(previous, current) {
   const ambiguous = nwahlCreated.length > groupChanges.length;
   const asOfDate = dateInTimeZone(current.checkedAt);
   const nwahlPageNew = sourceCreatesPageMismatch(
-    previous.nwahlGames, current.nwahlGames, previous.travelPageGames, current.travelPageGames, asOfDate);
+    previous.nwahlGames, current.nwahlGames, previous.travelPageGames, current.travelPageGames,
+    asOfDate, game => !NON_NWAHL_TRIPS.has(game.tripId));
   const sportsPageNew = sourceCreatesPageMismatch(
     previous.sportsEngineGames, current.sportsEngineGames, previous.travelPageGames, current.travelPageGames, asOfDate);
   const group = groupChanges.length > 0;

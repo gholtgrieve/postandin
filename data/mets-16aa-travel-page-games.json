@@ -48,6 +48,30 @@
     "city": null
   },
   {
+    "id": "tri-cities-october:2026-10-03:tricitiesjramericans:1",
+    "tripId": "tri-cities-october",
+    "tripStart": "2026-10-02",
+    "tripEnd": "2026-10-05",
+    "date": "2026-10-03",
+    "time": "13:45:00",
+    "away": "Seattle Jr. Mets 16AA",
+    "home": "Tri-Cities Jr. Americans",
+    "rink": "Toyota Arena · Rink B",
+    "city": null
+  },
+  {
+    "id": "tri-cities-october:2026-10-04:tricitiesjramericans:1",
+    "tripId": "tri-cities-october",
+    "tripStart": "2026-10-02",
+    "tripEnd": "2026-10-05",
+    "date": "2026-10-04",
+    "time": "12:30:00",
+    "away": "Seattle Jr. Mets 16AA",
+    "home": "Tri-Cities Jr. Americans",
+    "rink": "Toyota Arena · Rink B",
+    "city": null
+  },
+  {
     "id": "spokane:2026-10-30:spokanejrchiefs:1",
     "tripId": "spokane",
     "tripStart": "2026-10-28",
@@ -219,24 +243,24 @@
     "id": "medford:2027-01-30:cascadeselects:1",
     "tripId": "medford",
     "tripStart": "2027-01-29",
-    "tripEnd": "2027-01-31",
+    "tripEnd": "2027-02-01",
     "date": "2027-01-30",
-    "time": null,
+    "time": "17:00:00",
     "away": "Seattle Jr. Mets 16AA",
     "home": "Cascade Selects",
-    "rink": null,
+    "rink": "The RRRink",
     "city": null
   },
   {
-    "id": "medford:2027-01-30:cascadeselects:2",
+    "id": "medford:2027-01-31:cascadeselects:1",
     "tripId": "medford",
     "tripStart": "2027-01-29",
-    "tripEnd": "2027-01-31",
-    "date": "2027-01-30",
-    "time": null,
+    "tripEnd": "2027-02-01",
+    "date": "2027-01-31",
+    "time": "09:00:00",
     "away": "Seattle Jr. Mets 16AA",
     "home": "Cascade Selects",
-    "rink": null,
+    "rink": "The RRRink",
     "city": null
   }
 ]

@@ -57,8 +57,8 @@
     "id": "a378912c-e4d9-4b73-93b0-d2afdd032de7",
     "date": "2026-09-26",
     "time": "14:45:00",
-    "away": "Montana Wolves 16U",
-    "home": "16U AA Jr Mets",
+    "away": "16U AA Jr Mets",
+    "home": "Montana Wolves 16U",
     "rink": "521 Military Road South, Tacoma, WA 98444, US",
     "city": null
   },
@@ -66,9 +66,27 @@
     "id": "d4b24d5f-a24d-45c4-9591-63440cdd12a8",
     "date": "2026-09-27",
     "time": "07:00:00",
-    "away": "Utah Jr. Grizzlies",
-    "home": "16U AA Jr Mets",
+    "away": "16U AA Jr Mets",
+    "home": "Utah Jr. Grizzlies",
     "rink": "2645 South 80th Street, Tacoma, WA, 98409, US",
+    "city": null
+  },
+  {
+    "id": "e4c8714e-cd24-4c86-a3c7-384c107a20c1",
+    "date": "2026-10-03",
+    "time": "13:45:00",
+    "away": "16U AA Jr Mets",
+    "home": "Tri-Cities Jr Americans",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
+    "city": null
+  },
+  {
+    "id": "7807240c-2931-4509-8e88-843a85f28b15",
+    "date": "2026-10-04",
+    "time": "12:30:00",
+    "away": "16U AA Jr Mets",
+    "home": "Tri-Cities Jr Americans",
+    "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
     "city": null
   },
   {
@@ -137,9 +155,9 @@
   {
     "id": "3f8c68ae-48f4-4a05-9a72-0c61b8fdcfc4",
     "date": "2026-11-01",
-    "time": "09:45:00",
-    "away": "16U AA Jr Mets",
-    "home": "Spokane Jr Chiefs",
+    "time": "11:30:00",
+    "away": "Spokane Jr Chiefs",
+    "home": "16U AA Jr Mets",
     "rink": "526 5th Street, Cheney, WA, 99004, US",
     "city": null
   },
@@ -174,8 +192,8 @@
     "id": "8e65208f-32dc-4fb8-bcdb-decbb2581390",
     "date": "2026-11-13",
     "time": "16:45:00",
-    "away": "16U AA Jr Mets",
-    "home": "Tri-Cities Jr. Americans 16U",
+    "away": "Tri-Cities Jr. Americans 16U",
+    "home": "16U AA Jr Mets",
     "rink": "7000 West Grandridge Boulevard, Kennewick, WA, 99336, US",
     "city": null
   },
@@ -219,8 +237,8 @@
     "id": "00d59882-f368-4ea1-ad69-23f7a7d6c2f4",
     "date": "2026-12-04",
     "time": "13:15:00",
-    "away": "16U AA Jr Mets",
-    "home": "Utah Jr. Grizzlies",
+    "away": "Utah Jr. Grizzlies",
+    "home": "16U AA Jr Mets",
     "rink": "9530 Tramway Blvd NE, Albuquerque, NM, 87122, US",
     "city": null
   },
@@ -228,8 +246,8 @@
     "id": "eb98b963-c997-482a-aa36-a9c7fef0e7a0",
     "date": "2026-12-05",
     "time": "09:15:00",
-    "away": "16U AA Jr Mets",
-    "home": "New Mexico Ice Wolves",
+    "away": "New Mexico Ice Wolves",
+    "home": "16U AA Jr Mets",
     "rink": "9530 Tramway Blvd NE, Albuquerque, NM 87122, US",
     "city": null
   },
@@ -308,7 +326,7 @@
   {
     "id": "8252ba71-392a-4e3a-b841-4215c03ef234",
     "date": "2027-01-30",
-    "time": null,
+    "time": "17:00:00",
     "away": "16U AA Jr Mets",
     "home": "Cascade Selects",
     "rink": "1349 Center Dr, Medford, OR, 97501, US",
@@ -317,7 +335,7 @@
   {
     "id": "b539a1c0-dfcf-4f55-a441-53b3777433d3",
     "date": "2027-01-31",
-    "time": null,
+    "time": "09:00:00",
     "away": "16U AA Jr Mets",
     "home": "Cascade Selects",
     "rink": "1349 Center Dr, Medford, OR, 97501, US",
@@ -342,4 +360,3 @@
     "city": null
   }
 ]
-

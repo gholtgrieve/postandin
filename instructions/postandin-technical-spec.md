@@ -1140,6 +1140,9 @@ GitHub issue-body limit. This prevents public issue authors from supplying a
 forged baseline and prevents a failed notification from silently advancing the
 baseline. If the bot-authored state issue exists without a valid state marker,
 the run fails instead of silently falling back to older repository baselines.
+Refresh the repository bootstrap snapshots from the live feeds when changing
+schedule coverage; the closed state issue remains authoritative during normal
+scheduled runs.
 
 Email recipients are stored only in the `NWAHL_ALERT_RECIPIENTS` GitHub Actions
 secret. Gmail delivery additionally requires `NWAHL_ALERT_SMTP_USERNAME` and an
@@ -1163,6 +1166,10 @@ added, removed, and modified games in plain language. Routing is intentional:
   NWAHL travel-page warning. If the same run also has an ambiguous change, an
   opaque NWAHL change, or a SportsEngine travel-page mismatch, write and send a
   separate owner report even though the group report also runs.
+- The October 3–4 Tri-Cities games are friendlies. NWAHL does not schedule them,
+  so the monitor excludes that trip from NWAHL-versus-page comparisons. It
+  continues to compare those games with SportsEngine, and a SportsEngine/page
+  change can still require a Gordon-only alert.
 - If no actionable discrepancy is created, update the successful state without
   email. Successfully reported discrepancies become part of the saved state, so
   unresolved differences do not generate daily repeat email. A later change that
@@ -1182,18 +1189,16 @@ the same email again. This exceptional retry is preferable to silently losing an
 alert; under normal successful operation each newly identified discrepancy is
 emailed once.
 
-The September 14, 2026 bootstrap intentionally records the already-identified
-November 1 Spokane discrepancy: SportsEngine lists 9:45 AM while NWAHL and the
-travel page list 11:30 AM. Do not notify for that standing difference. If
-SportsEngine later changes to 11:30 AM, treat it as resolved and advance state
-without email.
+The September 14, 2026 bootstrap intentionally recorded the already-identified
+November 1 Spokane discrepancy. By September 22, SportsEngine had changed from
+9:45 AM to 11:30 AM, matching NWAHL and the travel page. The reviewed
+SportsEngine bootstrap now includes the resolution, which does not send email.
 
-The September 14 bootstrap also includes the newly published Medford games at
-5:00 PM on January 30 and 9:00 AM on January 31. The group notification for this
-change was already delivered before finalization, so these NWAHL entries and the
-current full-team fingerprint are intentionally advanced to prevent a resend.
-SportsEngine and the travel page may remain TBD as a recorded discrepancy until
-they are updated; merely resolving that discrepancy does not send group email.
+The September 14 bootstrap includes the Medford games at 5:00 PM on January 30
+and 9:00 AM on January 31. The group notification was already delivered, so
+those NWAHL entries and the full-team fingerprint were advanced to prevent a
+resend. By September 22, SportsEngine and the travel page also showed those
+times. The reviewed snapshots now agree, and the resolution does not send email.
 
 For a local live check, run `node scripts/team-schedule-monitor.mjs`. It compares
 the current sources with the repository bootstrap baselines unless

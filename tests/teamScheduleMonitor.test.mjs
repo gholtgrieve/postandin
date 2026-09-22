@@ -9,6 +9,7 @@ import test from 'node:test';
 import { fingerprintTeamSchedule, selectTeamGames } from '../scripts/check-nwahl-travel.mjs';
 
 import {
+  NON_NWAHL_TRIPS,
   buildGroupReport,
   buildOwnerReport,
   classifyScheduleChanges,
@@ -240,6 +241,51 @@ test('a travel-page edit that creates a new mismatch alerts Gordon and names bot
   assert.deepEqual(result.pageSources, ['NWAHL', 'SportsEngine']);
 });
 
+test('adding SportsEngine friendlies to the travel page does not claim NWAHL disagrees', () => {
+  const friendly = game({
+    id: 'tri-cities-october:2026-10-03:tricitiesjramericans:1',
+    tripId: 'tri-cities-october',
+    tripStart: '2026-10-02', tripEnd: '2026-10-05',
+    date: '2026-10-03', time: '13:45:00', away: team,
+    home: 'Tri-Cities Jr. Americans', rink: 'Toyota Arena · Rink B',
+  });
+  const sportsFriendly = game({
+    id: 'sports-friendly', date: friendly.date, time: friendly.time,
+    away: '16U AA Jr Mets', home: 'Tri-Cities Jr Americans',
+    rink: '7000 West Grandridge Boulevard, Kennewick, WA, 99336, US',
+  });
+  const previous = state({ sportsEngineGames: [...state().sportsEngineGames, sportsFriendly] });
+  const current = state({ ...previous, travelPageGames: [...previous.travelPageGames, friendly] });
+
+  assert.equal(classifyScheduleChanges(previous, current).kind, 'match');
+  const wrongTime = state({
+    ...current,
+    travelPageGames: [...previous.travelPageGames, { ...friendly, time: '14:45:00' }],
+  });
+  assert.deepEqual(classifyScheduleChanges(previous, wrongTime).pageSources, ['SportsEngine']);
+});
+
+test('a newly scheduled league game during a friendly trip still needs a page update', () => {
+  const friendly = game({
+    id: 'tri-cities-october:friendly', tripId: 'tri-cities-october',
+    tripStart: '2026-10-02', tripEnd: '2026-10-05',
+    date: '2026-10-03', time: '13:45:00', away: team,
+    home: 'Tri-Cities Jr. Americans', rink: 'Toyota Arena · Rink B',
+  });
+  const previous = state({ nwahlGames: [], sportsEngineGames: [], travelPageGames: [friendly] });
+  const newLeagueGame = game({
+    id: 'nwahl-new', date: '2026-10-04', time: '16:00:00',
+    away: team, home: 'New Opponent', rink: 'Toyota Arena · Rink B',
+  });
+  const current = state({
+    ...previous,
+    nwahlGames: [newLeagueGame], nwahlTeamHash: 'new-hash',
+    sportsEngineGames: [{ ...newLeagueGame, id: 'sports-new', away: '16U AA Jr Mets' }],
+  });
+
+  assert.deepEqual(classifyScheduleChanges(previous, current).pageSources, ['NWAHL', 'SportsEngine']);
+});
+
 test('a new opponent inside a trip date range is recognized as travel-page relevant', () => {
   const previous = state();
   const added = game({ id: 'new', date: '2026-09-24', away: 'New Opponent', home: team });
@@ -281,6 +327,12 @@ test('the real travel page parses every matchup and matches the reviewed baselin
   const actual = parseTravelPageGames(fs.readFileSync('mets-16aa-travel/index.html', 'utf8'));
   const baseline = JSON.parse(fs.readFileSync('data/mets-16aa-travel-page-games.json', 'utf8'));
   assert.deepEqual(actual, baseline);
+});
+
+test('every non-NWAHL trip exclusion names a trip on the real travel page', () => {
+  const tripIds = new Set(parseTravelPageGames(fs.readFileSync('mets-16aa-travel/index.html', 'utf8'))
+    .map(game => game.tripId));
+  for (const tripId of NON_NWAHL_TRIPS) assert.ok(tripIds.has(tripId), tripId);
 });
 
 test('CLI writes match output and the next successful state', async () => {
