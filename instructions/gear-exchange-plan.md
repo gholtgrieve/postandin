@@ -1,7 +1,7 @@
 # Gear Exchange implementation plan
 
-Status: foundation only, September 25, 2026. No Gear Exchange page, API,
-storage, email service, or homepage link is implemented. The external prototype
+Status: development preview, September 25, 2026. `/gear/` is an unlinked,
+noindex design preview. No API, storage, email service, or homepage link exists. The external prototype
 is a design reference, not production code.
 
 ## Product contract
@@ -102,3 +102,18 @@ its tests, this plan, README and the technical-spec entry. Check that planned
 security and infrastructure are not described as implemented. Do not commit,
 push, deploy, contact users, or use live credentials. Run the focused Node test
 and syntax check, then report concrete findings and test gaps.
+
+Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
+All sample listings, management access, verification and contact actions are
+simulated. Inputs and local photos remain in memory and reset on reload.
+The public sample dataset is separate from seller drafts. Real uploads,
+authentication, delivery, expiration and deletion retention remain unimplemented.
+
+Review fixes: new-listing navigation resets prior edits and pending verification;
+drafts store integer cents and clear inactive offer fields. Price formatting,
+field limits, focus, photo labels and no-photo states are shared/consistent.
+Closed listings may be explicitly relisted for 30 days; expired listings may be
+renewed, subject to the active limit. Deleted preview records cannot be renewed.
+Both browser modules have explicit JavaScript MIME/no-cache rules (the gear
+module inherits no-cache from /gear/*). Actual Pages headers remain a deployment
+check; no production deployment is authorized by this edit.

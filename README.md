@@ -41,8 +41,15 @@ CLI before use. Never place secrets or private identifiers in documentation.
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.
-There is no Gear Exchange page or backend yet. Run its focused checks with
-`node --test tests/gearExchange.test.mjs`.
+An unlinked, noindex `/gear/` development preview exercises the screens with in-memory sample data. There is no backend yet. Run its focused checks with
+`node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
+
+Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
+All sample listings, management access, verification and contact actions are
+simulated. Inputs and local photos remain in memory and reset on reload.
+The public sample dataset is separate from seller drafts. Real uploads,
+authentication, delivery, expiration and deletion retention remain unimplemented.
+
 
 ## Groups feature
 

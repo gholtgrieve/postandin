@@ -29,3 +29,15 @@
 /mets-16aa-stats/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
+
+# Unfinished Gear Exchange design preview.
+/gear/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
+
+/lib/gear-exchange.mjs
+  Content-Type: application/javascript
+  Cache-Control: no-cache
+
+/gear/gear.mjs
+  Content-Type: application/javascript

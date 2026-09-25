@@ -308,6 +308,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   state.js/groups-ui.js, and `sessionMatchesDayFilter()` in groups-ui.js are all
   defined but have zero call sites anywhere in the codebase. Safe to remove
   whenever convenient; not urgent.
+/gear/                    → Unlinked, noindex in-memory development preview.
 /coaches/                  → index.html (public, indexable coach directory)
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
@@ -469,7 +470,7 @@ path is no longer in the asset manifest. Static HTML is cached with
 `s-maxage=604800` (7 days), so the deleted page keeps being served at its exact
 URL until that expires.
 
-`/mets-16aa-travel/` and `/mets-16aa-stats/` are intentional exceptions: their
+`/gear/`, `/mets-16aa-travel/` and `/mets-16aa-stats/` are intentional exceptions: their
 `_headers` rules set `Cache-Control: no-cache` so frequently changing logistics
 and season totals revalidate. Treat that as intended configuration until
 deployment, then confirm the actual response header rather than assuming the
@@ -1107,13 +1108,21 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
 The first increment adds shared field options and public-listing search logic
-in `lib/gear-exchange.mjs`, with focused tests. No Gear Exchange UI, API,
-D1/R2 resources, email delivery or homepage card is implemented yet.
+in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` development preview uses these definitions.
+There is no API, D1/R2 storage, email delivery or homepage card yet.
+
+Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
+All sample listings, management access, verification and contact actions are
+simulated. Inputs and local photos remain in memory and reset on reload.
+The public sample dataset is separate from seller drafts. Real uploads,
+authentication, delivery, expiration and deletion retention remain unimplemented.
+
 
 ## Current Status
 
 | Page / Feature | Status | Notes |
 |---|---|---|
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | In-memory samples only; no backend or email. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |

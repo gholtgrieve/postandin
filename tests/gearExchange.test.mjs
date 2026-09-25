@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchesListing, clubNames, SIZES, CLUBS } from '../lib/gear-exchange.mjs';
+import { matchesListing, clubNames, SIZES, CLUBS, offerFields, formatPrice } from '../lib/gear-exchange.mjs';
 
 const listing = {
   title: 'Club bag bundle', description: 'Worn zipper; repaired seam',
@@ -37,4 +37,16 @@ test('price ceilings preserve cents, include Free, and exclude unpriced trades',
   assert.equal(matchesListing({ ...listing, type: 'trade' }, { maxPrice: 100 }), false);
   assert.equal(matchesListing(listing, { maxPrice: 'bad' }), false);
   assert.equal(matchesListing(listing, { type: 'free' }), false);
+});
+
+test('inactive offer values are discarded and never searched', () => {
+  assert.deepEqual(offerFields('sale', '40.50', 'hidden wish'), {priceCents:4050,trade:''});
+  assert.deepEqual(offerFields('free', '40.50', 'hidden wish'), {priceCents:0,trade:''});
+  assert.deepEqual(offerFields('trade', '40.50', ' pads '), {priceCents:null,trade:'pads'});
+  assert.equal(matchesListing({...listing,trade:'secretwish'},{q:'secretwish'}),false);
+  assert.equal(matchesListing({...listing,type:'trade',trade:'secretwish'},{q:'secretwish'}),true);
+  assert.equal(formatPrice('sale',4050),'$40.50');
+  assert.equal(matchesListing(listing,{maxPrice:-1}),false);
+  assert.equal(matchesListing(listing,{q:''}),true);
+  assert.deepEqual(clubNames({clubs:['Other'],otherClub:''}),[]);
 });
