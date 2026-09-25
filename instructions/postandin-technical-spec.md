@@ -1102,6 +1102,14 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ---
 
+## Gear Exchange — in development
+
+The accepted product decisions, design-review disposition, implementation
+sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
+The first increment adds shared field options and public-listing search logic
+in `lib/gear-exchange.mjs`, with focused tests. No Gear Exchange UI, API,
+D1/R2 resources, email delivery or homepage card is implemented yet.
+
 ## Current Status
 
 | Page / Feature | Status | Notes |

@@ -36,6 +36,14 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ---
 
+## Gear Exchange (in development)
+
+Shared field options and search logic are in `lib/gear-exchange.mjs`.
+The [implementation plan](instructions/gear-exchange-plan.md) records approved
+product decisions, review findings and remaining launch requirements.
+There is no Gear Exchange page or backend yet. Run its focused checks with
+`node --test tests/gearExchange.test.mjs`.
+
 ## Groups feature
 
 Users can create a private group so members can see who's attending each
