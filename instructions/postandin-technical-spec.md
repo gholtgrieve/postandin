@@ -1105,11 +1105,15 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## Gear Exchange — in development
 
+The local-only draft schema, validation, persistence and API harness are
+documented in [gear-storage.md](gear-storage.md). They do not add Pages routes
+or provision cloud services; the preview UI remains in-memory.
+
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
 The first increment adds shared field options and public-listing search logic
 in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` development preview uses these definitions.
-There is no API, D1/R2 storage, email delivery or homepage card yet.
+There is no deployed API or D1/R2 resource, email delivery or homepage card yet.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 All sample listings, management access, verification and contact actions are

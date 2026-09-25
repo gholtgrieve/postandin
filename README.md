@@ -38,10 +38,15 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ## Gear Exchange (in development)
 
+Local draft storage and validation are implemented separately from the preview;
+see [local storage instructions](instructions/gear-storage.md). No deployed API
+or cloud resources exist. Run the storage tests with
+`node --test tests/gearStorage.test.mjs`.
+
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.
-An unlinked, noindex `/gear/` development preview exercises the screens with in-memory sample data. There is no backend yet. Run its focused checks with
+An unlinked, noindex `/gear/` development preview exercises the screens with in-memory sample data. There is no deployed backend yet. Run its focused checks with
 `node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.

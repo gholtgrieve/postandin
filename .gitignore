@@ -15,3 +15,10 @@
 instructions/*
 !instructions/postandin-technical-spec.md
 !instructions/gear-exchange-plan.md
+!instructions/gear-storage.md
+
+# Never track local databases or their journals.
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*

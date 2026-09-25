@@ -1,7 +1,8 @@
 # Gear Exchange implementation plan
 
 Status: development preview, September 25, 2026. `/gear/` is an unlinked,
-noindex design preview. No API, storage, email service, or homepage link exists. The external prototype
+noindex design preview. A local-only draft-storage API now exists separately;
+there is no deployed API, cloud storage, email service or homepage link. The external prototype
 is a design reference, not production code.
 
 ## Product contract
@@ -24,7 +25,8 @@ Clubs are an array, describing the gear; Other has a separate custom name.
 Keep its input visible, typing checks Other, checking requires a name, and
 unchecking clears it. Search includes custom names; the Other filter selects
 all custom-club records. Prices are integer cents; a maximum-price filter includes
-Free at zero and excludes unpriced trades. Server validation remains to be built.
+Free at zero and excludes unpriced trades. Server content validation is implemented in `lib/gear-validation.mjs`;
+identity verification and authorization remain to be built.
 
 At launch, homepage cards: Find Some Gear, Find Ice Time, Find A Coach.
 Links: Browse Gear, View Ice Time Calendar, Browse Coach Profiles.
@@ -58,7 +60,9 @@ stands. The unrelated Groups binding-error finding is outside this increment.
    accessibility fixes, deletion confirmation, and trade details. Keep unfinished
    pages unlinked and noindex; verify routing before introducing routes.
 3. Specify D1 schema, ownership/state transitions and migrations; implement local
-   persistence and server validation. No production resources in this step.
+   persistence and server validation. Partly complete: the schema, local
+   persistence and validation are implemented; ownership and state-transition
+   design remain for the next increment. No production resources in this step.
 4. Verification and management: scanner-safe GET plus explicit POST actions,
    hashed expiring tokens, revocation, safe cookies, CSRF/origin checks, generic
    recovery responses, changed-email verification, and idempotent transitions.
@@ -97,7 +101,7 @@ mail. These are proposals; no bindings or accounts have been provisioned.
 ## Review this increment
 
 Review `git diff main...HEAD` plus `git diff` and all untracked files shown by
-`git status --short`; no commit has been made. Inspect the shared module and
+`git status --short`; the preview was committed as 7b85550; review local storage changes against that preview commit. Inspect the shared module and
 its tests, this plan, README and the technical-spec entry. Check that planned
 security and infrastructure are not described as implemented. Do not commit,
 push, deploy, contact users, or use live credentials. Run the focused Node test
@@ -117,3 +121,6 @@ renewed, subject to the active limit. Deleted preview records cannot be renewed.
 Both browser modules have explicit JavaScript MIME/no-cache rules (the gear
 module inherits no-cache from /gear/*). Actual Pages headers remain a deployment
 check; no production deployment is authorized by this edit.
+
+Local persistence increment: see [gear-storage.md](gear-storage.md) for the
+schema, local-only API, validation, tests and remaining D1 runtime check.
