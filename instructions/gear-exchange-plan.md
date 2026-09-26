@@ -1,11 +1,11 @@
 # Gear Exchange implementation plan
 
-Status: development preview, September 25, 2026. `/gear/` is an unlinked,
+Status: development preview, September 26, 2026. `/gear/` is an unlinked,
 noindex design preview. A local-only draft-storage API now exists separately;
 there is no deployed API, cloud storage, email service or homepage link. The external prototype
 is a design reference, not production code.
 
-## Resume here — September 25, 2026
+## Resume here
 
 This section is the Gear Exchange handoff. Read it before implementing more.
 It records the state at handoff; recheck Git and actual code rather than assuming
@@ -24,6 +24,8 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `d042d26` | Shared listing options and public search helpers |
 | `7b85550` | Repo-based development preview and design-review fixes |
 | `7996db6` | Validated local draft storage, tests and storage-review fixes |
+| `3667c9d` | Documentation handoff and agent discovery |
+| `c2acb18` | Local verification, publication-only duplicate checks and upgrade tests |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -36,7 +38,7 @@ inspect `git status` and recent history before continuing.
 | `/gear/` preview | Five screens, sample browsing, posting, local photo previews, simulated management | Persistent UI data, real verification/email, live publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Tested D1/workerd binding or production deployment |
-| Local API | Draft create/read, local token receipt, explicit confirmation, public projection | Any Pages route, authenticated management, real mail |
+| Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail, browser integration |
 | Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
 
 The preview's managed records and public samples are separate arrays. They are
@@ -45,36 +47,34 @@ renewal or deletion for backend behavior. `readLocalDraft` exposes private sampl
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Current increment: local verification and duplicate prevention
+### Current increment: local seller management
 
-Implemented in the working tree after `3667c9d` (recheck Git for later commits):
-30-minute hash-only tokens, explicit local POST confirmation, single-submission
-publication, replay protection, atomic ten-active quota and 30-day expiry.
-Same-seller duplicate publication is blocked using normalized gear identity;
-price/description changes do not bypass it. See the storage guide for exact
-matching rules, migration backfill and local mail-sink boundaries.
-Review fixes (September 26): repeated drafts are allowed, publication conflicts
-return generic failures, direct trigger guards are tested, and NULL keys are
-repaired on local startup. All 30 focused tests pass; D1 remains untested.
+Verification and publication duplicate checks are committed as `c2acb18`.
+The working tree now adds separate management recovery links, 24-hour sessions,
+revocation, owner-only listing reads and guarded edit/pending/close/relist writes.
+See [gear-management.md](gear-management.md) for the credential contract, routes,
+tests and limitations. 41 focused tests pass. First Claude review fixes are
+implemented: expanded authorization/HTTP tests, transactional stale-duplicate
+cleanup, normalized email comparison and documentation corrections. Claude
+re-review concluded ready to merge for this local-only increment, with no
+blocker/high/medium findings. Minor follow-ups corrected stable handoff links,
+added well-formed wrong-CSRF coverage and shared the cookie lifetime constant.
+All 41 tests pass after those follow-ups; they were not sent for another review.
+This increment is included in the local seller-management commit; use Git history
+for its hash. No push, merge or deployment is included.
 
-### Next bounded task: private management access
+### Next bounded task
 
-Design and implement local-only management sessions and recovery/revocation,
-with a separate credential scope from verification. Acceptance criteria:
+Implement separately verified email changes after this local management increment.
+Keep old ownership until the new recipient confirms; never mutate a shared seller
+email in place. Test cross-owner access, replay, duplicate conflicts, expiry,
+rollback and concurrent quota transitions. Real D1/HTTPS validation precedes UI
+integration, including CSRF recovery after page reload and actual Secure-cookie
+behavior. Seller deletion and retention still need implementation.
 
-1. Access is limited to verified listings owned by the authenticated recipient;
-   unverified drafts sharing that email never become manageable automatically.
-2. Expiring, hashed credentials, revocation and explicit confirmation are tested;
-   link-opening GETs cannot mutate state. Define cookie and CSRF/origin behavior.
-3. Edit/pending/close/relist transitions enforce ownership and active quotas;
-   removed records cannot be revived, and duplicate keys update with gear fields.
-4. Changed email preserves old ownership until separately verified. Invalid
-   credentials, cross-owner requests and replay fail without private-data leaks.
-5. Keep delivery simulated and update documentation/tests before remote exposure.
-
-UI integration comes after that: map offer labels to lowercase, `seller` to
-`sellerName`, and include adult acknowledgement. Never connect public UI to
-trusted local token issuance or draft inspection as a production shortcut.
+UI integration must map offer labels to lowercase, `seller` to `sellerName`, and
+include adult acknowledgement on new drafts. Never expose local draft inspection
+or simulated mailboxes on Pages. No real delivery or deployment is authorized.
 
 ### Checks and local commands
 
@@ -83,7 +83,7 @@ Run from the canonical checkout:
 ```bash
 git status --short
 git branch --show-current
-node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 
@@ -143,7 +143,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For the current verification/duplicate review, compare against `3667c9d` (plus untracked
+For the current management review, compare against `c2acb18` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 
@@ -203,8 +203,8 @@ stands. The unrelated Groups binding-error finding is outside this increment.
 3. Specify D1 schema, ownership/state transitions and migrations; implement local
    persistence and server validation. Partly complete: the schema, local
    persistence and validation are implemented; ownership and state-transition
-   design are documented for the local verification slice; management remains. No production resources in this step.
-4. Local per-listing verification is implemented; management remains. Requirements:
+   design are documented for local verification and management; remote integration remains. No production resources in this step.
+4. Local per-listing verification and management are implemented. Remote integration requirements:
    scanner-safe GET plus explicit POST actions,
    hashed expiring tokens, revocation, safe cookies, CSRF/origin checks, generic
    recovery responses, changed-email verification, and idempotent transitions.
@@ -263,6 +263,6 @@ September 26 review follow-up: upgrade tests now cover the original version-1
 database and an existing version-3 database with the old unverified-draft index
 and publication trigger. Failed-repair tests reopen read-only and compare full
 listing rows to prove rollback; publication is also tested at exact expiry.
-All 30 focused tests pass. These final test additions have not been re-reviewed
-by Claude. Next: commit this increment when authorized, then local private
-management sessions and recovery/revocation; no deployment is implied.
+The verification increment passed 30 tests and was committed as `c2acb18`.
+Current management work and checks are recorded in Resume here and
+`gear-management.md`; this paragraph is historical verification context.

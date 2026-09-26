@@ -38,7 +38,10 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ## Gear Exchange (in development)
 
-**Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here--september-25-2026).**
+Local seller sessions and ownership-checked management are documented in
+[instructions/gear-management.md](instructions/gear-management.md).
+
+**Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here).**
 
 Local draft storage, validation, per-listing verification and duplicate checks
 are implemented separately from the preview;

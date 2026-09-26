@@ -22,3 +22,4 @@ instructions/*
 *.sqlite-*
 *.db
 *.db-*
+!instructions/gear-management.md

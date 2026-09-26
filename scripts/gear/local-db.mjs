@@ -15,7 +15,7 @@ export function openLocalDatabase(path=':memory:') {
   const sqlite=new DatabaseSync(path);
   sqlite.exec('PRAGMA foreign_keys=ON');
   sqlite.exec('CREATE TABLE IF NOT EXISTS gear_local_migrations (version INTEGER PRIMARY KEY)');
-  for(const [version,file] of [[1,'0001_drafts.sql'],[2,'0002_verification.sql'],[3,'0003_duplicates.sql'],[4,'0004_publication_duplicates.sql']]) {
+  for(const [version,file] of [[1,'0001_drafts.sql'],[2,'0002_verification.sql'],[3,'0003_duplicates.sql'],[4,'0004_publication_duplicates.sql'],[5,'0005_management.sql']]) {
     if(sqlite.prepare('SELECT version FROM gear_local_migrations WHERE version=?').get(version))continue;
     sqlite.exec('BEGIN');
     try {

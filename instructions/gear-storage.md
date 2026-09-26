@@ -15,7 +15,7 @@ provision D1/R2, or add any deployed Pages API route.
 - `lib/gear-storage.mjs`: bound SQL writes in a transaction and public-field
   queries. `readLocalDraft` is trusted development tooling, not authorization.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–4 once and preserves records on reopening.
+  It applies migrations 1–5 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -74,7 +74,8 @@ not safe to expose remotely, even when a listing ID is random.
 All drafts start unverified; local token confirmation can publish one draft. Email matching
 reuses a seller record but grants no ownership and never verifies that seller.
 Local verification and publication endpoints now exist as documented below.
-There is no authenticated management, deletion or renewal endpoint.
+Local authenticated management and relisting are now described in
+[gear-management.md](gear-management.md); seller deletion remains pending.
 
 Public queries require available/pending status, verified listing and seller,
 and expiry strictly after the read time. Closed, expired, removed and unverified
@@ -82,9 +83,10 @@ records are excluded. Queries select explicit public fields and never email,
 seller IDs or verification data. The first page is bounded at 100 records;
 pagination/search integration comes with the real browse API.
 
-Next: private management sessions and bounded draft abuse controls, then UI
-integration. Per-listing verification and the publication quota now exist locally. Before any remote API exists,
-add authentication/authorization, request abuse limits and retention cleanup.
+Next: separately verified email changes and bounded draft abuse controls, then
+D1/HTTPS validation and UI integration. Per-listing verification, publication
+quota, and authenticated management exist locally. Before any remote API exists,
+validate deployed authorization and add request abuse limits and retention cleanup.
 This local server is not a production security boundary or deployable API.
 
 ## Migration and rollback
@@ -99,7 +101,7 @@ procedure is not implemented or claimed by this step.
 ## Verification
 
 ```bash
-node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 ```
 
 Tests cover reopen persistence, rollback, invalid content, untrusted status
@@ -215,17 +217,23 @@ Real token landing pages must use no-store, no-referrer and no third-party asset
 reissue per listing and recipient before enabling real delivery. No actual email
 landing page or remote token service is implemented here.
 
-Tests currently cover 30 focused cases across four test files, including
+The pre-management verification increment covered 30 focused cases, including
 same-email isolation, replay, exact token expiry, reissue, removed records,
 rollback, competing final-slot confirmations, publication duplicates and scanner-safe
 GET. Concurrency tests use one local SQLite connection; multi-connection/D1
-contention is a separate integration check. Real delivery, management cookies,
-CSRF on deployed forms, rate limits and draft cleanup remain unimplemented.
+contention is a separate integration check. Real delivery, browser cookie/CSRF
+integration, rate limits and draft cleanup remain unimplemented. Local management
+cookies and CSRF checks are covered by the current management tests.
 
 September 26 review follow-up: upgrade tests now cover the original version-1
 database and an existing version-3 database with the old unverified-draft index
 and publication trigger. Failed-repair tests reopen read-only and compare full
 listing rows to prove rollback; publication is also tested at exact expiry.
-All 30 focused tests pass. These final test additions have not been re-reviewed
-by Claude. Next: commit this increment when authorized, then local private
-management sessions and recovery/revocation; no deployment is implied.
+Those 30 tests passed before the verification increment was committed as
+`c2acb18`. This paragraph records that historical verification step; current
+management work is described below.
+
+Current continuation: verification is committed as c2acb18. Local management
+work and its limits are documented in [gear-management.md](gear-management.md).
+The combined suite now has 41 passing tests, including authenticated writes,
+recovery/revocation and transactional stale-duplicate cleanup. No production services have been configured.

@@ -1105,7 +1105,10 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## Gear Exchange — in development
 
-**Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here--september-25-2026).**
+Local-only management sessions and owner-checked writes are documented in
+[gear-management.md](gear-management.md). The browser preview remains simulated.
+
+**Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
