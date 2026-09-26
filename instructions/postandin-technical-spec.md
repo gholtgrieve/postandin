@@ -1105,6 +1105,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ## Gear Exchange — in development
 
+**Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here--september-25-2026).**
+
 The local-only draft schema, validation, persistence and API harness are
 documented in [gear-storage.md](gear-storage.md). They do not add Pages routes
 or provision cloud services; the preview UI remains in-memory.
@@ -1119,14 +1121,15 @@ Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 All sample listings, management access, verification and contact actions are
 simulated. Inputs and local photos remain in memory and reset on reload.
 The public sample dataset is separate from seller drafts. Real uploads,
-authentication, delivery, expiration and deletion retention remain unimplemented.
+authentication, delivery, automatic expiry cleanup and deletion retention remain
+unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Current Status
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | In-memory samples only; no backend or email. |
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples; separate local storage exists, but no deployed backend or email. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |

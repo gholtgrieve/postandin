@@ -38,6 +38,8 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ## Gear Exchange (in development)
 
+**Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here--september-25-2026).**
+
 Local draft storage and validation are implemented separately from the preview;
 see [local storage instructions](instructions/gear-storage.md). No deployed API
 or cloud resources exist. Run the storage tests with
@@ -53,7 +55,8 @@ Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 All sample listings, management access, verification and contact actions are
 simulated. Inputs and local photos remain in memory and reset on reload.
 The public sample dataset is separate from seller drafts. Real uploads,
-authentication, delivery, expiration and deletion retention remain unimplemented.
+authentication, delivery, automatic expiry cleanup and deletion retention remain
+unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Groups feature

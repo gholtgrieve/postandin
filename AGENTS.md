@@ -27,6 +27,17 @@ separate second opinion.
 Do not overwrite or discard pre-existing uncommitted work. Ask before touching
 files that contain unrelated changes.
 
+## Feature handoffs
+
+For Gear Exchange work, start with the **Resume here** section in
+[instructions/gear-exchange-plan.md](instructions/gear-exchange-plan.md).
+It records the completed commits, implemented versus simulated behavior,
+next bounded task, acceptance criteria, review history and deployment limits.
+Use [instructions/gear-storage.md](instructions/gear-storage.md) for local
+storage commands and data/privacy boundaries. Recheck Git and code, and update
+the handoff when an increment changes the state. These repo documents are the
+continuation source; prior chat history is not required.
+
 ## Implementation rules
 
 - Keep the architecture deliberately simple: vanilla HTML, CSS, and JavaScript.
