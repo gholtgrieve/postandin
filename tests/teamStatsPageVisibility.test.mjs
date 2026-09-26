@@ -43,7 +43,12 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through September 20, 2026/);
+  assert.match(statsPage, /Through September 26, 2026/);
+  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">6<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">0-5-1<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">10 \/ 19<\/span>/);
+  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>6<\/td><td>3<\/td><td>1<\/td><td class="points">4<\/td><td>0<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>5<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>31<\/td>/);
 });
 
 test('both player tables provide sortable column controls', () => {
@@ -57,8 +62,8 @@ test('goalie totals include derived saves and save percentage', () => {
   assert.match(statsPage, />GA<\/button>/);
   assert.match(statsPage, />SV<\/button>/);
   assert.match(statsPage, />SV%<\/button>/);
-  assert.match(statsPage, /Anthony O'Donnell<\/td><td>2<\/td><td>0<\/td><td>1<\/td><td>1<\/td><td>70<\/td><td>5<\/td><td>65<\/td><td class="points" data-sort-value="92\.9">92\.9%/);
-  assert.match(statsPage, /Miguel Martinez<\/td><td>2<\/td><td>0<\/td><td>2<\/td><td>0<\/td><td>81<\/td><td>8<\/td><td>73<\/td><td class="points" data-sort-value="90\.1">90\.1%/);
+  assert.match(statsPage, /Anthony O'Donnell<\/td><td>3<\/td><td>0<\/td><td>2<\/td><td>1<\/td><td>119<\/td><td>8<\/td><td>111<\/td><td class="points" data-sort-value="93\.3">93\.3%/);
+  assert.match(statsPage, /Miguel Martinez<\/td><td>3<\/td><td>0<\/td><td>3<\/td><td>0<\/td><td>117<\/td><td>11<\/td><td>106<\/td><td class="points" data-sort-value="90\.6">90\.6%/);
 });
 
 test('display names retain natural order while sorting by surname', () => {
