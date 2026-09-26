@@ -1107,7 +1107,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here--september-25-2026).**
 
-The local-only draft schema, validation, persistence and API harness are
+The local-only draft schema, validation, persistence, token verification,
+duplicate prevention and API harness are
 documented in [gear-storage.md](gear-storage.md). They do not add Pages routes
 or provision cloud services; the preview UI remains in-memory.
 

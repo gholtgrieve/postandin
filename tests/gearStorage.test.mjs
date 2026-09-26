@@ -80,7 +80,7 @@ test('HTTP local boundary, invalid JSON, validation, missing and generic storage
 
 test('database rejects invalid publication and prices; repeated email grants no verification',async()=>{
   const db=openLocalDatabase();try{
-    await createDraft(db,input);await createDraft(db,{...input,email:'SAMPLE@EXAMPLE.TEST'});
+    await createDraft(db,input);await createDraft(db,{...input,title:'Another item',email:'SAMPLE@EXAMPLE.TEST'});
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_sellers').get().n,1);
     assert.equal(db.sqlite.prepare('SELECT verified_at FROM gear_sellers').get().verified_at,null);
     assert.throws(()=>db.sqlite.exec("UPDATE gear_listings SET status='available'"));

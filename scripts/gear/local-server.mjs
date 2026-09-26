@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { safeDatabasePath } from './local-path.mjs';
 import { openLocalDatabase } from './local-db.mjs';
 import { createDraft, readLocalDraft, readPublicListings } from '../../lib/gear-storage.mjs';
+import { issueLocalVerification, confirmVerification } from '../../lib/gear-verification.mjs';
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
 export function localServer(db) {
@@ -14,10 +15,12 @@ export function localServer(db) {
     if(req.headers['sec-fetch-site']==='cross-site' || req.headers.host!==expected || (req.headers.origin && req.headers.origin!==`http://${expected}`)) return reply(403,{error:'Request not allowed.'});
     try {
       const url=new URL(req.url,`http://${expected}`);
+      if(req.method==='GET'&&url.pathname==='/verification')return reply(200,{confirmationRequired:true,notice:'Opening this URL does not verify or publish anything. POST token and confirm:true to /verification/confirm.'});
       if(req.method==='GET'&&url.pathname==='/listings') return reply(200,{listings:await readPublicListings(db)});
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
-      if(req.method!=='POST'||url.pathname!=='/drafts') return reply(404,{error:'Not found.'});
+      const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
+      if(req.method!=='POST'||(!issue&&!['/drafts','/verification/confirm'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
       if(Number(req.headers['content-length'])>32768)return tooLarge();
@@ -32,6 +35,12 @@ export function localServer(db) {
       });
       if(!chunks)return;
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reply(400,{error:'Invalid JSON.'});}
+      if(issue){const receipt=await issueLocalVerification(db,issue[1]);return reply(receipt?200:404,receipt?{receipt}:{error:'Not found.'});}
+      if(url.pathname==='/verification/confirm'){
+        if(input?.confirm!==true)return reply(400,{error:'Explicit confirmation is required.'});
+        const result=await confirmVerification(db,input.token);
+        return reply(result.verified?200:400,result.verified?result:{error:'Unable to verify this listing.'});
+      }
       return reply(201,await createDraft(db,input));
     } catch(error) {
       if(error instanceof DraftValidationError)return reply(400,{error:error.message,fields:error.fields});
@@ -44,6 +53,6 @@ if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   const path=process.argv[2];
   if(!path)throw new Error('Supply an absolute database path outside the website directory. Use sample data only.');
   const db=openLocalDatabase(safeDatabasePath(path)),server=localServer(db);
-  server.listen(8772,'127.0.0.1',()=>console.log('Local sample-data API: http://127.0.0.1:8772 (no email or publishing)'));
+  server.listen(8772,'127.0.0.1',()=>console.log('Local sample-data API: http://127.0.0.1:8772 (simulated email; publication in local database only)'));
   for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>{db.close();process.exit(0);}));
 }

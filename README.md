@@ -40,10 +40,11 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 **Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here--september-25-2026).**
 
-Local draft storage and validation are implemented separately from the preview;
+Local draft storage, validation, per-listing verification and duplicate checks
+are implemented separately from the preview;
 see [local storage instructions](instructions/gear-storage.md). No deployed API
 or cloud resources exist. Run the storage tests with
-`node --test tests/gearStorage.test.mjs`.
+`node --test tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
 
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved

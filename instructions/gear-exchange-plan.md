@@ -36,8 +36,8 @@ inspect `git status` and recent history before continuing.
 | `/gear/` preview | Five screens, sample browsing, posting, local photo previews, simulated management | Persistent UI data, real verification/email, live publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Tested D1/workerd binding or production deployment |
-| Local API | Loopback-only create/read unverified drafts and public projection | Any Pages route, authenticated draft access, writes to existing listings |
-| Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Publication endpoint, real pagination, search API, cleanup job |
+| Local API | Draft create/read, local token receipt, explicit confirmation, public projection | Any Pages route, authenticated management, real mail |
+| Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
 
 The preview's managed records and public samples are separate arrays. They are
 also separate from the local database. Do not mistake simulated verification,
@@ -45,37 +45,36 @@ renewal or deletion for backend behavior. `readLocalDraft` exposes private sampl
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Next bounded task: local per-listing verification
+### Current increment: local verification and duplicate prevention
 
-Start with the ownership/state-transition design, then implement and test the
-small verification slice locally. Keep real email and production resources out
-of this increment. Use a local mail sink/test fixture for delivery simulation.
+Implemented in the working tree after `3667c9d` (recheck Git for later commits):
+30-minute hash-only tokens, explicit local POST confirmation, single-submission
+publication, replay protection, atomic ten-active quota and 30-day expiry.
+Same-seller duplicate publication is blocked using normalized gear identity;
+price/description changes do not bypass it. See the storage guide for exact
+matching rules, migration backfill and local mail-sink boundaries.
+Review fixes (September 26): repeated drafts are allowed, publication conflicts
+return generic failures, direct trigger guards are tested, and NULL keys are
+repaired on local startup. All 30 focused tests pass; D1 remains untested.
 
-Acceptance criteria for that next increment:
+### Next bounded task: private management access
 
-1. A short-lived, single-use verification token is bound to one submission and
-   its email. Store a token hash, not the raw credential. Define expiry, reissue
-   revocation and consumption behavior in the storage guide before coding.
-2. Opening the link (GET) cannot publish or consume it. An explicit confirmation
-   action performs the transition atomically. Duplicate/replayed/expired tokens
-   cannot republish, extend expiry or grant extra access.
-3. Verifying one draft never publishes other drafts sharing its email. A verified
-   seller row alone grants no ownership of an unverified submission. Test two
-   drafts using the same email, including one the recipient did not submit.
-4. Enforce the ten-active-listing limit, including pending listings, at the
-   publication transition. Unverified drafts do not consume the active quota;
-   define a separate bound for draft creation before exposing a remote API.
-5. Newly verified publication has a 30-day expiry; invalid transitions fail
-   safely. Removed records cannot be revived. Public results still exclude
-   unverified, closed, expired and removed records and all private fields.
-6. Use only fictitious test data, add rollback/replay/failure tests, update docs,
-   and prepare an implementation review before any merge/deployment.
+Design and implement local-only management sessions and recovery/revocation,
+with a separate credential scope from verification. Acceptance criteria:
 
-After this slice: private management sessions and recovery/revocation, then
-connect the UI. The UI adapter must map `Sale`/`Trade`/`Free` to lowercase values,
-`seller` to `sellerName`, and send the explicit adult acknowledgement. Do not
-wire the preview to the trusted local draft-read API as a production shortcut.
-Changed-email verification must preserve existing ownership until completed.
+1. Access is limited to verified listings owned by the authenticated recipient;
+   unverified drafts sharing that email never become manageable automatically.
+2. Expiring, hashed credentials, revocation and explicit confirmation are tested;
+   link-opening GETs cannot mutate state. Define cookie and CSRF/origin behavior.
+3. Edit/pending/close/relist transitions enforce ownership and active quotas;
+   removed records cannot be revived, and duplicate keys update with gear fields.
+4. Changed email preserves old ownership until separately verified. Invalid
+   credentials, cross-owner requests and replay fail without private-data leaks.
+5. Keep delivery simulated and update documentation/tests before remote exposure.
+
+UI integration comes after that: map offer labels to lowercase, `seller` to
+`sellerName`, and include adult acknowledgement. Never connect public UI to
+trusted local token issuance or draft inspection as a production shortcut.
 
 ### Checks and local commands
 
@@ -84,7 +83,7 @@ Run from the canonical checkout:
 ```bash
 git status --short
 git branch --show-current
-node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 
@@ -144,7 +143,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For future reviews, compare the next changes against `7996db6` (plus untracked
+For the current verification/duplicate review, compare against `3667c9d` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 
@@ -204,8 +203,9 @@ stands. The unrelated Groups binding-error finding is outside this increment.
 3. Specify D1 schema, ownership/state transitions and migrations; implement local
    persistence and server validation. Partly complete: the schema, local
    persistence and validation are implemented; ownership and state-transition
-   design remain for the next increment. No production resources in this step.
-4. Verification and management: scanner-safe GET plus explicit POST actions,
+   design are documented for the local verification slice; management remains. No production resources in this step.
+4. Local per-listing verification is implemented; management remains. Requirements:
+   scanner-safe GET plus explicit POST actions,
    hashed expiring tokens, revocation, safe cookies, CSRF/origin checks, generic
    recovery responses, changed-email verification, and idempotent transitions.
 5. Private image pipeline, contact delivery, reporting and owner-authenticated
@@ -258,3 +258,11 @@ check; no production deployment is authorized by this edit.
 
 Local persistence increment: see [gear-storage.md](gear-storage.md) for the
 schema, local-only API, validation, tests and remaining D1 runtime check.
+
+September 26 review follow-up: upgrade tests now cover the original version-1
+database and an existing version-3 database with the old unverified-draft index
+and publication trigger. Failed-repair tests reopen read-only and compare full
+listing rows to prove rollback; publication is also tested at exact expiry.
+All 30 focused tests pass. These final test additions have not been re-reviewed
+by Claude. Next: commit this increment when authorized, then local private
+management sessions and recovery/revocation; no deployment is implied.
