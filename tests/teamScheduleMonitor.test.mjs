@@ -326,7 +326,8 @@ test('SportsEngine UTC starts are converted to Pacific time', () => {
 test('the real travel page parses every matchup and matches the reviewed baseline', () => {
   const actual = parseTravelPageGames(fs.readFileSync('mets-16aa-travel/index.html', 'utf8'));
   const baseline = JSON.parse(fs.readFileSync('data/mets-16aa-travel-page-games.json', 'utf8'));
-  assert.deepEqual(actual, baseline);
+  const byId = (a, b) => a.id.localeCompare(b.id);
+  assert.deepEqual(actual.sort(byId), baseline.sort(byId));
 });
 
 test('every non-NWAHL trip exclusion names a trip on the real travel page', () => {

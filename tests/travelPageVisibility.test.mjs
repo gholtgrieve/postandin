@@ -43,6 +43,16 @@ test('every trip with published game times includes the warmup reminder', () => 
   }
 });
 
+test('completed Tacoma is collapsed after upcoming trips without an expired booking action', () => {
+  const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
+  const archiveStart = travelPage.indexOf('<section class="past-trips"');
+  assert.doesNotMatch(glance, /href="#tacoma"/);
+  assert.match(travelPage, /<article class="trip priority" id="tri-cities-october">/);
+  assert.ok(archiveStart > travelPage.indexOf('<article class="trip" id="gopher-state">'));
+  assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tacoma · September 25–27, 2026<\/summary>\s*<article class="trip" id="tacoma">/);
+  assert.doesNotMatch(travelPage.slice(archiveStart), /ctyhocn=SEADPHX/);
+});
+
 test('travel page provides a complete large-image social preview', () => {
   assert.match(travelPage, /<meta property="og:type" content="website">/);
   assert.match(travelPage, /<meta property="og:title" content="Seattle Junior Mets 16U AA Travel Information">/);
