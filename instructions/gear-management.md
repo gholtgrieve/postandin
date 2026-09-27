@@ -34,8 +34,8 @@ Pages routes, real mail or cloud resources. Read the Resume here section in
   Cleanup may commit when the target write is a no-op; those matches were already
   expired by time and excluded from public reads.
 - Email changes are explicitly rejected; equivalent capitalization or surrounding
-  whitespace is normalized before comparing the existing address. A separately verified ownership-transfer
-  design is still needed; do not silently change the email on the seller row.
+  whitespace is normalized before comparing the existing address. Use the separate verified transfer flow in
+  [gear-email-change.md](gear-email-change.md); never rename the seller row.
   Adult confirmation is not re-collected for edits to previously verified records.
 
 ## Local API
@@ -86,7 +86,8 @@ multi-connection contention tests have run. Trigger/API behavior must be tested
 there before remote integration. Migration 5 is additive; local runner applies
 it once after migrations 1–4. No automatic data deletion occurs on rollback.
 
-Still needed: separately verified email change, seller deletion/retention,
+Verified email transfer is now implemented locally; see `gear-email-change.md`.
+Still needed: seller deletion/retention,
 management pagination, real HTTPS browser flow, abuse limits, UI integration,
 and D1 validation. Before UI integration, design CSRF recovery after reload:
 currently CSRF is returned only at confirmation, so a client that loses that

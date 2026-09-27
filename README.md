@@ -41,6 +41,8 @@ CLI before use. Never place secrets or private identifiers in documentation.
 Local seller sessions and ownership-checked management are documented in
 [instructions/gear-management.md](instructions/gear-management.md).
 
+Local verified mailbox transfers are described in [instructions/gear-email-change.md](instructions/gear-email-change.md).
+
 **Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here).**
 
 Local draft storage, validation, per-listing verification and duplicate checks

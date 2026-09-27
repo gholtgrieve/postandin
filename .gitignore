@@ -23,3 +23,4 @@ instructions/*
 *.db
 *.db-*
 !instructions/gear-management.md
+!instructions/gear-email-change.md

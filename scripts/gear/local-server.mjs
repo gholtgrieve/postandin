@@ -1,4 +1,5 @@
 // LOCAL DEVELOPMENT ONLY: deliberately outside functions/, never a Pages route.
+import { issueLocalEmailChange, confirmEmailChange } from '../../lib/gear-email-change.mjs';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { safeDatabasePath } from './local-path.mjs';
@@ -9,6 +10,7 @@ import { MANAGEMENT_TTL_MS, issueLocalManagementLink, redeemManagementLink, list
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
 export function localServer(db) {
+  const emailChangeMailbox=[];
   const localMailbox=[]; // Trusted local inspection only; bounded, never logged.
   const sessionCookie=value=>`gear_session=${value}; Path=/management; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?MANAGEMENT_TTL_MS/1000:0}`;
   function session(req){const matches=(req.headers.cookie||'').split(';').map(s=>s.trim()).filter(s=>s.startsWith('gear_session='));return matches.length===1?matches[0].slice(13):'';}
@@ -20,6 +22,8 @@ export function localServer(db) {
     if(req.headers['sec-fetch-site']==='cross-site' || req.headers.host!==expected || (req.headers.origin && req.headers.origin!==`http://${expected}`)) return reply(403,{error:'Request not allowed.'});
     try {
       const url=new URL(req.url,`http://${expected}`);
+      if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
+      if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox});
       if(req.method==='GET'&&url.pathname==='/management/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/management/listings'){
@@ -33,7 +37,7 @@ export function localServer(db) {
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
       const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
-      if(req.method!=='POST'||(!issue&&!['/drafts','/verification/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
+      if(req.method!=='POST'||(!issue&&!['/drafts','/verification/confirm','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
       if(Number(req.headers['content-length'])>32768)return tooLarge();
@@ -48,6 +52,17 @@ export function localServer(db) {
       });
       if(!chunks)return;
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reply(400,{error:'Invalid JSON.'});}
+      if(url.pathname==='/management/email-change'){
+        const receipt=await issueLocalEmailChange(db,session(req),req.headers['x-gear-csrf']||'',input?.email);
+        if(receipt){emailChangeMailbox.push(receipt);if(emailChangeMailbox.length>20)emailChangeMailbox.shift();}
+        return reply(receipt?200:403,receipt?{message:'Check the new address to confirm. Local preview: no email was sent.'}:{error:'Unable to request email change.'});
+      }
+      if(url.pathname==='/management/email-change/confirm'){
+        if(input?.confirm!==true)return reply(400,{error:'Explicit confirmation is required.'});
+        const ok=await confirmEmailChange(db,input.token);
+        // Recipient may confirm in a different browser. No session is granted.
+        return reply(ok?200:400,ok?{ok:true}:{error:'Unable to confirm email change.'});
+      }
       if(url.pathname==='/management/recovery'){
         const receipt=await issueLocalManagementLink(db,input?.email);
         if(receipt){localMailbox.push(receipt);if(localMailbox.length>20)localMailbox.shift();}

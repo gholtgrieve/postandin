@@ -15,7 +15,7 @@ provision D1/R2, or add any deployed Pages API route.
 - `lib/gear-storage.mjs`: bound SQL writes in a transaction and public-field
   queries. `readLocalDraft` is trusted development tooling, not authorization.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–5 once and preserves records on reopening.
+  It applies migrations 1–6 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -83,7 +83,8 @@ records are excluded. Queries select explicit public fields and never email,
 seller IDs or verification data. The first page is bounded at 100 records;
 pagination/search integration comes with the real browse API.
 
-Next: separately verified email changes and bounded draft abuse controls, then
+Verified email changes now exist locally; see [gear-email-change.md](gear-email-change.md).
+Next: bounded draft abuse controls, then
 D1/HTTPS validation and UI integration. Per-listing verification, publication
 quota, and authenticated management exist locally. Before any remote API exists,
 validate deployed authorization and add request abuse limits and retention cleanup.
@@ -101,7 +102,7 @@ procedure is not implemented or claimed by this step.
 ## Verification
 
 ```bash
-node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 ```
 
 Tests cover reopen persistence, rollback, invalid content, untrusted status
@@ -233,7 +234,9 @@ Those 30 tests passed before the verification increment was committed as
 `c2acb18`. This paragraph records that historical verification step; current
 management work is described below.
 
-Current continuation: verification is committed as c2acb18. Local management
+Current continuation: verification is committed as c2acb18 and management as
+06be078. The verified email-change increment is documented in
+[gear-email-change.md](gear-email-change.md). Local management
 work and its limits are documented in [gear-management.md](gear-management.md).
-The combined suite now has 41 passing tests, including authenticated writes,
+The combined suite now has 49 passing tests, including authenticated writes,
 recovery/revocation and transactional stale-duplicate cleanup. No production services have been configured.

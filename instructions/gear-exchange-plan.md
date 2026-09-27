@@ -26,6 +26,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `7996db6` | Validated local draft storage, tests and storage-review fixes |
 | `3667c9d` | Documentation handoff and agent discovery |
 | `c2acb18` | Local verification, publication-only duplicate checks and upgrade tests |
+| `06be078` | Reviewed local seller management and duplicate cleanup |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -47,30 +48,25 @@ renewal or deletion for backend behavior. `readLocalDraft` exposes private sampl
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Current increment: local seller management
+### Current increment: verified email changes
 
-Verification and publication duplicate checks are committed as `c2acb18`.
-The working tree now adds separate management recovery links, 24-hour sessions,
-revocation, owner-only listing reads and guarded edit/pending/close/relist writes.
-See [gear-management.md](gear-management.md) for the credential contract, routes,
-tests and limitations. 41 focused tests pass. First Claude review fixes are
-implemented: expanded authorization/HTTP tests, transactional stale-duplicate
-cleanup, normalized email comparison and documentation corrections. Claude
-re-review concluded ready to merge for this local-only increment, with no
-blocker/high/medium findings. Minor follow-ups corrected stable handoff links,
-added well-formed wrong-CSRF coverage and shared the cookie lifetime constant.
-All 41 tests pass after those follow-ups; they were not sent for another review.
-This increment is included in the local seller-management commit; use Git history
-for its hash. No push, merge or deployment is included.
+Local seller management is committed as `06be078`. This increment
+adds separately verified mailbox transfers, without renaming seller rows.
+See [gear-email-change.md](gear-email-change.md) for exact transfer semantics,
+local routes, failure behavior and tests. All 49 focused tests pass locally;
+Claude review concluded ready to merge for this local-only increment, with no
+blocker/high/medium defects. Small test/documentation follow-ups passed all 49
+tests but were not separately re-reviewed. This increment is included in the
+verified email-change commit; use Git history for its hash. Nothing is pushed,
+merged or deployed.
 
 ### Next bounded task
 
-Implement separately verified email changes after this local management increment.
-Keep old ownership until the new recipient confirms; never mutate a shared seller
-email in place. Test cross-owner access, replay, duplicate conflicts, expiry,
-rollback and concurrent quota transitions. Real D1/HTTPS validation precedes UI
-integration, including CSRF recovery after page reload and actual Secure-cookie
-behavior. Seller deletion and retention still need implementation.
+Implement and test
+CSRF recovery after page reload and the HTTPS browser session flow. Actual
+D1/workerd validation must precede remote integration; local SQLite alone is
+not evidence of deployed behavior. Keep the preview separate until these checks
+are complete. Seller deletion, retention and restore remain separate work.
 
 UI integration must map offer labels to lowercase, `seller` to `sellerName`, and
 include adult acknowledgement on new drafts. Never expose local draft inspection
@@ -83,7 +79,7 @@ Run from the canonical checkout:
 ```bash
 git status --short
 git branch --show-current
-node --test tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 
@@ -143,7 +139,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For the current management review, compare against `c2acb18` (plus untracked
+For the current email-change review, compare against `06be078` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 
