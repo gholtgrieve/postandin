@@ -11,7 +11,7 @@ export function localAPI(){
   return result;
  }
  const session=()=>request('/management/session',{});
- return {request,session,async write(body){const access=await session();return request('/management/listing',body,access.csrf);},async logout(){const access=await session();return request('/management/logout',{},access.csrf);}};
+ return {request,session,async changeEmail(email){const access=await session();return request('/management/email-change',{email},access.csrf);},async write(body){const access=await session();return request('/management/listing',body,access.csrf);},async logout(){const access=await session();return request('/management/logout',{},access.csrf);}};
 }
 export function previewListing(row){return {...row,type:row.type==='sale'?'Sale':row.type==='free'?'Free':'Trade',seller:row.sellerName,place:row.city,photos:[],age:'Local listing',pending:row.status==='pending',status:row.status[0].toUpperCase()+row.status.slice(1),expires:row.expiresAt};}
 export function listingInput(d,adult,editing=false){const result={title:d.title,description:d.description,category:d.category,size:d.size,fit:d.fit,condition:d.condition,city:d.city,type:d.type.toLowerCase(),priceCents:d.priceCents,trade:d.trade,clubs:d.clubs,otherClub:d.otherClub,sellerName:d.seller};if(!editing){result.email=d.email;result.adult=adult;}return result;}

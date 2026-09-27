@@ -1108,7 +1108,8 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 Local-only management sessions, reload recovery, HTTPS browser validation and owner-checked writes are documented in
 [gear-management.md](gear-management.md). The browser preview remains simulated.
 
-Local verified mailbox transfers are described in [gear-email-change.md](gear-email-change.md).
+Local verified mailbox transfers, including the opt-in connected management
+form, are described in [gear-email-change.md](gear-email-change.md).
 
 Local D1/workerd validation passed; see [gear-d1-validation.md](gear-d1-validation.md)
 for the observed coverage and remaining remote/legacy-data limits.

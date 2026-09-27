@@ -30,6 +30,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `5cada4b` | Reviewed local verified email transfers |
 | `32808e8` | Session recovery and HTTPS browser checks |
 | `2d33253` | Local D1/workerd validation |
+| `afd29ba` | Reviewed connected local HTTPS preview |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -67,10 +68,21 @@ and retested afterward. This increment is included in the local commit titled
 `Connect Gear Exchange preview to the local HTTPS API`; use Git history for its
 hash. No push, merge or deployment.
 
+### Email-change UI increment
+
+Connected local management now requests and confirms email transfers with the
+existing backend. See [gear-email-change.md](gear-email-change.md) for behavior,
+error recovery and browser coverage. Review baseline is `afd29ba` plus this
+increment. Claude source review approved the local-only scope with no
+blocker/high/medium findings. Minor focus, stale-state, field-reset and spacing
+follow-ups were fixed and browser-tested afterward; no additional review pass.
+This work is included in the local commit titled `Connect local Gear email-change management`;
+use Git history for its hash. No push, merge or deployment.
+
 ### Next bounded task
 
 On the next owner request, choose the next bounded integration step. Photos, buyer contact,
-reports and email-change UI are still unfinished; deletion/retention, real mail,
+reports are still unfinished; deletion/retention, real mail,
 remote APIs and restore remain separate work. Never expose private local draft
 inspection or simulated inboxes as public Pages routes.
 

@@ -1,7 +1,8 @@
 # Gear Exchange local verified email change
 
 September 26, 2026. Local sample-data development only. Built after management
-commit `06be078`. No real mail, Pages routes, UI wiring or deployment.
+commit `06be078`. No real mail, Pages routes or deployment. The opt-in HTTPS preview now has a
+connected management form (September 27).
 
 ## Contract
 
@@ -56,8 +57,8 @@ expected expired/revoked/quota/duplicate failures expose no destination inventor
 | POST `/management/email-change/confirm` | JSON `{token, confirm:true}`; exact Origin; success or generic failure |
 
 All normal local-server host, fetch-site, JSON/body-size, no-store and no-referrer
-rules apply. No raw tokens are logged or saved in repo files. Token landing UI is
-not implemented; future UI should avoid leaking tokens via URLs/third-party assets.
+rules apply. No raw tokens are logged or saved in repo files. The local UI holds simulated receipts in memory only; no token is placed in a
+URL or localStorage. A real delivered-token landing page is not implemented.
 
 ## Verification and next steps
 
@@ -87,3 +88,41 @@ restore are separate unfinished work. No real email provider was configured.
 Subsequent validation: email-transfer triggers, rollback, conflicts and revocation
 now pass against local D1/workerd; see `gear-d1-validation.md`. Remote D1 and full
 Worker request handlers remain untested.
+
+## Connected local management form (September 27)
+
+In the opt-in HTTPS preview, sign in and open Manage → Change your email.
+Request a link for the new address, then explicitly confirm the simulated local
+receipt. Changing the input hides the prior confirmation; requesting again
+replaces the backend token. Only signed-in management shows this form. Static
+hosting does not include it or call these APIs.
+
+Success immediately clears managed records and the old local receipt, prefills
+recovery with the destination, and asks for a fresh management link. Subsequent
+read failure cannot erase the successful result. An ambiguous confirmation
+response does not claim transfer success: refresh clears access if revoked, and
+the user is directed to sign in at the new address to check. Expired/revoked links
+and listing conflicts share an explanatory message without exposing destination
+inventory. Conflicts can be resolved and the unexpired token retried.
+
+The simulated inbox is trusted local tooling, not proof of email ownership.
+Reload discards an unconfirmed receipt; request another while the source session
+is valid. No real email, notifications, production routes or schema changes.
+
+Browser coverage extends `scripts/gear/browser-preview-check.mjs`: invalid and
+same-address input, recipient changes, expiry/reissue, duplicate conflict and
+retry, session revocation, destination sign-in, success with failed refresh,
+and a committed transfer with lost confirmation response. The form is checked
+at 1040/390/320px and absent from the static demo. Existing 56 Node tests pass.
+
+Claude source review approved the UI increment for local-only use with no
+blocker/high/medium defects. Follow-ups restore focus after inputs are re-enabled,
+clear potentially stale private state when both confirmation and refresh fail,
+clear the destination field on access loss, and improve form spacing. Browser
+checks assert focus, cleared destination input and the double-failure case.
+
+Known local-tool limit: the shared simulated inbox selects the latest receipt
+by destination email, not by request identity. Concurrent operators requesting
+the same destination can pick up each other's receipt. Use this preview as
+single-operator sample-data tooling; request-correlated delivery is required
+before a shared or real-mail environment. This is not production authorization.

@@ -60,7 +60,7 @@ still rejected. No draft idempotency or abandoned-draft cleanup is claimed.
 - Buyer contact and reports retain their explicit preview-only messaging.
 - Delete is omitted from connected management because deletion/retention is not
   implemented. Removed records are read-only.
-- Email transfer exists in the local backend but does not yet have a connected UI.
+- Email transfer is connected in local management; see [gear-email-change.md](gear-email-change.md).
 - No pagination beyond the backend's current 100-record read limit, real email,
   cloud media storage, remote bindings, Pages handlers or deployment was added.
 - No third-party asset is required by connected mode. Other site navigation routes

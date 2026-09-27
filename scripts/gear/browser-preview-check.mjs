@@ -6,6 +6,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {openLocalDatabase} from './local-db.mjs';
+import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
+import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {localServer} from './local-server.mjs';
 if(!process.env.GEAR_PLAYWRIGHT_MODULE)throw new Error('Set GEAR_PLAYWRIGHT_MODULE to an installed Playwright module.');
 const {chromium}=createRequire(import.meta.url)(process.env.GEAR_PLAYWRIGHT_MODULE);
@@ -80,6 +82,33 @@ try{
  await page.route('**/management/listing',route=>route.fulfill({status:502,contentType:'text/plain',body:'not-json'}));await page.locator('#pi-post-submit').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/unreadable response/);await page.unroute('**/management/listing');
  db.sqlite.prepare('UPDATE gear_management_sessions SET expires_at=? WHERE revoked_at IS NULL').run(Date.now());await page.locator('#pi-post-submit').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/session has ended/);assert.equal(await page.locator('.pi-managed-item').count(),0);
  await page.locator('[data-screen="manage"]').click();await idle();await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-local-login').click();await idle();
+ // Connected email transfer: field errors, receipt invalidation, expiry, conflicts and revocation.
+ assert.equal(await page.locator('#pi-email-change').isVisible(),true);
+ await page.locator('#pi-change-email').fill('bad@local');await page.locator('#pi-change-request').click();await idle();
+ assert.ok(await page.locator('#pi-change-email').evaluate(el=>el.validationMessage));assert.equal(await page.locator('.pi-manage').isVisible(),true);
+ await page.locator('#pi-change-email').fill('edge@example.test');await page.locator('#pi-change-request').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/different email/);
+ await page.locator('#pi-change-email').fill('transfer@example.test');await page.locator('#pi-change-request').click();await idle();
+ await page.locator('#pi-change-email').fill('changed@example.test');assert.equal(await page.locator('#pi-change-confirm').isVisible(),false);
+ await page.locator('#pi-change-email').fill('transfer@example.test');await page.locator('#pi-change-request').click();await idle();
+ db.sqlite.prepare('UPDATE gear_email_changes SET expires_at=? WHERE consumed_at IS NULL').run(Date.now()-1);
+ await page.locator('#pi-change-confirm').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/expired/);assert.equal(await page.locator('.pi-managed-item').count(),2);
+ await page.locator('#pi-change-request').click();await idle();
+ const freeRow=(await readPublicListings(db)).find(r=>r.id===freeId);
+ const duplicateTarget=await createDraft(db,{...freeRow,email:'transfer@example.test',adult:true});
+ const duplicateReceipt=await issueLocalVerification(db,duplicateTarget.id);assert.equal((await confirmVerification(db,duplicateReceipt.token)).verified,true);
+ await page.locator('#pi-change-confirm').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/duplicate gear/);assert.equal(await page.locator('.pi-managed-item').count(),2);
+ db.sqlite.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").run(duplicateTarget.id);
+ for(const width of [1040,390,320]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'email form overflow');}
+ if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-email-change.png',fullPage:true});
+ await page.route('**/listings',r=>r.abort());await page.locator('#pi-change-confirm').click();await idle();
+ assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal(await page.locator('#pi-email-change').isVisible(),false);assert.match(await page.locator('#pi-manage-feedback').textContent(),/Email changed locally/);
+ assert.equal(await page.locator('#pi-recovery-email').inputValue(),'transfer@example.test');assert.equal(await page.locator('#pi-recovery-email').evaluate(el=>el===document.activeElement),true);assert.equal(await page.locator('#pi-change-email').inputValue(),'');assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_sessions WHERE revoked_at IS NULL').get().n,0);
+ await page.unroute('**/listings');await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-local-login').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),3);
+ // A committed transfer with a lost response must not claim success or leave private records visible.
+ await page.locator('#pi-change-email').fill('final@example.test');await page.locator('#pi-change-request').click();await idle();
+ await page.route('**/listings',r=>r.abort());await page.route('**/management/email-change/confirm',async route=>{await route.fetch();await route.abort();});await page.locator('#pi-change-confirm').click();await idle();await page.unroute('**/management/email-change/confirm');await page.unroute('**/listings');
+ assert.equal(await page.locator('.pi-managed-item').count(),0);assert.match(await page.locator('#pi-local-notice').textContent(),/could not be confirmed/);
+ await page.locator('#pi-recovery-email').fill('final@example.test');await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-local-login').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),3);
  await page.route('**/listings',r=>r.abort());await page.locator('#pi-local-logout').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal(await page.locator('#pi-manage-feedback').textContent(),'Signed out.');assert.equal((await context.cookies()).some(c=>c.name==='gear_session'),false);await page.unroute('**/listings');
  // Unmarked static HTML must retain demo behavior and perform no API calls.
  const staticContext=await browser.newContext({ignoreHTTPSErrors:true});const demo=await staticContext.newPage();monitor(demo);const apiCalls=[];
@@ -87,10 +116,10 @@ try{
  await demo.route(base+'/gear/',route=>route.fulfill({contentType:'text/html',body:readFileSync(new URL('../../gear/index.html',import.meta.url),'utf8')}));
  await demo.goto(base+'/gear/');await demo.waitForFunction(()=>document.querySelector('#pi-count')?.textContent==='8 listings');
  await demo.locator('[data-screen="post"]').click();await demo.locator('#pi-fill-demo').click();await demo.locator('#pi-next-photos').click();await demo.locator('#pi-next-review').click();await demo.locator('#pi-post-submit').click();await demo.locator('#pi-simulate-verify').click();
- assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);
+ assert.equal(await demo.locator('#pi-email-change').count(),0);assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);
  assert.deepEqual(errors,[]);
  // Expected failed requests are exercised deliberately. Do not hide arbitrary console errors.
- const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
+ const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
  assert.deepEqual(unexpected,[]);
  console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}

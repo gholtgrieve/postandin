@@ -6,11 +6,12 @@ const $=s=>root.querySelector(s);
 const localMode=root.dataset.localApi==='true';
 const adapter=localMode?await import('./local-api.mjs'):null;
 const api=adapter?.localAPI();
-let localBusy=false,verificationReceipt=null,loginReceipt=null,localDraftId=null,signedIn=false;
+let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,signedIn=false;
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
-function clearLocalAccess(){signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
+function clearLocalAccess(){resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
 function serverField(error){
+ if(error.emailChange&&error.fields?.email){const input=$('#pi-change-email');input.setCustomValidity(error.fields.email);return input;}
  const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',adult:'pi-adult',otherClub:'pi-other-club'};
  for(const [key,message] of Object.entries(error.fields||{})){
   const input=$('#'+fields[key]);if(!input)continue;
@@ -24,11 +25,12 @@ async function localAction(task){
  const controls=[...root.querySelectorAll('button,input,select,textarea')].map(el=>[el,el.disabled]);
  // Keep fields frozen during requests; validation itself runs before disabling fields.
  controls.filter(([el])=>el.tagName==='BUTTON').forEach(([el])=>el.disabled=true);
- let invalid=null;
- try{await task();}catch(error){if(error.status===401){clearLocalAccess();feedback('Your session has ended. Request a new local management link.');}invalid=serverField(error);if(!invalid){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to complete this request. Please try again.');}}
+ let invalid=null,focusTarget=null;
+ try{focusTarget=await task();}catch(error){if(error.status===401){clearLocalAccess();feedback('Your session has ended. Request a new local management link.');}invalid=serverField(error);if(!invalid){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to complete this request. Please try again.');}}
  finally{
   controls.forEach(([el,disabled])=>el.disabled=disabled);localBusy=false;root.removeAttribute('aria-busy');
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
+  else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
  }
 }
@@ -170,6 +172,7 @@ $('#pi-managed-list').addEventListener('click',e=>{if(localMode){manageLocal(e);
 $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidden=!$('#pi-recovery-form').hidden;});$('#pi-recovery-form').addEventListener('submit',e=>e.preventDefault());$('#pi-recovery-send').addEventListener('click',()=>{if(localMode){localAction(requestLocalLogin);return;}if($('#pi-recovery-form').reportValidity())$('#pi-recovery-result').hidden=false;});
 
 function renderLocalManaged(){
+ if($('#pi-email-change'))$('#pi-email-change').hidden=!signedIn;
  $('#pi-active-count').textContent=activeCount()+' of 10 active listings';
  $('#pi-managed-list').innerHTML=managed.map(r=>{
   const button=(action,label)=>`<button type="button" data-manage="${action}" data-id="${esc(r.id)}">${label}</button>`;
@@ -209,6 +212,36 @@ function manageLocal(e){
  if(b.dataset.manage==='edit'){resetPost();editingId=r.id;fillPost(r);$('#pi-post-email').disabled=true;$('#pi-post-email').closest('label').hidden=true;$('.pi-contact-fields > .pi-field-help').hidden=true;$('.pi-age-check').hidden=true;$('#pi-adult').disabled=true;$('#pi-post-title').textContent='Edit Your Listing';go('post');return;}
  localAction(async()=>{try{await api.write({id:r.id,action:b.dataset.manage==='pending'?(r.status==='Pending'?'available':'pending'):b.dataset.manage==='renew'?'relist':'close'});}catch(error){try{await refreshLocal();}catch{}throw error;}await afterSuccess('Listing updated in the local database.');});
 }
+function resetEmailChange(){
+ emailChangeReceipt=null;
+ if(!$('#pi-change-confirm'))return;
+ $('#pi-change-confirm').hidden=true;$('#pi-change-result').hidden=true;
+}
+async function requestEmailChange(){
+ const form=$('#pi-email-change');if(!form.reportValidity())return;
+ resetEmailChange();const email=$('#pi-change-email').value.trim().toLowerCase();freezeFields();
+ try{await api.changeEmail(email);}catch(error){error.emailChange=true;if(error.status===403)throw adapter.safeError('Unable to request this change. Use a different email address and check that you are still signed in.');throw error;}
+ const mailbox=await api.request('/local/email-change-mail');
+ emailChangeReceipt=mailbox.receipts.filter(r=>r.recipient===email).at(-1)||null;
+ if(!emailChangeReceipt)throw adapter.safeError('The local receipt is unavailable. Request a new link.');
+ $('#pi-change-confirm').textContent='Confirm local change to '+email;
+ $('#pi-change-confirm').hidden=false;$('#pi-change-result').hidden=false;
+ $('#pi-change-result').textContent='A new link is ready in the simulated local inbox. No email was sent. Confirm within 30 minutes while your current session is still valid.';
+}
+async function confirmEmailChange(){
+ if(!emailChangeReceipt||emailChangeReceipt.recipient!==$('#pi-change-email').value.trim().toLowerCase())throw adapter.safeError('Request a new link for the current email address.');
+ const email=emailChangeReceipt.recipient;freezeFields();
+ try{await api.request('/management/email-change/confirm',{token:emailChangeReceipt.token,confirm:true});}
+ catch(error){
+  try{await refreshLocal();}catch{clearLocalAccess();}
+  if(error.status===400)throw adapter.safeError('Unable to confirm this change. The link may have expired or your session may have ended. An existing account may also have duplicate gear or exceed the ten-active-listing limit. Resolve any listing conflict and retry, or request a new link.');
+  throw adapter.safeError('The email change could not be confirmed. Request a management link for the new address to check your listings before trying again.');
+ }
+ clearLocalAccess();loginReceipt=null;$('#pi-local-login').hidden=true;
+ $('#pi-recovery-email').value=email;
+ await afterSuccess('Email changed locally. Existing management sessions have ended. Request a new management link below to sign in.','manage');
+ return '#pi-recovery-email';
+}
 async function requestLocalLogin(){
  if(!$('#pi-recovery-form').reportValidity())return;
  loginReceipt=null;$('#pi-local-login').hidden=true;
@@ -230,6 +263,12 @@ if(localMode){
  $('#pi-recovery-email').addEventListener('input',()=>{loginReceipt=null;confirm.hidden=true;});
  confirm.onclick=()=>localAction(async()=>{if(!loginReceipt||loginReceipt.recipient!==$('#pi-recovery-email').value.trim().toLowerCase())throw adapter.safeError('Request a new link for the current email address.');freezeFields();clearLocalAccess();await api.request('/management/confirm',{token:loginReceipt.token,confirm:true});loginReceipt=null;confirm.hidden=true;signedIn=true;await afterSuccess('Signed in locally.');});
  const logout=document.createElement('button');logout.type='button';logout.id='pi-local-logout';logout.textContent='Sign out';logout.className='pi-text-button';$('.pi-manage-toolbar').append(logout);logout.onclick=()=>localAction(async()=>{try{await api.logout();}catch(error){if(error.status!==401)throw error;}clearLocalAccess();loginReceipt=null;confirm.hidden=true;await afterSuccess('Signed out.');});
+ const changeForm=document.createElement('form');changeForm.id='pi-email-change';changeForm.className='pi-seller-form pi-recovery';changeForm.hidden=true;
+ changeForm.innerHTML='<h2>Change your email</h2><p>Move all your verified listings to a new email address. Confirming ends existing management sessions for both addresses. Unverified drafts stay with the original address.</p><label>New email<input id="pi-change-email" type="email" required autocomplete="email" placeholder="you@example.com"></label><button id="pi-change-request" class="pi-primary" type="submit">Request local email-change link</button><p id="pi-change-result" role="status" hidden></p><button id="pi-change-confirm" class="pi-primary" type="button" hidden>Confirm local email change</button>';
+ $('.pi-manage').append(changeForm);$('#pi-change-email').maxLength=LIMITS.email;
+ changeForm.addEventListener('submit',e=>{e.preventDefault();localAction(requestEmailChange);});
+ $('#pi-change-email').addEventListener('input',e=>{e.target.setCustomValidity('');resetEmailChange();});
+ $('#pi-change-confirm').onclick=()=>localAction(confirmEmailChange);
  const refresh=document.createElement('button');refresh.type='button';refresh.id='pi-local-refresh';refresh.className='pi-text-button';refresh.textContent='Refresh listings';$('.pi-manage-toolbar').append(refresh);refresh.onclick=()=>localAction(refreshLocal);
  const reissue=document.createElement('button');reissue.type='button';reissue.id='pi-local-reissue';reissue.className='pi-text-button';reissue.textContent='Request a new local verification link';$('#pi-verify-screen').append(reissue);reissue.onclick=()=>localAction(requestVerification);
  $('#pi-photo-files').disabled=true;$('#pi-add-sample').disabled=true;$('.pi-photo-heading + p').textContent='Photo storage is not connected yet. Local listings are saved without photos.';
