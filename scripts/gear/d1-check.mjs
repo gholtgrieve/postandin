@@ -32,6 +32,7 @@ async function publish(db,patch={},now=100){const {id}=await createDraft(db,{...
 async function login(db,email=sample.email,now=200){const receipt=await issueLocalManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
 async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
+ assert.equal(files.length,6,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:'export default {fetch(){return new Response(null,{status:404})}}',compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp};
  mf=new Miniflare(runtimeOptions);
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
@@ -54,6 +55,11 @@ try{
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
+ const clash=await publish(db,{title:'Clash'},209);
+ assert.equal(await editManagedListing(db,access.session,access.csrf,clash,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},209),false);
+ await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(clash).run();
+ assert.equal(await editManagedListing(db,access.session,access.csrf,clash,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},209),true);
+ assert.equal(await changeListingState(db,access.session,access.csrf,clash,'relist',209),false);
  const stale=await publish(db,{title:'Stale'},209);await db.prepare('UPDATE gear_listings SET expires_at=210 WHERE id=?').bind(stale).run();
  await db.prepare("CREATE TRIGGER fail_edit BEFORE UPDATE OF title ON gear_listings BEGIN SELECT RAISE(ABORT,'test edit failure'); END").run();
  const beforeEdit=await data(db);await assert.rejects(editManagedListing(db,access.session,access.csrf,id,{...sample,title:'Stale'},211));assert.equal(await data(db),beforeEdit);
@@ -66,19 +72,33 @@ try{
  const beforeTransfer=await data(db);await assert.rejects(confirmEmailChange(db,receipt.token,214));assert.equal(await data(db),beforeTransfer);
  await db.prepare('DROP TRIGGER fail_transfer').run();assert.equal(await confirmEmailChange(db,receipt.token,215),true);
  assert.equal(await confirmEmailChange(db,receipt.token,216),false);assert.equal(await listManaged(db,access.session,216),null);
- const fresh=await login(db,'new@example.test',217);assert.equal((await listManaged(db,fresh.session,218)).length,2);
+ const fresh=await login(db,'new@example.test',217);assert.equal((await listManaged(db,fresh.session,218)).length,3);
  const conflictId=await publish(db,{email:'conflict@example.test',title:'Stale'},219);
  const merge=await issueLocalEmailChange(db,fresh.session,fresh.csrf,'conflict@example.test',220);
  const beforeMerge=await data(db);assert.equal(await confirmEmailChange(db,merge.token,221),false);assert.equal(await data(db),beforeMerge);
  await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(conflictId).run();
  assert.equal(await confirmEmailChange(db,merge.token,222),true);
+ assert.equal(await listManaged(db,fresh.session,223),null);
+ assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_management_links').first()).n,0);
  console.log('PASS: email transfer trigger rollback, success, replay, merge conflict/retry and revocation.');
  const quota=await mf.getD1Database('QUOTA');await migrate(quota);
  for(let i=0;i<9;i++)await publish(quota,{title:'Quota '+i});
- const tokens=[];for(let i=0;i<2;i++){const draft=await createDraft(quota,{...sample,title:'Candidate '+i});tokens.push(await issueLocalVerification(quota,draft.id,200));}
+ const tokens=[];for(let i=0;i<2;i++){const draft=await createDraft(quota,{...sample,title:'Candidate '+i},200);tokens.push(await issueLocalVerification(quota,draft.id,200));}
  const competing=await Promise.all(tokens.map(t=>confirmVerification(quota,t.token,201)));
  assert.equal(competing.filter(r=>r.verified).length,1);
  assert.equal((await readPublicListings(quota,202)).length,10);
+ const waiting=await quota.prepare('SELECT listing_id FROM gear_verification_tokens WHERE consumed_at IS NULL').first();
+ const quotaBefore=await data(quota);
+ await assert.rejects(quota.prepare('UPDATE gear_verification_tokens SET consumed_at=202 WHERE listing_id=?').bind(waiting.listing_id).run(),/Active listing limit/);
+ assert.equal(await data(quota),quotaBefore);
+ await publish(quota,{email:'other@example.test',title:'Other'},203);
+ const other=await login(quota,'other@example.test',204);
+ const overLimit=await issueLocalEmailChange(quota,other.session,other.csrf,sample.email,205);
+ const transferBefore=await data(quota);
+ await assert.rejects(quota.prepare('UPDATE gear_email_changes SET consumed_at=206 WHERE consumed_at IS NULL').run(),/Email change listing limit/);
+ assert.equal(await data(quota),transferBefore);
+ assert.equal(await confirmEmailChange(quota,overLimit.token,206),false);
+ assert.equal(await data(quota),transferBefore);
  console.log('PASS: competing D1 confirmations preserve the ten-active limit.');
  const upgrade=await mf.getD1Database('UPGRADE');await migrate(upgrade,5);
  const oldId=await publish(upgrade),oldAccess=await login(upgrade);const oldData=await dataWithoutEmailChange(upgrade);

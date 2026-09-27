@@ -147,7 +147,9 @@ request buffering stays bounded. Clients should stop sending on rejection.
 
 UI-to-storage integration must map the preview's offer labels to lowercase
 types, seller to sellerName, and include the explicit adult acknowledgement.
-The preview is not currently connected to these endpoints.
+The opt-in HTTPS local preview now connects these endpoints through
+`gear/local-api.mjs`; ordinary static hosting remains simulated. See
+[gear-connected-preview.md](gear-connected-preview.md).
 
 ## Local verification and duplicates (current increment)
 
@@ -248,3 +250,6 @@ Current D1 evidence: all six migrations, populated version-5 upgrade, persistenc
 transaction/error semantics and core storage flows passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for commands and remaining limits;
 earlier untested-D1 statements describe prior increments, not the current state.
+
+September 27: the opt-in HTTPS connected UI now uses this local API. See
+`gear-connected-preview.md`; the ordinary static demo is still separate.

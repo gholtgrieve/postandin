@@ -46,6 +46,9 @@ Local verified mailbox transfers are described in [instructions/gear-email-chang
 Local D1/workerd results and the repeatable harness are in
 [instructions/gear-d1-validation.md](instructions/gear-d1-validation.md).
 
+An opt-in connected HTTPS preview is documented in
+[instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
+
 **Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here).**
 
 Local draft storage, validation, per-listing verification and duplicate checks

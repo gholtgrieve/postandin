@@ -1,6 +1,6 @@
 # Gear Exchange implementation plan
 
-Status: development preview, September 26, 2026. `/gear/` is an unlinked,
+Status: development preview, September 27, 2026. `/gear/` is an unlinked,
 noindex design preview. A local-only draft-storage API now exists separately;
 there is no deployed API, cloud storage, email service or homepage link. The external prototype
 is a design reference, not production code.
@@ -29,6 +29,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `06be078` | Reviewed local seller management and duplicate cleanup |
 | `5cada4b` | Reviewed local verified email transfers |
 | `32808e8` | Session recovery and HTTPS browser checks |
+| `2d33253` | Local D1/workerd validation |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -38,39 +39,40 @@ inspect `git status` and recent history before continuing.
 
 | Component | Implemented | Not implemented |
 |---|---|---|
-| `/gear/` preview | Five screens, sample browsing, posting, local photo previews, simulated management | Persistent UI data, real verification/email, live publishing |
+| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence | Real email/media/contact/report/deletion; production publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
-| Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail, browser integration |
+| Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail |
 | Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
 
-The preview's managed records and public samples are separate arrays. They are
-also separate from the local database. Do not mistake simulated verification,
+The ordinary static demo's managed records and public samples are separate arrays.
+Connected mode replaces both with API reads; photos remain unsupported there. Do not mistake simulated verification,
 renewal or deletion for backend behavior. `readLocalDraft` exposes private sample
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Current increment: local D1/workerd validation
+### Current increment: connected local preview
 
-Session recovery is committed as `32808e8`. This validation increment adds the
-repeatable `scripts/gear/d1-check.mjs` harness and
-[gear-d1-validation.md](gear-d1-validation.md). All eight D1 check groups and all
-51 Node tests pass. No application code or migration changes were required.
-This increment is included in the local D1 validation commit; use Git history
-for its hash. No Claude review, cloud resources, push, merge or deployment.
+The owner resumed work September 27 after the requested overnight stop.
+Claude's D1 review approved `2d33253`; optional coverage and documentation
+follow-ups now pass. The connected-preview increment connects posting, explicit
+local verification, recovery/login, reload, edits/status changes and browse to
+the loopback HTTPS API. See [gear-connected-preview.md](gear-connected-preview.md)
+for startup, exact scope, checks and review comparison. All 56 Node tests, eight
+D1 groups and the connected HTTPS Chrome flow pass. The initial detailed Claude review found no high-severity issues; fixes and
+expanded regression checks pass. Claude re-review found no blocker/high/medium
+issues and approved the local-only increment; three low-priority follow-ups
+(city normalization, safe unexpected errors and edit contact text) are fixed
+and retested afterward. This increment is included in the local commit titled
+`Connect Gear Exchange preview to the local HTTPS API`; use Git history for its
+hash. No push, merge or deployment.
 
-### Stop and next bounded task
+### Next bounded task
 
-The owner requested stopping after this final commit. Do not begin another
-increment automatically. On a future request, connect the preview to the local
-API in a development-only flow. Read the D1 validation limits before planning
-remote integration: full deployed Worker handlers, remote migrations/restore,
-and legacy pre-key data backfill remain untested. Seller deletion and retention
-remain separate work.
-
-UI integration must map offer labels to lowercase, `seller` to `sellerName`, and
-include adult acknowledgement on new drafts. Never expose local draft inspection
-or simulated mailboxes on Pages. No real delivery or deployment is authorized.
+On the next owner request, choose the next bounded integration step. Photos, buyer contact,
+reports and email-change UI are still unfinished; deletion/retention, real mail,
+remote APIs and restore remain separate work. Never expose private local draft
+inspection or simulated inboxes as public Pages routes.
 
 ### Checks and local commands
 
@@ -79,7 +81,7 @@ Run from the canonical checkout:
 ```bash
 git status --short
 git branch --show-current
-node --test tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 
@@ -120,10 +122,9 @@ large-upload connection resets were explicitly accepted as a local-tool
 limitation. The final minor fixes passed 18 tests but were not sent for another
 Claude pass before commit.
 
-Remaining low-priority preview notes: sample sorting still uses its legacy
-dollar field; focus after some management/photo rerenders can be improved;
-`offerFields` assumes validated browser input. Production storage uses
-`validateDraft`, not that preview helper. Address these when integrating the UI.
+Connected-preview integration now sorts by cents and restores management focus.
+`offerFields` assumes validated browser input; production storage additionally
+uses `validateDraft`. Photo storage and its final interaction remain future work.
 
 Local D1 batch/SQL checks pass; see `gear-d1-validation.md`. Remaining
 integration/launch checks: remote D1 and deployed
@@ -140,7 +141,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For the local D1 validation increment, compare against `32808e8` (plus untracked
+For the connected-preview increment, compare against `2d33253` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 
@@ -254,7 +255,7 @@ module inherits no-cache from /gear/*). Actual Pages headers remain a deployment
 check; no production deployment is authorized by this edit.
 
 Local persistence increment: see [gear-storage.md](gear-storage.md) for the
-schema, local-only API, validation, tests and remaining D1 runtime check.
+schema, local-only API, validation, tests and local D1 evidence; remote D1 remains untested.
 
 September 26 review follow-up: upgrade tests now cover the original version-1
 database and an existing version-3 database with the old unverified-draft index

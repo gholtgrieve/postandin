@@ -23,7 +23,7 @@ runtime. A future deployment must choose/retest its own compatibility date.
 
 Miniflare binds three local D1 databases in a temporary directory outside the
 repo, with a minimal 404 Worker and loopback listener. Application modules execute
-in Node against Miniflare's actual workerd-backed D1 binding, replacing the custom
+in Node against Miniflare's actual workerd-backed D1 binding, instead of the custom
 Node SQLite adapter. This validates binding/SQL behavior; it does not exercise
 an entire deployed Worker request handler. No remote bindings or API calls exist.
 The harness disposes the runtime and removes temporary data on completion or
@@ -39,12 +39,15 @@ All eight check groups passed:
    shape, including a no-op update.
 3. Publication, public projection, session recovery, JSON club aggregation,
    guarded edits and relisting work with the D1 binding.
-4. Actual D1 duplicate errors map to generic failure; a failed edit rolls back
+4. Actual D1 duplicate errors on verification, edit, relist and email transfer
+   map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
 5. Email transfer is atomic, including destination creation and session/link
    revocation. Injected failure, replay and existing-destination duplicate conflict
    behave correctly; resolving the conflict permits retry of the unconsumed token.
-6. Two competing confirmation calls cannot exceed ten active listings.
+6. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
+   active listings. Direct trigger rejection and the email-transfer quota failure
+   are also checked, with unchanged-data assertions.
 7. A populated version-5 database upgrades to version 6 with listing/session data
    preserved, and its email-transfer flow works afterward.
 8. Stored data and migration bookkeeping survive disposal and restart of workerd.
@@ -72,7 +75,12 @@ migration tool.
 Next bounded work, after the owner's requested stop: connect the preview to the
 local API in a controlled development-only flow. Keep private inspection/mailbox
 routes local. Do not infer production launch readiness from these checks.
-No Claude review was run for this validation-only increment.
+Claude source review concluded ready to merge with no blocker/high/medium issues.
+Its optional follow-ups are implemented on September 27: direct quota-trigger
+checks, edit/relist duplicate failures, explicit link/session revocation asserts,
+a six-migration guard, deterministic fixture times and documentation corrections.
+All eight groups pass after these additions; the connected-preview re-review
+also checked the specific email-transfer quota assertion and accepted the fix.
 
 ## Reference sources checked
 

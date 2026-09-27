@@ -89,7 +89,7 @@
 #pi-gear-preview .pi-upload-label input{display:block;margin-top:8px;width:100%;max-width:280px;font-size:12px}
 #pi-gear-preview .pi-contact-fields{border-top:1px solid var(--pi-rule);padding-top:24px;margin-top:28px}
 #pi-gear-preview .pi-contact-fields h2{margin-bottom:18px}
-#pi-gear-preview .pi-age-check{display:flex!important;align-items:center;gap:10px;margin-top:18px}
+#pi-gear-preview .pi-age-check:not([hidden]){display:flex!important;align-items:center;gap:10px;margin-top:18px}
 #pi-gear-preview .pi-error{color:#8E2921;font-size:12px;margin:12px 0}
 #pi-gear-preview .pi-review{background:var(--pi-panel);padding:24px}
 #pi-gear-preview .pi-review h2{font-size:34px;margin:12px 0}

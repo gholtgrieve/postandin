@@ -2,6 +2,7 @@
 import { issueLocalEmailChange, confirmEmailChange } from '../../lib/gear-email-change.mjs';
 import { createServer } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { safeDatabasePath } from './local-path.mjs';
 import { openLocalDatabase } from './local-db.mjs';
@@ -10,7 +11,9 @@ import { issueLocalVerification, confirmVerification } from '../../lib/gear-veri
 import { MANAGEMENT_TTL_MS, recoverManagementSession, issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing } from '../../lib/gear-management.mjs';
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
-export function localServer(db,{tls}={}) {
+export function localServer(db,{tls,preview=false}={}) {
+  if(preview&&!tls)throw new Error('Connected preview requires TLS.');
+  const assets=new Map(preview?['gear/index.html','gear/gear.css','gear/gear.mjs','gear/local-api.mjs','lib/gear-exchange.mjs'].map(path=>['/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8')]):[]);
   const emailChangeMailbox=[];
   const localMailbox=[]; // Trusted local inspection only; bounded, never logged.
   const sessionCookie=value=>`gear_session=${value}; Path=/management; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?MANAGEMENT_TTL_MS/1000:0}`;
@@ -24,6 +27,15 @@ export function localServer(db,{tls}={}) {
     if(req.headers['sec-fetch-site']==='cross-site' || req.headers.host!==expected || (req.headers.origin && req.headers.origin!==origin)) return reply(403,{error:'Request not allowed.'});
     try {
       const url=new URL(req.url,origin);
+      if(preview&&req.method==='GET'){
+        const path=url.pathname==='/gear/'?'/gear/index.html':url.pathname;
+        if(assets.has(path)){
+          let content=assets.get(path);
+          if(path==='/gear/index.html')content=content.replace('id="pi-gear-preview"','id="pi-gear-preview" data-local-api="true"').replace(/<link href="https:\/\/fonts.googleapis.com[^>]+>/,'');
+          res.writeHead(200,{'Content-Type':path.endsWith('.html')?'text/html; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow'});return res.end(content);
+        }
+      }
+
       if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox});
