@@ -27,6 +27,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `3667c9d` | Documentation handoff and agent discovery |
 | `c2acb18` | Local verification, publication-only duplicate checks and upgrade tests |
 | `06be078` | Reviewed local seller management and duplicate cleanup |
+| `5cada4b` | Reviewed local verified email transfers |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -48,25 +49,26 @@ renewal or deletion for backend behavior. `readLocalDraft` exposes private sampl
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Current increment: verified email changes
+### Current increment: session recovery and HTTPS browser validation
 
-Local seller management is committed as `06be078`. This increment
-adds separately verified mailbox transfers, without renaming seller rows.
-See [gear-email-change.md](gear-email-change.md) for exact transfer semantics,
-local routes, failure behavior and tests. All 49 focused tests pass locally;
-Claude review concluded ready to merge for this local-only increment, with no
-blocker/high/medium defects. Small test/documentation follow-ups passed all 49
-tests but were not separately re-reviewed. This increment is included in the
-verified email-change commit; use Git history for its hash. Nothing is pushed,
-merged or deployed.
+Email transfers are committed as `5cada4b`. This increment adds
+same-origin POST session recovery, stable CSRF across reloads/tabs, an optional
+TLS local-server factory and a repeatable Chrome HTTPS test harness. See
+[gear-management.md](gear-management.md) for the contract and commands. All 51
+focused Node tests pass; the real HTTPS Chrome session check also passes.
+Claude source review found no security/correctness defects; its requested
+legacy-upgrade assertion, documentation corrections and harness cleanup fixes
+are included and pass verification. These follow-ups were not re-reviewed.
+This increment is included in the session-recovery commit; use Git history for
+its hash. No preview UI changes, push, merge or deployment.
 
 ### Next bounded task
 
-Implement and test
-CSRF recovery after page reload and the HTTPS browser session flow. Actual
-D1/workerd validation must precede remote integration; local SQLite alone is
-not evidence of deployed behavior. Keep the preview separate until these checks
-are complete. Seller deletion, retention and restore remain separate work.
+Validate the storage/migration and
+transaction behavior in a local D1/workerd runtime before connecting the preview
+UI. Use sample data and local services; no production resource provisioning is
+implied. Deployed origin/proxy behavior, seller deletion, retention and restore
+remain separate work.
 
 UI integration must map offer labels to lowercase, `seller` to `sellerName`, and
 include adult acknowledgement on new drafts. Never expose local draft inspection
@@ -139,7 +141,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For the current email-change review, compare against `06be078` (plus untracked
+For the current session-recovery review, compare against `5cada4b` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 

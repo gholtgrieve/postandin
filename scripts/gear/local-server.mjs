@@ -1,27 +1,29 @@
 // LOCAL DEVELOPMENT ONLY: deliberately outside functions/, never a Pages route.
 import { issueLocalEmailChange, confirmEmailChange } from '../../lib/gear-email-change.mjs';
 import { createServer } from 'node:http';
+import { createServer as createSecureServer } from 'node:https';
 import { pathToFileURL } from 'node:url';
 import { safeDatabasePath } from './local-path.mjs';
 import { openLocalDatabase } from './local-db.mjs';
 import { createDraft, readLocalDraft, readPublicListings } from '../../lib/gear-storage.mjs';
 import { issueLocalVerification, confirmVerification } from '../../lib/gear-verification.mjs';
-import { MANAGEMENT_TTL_MS, issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing } from '../../lib/gear-management.mjs';
+import { MANAGEMENT_TTL_MS, recoverManagementSession, issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing } from '../../lib/gear-management.mjs';
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
-export function localServer(db) {
+export function localServer(db,{tls}={}) {
   const emailChangeMailbox=[];
   const localMailbox=[]; // Trusted local inspection only; bounded, never logged.
   const sessionCookie=value=>`gear_session=${value}; Path=/management; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?MANAGEMENT_TTL_MS/1000:0}`;
   function session(req){const matches=(req.headers.cookie||'').split(';').map(s=>s.trim()).filter(s=>s.startsWith('gear_session='));return matches.length===1?matches[0].slice(13):'';}
 
-  return createServer(async(req,res)=>{
+  const handler=async(req,res)=>{
     const reply=(status,body)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end(JSON.stringify(body));};
     const expected=`127.0.0.1:${req.socket.localPort}`;
+    const origin=`${req.socket.encrypted?'https':'http'}://${expected}`;
     // Reject rebinding and cross-origin browser requests, including Origin:null.
-    if(req.headers['sec-fetch-site']==='cross-site' || req.headers.host!==expected || (req.headers.origin && req.headers.origin!==`http://${expected}`)) return reply(403,{error:'Request not allowed.'});
+    if(req.headers['sec-fetch-site']==='cross-site' || req.headers.host!==expected || (req.headers.origin && req.headers.origin!==origin)) return reply(403,{error:'Request not allowed.'});
     try {
-      const url=new URL(req.url,`http://${expected}`);
+      const url=new URL(req.url,origin);
       if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox});
@@ -30,14 +32,14 @@ export function localServer(db) {
         const listings=await listManaged(db,session(req));return reply(listings?200:401,listings?{listings}:{error:'Access unavailable.'});
       }
       const management=url.pathname.startsWith('/management/');
-      if(management&&req.method==='POST'&&req.headers.origin!==`http://${expected}`)return reply(403,{error:'Request not allowed.'});
+      if(management&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
 
       if(req.method==='GET'&&url.pathname==='/verification')return reply(200,{confirmationRequired:true,notice:'Opening this URL does not verify or publish anything. POST token and confirm:true to /verification/confirm.'});
       if(req.method==='GET'&&url.pathname==='/listings') return reply(200,{listings:await readPublicListings(db)});
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
       const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
-      if(req.method!=='POST'||(!issue&&!['/drafts','/verification/confirm','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
+      if(req.method!=='POST'||(!issue&&!['/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
       if(Number(req.headers['content-length'])>32768)return tooLarge();
@@ -52,6 +54,10 @@ export function localServer(db) {
       });
       if(!chunks)return;
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reply(400,{error:'Invalid JSON.'});}
+      if(url.pathname==='/management/session'){
+        const access=await recoverManagementSession(db,session(req));
+        return reply(access?200:401,access??{error:'Access unavailable.'});
+      }
       if(url.pathname==='/management/email-change'){
         const receipt=await issueLocalEmailChange(db,session(req),req.headers['x-gear-csrf']||'',input?.email);
         if(receipt){emailChangeMailbox.push(receipt);if(emailChangeMailbox.length>20)emailChangeMailbox.shift();}
@@ -98,7 +104,8 @@ export function localServer(db) {
       console.error('Local gear request failed:',error);
       return reply(500,{error:'Unable to process the request.'});
     }
-  });
+  };
+  return tls?createSecureServer(tls,handler):createServer(handler);
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   const path=process.argv[2];

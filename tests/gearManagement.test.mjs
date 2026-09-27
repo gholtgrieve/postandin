@@ -206,3 +206,43 @@ test('HTTP rejects missing Origin, duplicate cookies and missing logout CSRF; va
   assert.equal(db.sqlite.prepare('SELECT title FROM gear_listings WHERE id=?').get(body.id).title,'HTTP edit');
  }finally{await new Promise(r=>server.close(r));db.close();}
 });
+
+test('session bootstrap recovers stable CSRF without extending expiry, reviving logout or storing raw secrets',async()=>{
+ const {recoverManagementSession}=await import('../lib/gear-management.mjs');
+ const db=openLocalDatabase();try{
+  const id=await publish(db),access=await login(db);
+  const first=await recoverManagementSession(db,access.session,201),second=await recoverManagementSession(db,access.session,202);
+  assert.deepEqual(first,{csrf:access.csrf,expiresAt:access.expiresAt});assert.deepEqual(second,first);
+  assert.equal(await changeListingState(db,access.session,first.csrf,id,'pending',203),true);
+  assert.equal(await recoverManagementSession(db,'0'.repeat(64),204),null);
+  assert.equal(await recoverManagementSession(db,access.session,199),null);
+  assert.equal(await recoverManagementSession(db,access.session,access.expiresAt),null);
+  assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_management_sessions').all()).includes(first.csrf),false);
+  assert.equal(await revokeManagement(db,access.session,first.csrf,205),true);
+  assert.equal(await recoverManagementSession(db,access.session,206),null);
+ }finally{db.close();}
+});
+
+test('legacy sessions bootstrap once; HTTP bootstrap requires Origin and a unique cookie and grants no session',async()=>{
+ const db=openLocalDatabase();const id=await publish(db,{},Date.now());const access=await login(db,input.email,Date.now());
+ db.sqlite.prepare('UPDATE gear_management_sessions SET csrf_hash=?').run('legacy-random-csrf-hash');
+ const server=localServer(db);await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ const cookie='gear_session='+access.session;
+ const post=headers=>fetch(base+'/management/session',{method:'POST',headers:{'Content-Type':'application/json',...headers},body:'{}'});
+ try{
+  assert.equal(await changeListingState(db,access.session,access.csrf,id,'pending'),false);
+  const before=JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_management_sessions').all());
+  assert.equal((await fetch(base+'/management/session',{headers:{Cookie:cookie}})).status,404);
+  for(const Origin of [undefined,'null','http://127.0.0.1:1']){
+   assert.equal((await post({Cookie:cookie,...(Origin?{Origin}:{})})).status,403);
+  }
+  assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_management_sessions').all()),before);
+  assert.equal((await post({Origin:base})).status,401);
+  assert.equal((await post({Origin:base,Cookie:cookie+'; '+cookie})).status,401);
+  const response=await post({Origin:base,Cookie:cookie});assert.equal(response.status,200);
+  assert.equal(response.headers.get('set-cookie'),null);assert.equal(response.headers.get('cache-control'),'no-store');
+  const recovered=await response.json();assert.deepEqual(recovered,{csrf:access.csrf,expiresAt:access.expiresAt});
+  assert.equal(await changeListingState(db,access.session,recovered.csrf,id,'pending'),true);
+  assert.notEqual(db.sqlite.prepare('SELECT csrf_hash FROM gear_management_sessions').get().csrf_hash,'legacy-random-csrf-hash');
+ }finally{await new Promise(r=>server.close(r));db.close();}
+});

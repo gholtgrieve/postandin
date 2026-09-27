@@ -79,7 +79,7 @@ and no-cookie-grant assertions; all 49 tests pass afterward. These additions wer
 not separately re-reviewed. Validation may return 400 before authentication for
 a malformed email paired with well-formed invalid credentials; this reveals only
 input validation and is accepted for the local API. D1/workerd trigger/batch behavior and actual
-HTTPS browser behavior remain untested. Before browser integration implement
-CSRF recovery after reload. Before real delivery add abuse throttling, old/new
+deployed browser behavior remain untested. Local session recovery and an HTTPS
+Chrome API lifecycle check are now implemented; see `gear-management.md`. Before real delivery add abuse throttling, old/new
 address notifications and delivery handling. Seller deletion, retention and
 restore are separate unfinished work. No real email provider was configured.

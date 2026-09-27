@@ -38,7 +38,7 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ## Gear Exchange (in development)
 
-Local seller sessions and ownership-checked management are documented in
+Local seller sessions, reload recovery, an HTTPS browser check and ownership-checked management are documented in
 [instructions/gear-management.md](instructions/gear-management.md).
 
 Local verified mailbox transfers are described in [instructions/gear-email-change.md](instructions/gear-email-change.md).
