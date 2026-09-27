@@ -1110,6 +1110,9 @@ Local-only management sessions, reload recovery, HTTPS browser validation and ow
 
 Local verified mailbox transfers are described in [gear-email-change.md](gear-email-change.md).
 
+Local D1/workerd validation passed; see [gear-d1-validation.md](gear-d1-validation.md)
+for the observed coverage and remaining remote/legacy-data limits.
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,

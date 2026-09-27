@@ -150,3 +150,7 @@ legacy-upgrade testing. That assertion, documented command/body details, and
 harness cleanup for failures/SIGINT/SIGTERM are fixed. All 51 tests and the
 HTTPS Chrome harness pass afterward; the follow-ups were not re-reviewed. Actual D1, deployed origin/proxy behavior, other
 browsers, and product UI remain untested.
+
+Subsequent validation: local D1/workerd storage checks now pass. See
+`gear-d1-validation.md`; earlier D1-untested notes above record the management
+review stage. Remote deployment and full Worker request handlers remain untested.

@@ -28,6 +28,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `c2acb18` | Local verification, publication-only duplicate checks and upgrade tests |
 | `06be078` | Reviewed local seller management and duplicate cleanup |
 | `5cada4b` | Reviewed local verified email transfers |
+| `32808e8` | Session recovery and HTTPS browser checks |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -39,7 +40,7 @@ inspect `git status` and recent history before continuing.
 |---|---|---|
 | `/gear/` preview | Five screens, sample browsing, posting, local photo previews, simulated management | Persistent UI data, real verification/email, live publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
-| Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Tested D1/workerd binding or production deployment |
+| Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
 | Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail, browser integration |
 | Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
 
@@ -49,25 +50,22 @@ renewal or deletion for backend behavior. `readLocalDraft` exposes private sampl
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
 
-### Current increment: session recovery and HTTPS browser validation
+### Current increment: local D1/workerd validation
 
-Email transfers are committed as `5cada4b`. This increment adds
-same-origin POST session recovery, stable CSRF across reloads/tabs, an optional
-TLS local-server factory and a repeatable Chrome HTTPS test harness. See
-[gear-management.md](gear-management.md) for the contract and commands. All 51
-focused Node tests pass; the real HTTPS Chrome session check also passes.
-Claude source review found no security/correctness defects; its requested
-legacy-upgrade assertion, documentation corrections and harness cleanup fixes
-are included and pass verification. These follow-ups were not re-reviewed.
-This increment is included in the session-recovery commit; use Git history for
-its hash. No preview UI changes, push, merge or deployment.
+Session recovery is committed as `32808e8`. This validation increment adds the
+repeatable `scripts/gear/d1-check.mjs` harness and
+[gear-d1-validation.md](gear-d1-validation.md). All eight D1 check groups and all
+51 Node tests pass. No application code or migration changes were required.
+This increment is included in the local D1 validation commit; use Git history
+for its hash. No Claude review, cloud resources, push, merge or deployment.
 
-### Next bounded task
+### Stop and next bounded task
 
-Validate the storage/migration and
-transaction behavior in a local D1/workerd runtime before connecting the preview
-UI. Use sample data and local services; no production resource provisioning is
-implied. Deployed origin/proxy behavior, seller deletion, retention and restore
+The owner requested stopping after this final commit. Do not begin another
+increment automatically. On a future request, connect the preview to the local
+API in a development-only flow. Read the D1 validation limits before planning
+remote integration: full deployed Worker handlers, remote migrations/restore,
+and legacy pre-key data backfill remain untested. Seller deletion and retention
 remain separate work.
 
 UI integration must map offer labels to lowercase, `seller` to `sellerName`, and
@@ -127,7 +125,8 @@ dollar field; focus after some management/photo rerenders can be improved;
 `offerFields` assumes validated browser input. Production storage uses
 `validateDraft`, not that preview helper. Address these when integrating the UI.
 
-Remaining integration/launch checks: actual D1 batch/SQL behavior, deployed
+Local D1 batch/SQL checks pass; see `gear-d1-validation.md`. Remaining
+integration/launch checks: remote D1 and deployed
 JavaScript MIME/cache headers, authenticated sessions, abuse limits, retention,
 image sanitization/private storage, delivery failures, moderation, and tested
 record/photo restore. Decide whether to record adult acknowledgement and settle
@@ -141,7 +140,7 @@ root Wrangler configuration that takes over Pages. Existing Groups backups do
 not cover Gear. External Claude invocation requires an explicit owner request;
 the owner authorized prior individual reviews, not unattended ongoing reviews.
 
-For the current session-recovery review, compare against `5cada4b` (plus untracked
+For the local D1 validation increment, compare against `32808e8` (plus untracked
 files), or `main...HEAD` for the entire feature. Include exact tests and remaining
 limitations. Update this handoff when the next increment changes these facts.
 

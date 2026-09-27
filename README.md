@@ -43,6 +43,9 @@ Local seller sessions, reload recovery, an HTTPS browser check and ownership-che
 
 Local verified mailbox transfers are described in [instructions/gear-email-change.md](instructions/gear-email-change.md).
 
+Local D1/workerd results and the repeatable harness are in
+[instructions/gear-d1-validation.md](instructions/gear-d1-validation.md).
+
 **Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here).**
 
 Local draft storage, validation, per-listing verification and duplicate checks

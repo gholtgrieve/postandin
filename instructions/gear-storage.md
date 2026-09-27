@@ -242,4 +242,9 @@ The combined suite now has 51 passing tests, including authenticated writes,
 recovery/revocation and transactional stale-duplicate cleanup. No production services have been configured.
 
 Local session recovery and an observed HTTPS Chrome session check are documented
-in `gear-management.md`; the preview UI is still separate and D1 is untested.
+in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
+
+Current D1 evidence: all six migrations, populated version-5 upgrade, persistence,
+transaction/error semantics and core storage flows passed in local workerd. See
+[gear-d1-validation.md](gear-d1-validation.md) for commands and remaining limits;
+earlier untested-D1 statements describe prior increments, not the current state.

@@ -83,3 +83,7 @@ deployed browser behavior remain untested. Local session recovery and an HTTPS
 Chrome API lifecycle check are now implemented; see `gear-management.md`. Before real delivery add abuse throttling, old/new
 address notifications and delivery handling. Seller deletion, retention and
 restore are separate unfinished work. No real email provider was configured.
+
+Subsequent validation: email-transfer triggers, rollback, conflicts and revocation
+now pass against local D1/workerd; see `gear-d1-validation.md`. Remote D1 and full
+Worker request handlers remain untested.
