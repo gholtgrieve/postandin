@@ -1126,6 +1126,9 @@ No real contact email is delivered.
 
 Local reports now use a bounded in-memory inspection queue; see
 [gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
+Opt-in local owner authentication, report review, reversible removal and persistent
+history are described in [gear-owner-moderation.md](gear-owner-moderation.md).
+This adds local SQLite tables, not deployed identity or D1 operations.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

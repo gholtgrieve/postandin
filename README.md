@@ -49,6 +49,9 @@ Local D1/workerd results and the repeatable harness are in
 Local buyer contact and its temporary test inbox are documented in
 [instructions/gear-contact.md](instructions/gear-contact.md).
 
+Local owner review supports authenticated dismiss/remove/restore and persistent
+action history; see [instructions/gear-owner-moderation.md](instructions/gear-owner-moderation.md).
+
 Local listing reports use a bounded inspection queue; see
 [instructions/gear-reports.md](instructions/gear-reports.md).
 

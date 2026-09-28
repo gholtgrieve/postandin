@@ -18,6 +18,9 @@ store changes are made. Use sample data only: this server intentionally exposes
 trusted local draft inspection and simulated inboxes. The database must be an
 absolute path outside the checkout, as enforced by the existing path guard.
 Stop with Ctrl-C. Database contents persist; simulated inbox receipts do not.
+Optional owner mode is documented in [gear-owner-moderation.md](gear-owner-moderation.md);
+it persists reports and adds authenticated moderation. The default report queue
+remains memory-only.
 
 The local launcher uses an ephemeral certificate, deletes its on-disk key after
 loading, and serves the preview and API on the same loopback HTTPS origin.

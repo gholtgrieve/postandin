@@ -41,7 +41,7 @@ inspect `git status` and recent history before continuing.
 
 | Component | Implemented | Not implemented |
 |---|---|---|
-| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media/moderation/deletion; production publishing |
+| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media/deletion; production publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
 | Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail |
@@ -128,9 +128,28 @@ deferred; no implementation fixes were needed. Included in the local commit titl
 `Connect local Gear reports to a review queue`; use Git history for its hash.
 No push, migration, provisioning or deployment in this increment.
 
-Next bounded candidate: owner-authenticated moderation; decide
-allowed actions and review workflow before implementation. Real mail, remote
-APIs, deletion/retention and restore remain deferred.
+### Local owner moderation package
+
+Baseline: `b2deab4`. Optional HTTPS owner mode uses a separate local key and
+revocable session. It persists the latest 20 reports, supports reasoned
+dismiss/remove/restore actions, and saves history atomically with changes.
+Restore preserves expiry and prior status, rechecking current verification,
+quota and duplicates. Public browse/contact/photos respect removal. See
+[gear-owner-moderation.md](gear-owner-moderation.md) for key setup, routes,
+local-only table changes, persistence, limitations and review commands.
+All 80 Node tests and both owner and existing preview Chrome harnesses pass;
+desktop/mobile screenshots were inspected. Claude approved the local-only package
+with no blocker/high/medium findings. Its low-priority history-display finding
+is fixed with a browser assertion; documentation now distinguishes local 404s
+from future inert static hosting. The focused owner browser harness passes after
+the fixes; no second Claude review. Included in the local commit titled
+`Add local owner moderation and reversible Gear removal` (see Git for hash).
+No push, production setup or deployment.
+
+Next package after review: seller deletion, retention/cleanup and tested
+record/photo backup and restore. Real mail, remote APIs and production owner
+identity remain separate. No deployment until the project is fully complete
+and the owner explicitly authorizes it.
 
 ### Checks and local commands
 
@@ -140,7 +159,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 

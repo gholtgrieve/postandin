@@ -1,3 +1,5 @@
+import {ownerAuth,OwnerError,OWNER_TTL_MS} from './owner-auth.mjs';
+import {localModeration} from './local-moderation.mjs';
 import {localReports,ReportError} from './local-reports.mjs';
 import {localContact,ContactError} from './local-contact.mjs';
 import {initializePhotos,photoRows,photoContent,changePhotos,PhotoError} from './local-photos.mjs';
@@ -14,12 +16,18 @@ import { issueLocalVerification, confirmVerification } from '../../lib/gear-veri
 import { MANAGEMENT_TTL_MS, recoverManagementSession, issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing } from '../../lib/gear-management.mjs';
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
-export function localServer(db,{tls,preview=false,contactSink}={}) {
+export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
   if(preview&&!tls)throw new Error('Connected preview requires TLS.');
+  if(ownerKey&&!tls)throw new Error('Owner review requires TLS.');
+  const owner=ownerKey?ownerAuth(ownerKey):null;
+  const moderation=owner?localModeration(db,owner):null;
   initializePhotos(db);
   const contact=localContact(db,{sink:contactSink});
-  const reportQueue=localReports(db);
+  const reportQueue=localReports(db,{persistent:Boolean(owner)});
   const assets=new Map(preview?['gear/index.html','gear/gear.css','gear/gear.mjs','gear/local-api.mjs','lib/gear-exchange.mjs'].map(path=>['/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8')]):[]);
+  if(preview&&owner)for(const path of ['gear/owner.html','gear/owner.css','gear/owner.mjs'])assets.set('/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8'));
+  const ownerCookie=value=>`gear_owner=${value}; Path=/owner; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?OWNER_TTL_MS/1000:0}`;
+  function ownerSession(req){const values=(req.headers.cookie||'').split(';').map(s=>s.trim()).filter(s=>s.startsWith('gear_owner='));return values.length===1?values[0].slice(11):'';}
   const emailChangeMailbox=[];
   const localMailbox=[]; // Trusted local inspection only; bounded, never logged.
   const sessionCookie=value=>`gear_session=${value}; Path=/management; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?MANAGEMENT_TTL_MS/1000:0}`;
@@ -34,7 +42,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
     try {
       const url=new URL(req.url,origin);
       if(preview&&req.method==='GET'){
-        const path=url.pathname==='/gear/'?'/gear/index.html':url.pathname;
+        const path=url.pathname==='/gear/'?'/gear/index.html':url.pathname==='/owner/'&&owner?'/gear/owner.html':url.pathname;
         if(assets.has(path)){
           let content=assets.get(path);
           if(path==='/gear/index.html')content=content.replace('id="pi-gear-preview"','id="pi-gear-preview" data-local-api="true"').replace(/<link href="https:\/\/fonts.googleapis.com[^>]+>/,'');
@@ -44,7 +52,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
 
       const photo=url.pathname.match(/^\/(management\/)?photos\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&photo){const content=photoContent(db,photo[2],session(req),Boolean(photo[1]));if(!content)return reply(404,{error:'Not found.'});res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return res.end(content);}
-      if(req.method==='GET'&&url.pathname==='/local/reports')return reply(200,{reports:reportQueue.reports});
+      if(req.method==='GET'&&url.pathname==='/local/reports')return owner?reply(404,{error:'Not found.'}):reply(200,{reports:reportQueue.reports});
       if(req.method==='GET'&&url.pathname==='/local/contact-mail')return reply(200,{receipts:contact.receipts});
       if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
@@ -53,15 +61,25 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
       if(req.method==='GET'&&url.pathname==='/management/listings'){
         const listings=await listManaged(db,session(req));return reply(listings?200:401,listings?{listings:listings.map(r=>({...r,photos:photoRows(db,r.id,true)}))}:{error:'Access unavailable.'});
       }
+      const ownerRoute=url.pathname.startsWith('/owner/');
+      if(ownerRoute&&!owner)return reply(404,{error:'Not found.'});
+      const ownerPhoto=url.pathname.match(/^\/owner\/photos\/([a-f0-9-]{36})$/);
+      if(ownerPhoto&&req.method==='GET'){
+       owner.session(ownerSession(req));const photo=db.sqlite.prepare('SELECT content FROM gear_local_photos WHERE id=?').get(ownerPhoto[1]);
+       if(!photo)return reply(404,{error:'Not found.'});res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return res.end(photo.content);
+      }
+      if(ownerRoute&&req.method==='GET'&&url.pathname==='/owner/data'){
+       const data=moderation.view(ownerSession(req));for(const r of [...data.reports,...data.removed])if(r.listing)r.listing.photos=photoRows(db,r.listing.id).map(p=>({id:p.id,url:'/owner/photos/'+p.id}));return reply(200,data);
+      }
       const management=url.pathname.startsWith('/management/');
-      if((management||url.pathname==='/contact'||url.pathname==='/reports')&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
+      if((ownerRoute||management||url.pathname==='/contact'||url.pathname==='/reports')&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
 
       if(req.method==='GET'&&url.pathname==='/verification')return reply(200,{confirmationRequired:true,notice:'Opening this URL does not verify or publish anything. POST token and confirm:true to /verification/confirm.'});
       if(req.method==='GET'&&url.pathname==='/listings') return reply(200,{listings:(await readPublicListings(db)).map(r=>({...r,photos:photoRows(db,r.id)}))});
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
       const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
-      if(req.method!=='POST'||(!issue&&!['/reports','/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
+      if(req.method!=='POST'||(!issue&&!['/owner/login','/owner/session','/owner/action','/owner/logout','/reports','/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const bodyLimit=url.pathname==='/management/photos'?7*1024*1024:32768;
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
@@ -77,6 +95,13 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
       });
       if(!chunks)return;
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reply(400,{error:'Invalid JSON.'});}
+      if(ownerRoute){
+       const raw=ownerSession(req),csrf=req.headers['x-gear-csrf']||'';
+       if(url.pathname==='/owner/login'){const {token,...access}=owner.login(input?.key);res.setHeader('Set-Cookie',ownerCookie(token));return reply(200,access);}
+       if(url.pathname==='/owner/session')return reply(200,owner.session(raw));
+       if(url.pathname==='/owner/logout'){owner.logout(raw,csrf);res.setHeader('Set-Cookie',ownerCookie(''));return reply(200,{ok:true});}
+       if(url.pathname==='/owner/action')return reply(200,moderation.act(raw,csrf,input));
+      }
       if(url.pathname==='/reports')return reply(200,reportQueue.submit(input));
       if(url.pathname==='/contact')return reply(200,contact.send(input));
       if(url.pathname==='/management/photos'){const ok=await changePhotos(db,session(req),req.headers['x-gear-csrf']||'',input);return reply(ok?200:403,ok?{ok:true}:{error:'Unable to change photos.'});}
@@ -126,6 +151,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
       }
       return reply(201,await createDraft(db,input));
     } catch(error) {
+      if(error instanceof OwnerError)return reply(error.status,{error:error.message});
       if(error instanceof ReportError)return reply(error.status,{error:error.message});
       if(error instanceof ContactError)return reply(error.status,{error:error.message});
       if(error instanceof PhotoError)return reply(400,{error:error.message});

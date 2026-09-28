@@ -141,7 +141,7 @@ for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).
 options('#pi-report-reason',REPORT_REASONS,'Choose a reason');
 if(localMode){
  $('#pi-preview-report').textContent='Save to local review queue';
- $('#pi-report-form .pi-form-note').textContent='Local preview only. Reports stay in this local session; no moderation action is taken.';
+ $('#pi-report-form .pi-form-note').textContent='Local preview only. No moderation action is taken when you submit a report.';
  $('#pi-report-result').textContent='Report saved to the local review queue. No moderation action was taken.';
 }
 async function submitLocalReport(){

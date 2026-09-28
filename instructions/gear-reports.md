@@ -4,6 +4,14 @@ Uncommitted local-only increment, baseline `37e2738`, on
 `codex/gear-exchange-foundation`. No production API, migrations, dependencies,
 moderation actions, notifications or deployment. Use sample gear only.
 
+## Owner-mode extension
+
+The following memory-only instructions describe owner-disabled mode. Optional
+[owner moderation](gear-owner-moderation.md) persists the latest 20 reports,
+resolutions, removals and action history in SQLite. With owner mode enabled,
+`/local/reports` returns 404 and inspection requires owner sign-in at `/owner/`.
+Submitting a report still takes no moderation action.
+
 ## Run and inspect
 
 Use the existing Node 24 HTTPS launcher:
@@ -89,7 +97,7 @@ Review baseline: `37e2738`. Included in the local commit titled
 `Connect local Gear reports to a review queue`; use Git history for its hash.
 No push, merge, provisioning or deployment.
 
-Next separate increment: owner-authenticated moderation, after deciding the
-allowed actions and review workflow. Durable retention, deletion, restore,
+Owner-authenticated moderation is now implemented locally in the separate
+[owner package](gear-owner-moderation.md), pending its review. Durable retention, deletion, restore,
 remote APIs and real mail remain separate. The owner requires the project to be
 fully complete before any separately authorized deployment.
