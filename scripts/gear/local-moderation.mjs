@@ -1,10 +1,11 @@
 // Local SQLite moderation only. Authentication is checked again for every action.
+import {isDeleted} from './local-lifecycle.mjs';
 import {LIMITS} from '../../lib/gear-exchange.mjs';
 import {OwnerError} from './owner-auth.mjs';
 export function initializeReportQueue(db){db.sqlite.exec(`CREATE TABLE IF NOT EXISTS gear_local_reports (
  id TEXT PRIMARY KEY, listing_id TEXT NOT NULL REFERENCES gear_listings(id), listing_title TEXT NOT NULL,
  reason TEXT NOT NULL, created_at INTEGER NOT NULL, resolution TEXT NOT NULL DEFAULT 'open');`);}
-export function localModeration(db,auth){
+export function initializeModeration(db){
  initializeReportQueue(db);
  db.sqlite.exec(`CREATE TABLE IF NOT EXISTS gear_local_removals (
  listing_id TEXT PRIMARY KEY REFERENCES gear_listings(id), previous_status TEXT NOT NULL,
@@ -13,10 +14,13 @@ export function localModeration(db,auth){
  id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT NOT NULL, action TEXT NOT NULL,
  listing_id TEXT NOT NULL, report_id TEXT, report_reason TEXT, reason TEXT NOT NULL,
  before_status TEXT NOT NULL, after_status TEXT NOT NULL, created_at INTEGER NOT NULL);`);
+}
+export function localModeration(db,auth){
+ initializeModeration(db);
  const conflict=()=>{throw new OwnerError(409,'The listing or report changed, or restoration is not eligible. Refresh and review it.');};
  const listing=id=>db.sqlite.prepare(`SELECT l.id,l.title,l.description,l.category,l.size,l.fit,l.condition,l.city,l.type,l.price_cents AS priceCents,l.trade,l.seller_name AS sellerName,l.status,l.expires_at AS expiresAt,l.verified_at AS verifiedAt,s.verified_at AS sellerVerified,l.seller_id AS sellerId,l.duplicate_key AS duplicateKey
   FROM gear_listings l JOIN gear_sellers s ON s.id=l.seller_id WHERE l.id=?`).get(id);
- function publicDetail(row){if(!row)return null;const {sellerId,duplicateKey,...result}=row;return result;}
+ function publicDetail(row){if(!row)return null;const {sellerId,duplicateKey,...result}=row;return {...result,deleted:isDeleted(db,row.id)};}
  return {
   view(raw){
    auth.session(raw);
@@ -42,7 +46,7 @@ export function localModeration(db,auth){
     }
     if(action==='restore'){
      const removal=db.sqlite.prepare('SELECT * FROM gear_local_removals WHERE listing_id=?').get(row.id);
-     if(!removal||before!=='removed'||!['available','pending'].includes(removal.previous_status)||row.verifiedAt===null||row.sellerVerified===null||row.expiresAt<=now)conflict();
+     if(isDeleted(db,row.id)||!removal||before!=='removed'||!['available','pending'].includes(removal.previous_status)||row.verifiedAt===null||row.sellerVerified===null||row.expiresAt<=now)conflict();
      const count=db.sqlite.prepare("SELECT count(*) AS n FROM gear_listings WHERE seller_id=? AND status IN ('available','pending') AND expires_at>?").get(row.sellerId,now).n;
      const duplicate=db.sqlite.prepare("SELECT id FROM gear_listings WHERE seller_id=? AND duplicate_key=? AND status IN ('available','pending') AND expires_at>?").get(row.sellerId,row.duplicateKey,now);
      if(count>=LIMITS.activeListings||duplicate)conflict();

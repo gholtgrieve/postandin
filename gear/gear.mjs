@@ -7,9 +7,10 @@ const localMode=root.dataset.localApi==='true';
 const adapter=localMode?await import('./local-api.mjs'):null;
 const api=adapter?.localAPI();
 let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,signedIn=false,photoListingId=null;
+let deleted=[];
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
-function clearLocalAccess(){photoListingId=null;resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
+function clearLocalAccess(){deleted=[];if($('#pi-deleted-list'))$('#pi-deleted-list').replaceChildren();photoListingId=null;resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
 function serverField(error){
  if(error.emailChange&&error.fields?.email){const input=$('#pi-change-email');input.setCustomValidity(error.fields.email);return input;}
  const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',adult:'pi-adult',otherClub:'pi-other-club'};
@@ -40,7 +41,7 @@ async function refreshLocal(){
  const cities=new Map();for(const row of data){const key=normalize(row.city);if(!cities.has(key))cities.set(key,row.city);}
  const selected=cities.get(normalize(state.area));state.area=selected||'';
  options('#pi-area',[...cities.values()].sort((a,b)=>a.localeCompare(b)),'All cities');$('#pi-area').value=state.area;
- try{await api.session();const result=await api.request('/management/listings');signedIn=true;managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));}catch(error){clearLocalAccess();if(error.status!==401)throw error;}
+ try{await api.session();const result=await api.request('/management/listings');signedIn=true;managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));deleted=(await api.request('/management/deleted')).listings;}catch(error){clearLocalAccess();if(error.status!==401)throw error;}
  if(state.screen==='detail'&&!data.some(r=>r.id===state.selected))state.screen='gear';renderManaged();render();
 }
 async function afterSuccess(message,screen){
@@ -197,12 +198,13 @@ $('#pi-managed-list').addEventListener('click',e=>{if(localMode){manageLocal(e);
 $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidden=!$('#pi-recovery-form').hidden;});$('#pi-recovery-form').addEventListener('submit',e=>e.preventDefault());$('#pi-recovery-send').addEventListener('click',()=>{if(localMode){localAction(requestLocalLogin);return;}if($('#pi-recovery-form').reportValidity())$('#pi-recovery-result').hidden=false;});
 
 function renderLocalManaged(){
+ if($('#pi-deleted-list'))$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-managed-item"><h3>${esc(r.title)}</h3><p>Recovery deadline: ${esc(new Date(r.purgeAt).toLocaleString())}</p>${r.purgeAt>Date.now()?`<button type="button" data-recover="${esc(r.id)}">Recover listing</button>`:'<p>Recovery period ended; awaiting permanent cleanup.</p>'}</article>`).join('')||'<p>No deleted listings.</p>';
  renderPhotoManager();
  if($('#pi-email-change'))$('#pi-email-change').hidden=!signedIn;
  $('#pi-active-count').textContent=activeCount()+' of 10 active listings';
  $('#pi-managed-list').innerHTML=managed.map(r=>{
   const button=(action,label)=>`<button type="button" data-manage="${action}" data-id="${esc(r.id)}">${label}</button>`;
-  const actions=r.status==='Removed'?'':button('edit','Edit')+button('photos','Photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending')+button('close','Close listing'):button('renew','Relist for 30 days'));
+  const actions=button('delete','Delete')+(r.status==='Removed'?'':button('edit','Edit')+button('photos','Photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending')+button('close','Close listing'):button('renew','Relist for 30 days')));
   return `<article class="pi-managed-item"><h2>${esc(r.title)}</h2><div class="pi-managed-meta">${esc(formatPrice(r.type.toLowerCase(),r.priceCents))} · ${esc(r.city)} · ${esc(r.status)}</div><div class="pi-managed-actions">${actions}</div></article>`;
  }).join('')||(signedIn?'<p>You have no verified listings to manage.</p>':'<p>Sign in with a local management link to see your listings.</p>');
 }
@@ -235,6 +237,7 @@ async function verifyLocal(){
 }
 function manageLocal(e){
  const b=e.target.closest('[data-manage]');if(!b||localBusy)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;
+ if(b.dataset.manage==='delete'){deleteId=r.id;$('#pi-delete-dialog').showModal();return;}
  if(b.dataset.manage==='photos'){photoListingId=r.id;renderPhotoManager();$('#pi-photo-manager h2').focus();$('#pi-photo-manager').scrollIntoView({block:'start'});return;}
  if(b.dataset.manage==='edit'){resetPost();editingId=r.id;fillPost(r);$('#pi-post-email').disabled=true;$('#pi-post-email').closest('label').hidden=true;$('.pi-contact-fields > .pi-field-help').hidden=true;$('.pi-age-check').hidden=true;$('#pi-adult').disabled=true;$('#pi-post-title').textContent='Edit Your Listing';go('post');return;}
  localAction(async()=>{try{await api.write({id:r.id,action:b.dataset.manage==='pending'?(r.status==='Pending'?'available':'pending'):b.dataset.manage==='renew'?'relist':'close'});}catch(error){try{await refreshLocal();}catch{}throw error;}await afterSuccess('Listing updated in the local database.');});
@@ -303,6 +306,9 @@ if(localMode){
  $('#pi-recovery-email').addEventListener('input',()=>{loginReceipt=null;confirm.hidden=true;});
  confirm.onclick=()=>localAction(async()=>{if(!loginReceipt||loginReceipt.recipient!==$('#pi-recovery-email').value.trim().toLowerCase())throw adapter.safeError('Request a new link for the current email address.');freezeFields();clearLocalAccess();await api.request('/management/confirm',{token:loginReceipt.token,confirm:true});loginReceipt=null;confirm.hidden=true;signedIn=true;await afterSuccess('Signed in locally.');});
  const logout=document.createElement('button');logout.type='button';logout.id='pi-local-logout';logout.textContent='Sign out';logout.className='pi-text-button';$('.pi-manage-toolbar').append(logout);logout.onclick=()=>localAction(async()=>{try{await api.logout();}catch(error){if(error.status!==401)throw error;}clearLocalAccess();loginReceipt=null;confirm.hidden=true;await afterSuccess('Signed out.');});
+ const trash=document.createElement('section');trash.id='pi-deleted-panel';trash.innerHTML='<h2>Recently deleted</h2><p>Recover within 30 days. Recovery does not extend listing expiry or override owner removal.</p><div id="pi-deleted-list"></div>';$('.pi-manage').append(trash);
+ trash.addEventListener('click',e=>{const b=e.target.closest('[data-recover]');if(b)localAction(async()=>{const access=await api.session();await api.request('/management/deletion',{id:b.dataset.recover,action:'restore'},access.csrf);await afterSuccess('Listing recovered locally.');});});
+ $('#pi-delete-dialog p').textContent='Hide this listing and its photos now. You can recover it for 30 days. During recovery, authorized moderators can still review listing text associated with reports or removals; photos stay hidden. After 30 days, the listing and retained moderation text are eligible for permanent cleanup.';
  const photoPanel=document.createElement('section');photoPanel.id='pi-photo-manager';photoPanel.className='pi-recovery';photoPanel.hidden=true;
  photoPanel.innerHTML='<h2 tabindex="-1">Listing photos</h2><p>Changes save immediately. Up to six JPG, PNG or WebP photos, 5 MB and 24 megapixels each. The first photo appears in search results.</p><p id="pi-stored-count" role="status"></p><div id="pi-stored-photos" class="pi-upload-grid"></div><label class="pi-upload-label">Add a photo<input id="pi-stored-upload" type="file" accept="image/jpeg,image/png,image/webp"></label>';
  $('.pi-manage').append(photoPanel);
@@ -321,7 +327,7 @@ if(localMode){
 resetPost();renderManaged();
 let deleteId=null;
 $('#pi-delete-cancel').onclick=()=>$('#pi-delete-dialog').close();
-$('#pi-delete-confirm').onclick=()=>{const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
+$('#pi-delete-confirm').onclick=()=>{if(localMode){localAction(async()=>{try{const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}finally{$('#pi-delete-dialog').close();}photoListingId=null;await afterSuccess('Listing deleted locally. Recovery is available for 30 days.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
 render();
 if(localMode)await localAction(refreshLocal);
 })();

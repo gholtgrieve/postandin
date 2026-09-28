@@ -1306,3 +1306,8 @@ Google Form for user-reported issues:
 https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform
 
 Fields: What's the issue (dropdown including "Groups feature"), Which rink, Details (free text).
+
+Local seller deletion now supports a 30-day recovery window, explicit offline
+cleanup and tested SQLite record/photo snapshot restoration. See
+[Gear lifecycle](gear-lifecycle.md) for retention, commands and limitations.
+Production deletion/cleanup and remote disaster recovery remain launch gates.

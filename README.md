@@ -225,3 +225,8 @@ scraper parses local/UTC timestamps, Pacific-local timestamps, RRULE weekly
 recurrence, EXDATEs, cancellations, overrides, and orphaned overrides within a
 30-day horizon. Feed failures are isolated by activity; the scheduler carries
 forward recent last-known-good rink/activity data for up to 24 hours.
+
+Local seller deletion now supports a 30-day recovery window, explicit offline
+cleanup and tested SQLite record/photo snapshot restoration. See
+[Gear lifecycle](instructions/gear-lifecycle.md) for retention, commands and limitations.
+Production deletion/cleanup and remote disaster recovery remain launch gates.

@@ -41,7 +41,7 @@ inspect `git status` and recent history before continuing.
 
 | Component | Implemented | Not implemented |
 |---|---|---|
-| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media/deletion; production publishing |
+| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media; production publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
 | Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail |
@@ -146,8 +146,23 @@ the fixes; no second Claude review. Included in the local commit titled
 `Add local owner moderation and reversible Gear removal` (see Git for hash).
 No push, production setup or deployment.
 
-Next package after review: seller deletion, retention/cleanup and tested
-record/photo backup and restore. Real mail, remote APIs and production owner
+### Local lifecycle package — reviewed
+
+Moderation is committed locally as `9836ff7`. The next package implements seller
+deletion with the owner-approved 30-day recovery window, explicit offline cleanup
+and tested SQLite record/photo backup and restore. See [gear-lifecycle.md](gear-lifecycle.md)
+for commands, coverage and limitations. Included in the local commit titled
+`Add local Gear deletion recovery and snapshot lifecycle` (see Git for hash).
+Claude approved local-only scope with zero
+blocker/high/medium findings. Its low failed-delete dialog accessibility finding
+is fixed with a desktop/mobile browser regression. The owner approved retaining
+report/removal text for authenticated moderation during recovery, with hidden
+photos and disclosure in the deletion notice.
+All 88 Node tests and both connected/owner Chrome harnesses pass; desktop/mobile
+delete/recovery views were inspected. Review `git diff 9836ff7` plus untracked
+lifecycle modules/tests. The owner authorized the local commit after the fixes and browser checks.
+No push or deployment.
+ Real mail, remote APIs and production owner
 identity remain separate. No deployment until the project is fully complete
 and the owner explicitly authorizes it.
 
@@ -159,7 +174,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 

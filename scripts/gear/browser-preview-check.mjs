@@ -110,6 +110,27 @@ try{
  // Mobile overflow and view rendering; browser console exceptions must remain empty.
  for(const width of [390,320]){await page.setViewportSize({width,height:900});for(const screen of ['gear','detail','post','manage']){await page.locator('[data-screen="'+screen+'"]').click();await idle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),screen+' overflow at '+width);}}
  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-mobile.png',fullPage:true});
+ // Local seller deletion/recovery hides content immediately and preserves expiry.
+ await page.locator('[data-screen="manage"]').click();await idle();const beforeDeleteExpiry=db.sqlite.prepare('SELECT expires_at FROM gear_listings WHERE id=?').get(photoListing).expires_at;
+ // Failed delete must dismiss the modal so the error is visible and receives focus.
+ await page.route('**/management/deletion',route=>route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'This listing cannot be recovered or changed. Refresh and check its recovery deadline.'})}));
+ for(const width of [1040,390]){
+  await page.setViewportSize({width,height:900});
+  await page.locator('[data-manage="delete"]').first().click();
+  assert.match(await page.locator('#pi-delete-dialog').textContent(),/authorized moderators can still review listing text/);
+  assert.ok(await page.locator('#pi-delete-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'delete dialog overflow');
+  await page.locator('#pi-delete-confirm').click();await idle();
+  assert.equal(await page.locator('#pi-delete-dialog').evaluate(el=>el.open),false);
+  assert.equal(await page.locator('#pi-local-notice').isVisible(),true);
+  assert.match(await page.locator('#pi-local-notice').textContent(),/cannot be recovered or changed/);
+  assert.equal(await page.locator('#pi-local-notice').evaluate(el=>el===document.activeElement),true);
+  assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(photoListing).status,'available');
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_deletions WHERE listing_id=?').get(photoListing).n,0);
+ }
+ await page.unroute('**/management/deletion');
+ await page.locator('[data-manage="delete"]').first().click();await page.locator('#pi-delete-confirm').click();await idle();assert.equal(await page.locator('#pi-managed-list .pi-managed-item').count(),0);assert.equal(await page.locator('[data-recover]').count(),1);assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),404);
+ for(const width of [1040,390,320]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'deletion overflow');if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-deleted-'+width+'.png',fullPage:true});}
+ await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await page.locator('[data-recover]').click();await idle();assert.equal(await page.locator('#pi-managed-list .pi-managed-item').count(),1);assert.equal(await page.locator('[data-recover]').count(),0);assert.equal(db.sqlite.prepare('SELECT expires_at FROM gear_listings WHERE id=?').get(photoListing).expires_at,beforeDeleteExpiry);
  await page.locator('#pi-local-logout').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal((await context.cookies()).some(c=>c.name==='gear_session'),false);assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_sessions WHERE revoked_at IS NULL').get().n,0);
  await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),0);
  // Review regressions: validation, reissue, partial success, stale identity, other offers and auth loss.
@@ -181,7 +202,7 @@ try{
  assert.equal(await demo.locator('#pi-email-change').count(),0);assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);
  assert.deepEqual(errors,[]);
  // Expected failed requests are exercised deliberately. Do not hide arbitrary console errors.
- const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||(/\/contact$/.test(e.url)&&/500/.test(e.text))||(/\/reports$/.test(e.url)&&/404|429|500/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
+ const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||(/\/contact$/.test(e.url)&&/500/.test(e.text))||(/\/management\/deletion$/.test(e.url)&&/409/.test(e.text))||(/\/reports$/.test(e.url)&&/404|429|500/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
  assert.deepEqual(unexpected,[]);
  console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout/contact/reports, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}

@@ -75,7 +75,7 @@ All drafts start unverified; local token confirmation can publish one draft. Ema
 reuses a seller record but grants no ownership and never verifies that seller.
 Local verification and publication endpoints now exist as documented below.
 Local authenticated management and relisting are now described in
-[gear-management.md](gear-management.md); seller deletion remains pending.
+[gear-management.md](gear-management.md); local seller deletion and offline cleanup are described in [gear-lifecycle.md](gear-lifecycle.md).
 
 Public queries require available/pending status, verified listing and seller,
 and expiry strictly after the read time. Closed, expired, removed and unverified
@@ -96,8 +96,8 @@ No root Wrangler file, cloud binding or deployment configuration changed. Local
 migration bookkeeping is independent of future D1 migration bookkeeping.
 Apply the additive migration to a dedicated test D1 instance before new server
 code uses it; production migration remains separately authorized. Roll back
-application code without dropping tables or real records. A backup/restore
-procedure is not implemented or claimed by this step.
+application code without dropping tables or real records. A local SQLite record/photo snapshot and restore procedure now exists in
+[gear-lifecycle.md](gear-lifecycle.md); remote D1/R2 recovery remains unimplemented.
 
 ## Verification
 

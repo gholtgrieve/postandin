@@ -1,4 +1,5 @@
 // macOS-only local image pipeline. Never import into deployed Workers.
+import {isDeleted} from './local-lifecycle.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -20,7 +21,7 @@ function owner(db,session,csrf,id,write=false){
 export function photoRows(db,id,privateView=false){return db.sqlite.prepare('SELECT id FROM gear_local_photos WHERE listing_id=? ORDER BY position,id').all(id).map((r,i)=>({id:r.id,name:'Photo '+(i+1),url:(privateView?'/management':'')+'/photos/'+r.id}));}
 export function photoContent(db,id,session,privateView=false){
  const row=db.sqlite.prepare('SELECT p.*,l.status,l.verified_at,l.expires_at,s.verified_at AS seller_verified FROM gear_local_photos p JOIN gear_listings l ON l.id=p.listing_id JOIN gear_sellers s ON s.id=l.seller_id WHERE p.id=?').get(id);
- if(!row)return null;
+ if(!row||isDeleted(db,row.listing_id))return null;
  if(privateView?!owner(db,session,null,row.listing_id):!(['available','pending'].includes(row.status)&&row.verified_at!==null&&row.seller_verified!==null&&row.expires_at>Date.now()))return null;
  return row.content;
 }

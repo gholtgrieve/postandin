@@ -61,8 +61,8 @@ still rejected. No draft idempotency or abandoned-draft cleanup is claimed.
 - Persistent local photos are available after publication through management;
   see [gear-photos.md](gear-photos.md). Initial draft uploads remain deferred.
 - Buyer contact now saves to a bounded local test inbox; see [gear-contact.md](gear-contact.md). No real email is sent. Reports save to a bounded local review queue; see [gear-reports.md](gear-reports.md). No moderation action is taken.
-- Delete is omitted from connected management because deletion/retention is not
-  implemented. Removed records are read-only.
+- Connected management supports deletion with 30-day recovery; see
+  [gear-lifecycle.md](gear-lifecycle.md). Owner removal still blocks republication.
 - Email transfer is connected in local management; see [gear-email-change.md](gear-email-change.md).
 - No pagination beyond the backend's current 100-record read limit, real email,
   cloud media storage, remote bindings, Pages handlers or deployment was added.

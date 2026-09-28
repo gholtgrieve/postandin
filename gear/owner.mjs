@@ -15,6 +15,7 @@ function card(record,report){
  if(listing){node.append(element('p',`${listing.status} · ${listing.city} · ${listing.category} · ${listing.size} · ${listing.condition}\nSeller: ${listing.sellerName}\n${listing.type}${listing.priceCents===null?'':' · $'+(listing.priceCents/100).toFixed(2)} · ${listing.fit}${listing.trade?'\nTrade: '+listing.trade:''}\nExpires: ${new Date(listing.expiresAt).toLocaleString()}`),element('p',listing.description));}
  for(const photo of listing?.photos||[]){const img=document.createElement('img');img.src=photo.url;img.alt=listing.title;node.append(img);}
  node.append(element('p',report?`Reported: ${record.reason}\nResolution: ${record.resolution}`:`Removal reason: ${record.reason}`));
+ if(!report&&listing?.deleted){node.append(element('p','Deleted by seller. Recovery must happen through seller management before owner restoration.'));return node;}
  if(report&&record.resolution!=='open')return node;
  const form=document.createElement('form'),label=element('label','Reason for this action'),reason=document.createElement('input');reason.required=true;reason.maxLength=500;label.append(reason);form.append(label);form.addEventListener('submit',e=>e.preventDefault());
  const actions=report?['dismiss',...(['available','pending'].includes(listing?.status)?['remove']:[])]:['restore'];

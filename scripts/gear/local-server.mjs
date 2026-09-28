@@ -1,3 +1,4 @@
+import {initializeLifecycle,isDeleted,deletedListings,changeDeletion,LifecycleError} from './local-lifecycle.mjs';
 import {ownerAuth,OwnerError,OWNER_TTL_MS} from './owner-auth.mjs';
 import {localModeration} from './local-moderation.mjs';
 import {localReports,ReportError} from './local-reports.mjs';
@@ -20,6 +21,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
   if(preview&&!tls)throw new Error('Connected preview requires TLS.');
   if(ownerKey&&!tls)throw new Error('Owner review requires TLS.');
   const owner=ownerKey?ownerAuth(ownerKey):null;
+  initializeLifecycle(db);
   const moderation=owner?localModeration(db,owner):null;
   initializePhotos(db);
   const contact=localContact(db,{sink:contactSink});
@@ -58,18 +60,19 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox});
       if(req.method==='GET'&&url.pathname==='/management/confirm')return reply(200,{confirmationRequired:true});
+      if(req.method==='GET'&&url.pathname==='/management/deleted')return reply(200,{listings:deletedListings(db,session(req))});
       if(req.method==='GET'&&url.pathname==='/management/listings'){
-        const listings=await listManaged(db,session(req));return reply(listings?200:401,listings?{listings:listings.map(r=>({...r,photos:photoRows(db,r.id,true)}))}:{error:'Access unavailable.'});
+        const listings=await listManaged(db,session(req));return reply(listings?200:401,listings?{listings:listings.filter(r=>!isDeleted(db,r.id)).map(r=>({...r,photos:photoRows(db,r.id,true)}))}:{error:'Access unavailable.'});
       }
       const ownerRoute=url.pathname.startsWith('/owner/');
       if(ownerRoute&&!owner)return reply(404,{error:'Not found.'});
       const ownerPhoto=url.pathname.match(/^\/owner\/photos\/([a-f0-9-]{36})$/);
       if(ownerPhoto&&req.method==='GET'){
-       owner.session(ownerSession(req));const photo=db.sqlite.prepare('SELECT content FROM gear_local_photos WHERE id=?').get(ownerPhoto[1]);
-       if(!photo)return reply(404,{error:'Not found.'});res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return res.end(photo.content);
+       owner.session(ownerSession(req));const photo=db.sqlite.prepare('SELECT content,listing_id FROM gear_local_photos WHERE id=?').get(ownerPhoto[1]);
+       if(!photo||isDeleted(db,photo.listing_id))return reply(404,{error:'Not found.'});res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return res.end(photo.content);
       }
       if(ownerRoute&&req.method==='GET'&&url.pathname==='/owner/data'){
-       const data=moderation.view(ownerSession(req));for(const r of [...data.reports,...data.removed])if(r.listing)r.listing.photos=photoRows(db,r.listing.id).map(p=>({id:p.id,url:'/owner/photos/'+p.id}));return reply(200,data);
+       const data=moderation.view(ownerSession(req));for(const r of [...data.reports,...data.removed])if(r.listing)r.listing.photos=(isDeleted(db,r.listing.id)?[]:photoRows(db,r.listing.id)).map(p=>({id:p.id,url:'/owner/photos/'+p.id}));return reply(200,data);
       }
       const management=url.pathname.startsWith('/management/');
       if((ownerRoute||management||url.pathname==='/contact'||url.pathname==='/reports')&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
@@ -79,7 +82,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
       const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
-      if(req.method!=='POST'||(!issue&&!['/owner/login','/owner/session','/owner/action','/owner/logout','/reports','/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
+      if(req.method!=='POST'||(!issue&&!['/management/deletion','/owner/login','/owner/session','/owner/action','/owner/logout','/reports','/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const bodyLimit=url.pathname==='/management/photos'?7*1024*1024:32768;
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
@@ -102,6 +105,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
        if(url.pathname==='/owner/logout'){owner.logout(raw,csrf);res.setHeader('Set-Cookie',ownerCookie(''));return reply(200,{ok:true});}
        if(url.pathname==='/owner/action')return reply(200,moderation.act(raw,csrf,input));
       }
+      if(url.pathname==='/management/deletion')return reply(200,changeDeletion(db,session(req),req.headers['x-gear-csrf']||'',input));
       if(url.pathname==='/reports')return reply(200,reportQueue.submit(input));
       if(url.pathname==='/contact')return reply(200,contact.send(input));
       if(url.pathname==='/management/photos'){const ok=await changePhotos(db,session(req),req.headers['x-gear-csrf']||'',input);return reply(ok?200:403,ok?{ok:true}:{error:'Unable to change photos.'});}
@@ -151,6 +155,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       }
       return reply(201,await createDraft(db,input));
     } catch(error) {
+      if(error instanceof LifecycleError)return reply(error.status,{error:error.message});
       if(error instanceof OwnerError)return reply(error.status,{error:error.message});
       if(error instanceof ReportError)return reply(error.status,{error:error.message});
       if(error instanceof ContactError)return reply(error.status,{error:error.message});
