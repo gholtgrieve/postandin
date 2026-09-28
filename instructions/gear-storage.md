@@ -1,8 +1,8 @@
 # Gear Exchange local draft storage
 
-Status: local development only. The website preview still uses in-memory sample
-records. This increment does not connect the UI, publish to the live site, send mail,
-provision D1/R2, or add any deployed Pages API route.
+Status: local development plus source-only production seams. This increment does
+not connect the UI, publish to the live site, send mail, provision D1/Images, or
+add a deployed write route.
 
 ## Files and boundaries
 
@@ -13,9 +13,12 @@ provision D1/R2, or add any deployed Pages API route.
   single email, club/Other rules, integer-cent prices and conditional trade text.
   Client-supplied ownership, verification and status fields are discarded.
 - `lib/gear-storage.mjs`: bound SQL writes in a transaction and public-field
-  queries. `readLocalDraft` is trusted development tooling, not authorization.
+  queries. New drafts persist the acknowledgement time and disclosure version.
+  `readLocalDraft` is trusted development tooling, not authorization.
+- `lib/gear-photo-storage.mjs`: low-level D1 metadata writes and reads for
+  Cloudflare Images identifiers. It performs no upload, authorization or URL signing.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–6 once and preserves records on reopening.
+  It applies migrations 1–7 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -23,8 +26,9 @@ provision D1/R2, or add any deployed Pages API route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite, not workerd or a remote D1 instance. D1 runtime
-integration remains a separate check before wiring Pages Functions.
+Local tests exercise real SQLite. All seven migrations, the acknowledgement write
+and the photo metadata adapter also pass the local workerd/D1 harness. This is not
+a remote D1 or deployed Pages test.
 
 ## Run locally
 
@@ -97,7 +101,7 @@ migration bookkeeping is independent of future D1 migration bookkeeping.
 Apply the additive migration to a dedicated test D1 instance before new server
 code uses it; production migration remains separately authorized. Roll back
 application code without dropping tables or real records. A local SQLite record/photo snapshot and restore procedure now exists in
-[gear-lifecycle.md](gear-lifecycle.md); remote D1/R2 recovery remains unimplemented.
+[gear-lifecycle.md](gear-lifecycle.md); remote D1/Cloudflare Images recovery remains unimplemented.
 
 ## Verification
 
@@ -153,6 +157,28 @@ The opt-in HTTPS local preview now connects these endpoints through
 Pages Function at `GET /api/gear/listings` reuses `readPublicListings` through
 the proposed `GEAR_DB` binding. It has no write path, returns empty photo arrays,
 is not connected to the UI, and has not been bound, provisioned or deployed.
+
+Migration 7 adds immutable `adult_acknowledged_at` and `disclosure_version`
+evidence for every new draft. Legacy listings remain NULL rather than receiving
+fabricated consent. `gear_photos` stores only a Cloudflare Images provider ID,
+position and creation time, with six-photo, uniqueness and cascade-delete
+constraints. Image bytes, upload tokens and signed delivery URLs are not stored
+in D1. The adapter is deliberately below the authorization boundary: a future
+write route must prove seller ownership and confirm the hosted upload before it
+records metadata. The acknowledgement time must equal the listing creation time,
+and migration 7 recognizes only `gear-adult-v1`; a changed disclosure requires a
+new migration as well as a new application constant.
+
+Production Images integration must reconcile the remote object and D1 metadata
+on every failure. If Direct Creator Upload succeeds but metadata insertion returns
+NULL or throws, the route must delete that new object or enqueue an idempotent
+deletion. At permanent listing purge, delete each Images object by `provider_id`
+before deleting the listing row, or first persist those IDs in a durable deletion
+outbox; a cascading D1 delete alone would discard the only cleanup reference.
+Retries and failure/recovery alerts belong to the maintenance Worker. These remote
+operations and their tests are not implemented in this source-only increment.
+Photo insertion chooses the lowest free position, so a future removal operation
+cannot strand capacity behind a position gap.
 
 ## Local verification and duplicates (current increment)
 
@@ -249,10 +275,11 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all six migrations, populated version-5 upgrade, persistence,
+Current D1 evidence: all seven migrations, populated version-6 upgrade, persistence,
 transaction/error semantics and core storage flows passed in local workerd. See
-[gear-d1-validation.md](gear-d1-validation.md) for commands and remaining limits;
-earlier untested-D1 statements describe prior increments, not the current state.
+[gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and
+remaining limits. Earlier untested-D1 statements describe prior increments, not
+the current state.
 
 September 27: the opt-in HTTPS connected UI now uses this local API. See
 `gear-connected-preview.md`; the ordinary static demo is still separate.

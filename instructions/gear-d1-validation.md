@@ -1,8 +1,8 @@
 # Gear Exchange local D1/workerd validation
 
-September 26, 2026. This is local integration evidence, not a deployment or
-production database migration. No cloud resources, credentials, packages, root
-Wrangler config or preview UI changes were added.
+Updated September 28, 2026. This is local integration evidence, not a deployment
+or production database migration. No cloud resources, credentials, packages,
+root Wrangler config or preview UI changes were added.
 
 ## Repeatable check
 
@@ -34,11 +34,12 @@ SIGINT/SIGTERM. Only sample fixtures are used; raw credentials aren't printed.
 All eight check groups passed:
 
 1. Failed migration batch rolls schema changes back.
-2. All six checked-in migrations apply to a fresh D1 database; the harness ledger
+2. All seven checked-in migrations apply to a fresh D1 database; the harness ledger
    makes repeated application a no-op. RETURNING and meta.changes have the expected
    shape, including a no-op update.
-3. Publication, public projection, session recovery, JSON club aggregation,
-   guarded edits and relisting work with the D1 binding.
+3. Publication, immutable adult acknowledgement, hosted-photo metadata, public
+   projection, session recovery, JSON club aggregation, guarded edits and
+   relisting work with the D1 binding.
 4. Actual D1 duplicate errors on verification, edit, relist and email transfer
    map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
@@ -48,12 +49,12 @@ All eight check groups passed:
 6. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-7. A populated version-5 database upgrades to version 6 with listing/session data
-   preserved, and its email-transfer flow works afterward.
+7. A populated version-6 database upgrades to version 7 with listing/session data
+   preserved, legacy acknowledgement left NULL, and email transfer working afterward.
 8. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The existing 51-test Node suite also passes. No runtime compatibility changes to
-application code or SQL were required by this validation increment.
+The current 105-test Gear Node suite also passes. No runtime compatibility changes
+to application code or SQL were required by this validation increment.
 
 ## Limits and handoff
 
@@ -64,7 +65,7 @@ proxy/Origin behavior, remote migration commands, restore and real mail remain
 unverified/unimplemented. The separate HTTPS Chrome check is documented in
 `gear-management.md` and was not changed by this increment.
 
-Fresh databases and populated version-5 upgrades are covered. Earlier pre-key
+Fresh databases and a populated version-6 upgrade are covered. Earlier pre-key
 sample schemas (versions 1–2) require the duplicate-key backfill that currently
 exists only in `scripts/gear/local-db.mjs`; blindly applying SQL leaves their keys
 NULL. There is no existing remote Gear database to upgrade. Before migrating any
@@ -72,13 +73,13 @@ legacy data to D1, implement/test an explicit maintenance backfill and conflict
 resolution procedure. Do not treat this harness as that backfill or a production
 migration tool.
 
-Next bounded work, after the owner's requested stop: connect the preview to the
-local API in a controlled development-only flow. Keep private inspection/mailbox
-routes local. Do not infer production launch readiness from these checks.
+Next bounded work, after review: add the source-only authenticated production
+owner boundary using verified Cloudflare Access claims. Do not infer production
+launch readiness from these checks.
 Claude source review concluded ready to merge with no blocker/high/medium issues.
 Its optional follow-ups are implemented on September 27: direct quota-trigger
 checks, edit/relist duplicate failures, explicit link/session revocation asserts,
-a six-migration guard, deterministic fixture times and documentation corrections.
+a migration-count guard, deterministic fixture times and documentation corrections.
 All eight groups pass after these additions; the connected-preview re-review
 also checked the specific email-transfer quota assertion and accepted the fix.
 

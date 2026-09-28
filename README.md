@@ -58,6 +58,11 @@ Local listing reports use a bounded inspection queue; see
 Persistent local management photos are documented in
 [instructions/gear-photos.md](instructions/gear-photos.md).
 
+The source-only production foundation adds immutable adult-acknowledgement
+evidence and a D1 metadata adapter for private Cloudflare Images. It provisions
+nothing and adds no upload, authentication or deployed write route; see
+[instructions/gear-storage.md](instructions/gear-storage.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 

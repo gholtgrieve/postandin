@@ -191,7 +191,7 @@ no second Claude review.
 Review baseline: `87c1805`. Owner authorized the fixes and local commit, titled
 `Add Gear policies and automatic local retention cleanup` (see Git for hash).
 
-### Source-only Pages listings increment — uncommitted
+### Source-only Pages listings increment — committed
 
 The production-integration assessment selected one read-only seam before any
 write-capable work. `GET /api/gear/listings` now reads the existing explicit
@@ -203,12 +203,56 @@ Focused tests cover current visibility, exclusion of private fields, the
 configuration and safe D1 failure. All 101 Gear tests pass with this four-test
 increment included.
 
+Committed locally as `057e312` (`Add read-only Gear Pages listings route`).
+
 No remote binding or database was configured, no migration was applied, and
-nothing was deployed. The next production increment should wait for the owner
-decisions on Cloudflare Access versus owner magic links, Resend sender/reply
-behavior, Cloudflare Images, and same-account versus off-account backup. After
-those decisions, keep the next code slice bounded to the production D1 schema
-and one adapter family rather than connecting the full UI at once.
+nothing was deployed.
+
+### Production foundation increment — current, uncommitted
+
+The owner approved Cloudflare Access for a private `gear-admin.postandin.com`
+moderation surface with exact identities and MFA; existing Cloudflare Images
+with Direct Creator Upload, private images, random provider IDs and signed
+delivery URLs; Resend using `gear@postandin.com` with buyer contact as Reply-To;
+a dedicated daily maintenance Worker with one-minute retry plus failure/recovery
+alerts; and nightly encrypted backup to a separately controlled non-Cloudflare
+provider. The owner identity list, Access identity provider, alert recipients,
+backup provider and credentials remain deployment-time inputs and are not stored
+in the repo.
+
+The bounded source change adds migration 7, which records immutable seller adult
+acknowledgement time/version and a `gear_photos` table containing only hosted
+Cloudflare Images IDs and ordering. `lib/gear-photo-storage.mjs` supplies the D1
+metadata boundary without uploads, URLs, authorization or network calls. Legacy
+listings remain unacknowledged rather than fabricating consent. Focused temporary
+SQLite tests cover upgrade preservation, trigger enforcement, immutability,
+identifier validation, six-photo limits, ordering, uniqueness and cascade delete.
+No cloud resource, binding, route, credential or deployment configuration is
+included. The updated seven-migration workerd/D1 harness passes with the installed
+Wrangler 4.107.0 stack, including the populated version-6 upgrade and persistence.
+The full Gear suite passes with 105 tests.
+
+Production photo routes must reconcile upload-before-metadata failures so an
+unrecorded Images object cannot persist. Permanent cleanup must delete the remote
+Images objects before cascading their D1 metadata, or persist provider IDs in a
+durable deletion outbox first. Both paths must be idempotent, retryable and covered
+by the scheduled Worker's failure/recovery alerts; they are explicitly deferred
+to the Images and maintenance increments.
+
+Owner-mediated Claude review found 0 blocker, 0 high, 0 medium and 3 low issues,
+with a `Ready to commit` verdict. All three low items are addressed: photo
+insertion now fills the lowest free position, the database requires the
+acknowledgement time to equal creation time and recognizes only the current
+disclosure version, and the remote Images reconciliation rules are explicit.
+Regression tests cover gap reuse, mismatched times and unknown versions. The
+first post-review workerd run exposed its lower compound-SELECT limit; the slot
+query now uses the already-supported `json_each` pattern. The corrected eight-group
+workerd harness and all 105 Gear tests pass. No second Claude review was requested.
+
+The next bounded increment after review should add the authenticated production
+owner boundary for moderation using verified Cloudflare Access claims. It must
+not provision Access or deploy; exact owner identities and IdP configuration
+remain owner-controlled deployment inputs.
 
 No push/deployment. Production writes, photos, mail, owner identity, scheduled
 cleanup/failure notifications and remote disaster recovery remain launch
@@ -355,8 +399,10 @@ stands. The unrelated Groups binding-error finding is outside this increment.
 
 ## Operational requirements before launch
 
-Proposed services: D1 records, R2 images, Pages Functions, Resend transactional
-mail. These are proposals; no bindings or accounts have been provisioned.
+Approved service direction: D1 records, Cloudflare Images for Gear photos, Pages
+Functions, Resend transactional mail, Cloudflare Access for owner moderation, a
+dedicated scheduled maintenance Worker, and encrypted off-Cloudflare backup.
+No Gear bindings, routes, credentials or resources have been provisioned.
 
 - Validate/re-encode photos and remove metadata in a trusted pipeline before
   publication; client processing alone is insufficient. Draft images stay private.

@@ -1122,7 +1122,11 @@ The opt-in connected local HTTPS flow is described in
 remains simulated; there are no deployed Gear APIs. A source-only
 `GET /api/gear/listings` Pages Function reads the public projection through a
 proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
-connected, and the response has empty photo arrays until R2 integration.
+connected, and the response has empty photo arrays until hosted-image integration.
+The approved production direction uses the existing Cloudflare Images account
+rather than R2 for Gear photos. Source-only migration 7 records immutable
+adult-acknowledgement evidence and hosted-image metadata (provider ID and order
+only); no Gear upload route, signed URL, binding or cloud resource is configured.
 Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
@@ -1322,8 +1326,9 @@ Production deletion/cleanup and remote disaster recovery remain launch gates.
 
 The Gear preview includes expandable rules, protective-equipment and privacy
 disclosures. Buyer contact now requires adult self-attestation in the form and
-local server, alongside existing sharing consent. No age-verification service
-or separate acknowledgement audit log is implemented.
+local server, alongside existing sharing consent. No age-verification service is
+implemented. New stored seller drafts record the self-attestation timestamp and
+disclosure version; older records remain NULL.
 
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional

@@ -5,6 +5,7 @@ import {readFileSync,readdirSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
+import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {issueLocalManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -29,10 +30,21 @@ async function migrate(db,through=files.length){
  }
 }
 async function publish(db,patch={},now=100){const {id}=await createDraft(db,{...sample,...patch},now);const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;}
+async function publishBeforeAdultMigration(db,now=100){
+ const id=crypto.randomUUID(),sellerId=crypto.randomUUID();
+ await db.batch([
+  db.prepare('INSERT INTO gear_sellers(id,email,created_at) VALUES(?,?,?)').bind(sellerId,sample.email,now),
+  db.prepare(`INSERT INTO gear_listings
+   (id,seller_id,seller_name,title,description,category,size,fit,condition,city,type,price_cents,trade,other_club,created_at,duplicate_key)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,sellerId,sample.sellerName,sample.title,sample.description,sample.category,sample.size,sample.fit,sample.condition,sample.city,sample.type,sample.priceCents,'','',now,'upgrade-key'),
+  db.prepare('INSERT INTO gear_listing_clubs(listing_id,club) VALUES(?,?)').bind(id,sample.clubs[0]),
+ ]);
+ const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
+}
 async function login(db,email=sample.email,now=200){const receipt=await issueLocalManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,6,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,7,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:'export default {fetch(){return new Response(null,{status:404})}}',compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp};
  mf=new Miniflare(runtimeOptions);
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
@@ -42,8 +54,10 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all six migrations and idempotent test ledger; D1 RETURNING/meta.changes.');
+ console.log('PASS: all seven migrations and idempotent test ledger; D1 RETURNING/meta.changes.');
  const id=await publish(db),access=await login(db);
+ const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
+ assert.equal(photo.position,0);assert.equal((await readHostedPhotos(db,id))[0].providerId,photo.providerId);
  assert.deepEqual(await recoverManagementSession(db,access.session,201),{csrf:access.csrf,expiresAt:access.expiresAt});
  assert.equal((await readPublicListings(db,201)).length,1);
  assert.equal(await editManagedListing(db,access.session,access.csrf,id,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},202),true);
@@ -51,7 +65,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: publication, public projection, session recovery, JSON clubs, edit and relist via D1.');
+ console.log('PASS: publication, acknowledgement, photo metadata, public projection, session recovery, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
@@ -100,16 +114,22 @@ try{
  assert.equal(await confirmEmailChange(quota,overLimit.token,206),false);
  assert.equal(await data(quota),transferBefore);
  console.log('PASS: competing D1 confirmations preserve the ten-active limit.');
- const upgrade=await mf.getD1Database('UPGRADE');await migrate(upgrade,5);
- const oldId=await publish(upgrade),oldAccess=await login(upgrade);const oldData=await dataWithoutEmailChange(upgrade);
- await migrate(upgrade);assert.equal(await dataWithoutEmailChange(upgrade),oldData);
+ const upgrade=await mf.getD1Database('UPGRADE');await migrate(upgrade,6);
+ const oldId=await publishBeforeAdultMigration(upgrade),oldAccess=await login(upgrade);const oldData=await dataWithoutProductionFoundation(upgrade);
+ await migrate(upgrade);assert.equal(await dataWithoutProductionFoundation(upgrade),oldData);
+ const acknowledgement=await upgrade.prepare('SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id=?').bind(oldId).first();
+ assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-5 database upgrades to 6 with listing/session data preserved.');
+ console.log('PASS: populated migration-6 database upgrades to 7 with legacy acknowledgement and listing/session data preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);
  console.log('PASS: persisted D1 data and applied migrations survive a workerd restart.');
  console.log('Runtime:',JSON.stringify({wrangler:require(modulePath+'/package.json').version,miniflare:wranglerRequire('miniflare/package.json').version,workerd:wranglerRequire('workerd/package.json').version}));
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}
-async function dataWithoutEmailChange(db){return JSON.stringify(await Promise.all(['gear_sellers','gear_listings','gear_listing_clubs','gear_management_sessions'].map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function dataWithoutProductionFoundation(db){
+ const listingColumns='id,seller_id,seller_name,title,description,category,size,fit,condition,city,type,price_cents,trade,other_club,status,verified_at,expires_at,created_at,duplicate_key,management_clubs';
+ const queries=['SELECT * FROM gear_sellers ORDER BY rowid',`SELECT ${listingColumns} FROM gear_listings ORDER BY rowid`,'SELECT * FROM gear_listing_clubs ORDER BY rowid','SELECT * FROM gear_management_sessions ORDER BY rowid','SELECT * FROM gear_email_changes ORDER BY rowid'];
+ return JSON.stringify(await Promise.all(queries.map(async sql=>(await db.prepare(sql).all()).results)));
+}
