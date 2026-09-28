@@ -97,7 +97,7 @@ function show(p){stage.replaceChildren();if(p?.url){const img=document.createEle
 show(photos[0]);photos.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent='Photo '+(i+1);b.setAttribute('aria-pressed',String(i===0));b.onclick=()=>{show(p);picker.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};picker.append(b);});
 }
 function resetContact(){
-for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).setCustomValidity('');
+for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).setCustomValidity('');
 $('#pi-contact-form').reset();$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;
 $('#pi-report-form').reset();$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=true;$('#pi-report-open').hidden=false;
 }
@@ -117,14 +117,27 @@ function syncInputs(){for(const [id,key]of [['pi-search','q'],['pi-category','ca
 function clear(){Object.assign(state,{q:'',category:'',size:'',area:'',club:'',price:'',type:'All'});syncInputs();render();}
 root.querySelectorAll('[data-screen],[data-go]').forEach(b=>b.addEventListener('click',()=>{const target=b.dataset.screen||b.dataset.go;if(target==='post'&&state.screen!=='post'){startNew();return;}resetContact();go(target);}));
 $('.pi-results').addEventListener('click',e=>{const link=e.target.closest('[data-listing]');if(!link)return;e.preventDefault();state.selected=link.dataset.listing;state.screen='detail';resetContact();render();$('.pi-return').focus({preventScroll:true});root.scrollIntoView({block:'start',behavior:'instant'});});
+async function sendLocalContact(){
+ const form=$('#pi-contact-form');
+ for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).setCustomValidity($('#'+id).value.trim()?'':'Please complete this field.');
+ if(!form.reportValidity())return;
+ const input={id:state.selected,name:$('#pi-buyer-name').value,email:$('#pi-buyer-email').value,message:$('#pi-buyer-message').value,shareEmail:$('#pi-buyer-share').checked};
+ freezeFields();await api.request('/contact',input);
+ form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
+}
+if(localMode){
+ $('#pi-preview-send').textContent='Save to local test inbox';
+ $('#pi-contact-success h2').textContent='Message saved locally';
+ $('#pi-contact-success p').textContent='Your sample message was saved to the local test inbox.';
+}
 function openContact(){$('#pi-contact-intro').hidden=true;$('#pi-contact-form').hidden=false;$('#pi-contact-success').hidden=true;$('#pi-buyer-name').focus({preventScroll:true});}
 $('#pi-contact-open').addEventListener('click',openContact);
 $('#pi-contact-cancel').addEventListener('click',()=>{resetContact();$('#pi-contact-open').focus({preventScroll:true});});
 $('#pi-contact-again').addEventListener('click',openContact);
 $('#pi-contact-form').addEventListener('submit',e=>e.preventDefault());
 $('#pi-contact-form').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#pi-preview-send').click();}});
-$('#pi-preview-send').addEventListener('click',()=>{const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
-for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).addEventListener('input',e=>e.target.setCustomValidity(''));
+$('#pi-preview-send').addEventListener('click',()=>{if(localMode){localAction(sendLocalContact);return;}const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
+for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).addEventListener('input',e=>e.target.setCustomValidity(''));
 $('#pi-report-open').addEventListener('click',()=>{$('#pi-report-form').hidden=false;$('#pi-report-open').hidden=true;$('#pi-report-reason').focus({preventScroll:true});});
 $('#pi-report-cancel').addEventListener('click',()=>{$('#pi-report-form').hidden=true;$('#pi-report-form').reset();$('#pi-report-open').hidden=false;$('#pi-report-open').focus({preventScroll:true});});
 $('#pi-report-form').addEventListener('submit',e=>e.preventDefault());

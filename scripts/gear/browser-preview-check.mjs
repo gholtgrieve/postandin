@@ -64,6 +64,24 @@ try{
  await page.locator('[data-manage="close"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'closed');assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="renew"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'available');
  await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');assert.equal(await page.locator('.pi-photo-stage img').count(),1);assert.equal(await page.locator('.pi-photo-stage img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
+ // Buyer contact: validation, failed-request recovery, local sink, and responsive form.
+ await page.locator('#pi-contact-open').click();
+ await page.locator('#pi-buyer-name').fill('Buyer');await page.locator('#pi-buyer-email').fill('buyer@example.test');await page.locator('#pi-buyer-message').fill('<b>Sample inquiry</b>');
+ await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
+ assert.equal((await(await context.request.get(base+'/local/contact-mail')).json()).receipts.length,0);
+ await page.locator('#pi-buyer-share').check();
+ await page.route('**/contact',r=>r.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Unable to process the request.'})}));
+ await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'<b>Sample inquiry</b>');assert.equal(await page.locator('#pi-buyer-share').isChecked(),true);assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
+ await page.unroute('**/contact');
+ for(const width of [1040,390,320]){
+  await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'contact overflow at '+width);
+  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-contact-'+width+'.png',fullPage:true});
+ }
+ await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),true);assert.equal(await page.locator('#pi-contact-success h2').textContent(),'Message saved locally');assert.equal(await page.locator('#pi-contact-again').evaluate(el=>el===document.activeElement),true);
+ const contactMail=(await(await context.request.get(base+'/local/contact-mail')).json()).receipts;
+ assert.equal(contactMail.length,1);assert.equal(contactMail[0].message,'<b>Sample inquiry</b>');assert.equal(contactMail[0].listingId,photoListing);
+ await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');assert.equal(await page.locator('#pi-buyer-share').isChecked(),false);
+ await page.locator('#pi-contact-cancel').click();await page.setViewportSize({width:1040,height:900});
  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-desktop.png',fullPage:true});
  // Mobile overflow and view rendering; browser console exceptions must remain empty.
  for(const width of [390,320]){await page.setViewportSize({width,height:900});for(const screen of ['gear','detail','post','manage']){await page.locator('[data-screen="'+screen+'"]').click();await idle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),screen+' overflow at '+width);}}
@@ -129,14 +147,16 @@ try{
  await page.route('**/listings',r=>r.abort());await page.locator('#pi-local-logout').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal(await page.locator('#pi-manage-feedback').textContent(),'Signed out.');assert.equal((await context.cookies()).some(c=>c.name==='gear_session'),false);await page.unroute('**/listings');
  // Unmarked static HTML must retain demo behavior and perform no API calls.
  const staticContext=await browser.newContext({ignoreHTTPSErrors:true});const demo=await staticContext.newPage();monitor(demo);const apiCalls=[];
- demo.on('request',r=>{if(/\/(listings|drafts|management|verification|local)(\/|$)/.test(new URL(r.url()).pathname))apiCalls.push(r.url());});
+ demo.on('request',r=>{if(/\/(contact|listings|drafts|management|verification|local)(\/|$)/.test(new URL(r.url()).pathname))apiCalls.push(r.url());});
  await demo.route(base+'/gear/',route=>route.fulfill({contentType:'text/html',body:readFileSync(new URL('../../gear/index.html',import.meta.url),'utf8')}));
  await demo.goto(base+'/gear/');await demo.waitForFunction(()=>document.querySelector('#pi-count')?.textContent==='8 listings');
+ await demo.locator('[data-screen="gear"]').click();await demo.locator('[data-listing]').first().click();await demo.locator('#pi-contact-open').click();
+ await demo.locator('#pi-buyer-name').fill('Sample');await demo.locator('#pi-buyer-email').fill('sample@example.test');await demo.locator('#pi-buyer-message').fill('Sample inquiry');await demo.locator('#pi-buyer-share').check();await demo.locator('#pi-preview-send').click();assert.equal(await demo.locator('#pi-contact-success h2').textContent(),'Message preview complete');
  await demo.locator('[data-screen="post"]').click();await demo.locator('#pi-fill-demo').click();await demo.locator('#pi-next-photos').click();await demo.locator('#pi-next-review').click();await demo.locator('#pi-post-submit').click();await demo.locator('#pi-simulate-verify').click();
  assert.equal(await demo.locator('#pi-email-change').count(),0);assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);
  assert.deepEqual(errors,[]);
  // Expected failed requests are exercised deliberately. Do not hide arbitrary console errors.
- const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
+ const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||(/\/contact$/.test(e.url)&&/500/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
  assert.deepEqual(unexpected,[]);
- console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
+ console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout/contact, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}

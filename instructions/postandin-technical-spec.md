@@ -1120,6 +1120,10 @@ remains simulated; there are no deployed Gear APIs. Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
 
+Local buyer contact uses a bounded in-memory test inbox, server visibility checks,
+sharing acknowledgement and temporary local limits; see [gear-contact.md](gear-contact.md).
+No real contact email is delivered.
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
