@@ -9,7 +9,8 @@ export function localReports(db,{persistent=false}={}){
  if(persistent)initializeReportQueue(db);
  const reports=[];let attempts=[];
  return {
-  get reports(){return persistent?db.sqlite.prepare('SELECT id,listing_id AS listingId,listing_title AS listingTitle,reason,created_at AS createdAt FROM gear_local_reports ORDER BY created_at,rowid').all():reports;},
+  prune(now=Date.now()){for(let i=reports.length-1;i>=0;i--)if(reports[i].createdAt<=now-30*86400000)reports.splice(i,1);},
+  get reports(){this.prune();return persistent?db.sqlite.prepare('SELECT id,listing_id AS listingId,listing_title AS listingTitle,reason,created_at AS createdAt FROM gear_local_reports ORDER BY created_at,rowid').all():reports;},
   submit(input,now=Date.now()){
    if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.id!=='string'||!/^[a-f0-9-]{36}$/.test(input.id)||!REPORT_REASONS.includes(input.reason))
     throw new ReportError(400,'Choose a supported report reason and listing.');

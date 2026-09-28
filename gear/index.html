@@ -8,6 +8,13 @@
   </div>
   <div class="pi-site">
     <header class="pi-header"><button class="pi-logo" type="button" data-go="home">Post &amp; In</button><span class="pi-section" hidden> / Gear Exchange</span><button class="pi-back" type="button" data-go="home" hidden>← Home</button></header>
+    <details class="pi-recovery" id="pi-gear-rules"><summary>Gear Exchange rules and privacy</summary>
+      <p>For adults 18 and older arranging local exchanges of hockey gear. A parent or guardian handles listings and messages for younger players.</p>
+      <p>List gear you own and describe wear, repairs, damage and unknown history. Prohibited listings include stolen or counterfeit goods, recalled items, weapons, unrelated goods and dealer inventory.</p>
+      <p>Protective gear is allowed. Post &amp; In does not inspect or certify equipment. Check fit, condition, recall status and manufacturer guidance before use; photos and seller descriptions cannot establish safety.</p>
+      <p>Your listing name, city, description and photos are public when published. Keep private contact details and children's personal information out of listings and photos. Seller email stays off listings. Buyer contact shares the buyer's name, email and message with the seller; a direct reply reveals the seller's email.</p>
+      <p>Use sample details in this preview. Connected local mode stores sample listings and sanitized photos on this computer. Local contact messages are inspection copies; no email is sent. Deletion hides listings and photos with 30-day recovery. Authorized moderators may review associated text during recovery; permanent cleanup removes it. Local cleanup runs automatically while the preview server is running. Unverified drafts last 3 days, contact copies 24 hours, and reports and moderation history 30 days; cleanup can take up to another day.</p>
+    </details>
     <section class="pi-home">
       <div class="pi-home-hero"><h1>Seattle is a<br>Hockey City!</h1><div class="pi-mission"><p>Since the Kraken arrived, the game here has transformed. The rinks are full. The programs are serious. A generation of Seattle kids are growing up with NHL hockey in their backyard, and it shows in how they play.</p><p>Post &amp; In is a community project — tools built by hockey parents for players and coaches who love this game.</p></div></div>
       <div class="pi-bridge">Here's how we can help.</div>
@@ -48,6 +55,7 @@
             <label for="pi-buyer-email">Your email</label><input id="pi-buyer-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com" aria-describedby="pi-contact-privacy">
             <label for="pi-buyer-message">Message</label><textarea id="pi-buyer-message" name="message" rows="5" required maxlength="2000" placeholder="Ask about the gear or suggest a pickup time."></textarea>
             <p id="pi-contact-privacy" class="pi-contact-help">The seller will receive your name, email, and message. They can reply directly to your email.</p>
+            <label><input id="pi-buyer-adult" type="checkbox" required> I am 18 or older.</label>
             <label><input id="pi-buyer-share" type="checkbox" required> I agree to share my name, email, and message with the seller.</label>
             <p class="pi-form-note">Preview only. Use sample details; no email is sent.</p>
             <button type="button" class="pi-primary pi-wide" id="pi-preview-send">Preview send</button><button type="button" class="pi-text-button" id="pi-contact-cancel">Cancel</button>

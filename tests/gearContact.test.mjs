@@ -8,7 +8,7 @@ import {issueLocalVerification,confirmVerification} from '../lib/gear-verificati
 import {issueLocalManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../lib/gear-email-change.mjs';
 const listing={title:'Sample bag',description:'Worn zipper',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
-const message=id=>({id,name:' Buyer ',email:' BUYER@Example.test ',message:'<script>alert(1)</script>\nIs this available?',shareEmail:true});
+const message=id=>({id,name:' Buyer ',email:' BUYER@Example.test ',message:'<script>alert(1)</script>\nIs this available?',shareEmail:true,adult:true});
 async function publish(db){const {id}=await createDraft(db,listing);const receipt=await issueLocalVerification(db,id);assert.equal((await confirmVerification(db,receipt.token)).verified,true);return id;}
 const status=(code)=>e=>e.status===code;
 test('local contact normalizes buyer data, stores plain text privately, and uses current seller address',async()=>{
@@ -36,7 +36,7 @@ test('malformed, overlong, control-character and unacknowledged contact never re
    {id:'bad'},{name:' '},{name:'x'.repeat(61)},{name:'a\r\nb'},
    {email:'bad'},{email:'a@b.test\r\nBcc:x@y.test'},{email:'x'.repeat(255)+'@a.test'},
    {message:' '},{message:'x'.repeat(2001)},{message:'hello\0world'},
-   {shareEmail:false},{shareEmail:'true'}
+   {shareEmail:false},{shareEmail:'true'},{adult:false},{adult:'true'},{adult:undefined}
   ].map(p=>({...message(id),...p}))])assert.throws(()=>contact.send(input),status(400));
   assert.equal(contact.receipts.length,0);
   // Malformed attempts must not consume this same buyer/listing budget.

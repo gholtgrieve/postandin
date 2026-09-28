@@ -1,7 +1,10 @@
 // Local SQLite lifecycle only. Thirty-day deletion recovery; explicit cleanup.
 import {createHash} from 'node:crypto';
 import {LIMITS} from '../../lib/gear-exchange.mjs';
-export const RECOVERY_MS=30*86400000;
+export const DAY_MS=86400000;
+export const RECOVERY_MS=30*DAY_MS;
+export const DRAFT_MS=3*DAY_MS;
+export const HISTORY_MS=30*DAY_MS;
 export class LifecycleError extends Error{constructor(status,message){super(message);this.status=status;}}
 const hash=s=>createHash('sha256').update(s).digest('hex');
 export function initializeLifecycle(db){db.sqlite.exec(`CREATE TABLE IF NOT EXISTS gear_local_deletions (
@@ -56,14 +59,29 @@ const has=(db,table)=>Boolean(db.sqlite.prepare("SELECT 1 FROM sqlite_master WHE
 export function purgeListing(db,id,now){
  for(const table of ['gear_local_reports','gear_local_removals','gear_local_moderation_history'])if(has(db,table))db.sqlite.prepare('DELETE FROM '+table+' WHERE listing_id=?').run(id);
  db.sqlite.prepare('DELETE FROM gear_listings WHERE id=?').run(id); // FK cascades: photos, clubs, verification, deletion marker.
- db.sqlite.prepare('UPDATE gear_local_deletion_ledger SET purged_at=? WHERE listing_id=?').run(now,id);
+ db.sqlite.prepare('UPDATE gear_local_deletion_ledger SET purged_at=coalesce(purged_at,?) WHERE listing_id=?').run(now,id);
 }
 export function cleanup(db,{apply=false,now=Date.now()}={}){
  initializeLifecycle(db);
  const ids=db.sqlite.prepare('SELECT listing_id FROM gear_local_deletions WHERE purge_at<=?').all(now);
- if(!apply)return {dueListings:ids.length,applied:false};
+ const drafts=db.sqlite.prepare("SELECT id FROM gear_listings WHERE status='unverified' AND verified_at IS NULL AND created_at<=?").all(now-DRAFT_MS);
+ const rules=[
+  ['gear_email_changes','expires_at<=? OR consumed_at IS NOT NULL OR session_hash IN (SELECT session_hash FROM gear_management_sessions WHERE expires_at<=? OR revoked_at IS NOT NULL)',[now,now]],
+  ['gear_management_sessions','expires_at<=? OR revoked_at IS NOT NULL',[now]],
+  ['gear_management_links','expires_at<=? OR consumed_at IS NOT NULL',[now]],
+  ['gear_verification_tokens','expires_at<=? OR consumed_at IS NOT NULL',[now]],
+  ['gear_local_reports','created_at<=?',[now-HISTORY_MS]],
+  ['gear_local_moderation_history','created_at<=?',[now-HISTORY_MS]],
+  ['gear_local_deletion_ledger','purged_at IS NOT NULL AND purged_at<=?',[now-RECOVERY_MS]]
+ ].filter(([table])=>has(db,table));
+ const dueRows=Object.fromEntries(rules.map(([table,where,args])=>[table,db.sqlite.prepare('SELECT count(*) AS n FROM '+table+' WHERE '+where).get(...args).n]));
+ if(!apply)return {dueListings:ids.length,dueDrafts:drafts.length,dueRows,applied:false};
  db.sqlite.exec('BEGIN IMMEDIATE');try{
   for(const row of ids)purgeListing(db,row.listing_id,now);
+  for(const row of drafts)purgeListing(db,row.id,now);
+  for(const [table,where,args] of rules)db.sqlite.prepare('DELETE FROM '+table+' WHERE '+where).run(...args);
+  // Keep enforcement state, but discard old free-text removal reasons.
+  if(has(db,'gear_local_removals'))db.sqlite.prepare("UPDATE gear_local_removals SET reason='Removal remains in effect; original reason expired.' WHERE removed_at<=?").run(now-HISTORY_MS);
   // Remove private seller/auth rows only when that seller no longer owns any listing.
   const orphan=db.sqlite.prepare('SELECT id FROM gear_sellers WHERE NOT EXISTS(SELECT 1 FROM gear_listings WHERE seller_id=gear_sellers.id)').all();
   for(const {id} of orphan){
@@ -72,6 +90,6 @@ export function cleanup(db,{apply=false,now=Date.now()}={}){
    db.sqlite.prepare('DELETE FROM gear_management_sessions WHERE seller_id=?').run(id);
    db.sqlite.prepare('DELETE FROM gear_sellers WHERE id=?').run(id);
   }
-  db.sqlite.exec('COMMIT');return {dueListings:ids.length,applied:true};
+  db.sqlite.exec('COMMIT');return {dueListings:ids.length,dueDrafts:drafts.length,dueRows,applied:true};
  }catch(e){db.sqlite.exec('ROLLBACK');throw e;}
 }

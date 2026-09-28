@@ -129,3 +129,6 @@ body{margin:0;background:#E8E3D8}#pi-gear-preview{max-width:1200px;margin:auto}#
 #pi-gear-preview #pi-photo-manager h2{overflow-wrap:anywhere}
 
 #pi-gear-preview .pi-thumb:has(img)>span{display:none}
+#pi-gear-preview #pi-gear-rules{margin:0;padding:16px 24px;border-bottom:1px solid var(--pi-rule)}
+#pi-gear-preview #pi-gear-rules summary{cursor:pointer;min-height:28px}
+#pi-gear-preview #pi-gear-rules p{max-width:75ch;margin:12px 0}

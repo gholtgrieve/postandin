@@ -122,7 +122,7 @@ async function sendLocalContact(){
  const form=$('#pi-contact-form');
  for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).setCustomValidity($('#'+id).value.trim()?'':'Please complete this field.');
  if(!form.reportValidity())return;
- const input={id:state.selected,name:$('#pi-buyer-name').value,email:$('#pi-buyer-email').value,message:$('#pi-buyer-message').value,shareEmail:$('#pi-buyer-share').checked};
+ const input={id:state.selected,name:$('#pi-buyer-name').value,email:$('#pi-buyer-email').value,message:$('#pi-buyer-message').value,shareEmail:$('#pi-buyer-share').checked,adult:$('#pi-buyer-adult').checked};
  freezeFields();await api.request('/contact',input);
  form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
 }

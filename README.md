@@ -230,3 +230,8 @@ Local seller deletion now supports a 30-day recovery window, explicit offline
 cleanup and tested SQLite record/photo snapshot restoration. See
 [Gear lifecycle](instructions/gear-lifecycle.md) for retention, commands and limitations.
 Production deletion/cleanup and remote disaster recovery remain launch gates.
+
+Local Gear cleanup now runs on server startup and daily while listening, with
+one-minute failure retries. The approved short retention schedule and optional
+snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
+Production scheduling and external failure alerts remain launch gates.

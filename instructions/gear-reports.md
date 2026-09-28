@@ -101,3 +101,9 @@ Owner-authenticated moderation is now implemented locally in the separate
 [owner package](gear-owner-moderation.md), pending its review. Durable retention, deletion, restore,
 remote APIs and real mail remain separate. The owner requires the project to be
 fully complete before any separately authorized deployment.
+
+Current local retention: reports and moderation history expire after 30 days
+and are removed sooner with a purged listing. Memory reports prune on reads and
+automatic maintenance; persisted reports/history prune on startup and daily
+while the server runs. Active owner-removal enforcement survives, with old
+free-text reasons replaced by a generic marker. See `gear-lifecycle.md`.

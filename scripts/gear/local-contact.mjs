@@ -10,15 +10,16 @@ export function localContact(db,{sink}={}) {
  // Synchronous sink contract keeps eligibility checking and acceptance together.
  const deliver=sink===undefined?receipt=>{receipts.push(receipt);if(receipts.length>20)receipts.shift();return true;}:sink;
  return {
-  receipts,
+  prune(now=Date.now()){for(let i=receipts.length-1;i>=0;i--)if(receipts[i].createdAt<=now-86400000)receipts.splice(i,1);},
+  get receipts(){this.prune();return receipts;},
   send(input,now=Date.now()) {
-   if(!input||typeof input!=='object'||Array.isArray(input))throw new ContactError(400,'Check your contact details and sharing acknowledgement.');
+   if(!input||typeof input!=='object'||Array.isArray(input))throw new ContactError(400,'Confirm you are 18 or older and check your contact details and sharing acknowledgement.');
    const {id,shareEmail}=input;
    const name=typeof input.name==='string'?input.name.trim():'';
    const message=typeof input.message==='string'?input.message.trim():'';
    let email;try{email=normalizeEmail(input.email);}catch{throw new ContactError(400,'Enter one valid email address.');}
-   if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id)||!name||name.length>60||/[\x00-\x1f\x7f]/.test(name)||!message||message.length>2000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(message)||shareEmail!==true)
-    throw new ContactError(400,'Check your contact details and sharing acknowledgement.');
+   if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id)||!name||name.length>60||/[\x00-\x1f\x7f]/.test(name)||!message||message.length>2000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(message)||shareEmail!==true||input.adult!==true)
+    throw new ContactError(400,'Confirm you are 18 or older and check your contact details and sharing acknowledgement.');
    attempts=attempts.filter(a=>a.at>now-CONTACT_WINDOW_MS);
    const buyer=createHash('sha256').update(email).digest('hex');
    if(attempts.length>=60||attempts.filter(a=>a.buyer===buyer).length>=5||attempts.filter(a=>a.buyer===buyer&&a.id===id).length>=3)

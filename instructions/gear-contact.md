@@ -40,7 +40,8 @@ are in [gear-connected-preview.md](gear-connected-preview.md).
   become a public Pages route or be used with real personal data.
 - Only the latest 20 receipts remain in memory. They disappear on server restart;
   they are not stored in SQLite or included in backups. This is a bounded test
-  sink, not durable delivery, retention policy, or a restore implementation.
+  sink, not durable delivery or a restore implementation. Built-in contact
+  copies expire after 24 hours; see `gear-lifecycle.md` for automatic cleanup.
 - Temporary local limits per rolling ten minutes: 3 attempts per normalized
   buyer email/listing pair, 5 per buyer email, 60 across the server. Validated
   attempts count even when the listing is unavailable or the sink fails. Malformed
@@ -91,3 +92,8 @@ was not rerun and no second Claude review was performed.
 Review comparison: baseline `c2baff3` through the local commit titled
 `Connect local Gear buyer contact to a test inbox`; use Git history for its hash.
 No push, merge, deployment or real-mail approval.
+
+Policy increment (baseline `87c1805`): buyers must explicitly acknowledge being
+18 or older, independently of email-sharing consent. Both the local server and
+form enforce this; the acknowledgement is not age verification and no birthdate
+is collected. Posting already checks an adult acknowledgement.

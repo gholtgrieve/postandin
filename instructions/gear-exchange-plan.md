@@ -166,6 +166,40 @@ No push or deployment.
 identity remain separate. No deployment until the project is fully complete
 and the owner explicitly authorizes it.
 
+### Policy and retention increment — reviewed
+
+Baseline `87c1805`. The local preview now displays Gear rules, protective-gear
+and privacy disclosures. Buyer contact requires an explicit 18-or-older
+acknowledgement in the UI and local server; seller posting already requires it.
+Acknowledgement is self-attestation, not identity/age verification. No birthdate
+or identity document is collected. The contact acknowledgement is validated
+before accepting a message; no separate consent audit record is stored.
+
+The owner approved the shorter schedule: three-day unverified drafts, 24-hour
+local contact copies, 30-day reports/history, invalid credentials removed on
+cleanup, and a deletion ledger retained 30 days after purge. Active removal
+state survives; old free-text reasons are replaced by a generic marker.
+Automatic local cleanup runs on server listen and daily, retrying failures after
+a minute; the timer stops when the server closes. Snapshot pruning is automatic
+when `GEAR_BACKUP_DIRECTORY` names a dedicated outside-repo snapshot directory.
+No machine-wide job or production schedule was installed. See `gear-lifecycle.md`.
+All 97 Gear tests pass after review fixes; both HTTPS browser harnesses passed
+before these backend-only fixes. Claude found one medium reason-retention issue
+and one low backup-directory configuration issue. Both are fixed with regressions;
+no second Claude review.
+
+Review baseline: `87c1805`. Owner authorized the fixes and local commit, titled
+`Add Gear policies and automatic local retention cleanup` (see Git for hash).
+
+Next bounded task: design the production integration contract before coding.
+Inventory existing Pages routing and Gear adapters; specify remote D1/R2/mail,
+owner authentication, independent daily cleanup with retries/failure alerts,
+and recovery requirements. Identify owner/provider decisions and the smallest
+implementation slice. Keep this first step read-only and concise; do not
+provision services, add secrets, change bindings or deploy.
+No push/deployment. Production scheduled execution and failure notifications,
+remote mail/storage and disaster recovery remain separate launch requirements.
+
 ### Checks and local commands
 
 Run from the canonical checkout:

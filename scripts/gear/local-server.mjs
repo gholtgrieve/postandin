@@ -1,4 +1,6 @@
-import {initializeLifecycle,isDeleted,deletedListings,changeDeletion,LifecycleError} from './local-lifecycle.mjs';
+import {startMaintenance} from './local-maintenance.mjs';
+import {pruneBackups} from './local-backup.mjs';
+import {cleanup,initializeLifecycle,isDeleted,deletedListings,changeDeletion,LifecycleError} from './local-lifecycle.mjs';
 import {ownerAuth,OwnerError,OWNER_TTL_MS} from './owner-auth.mjs';
 import {localModeration} from './local-moderation.mjs';
 import {localReports,ReportError} from './local-reports.mjs';
@@ -8,7 +10,8 @@ import {initializePhotos,photoRows,photoContent,changePhotos,PhotoError} from '.
 import { issueLocalEmailChange, confirmEmailChange } from '../../lib/gear-email-change.mjs';
 import { createServer } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
-import { readFileSync } from 'node:fs';
+import { readFileSync,statSync } from 'node:fs';
+import {join} from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { safeDatabasePath } from './local-path.mjs';
 import { openLocalDatabase } from './local-db.mjs';
@@ -17,7 +20,11 @@ import { issueLocalVerification, confirmVerification } from '../../lib/gear-veri
 import { MANAGEMENT_TTL_MS, recoverManagementSession, issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing } from '../../lib/gear-management.mjs';
 import { DraftValidationError } from '../../lib/gear-validation.mjs';
 
-export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
+export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDirectory}={}) {
+  if(backupDirectory!==undefined){
+   try{safeDatabasePath(join(backupDirectory,'directory-check'));if(!statSync(backupDirectory).isDirectory())throw new Error();}
+   catch{throw new Error('Invalid GEAR_BACKUP_DIRECTORY: use an existing directory outside the checkout.');}
+  }
   if(preview&&!tls)throw new Error('Connected preview requires TLS.');
   if(ownerKey&&!tls)throw new Error('Owner review requires TLS.');
   const owner=ownerKey?ownerAuth(ownerKey):null;
@@ -115,7 +122,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       }
       if(url.pathname==='/management/email-change'){
         const receipt=await issueLocalEmailChange(db,session(req),req.headers['x-gear-csrf']||'',input?.email);
-        if(receipt){emailChangeMailbox.push(receipt);if(emailChangeMailbox.length>20)emailChangeMailbox.shift();}
+        if(receipt){emailChangeMailbox.push({...receipt,expiresAt:Date.now()+1800000});if(emailChangeMailbox.length>20)emailChangeMailbox.shift();}
         return reply(receipt?200:403,receipt?{message:'Check the new address to confirm. Local preview: no email was sent.'}:{error:'Unable to request email change.'});
       }
       if(url.pathname==='/management/email-change/confirm'){
@@ -126,7 +133,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       }
       if(url.pathname==='/management/recovery'){
         const receipt=await issueLocalManagementLink(db,input?.email);
-        if(receipt){localMailbox.push(receipt);if(localMailbox.length>20)localMailbox.shift();}
+        if(receipt){localMailbox.push({...receipt,expiresAt:Date.now()+1800000});if(localMailbox.length>20)localMailbox.shift();}
         return reply(200,{message:'If verified listings match that address, a management link will be sent. Local preview: no email was sent.'});
       }
       if(url.pathname==='/management/confirm'){
@@ -165,12 +172,20 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey}={}) {
       return reply(500,{error:'Unable to process the request.'});
     }
   };
-  return tls?createSecureServer(tls,handler):createServer(handler);
+  const server=tls?createSecureServer(tls,handler):createServer(handler);
+  let stopMaintenance;
+  server.on('listening',()=>{stopMaintenance=startMaintenance(()=>{
+   cleanup(db,{apply:true});contact.prune();reportQueue.prune();
+   for(const box of [emailChangeMailbox,localMailbox])for(let i=box.length-1;i>=0;i--)if(box[i].expiresAt<=Date.now())box.splice(i,1);
+   if(backupDirectory)pruneBackups(backupDirectory,{apply:true});
+  });});
+  server.on('close',()=>stopMaintenance?.());
+  return server;
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   const path=process.argv[2];
   if(!path)throw new Error('Supply an absolute database path outside the website directory. Use sample data only.');
-  const db=openLocalDatabase(safeDatabasePath(path)),server=localServer(db);
+  const db=openLocalDatabase(safeDatabasePath(path)),server=localServer(db,{backupDirectory:process.env.GEAR_BACKUP_DIRECTORY});
   server.listen(8772,'127.0.0.1',()=>console.log('Local sample-data API: http://127.0.0.1:8772 (simulated email; publication in local database only)'));
   for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>{db.close();process.exit(0);}));
 }
