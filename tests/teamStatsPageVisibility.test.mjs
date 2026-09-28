@@ -43,12 +43,13 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through September 26, 2026/);
-  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">7<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">0-6-1<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">11 \/ 23<\/span>/);
-  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>7<\/td><td>3<\/td><td>1<\/td><td class="points">4<\/td><td>0<\/td>/);
-  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>6<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>35<\/td>/);
+  assert.match(statsPage, /Through September 27, 2026/);
+  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">8<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">1-6-1<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">13 \/ 24<\/span>/);
+  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>8<\/td><td>3<\/td><td>1<\/td><td class="points">4<\/td><td>0<\/td>/);
+  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>8<\/td><td>2<\/td><td>1<\/td><td class="points">3<\/td><td>4<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>7<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>37<\/td>/);
 });
 
 test('both player tables provide sortable column controls', () => {
@@ -63,7 +64,7 @@ test('goalie totals include derived saves and save percentage', () => {
   assert.match(statsPage, />SV<\/button>/);
   assert.match(statsPage, />SV%<\/button>/);
   assert.match(statsPage, /Anthony O'Donnell<\/td><td>4<\/td><td>0<\/td><td>3<\/td><td>1<\/td><td>166<\/td><td>12<\/td><td>154<\/td><td class="points" data-sort-value="92\.8">92\.8%/);
-  assert.match(statsPage, /Miguel Martinez<\/td><td>3<\/td><td>0<\/td><td>3<\/td><td>0<\/td><td>117<\/td><td>11<\/td><td>106<\/td><td class="points" data-sort-value="90\.6">90\.6%/);
+  assert.match(statsPage, /Miguel Martinez<\/td><td>4<\/td><td>1<\/td><td>3<\/td><td>0<\/td><td>150<\/td><td>12<\/td><td>138<\/td><td class="points" data-sort-value="92\.0">92\.0%/);
 });
 
 test('display names retain natural order while sorting by surname', () => {
