@@ -49,6 +49,9 @@ Local D1/workerd results and the repeatable harness are in
 Local buyer contact and its temporary test inbox are documented in
 [instructions/gear-contact.md](instructions/gear-contact.md).
 
+Local listing reports use a bounded inspection queue; see
+[instructions/gear-reports.md](instructions/gear-reports.md).
+
 Persistent local management photos are documented in
 [instructions/gear-photos.md](instructions/gear-photos.md).
 

@@ -56,7 +56,8 @@ are in [gear-connected-preview.md](gear-connected-preview.md).
   A lost response after acceptance is ambiguous: retry can create another receipt.
   Durable outbox/idempotency and real delivery remain separate work.
 - Static hosting still simulates contact and makes no API call. It also requires
-  the sharing acknowledgement. Reporting remains simulated in both modes.
+  the sharing acknowledgement. Reporting now has a separate local queue; see [gear-reports.md](gear-reports.md).
+  Static reporting remains simulated.
 
 ## Verification and owner review
 

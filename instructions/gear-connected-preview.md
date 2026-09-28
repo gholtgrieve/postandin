@@ -57,7 +57,7 @@ still rejected. No draft idempotency or abandoned-draft cleanup is claimed.
 
 - Persistent local photos are available after publication through management;
   see [gear-photos.md](gear-photos.md). Initial draft uploads remain deferred.
-- Buyer contact now saves to a bounded local test inbox; see [gear-contact.md](gear-contact.md). No real email is sent. Reports remain simulated.
+- Buyer contact now saves to a bounded local test inbox; see [gear-contact.md](gear-contact.md). No real email is sent. Reports save to a bounded local review queue; see [gear-reports.md](gear-reports.md). No moderation action is taken.
 - Delete is omitted from connected management because deletion/retention is not
   implemented. Removed records are read-only.
 - Email transfer is connected in local management; see [gear-email-change.md](gear-email-change.md).

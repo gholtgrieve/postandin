@@ -41,7 +41,7 @@ inspect `git status` and recent history before continuing.
 
 | Component | Implemented | Not implemented |
 |---|---|---|
-| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact sink | Real email/cloud media/report/deletion; production publishing |
+| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media/moderation/deletion; production publishing |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
 | Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
 | Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail |
@@ -91,7 +91,7 @@ expanded desktop/mobile HTTPS browser harness pass. Claude review found no
 security/access/transaction defects; its image upscaling and orientation findings
 were fixed with targeted regressions. Focused Claude re-review approved the
 fix with no blocker/high/medium defects. Its recommended big-endian TIFF
-orientation-6 regression now passes alongside all five focused photo tests. No push, merge or deployment. Real buyer-contact delivery and reports are still unfinished; deletion/retention, real mail,
+orientation-6 regression now passes alongside all five focused photo tests. No push, merge or deployment. Real buyer-contact delivery and moderation are still unfinished; deletion/retention, real mail,
 remote APIs and restore remain separate work. Never expose private local draft
 inspection or simulated inboxes as public Pages routes.
 
@@ -113,9 +113,24 @@ have not received another Claude review. Included in the local commit titled
 No migration, push, production provision or deployment. The owner requires the
 project to be fully complete before any separately authorized deployment.
 
-Next bounded implementation candidate after review: local listing reports with
-a trusted local inspection queue; decide moderation actions separately. Real
-mail, remote APIs, deletion/retention and restore remain deferred.
+### Local reports increment
+
+The existing report form now submits shared reason choices to a bounded local
+inspection queue. Server checks current listing visibility, applies temporary
+listing/global limits, and never modifies listings. The UI retains the reason on
+failure and focuses confirmed local success. See [gear-reports.md](gear-reports.md)
+for routes, privacy boundaries, memory/eviction limits and verification.
+Baseline: `37e2738`. All 72 Node tests and the expanded HTTPS Chrome harness pass;
+desktop/mobile screenshots were inspected. Owner-mediated Claude review approved
+the local-only increment with zero findings at every severity and independently
+passed the tests and browser harness. Optional coverage/focus suggestions remain
+deferred; no implementation fixes were needed. Included in the local commit titled
+`Connect local Gear reports to a review queue`; use Git history for its hash.
+No push, migration, provisioning or deployment in this increment.
+
+Next bounded candidate: owner-authenticated moderation; decide
+allowed actions and review workflow before implementation. Real mail, remote
+APIs, deletion/retention and restore remain deferred.
 
 ### Checks and local commands
 
@@ -125,7 +140,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 

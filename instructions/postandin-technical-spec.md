@@ -1124,6 +1124,9 @@ Local buyer contact uses a bounded in-memory test inbox, server visibility check
 sharing acknowledgement and temporary local limits; see [gear-contact.md](gear-contact.md).
 No real contact email is delivered.
 
+Local reports now use a bounded in-memory inspection queue; see
+[gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,

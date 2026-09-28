@@ -1,4 +1,4 @@
-import { CATEGORIES, SIZES, CONDITIONS, CLUBS, LIMITS, matchesListing, clubNames, offerFields, formatPrice, normalize } from '../lib/gear-exchange.mjs';
+import { REPORT_REASONS, CATEGORIES, SIZES, CONDITIONS, CLUBS, LIMITS, matchesListing, clubNames, offerFields, formatPrice, normalize } from '../lib/gear-exchange.mjs';
 
 (async()=>{
 const root=document.getElementById('pi-gear-preview');
@@ -138,10 +138,22 @@ $('#pi-contact-form').addEventListener('submit',e=>e.preventDefault());
 $('#pi-contact-form').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#pi-preview-send').click();}});
 $('#pi-preview-send').addEventListener('click',()=>{if(localMode){localAction(sendLocalContact);return;}const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
 for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).addEventListener('input',e=>e.target.setCustomValidity(''));
+options('#pi-report-reason',REPORT_REASONS,'Choose a reason');
+if(localMode){
+ $('#pi-preview-report').textContent='Save to local review queue';
+ $('#pi-report-form .pi-form-note').textContent='Local preview only. Reports stay in this local session; no moderation action is taken.';
+ $('#pi-report-result').textContent='Report saved to the local review queue. No moderation action was taken.';
+}
+async function submitLocalReport(){
+ const form=$('#pi-report-form');if(!form.reportValidity())return;
+ const input={id:state.selected,reason:$('#pi-report-reason').value};
+ freezeFields();await api.request('/reports',input);
+ form.reset();form.hidden=true;$('#pi-report-result').hidden=false;return '#pi-report-result';
+}
 $('#pi-report-open').addEventListener('click',()=>{$('#pi-report-form').hidden=false;$('#pi-report-open').hidden=true;$('#pi-report-reason').focus({preventScroll:true});});
 $('#pi-report-cancel').addEventListener('click',()=>{$('#pi-report-form').hidden=true;$('#pi-report-form').reset();$('#pi-report-open').hidden=false;$('#pi-report-open').focus({preventScroll:true});});
 $('#pi-report-form').addEventListener('submit',e=>e.preventDefault());
-$('#pi-preview-report').addEventListener('click',()=>{if(!$('#pi-report-form').reportValidity())return;$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=false;});
+$('#pi-preview-report').addEventListener('click',()=>{if(localMode){localAction(submitLocalReport);return;}if(!$('#pi-report-form').reportValidity())return;$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=false;});
 root.querySelectorAll('[data-type]').forEach(b=>b.addEventListener('click',()=>{state.type=b.dataset.type;render();}));
 for(const [id,key]of [['pi-search','q'],['pi-category','category'],['pi-size','size'],['pi-area','area'],['pi-club','club'],['pi-price','price'],['pi-sort','sort']])$('#'+id).addEventListener('input',e=>{state[key]=e.target.value;render();});
 $('.pi-clear').addEventListener('click',clear);$('[data-clear]').addEventListener('click',clear);

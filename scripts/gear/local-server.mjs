@@ -1,3 +1,4 @@
+import {localReports,ReportError} from './local-reports.mjs';
 import {localContact,ContactError} from './local-contact.mjs';
 import {initializePhotos,photoRows,photoContent,changePhotos,PhotoError} from './local-photos.mjs';
 // LOCAL DEVELOPMENT ONLY: deliberately outside functions/, never a Pages route.
@@ -17,6 +18,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
   if(preview&&!tls)throw new Error('Connected preview requires TLS.');
   initializePhotos(db);
   const contact=localContact(db,{sink:contactSink});
+  const reportQueue=localReports(db);
   const assets=new Map(preview?['gear/index.html','gear/gear.css','gear/gear.mjs','gear/local-api.mjs','lib/gear-exchange.mjs'].map(path=>['/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8')]):[]);
   const emailChangeMailbox=[];
   const localMailbox=[]; // Trusted local inspection only; bounded, never logged.
@@ -42,6 +44,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
 
       const photo=url.pathname.match(/^\/(management\/)?photos\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&photo){const content=photoContent(db,photo[2],session(req),Boolean(photo[1]));if(!content)return reply(404,{error:'Not found.'});res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return res.end(content);}
+      if(req.method==='GET'&&url.pathname==='/local/reports')return reply(200,{reports:reportQueue.reports});
       if(req.method==='GET'&&url.pathname==='/local/contact-mail')return reply(200,{receipts:contact.receipts});
       if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
@@ -51,14 +54,14 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
         const listings=await listManaged(db,session(req));return reply(listings?200:401,listings?{listings:listings.map(r=>({...r,photos:photoRows(db,r.id,true)}))}:{error:'Access unavailable.'});
       }
       const management=url.pathname.startsWith('/management/');
-      if((management||url.pathname==='/contact')&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
+      if((management||url.pathname==='/contact'||url.pathname==='/reports')&&req.method==='POST'&&req.headers.origin!==origin)return reply(403,{error:'Request not allowed.'});
 
       if(req.method==='GET'&&url.pathname==='/verification')return reply(200,{confirmationRequired:true,notice:'Opening this URL does not verify or publish anything. POST token and confirm:true to /verification/confirm.'});
       if(req.method==='GET'&&url.pathname==='/listings') return reply(200,{listings:(await readPublicListings(db)).map(r=>({...r,photos:photoRows(db,r.id)}))});
       const match=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})$/);
       if(req.method==='GET'&&match) {const draft=await readLocalDraft(db,match[1]);return reply(draft?200:404,draft?{draft}:{error:'Not found.'});}
       const issue=url.pathname.match(/^\/drafts\/([a-f0-9-]{36})\/verification$/);
-      if(req.method!=='POST'||(!issue&&!['/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
+      if(req.method!=='POST'||(!issue&&!['/reports','/contact','/management/photos','/drafts','/verification/confirm','/management/session','/management/email-change','/management/email-change/confirm','/management/recovery','/management/confirm','/management/logout','/management/listing'].includes(url.pathname))) return reply(404,{error:'Not found.'});
       if(req.headers['content-type']?.split(';')[0]!=='application/json') return reply(415,{error:'Use JSON.'});
       const bodyLimit=url.pathname==='/management/photos'?7*1024*1024:32768;
       const tooLarge=()=>{res.setHeader('Connection','close');reply(413,{error:'Request too large.'});req.resume();};
@@ -74,6 +77,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
       });
       if(!chunks)return;
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reply(400,{error:'Invalid JSON.'});}
+      if(url.pathname==='/reports')return reply(200,reportQueue.submit(input));
       if(url.pathname==='/contact')return reply(200,contact.send(input));
       if(url.pathname==='/management/photos'){const ok=await changePhotos(db,session(req),req.headers['x-gear-csrf']||'',input);return reply(ok?200:403,ok?{ok:true}:{error:'Unable to change photos.'});}
       if(url.pathname==='/management/session'){
@@ -122,6 +126,7 @@ export function localServer(db,{tls,preview=false,contactSink}={}) {
       }
       return reply(201,await createDraft(db,input));
     } catch(error) {
+      if(error instanceof ReportError)return reply(error.status,{error:error.message});
       if(error instanceof ContactError)return reply(error.status,{error:error.message});
       if(error instanceof PhotoError)return reply(400,{error:error.message});
       if(error instanceof DraftValidationError)return reply(400,{error:error.message,fields:error.fields});

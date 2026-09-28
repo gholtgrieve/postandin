@@ -82,6 +82,30 @@ try{
  assert.equal(contactMail.length,1);assert.equal(contactMail[0].message,'<b>Sample inquiry</b>');assert.equal(contactMail[0].listingId,photoListing);
  await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');assert.equal(await page.locator('#pi-buyer-share').isChecked(),false);
  await page.locator('#pi-contact-cancel').click();await page.setViewportSize({width:1040,height:900});
+ // Local reports: real validation/unavailable responses, retry, single pending write, and queue inspection.
+ await page.locator('#pi-report-open').click();await page.locator('#pi-preview-report').click();await idle();
+ assert.equal((await(await context.request.get(base+'/local/reports')).json()).reports.length,0);
+ await page.locator('#pi-report-reason').selectOption('Misleading listing');
+ db.sqlite.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").run(photoListing);
+ await page.locator('#pi-preview-report').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/no longer available to report/);assert.equal(await page.locator('#pi-report-reason').inputValue(),'Misleading listing');assert.equal(await page.locator('#pi-report-result').isVisible(),false);
+ db.sqlite.prepare("UPDATE gear_listings SET status='available' WHERE id=?").run(photoListing);
+ await page.route('**/reports',r=>r.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Unable to process the request.'})}));
+ await page.locator('#pi-preview-report').click();await idle();assert.equal(await page.locator('#pi-report-reason').inputValue(),'Misleading listing');assert.equal(await page.locator('#pi-report-result').isVisible(),false);await page.unroute('**/reports');
+ for(const width of [1040,390,320]){
+  await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'report overflow at '+width);
+  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-report-'+width+'.png',fullPage:true});
+ }
+ let releaseReport,reportCalls=0;const reportGate=new Promise(r=>releaseReport=r);
+ await page.route('**/reports',async route=>{reportCalls++;await reportGate;await route.continue();});
+ await page.locator('#pi-preview-report').click();await page.waitForFunction(()=>document.querySelector('#pi-report-reason').disabled);
+ await page.locator('#pi-preview-report').evaluate(el=>{el.click();el.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
+ releaseReport();await idle();await page.unroute('**/reports');assert.equal(reportCalls,1);
+ assert.equal(await page.locator('#pi-report-result').isVisible(),true);assert.match(await page.locator('#pi-report-result').textContent(),/saved to the local review queue/);assert.equal(await page.locator('#pi-report-result').evaluate(el=>el===document.activeElement),true);assert.equal(await page.locator('#pi-report-reason').inputValue(),'');
+ const queuedReports=(await(await context.request.get(base+'/local/reports')).json()).reports;assert.equal(queuedReports.length,1);assert.equal(queuedReports[0].listingId,photoListing);assert.equal(queuedReports[0].reason,'Misleading listing');assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(photoListing).status,'available');
+ await context.request.post(base+'/reports',{headers:{Origin:base},data:{id:photoListing,reason:'Other concern'}});
+ await page.locator('[data-screen="gear"]').click();await page.locator('[data-listing]').click();await page.locator('#pi-report-open').click();assert.equal(await page.locator('#pi-report-result').isVisible(),false);
+ await page.locator('#pi-report-reason').selectOption('Other concern');await page.locator('#pi-preview-report').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/Too many report attempts/);assert.equal(await page.locator('#pi-report-reason').inputValue(),'Other concern');
+ await page.locator('#pi-report-cancel').click();assert.equal(await page.locator('#pi-report-reason').inputValue(),'');await page.setViewportSize({width:1040,height:900});
  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-desktop.png',fullPage:true});
  // Mobile overflow and view rendering; browser console exceptions must remain empty.
  for(const width of [390,320]){await page.setViewportSize({width,height:900});for(const screen of ['gear','detail','post','manage']){await page.locator('[data-screen="'+screen+'"]').click();await idle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),screen+' overflow at '+width);}}
@@ -147,16 +171,17 @@ try{
  await page.route('**/listings',r=>r.abort());await page.locator('#pi-local-logout').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal(await page.locator('#pi-manage-feedback').textContent(),'Signed out.');assert.equal((await context.cookies()).some(c=>c.name==='gear_session'),false);await page.unroute('**/listings');
  // Unmarked static HTML must retain demo behavior and perform no API calls.
  const staticContext=await browser.newContext({ignoreHTTPSErrors:true});const demo=await staticContext.newPage();monitor(demo);const apiCalls=[];
- demo.on('request',r=>{if(/\/(contact|listings|drafts|management|verification|local)(\/|$)/.test(new URL(r.url()).pathname))apiCalls.push(r.url());});
+ demo.on('request',r=>{if(/\/(reports|contact|listings|drafts|management|verification|local)(\/|$)/.test(new URL(r.url()).pathname))apiCalls.push(r.url());});
  await demo.route(base+'/gear/',route=>route.fulfill({contentType:'text/html',body:readFileSync(new URL('../../gear/index.html',import.meta.url),'utf8')}));
  await demo.goto(base+'/gear/');await demo.waitForFunction(()=>document.querySelector('#pi-count')?.textContent==='8 listings');
  await demo.locator('[data-screen="gear"]').click();await demo.locator('[data-listing]').first().click();await demo.locator('#pi-contact-open').click();
  await demo.locator('#pi-buyer-name').fill('Sample');await demo.locator('#pi-buyer-email').fill('sample@example.test');await demo.locator('#pi-buyer-message').fill('Sample inquiry');await demo.locator('#pi-buyer-share').check();await demo.locator('#pi-preview-send').click();assert.equal(await demo.locator('#pi-contact-success h2').textContent(),'Message preview complete');
+ await demo.locator('#pi-report-open').click();await demo.locator('#pi-report-reason').selectOption('Other concern');await demo.locator('#pi-preview-report').click();assert.equal(await demo.locator('#pi-report-result').textContent(),'Report preview complete. No report was sent.');
  await demo.locator('[data-screen="post"]').click();await demo.locator('#pi-fill-demo').click();await demo.locator('#pi-next-photos').click();await demo.locator('#pi-next-review').click();await demo.locator('#pi-post-submit').click();await demo.locator('#pi-simulate-verify').click();
  assert.equal(await demo.locator('#pi-email-change').count(),0);assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);
  assert.deepEqual(errors,[]);
  // Expected failed requests are exercised deliberately. Do not hide arbitrary console errors.
- const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||(/\/contact$/.test(e.url)&&/500/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
+ const unexpected=consoleErrors.filter(e=>!(/Failed to load resource/.test(e.text)&&((/\/management\/session$/.test(e.url)&&/401/.test(e.text))||(/\/verification\/confirm$/.test(e.url)&&/400|ERR_FAILED/.test(e.text))||(/\/management\/listing$/.test(e.url)&&/ERR_FAILED|502/.test(e.text))||(/\/listings$/.test(e.url)&&/ERR_FAILED/.test(e.text))||(/\/management\/email-change(?:\/confirm)?$/.test(e.url)&&/400|403|ERR_FAILED/.test(e.text))||(/\/drafts$/.test(e.url)&&/400/.test(e.text))||(/\/contact$/.test(e.url)&&/500/.test(e.text))||(/\/reports$/.test(e.url)&&/404|429|500/.test(e.text))||/favicon.ico$/.test(e.url)||/fonts.googleapis.com/.test(e.url))));
  assert.deepEqual(unexpected,[]);
- console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout/contact, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
+ console.log('PASS: HTTPS connected preview post/verify/login/reload/edit/status/relist/browse/logout/contact/reports, duplicate rejection, interrupted-save retry, server restart persistence, mobile overflow, static-file allowlist static demo isolation and no page errors.');
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}
