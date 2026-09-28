@@ -1106,7 +1106,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 ## Gear Exchange — in development
 
 Local-only management sessions, reload recovery, HTTPS browser validation and owner-checked writes are documented in
-[gear-management.md](gear-management.md). The browser preview remains simulated.
+[gear-management.md](gear-management.md). Ordinary static hosting remains simulated.
 
 Local verified mailbox transfers, including the opt-in connected management
 form, are described in [gear-email-change.md](gear-email-change.md).
@@ -1116,14 +1116,16 @@ for the observed coverage and remaining remote/legacy-data limits.
 
 The opt-in connected local HTTPS flow is described in
 [gear-connected-preview.md](gear-connected-preview.md). Ordinary static hosting
-remains simulated; there are no deployed Gear APIs.
+remains simulated; there are no deployed Gear APIs. Persistent local management
+photos use a macOS trusted encoder and the sample database; see
+[gear-photos.md](gear-photos.md).
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
 documented in [gear-storage.md](gear-storage.md). They do not add Pages routes
-or provision cloud services; the preview UI remains in-memory.
+or provision cloud services; ordinary static hosting remains in-memory.
 
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
@@ -1132,11 +1134,12 @@ in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` de
 There is no deployed API or D1/R2 resource, email delivery or homepage card yet.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
-All sample listings, management access, verification and contact actions are
-simulated. Inputs and local photos remain in memory and reset on reload.
-The public sample dataset is separate from seller drafts. Real uploads,
-authentication, delivery, automatic expiry cleanup and deletion retention remain
-unimplemented. The separate storage query already filters expiry on reads.
+Under ordinary static hosting, sample listings, management access, verification
+and contact actions are simulated. Those inputs/photos reset on reload. The
+opt-in local server persists listings and management photos.
+The static public sample dataset is separate from seller drafts. Production
+uploads, authentication, delivery, automatic expiry cleanup and deletion
+retention remain unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Current Status

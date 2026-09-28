@@ -55,8 +55,8 @@ still rejected. No draft idempotency or abandoned-draft cleanup is claimed.
 
 ## Deliberate boundaries
 
-- Photos are disabled in connected mode until persistent image storage exists;
-  demo-fill does not attach fake stored photos. Static demo photos remain simulated.
+- Persistent local photos are available after publication through management;
+  see [gear-photos.md](gear-photos.md). Initial draft uploads remain deferred.
 - Buyer contact and reports retain their explicit preview-only messaging.
 - Delete is omitted from connected management because deletion/retention is not
   implemented. Removed records are read-only.

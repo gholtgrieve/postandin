@@ -31,6 +31,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `32808e8` | Session recovery and HTTPS browser checks |
 | `2d33253` | Local D1/workerd validation |
 | `afd29ba` | Reviewed connected local HTTPS preview |
+| `7753fa2` | Reviewed local email-change management UI |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -47,7 +48,8 @@ inspect `git status` and recent history before continuing.
 | Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
 
 The ordinary static demo's managed records and public samples are separate arrays.
-Connected mode replaces both with API reads; photos remain unsupported there. Do not mistake simulated verification,
+Connected mode replaces both with API reads; persistent local photos are now
+available through listing management (see `gear-photos.md`). Do not mistake simulated verification,
 renewal or deletion for backend behavior. `readLocalDraft` exposes private sample
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
@@ -81,8 +83,15 @@ use Git history for its hash. No push, merge or deployment.
 
 ### Next bounded task
 
-On the next owner request, choose the next bounded integration step. Photos, buyer contact,
-reports are still unfinished; deletion/retention, real mail,
+The reviewed persistent local-photo increment is included in the local commit
+`Add persistent photos to local Gear management` (baseline `7753fa2`); use Git
+history for its hash. See [gear-photos.md](gear-photos.md)
+for exact scope, macOS dependency and verification. All 61 Node tests and the
+expanded desktop/mobile HTTPS browser harness pass. Claude review found no
+security/access/transaction defects; its image upscaling and orientation findings
+were fixed with targeted regressions. Focused Claude re-review approved the
+fix with no blocker/high/medium defects. Its recommended big-endian TIFF
+orientation-6 regression now passes alongside all five focused photo tests. No push, merge or deployment. Buyer contact and reports are still unfinished; deletion/retention, real mail,
 remote APIs and restore remain separate work. Never expose private local draft
 inspection or simulated inboxes as public Pages routes.
 
@@ -93,7 +102,8 @@ Run from the canonical checkout:
 ```bash
 git status --short
 git branch --show-current
-node --test tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+# Photo tests require macOS with /usr/bin/sips.
+node --test tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
 git diff --check
 ```
 
@@ -136,7 +146,8 @@ Claude pass before commit.
 
 Connected-preview integration now sorts by cents and restores management focus.
 `offerFields` assumes validated browser input; production storage additionally
-uses `validateDraft`. Photo storage and its final interaction remain future work.
+uses `validateDraft`. Persistent local management photos are implemented;
+production photo storage remains future work.
 
 Local D1 batch/SQL checks pass; see `gear-d1-validation.md`. Remaining
 integration/launch checks: remote D1 and deployed
@@ -251,11 +262,12 @@ mail. These are proposals; no bindings or accounts have been provisioned.
   policy must be resolved in the UI/launch increment.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
-All sample listings, management access, verification and contact actions are
-simulated. Inputs and local photos remain in memory and reset on reload.
-The public sample dataset is separate from seller drafts. Real uploads,
-authentication, delivery, automatic expiry cleanup and deletion retention remain
-unimplemented; the separate storage query already enforces expiry on reads.
+Under ordinary static hosting, listings, management access, verification and
+contact actions are simulated; inputs and photos reset on reload. The opt-in
+local server persists listings and management photos (see `gear-photos.md`).
+The static public sample dataset is separate from seller drafts. Production
+uploads, authentication, delivery, automatic expiry cleanup and deletion
+retention remain unimplemented; the separate storage query already enforces expiry on reads.
 
 Review fixes: new-listing navigation resets prior edits and pending verification;
 drafts store integer cents and clear inactive offer fields. Price formatting,

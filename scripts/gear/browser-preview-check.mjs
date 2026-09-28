@@ -33,6 +33,23 @@ try{
  await page.locator('#pi-simulate-verify').click();await idle();assert.equal(db.sqlite.prepare("SELECT count(*) AS n FROM gear_listings WHERE status='available'").get().n,1);
  assert.equal(await page.locator('.pi-managed-item').count(),0);assert.equal((await context.cookies()).some(c=>c.name==='gear_session'),false);
  await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-local-login').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),1);
+ // Persist real sanitized image pixels through the connected management UI.
+ const imageBuffer=await page.screenshot();
+ await page.locator('[data-manage="photos"]').click();
+ await page.locator('#pi-stored-upload').setInputFiles({name:'sample.png',mimeType:'image/png',buffer:imageBuffer});await idle();
+ await page.locator('#pi-stored-upload').setInputFiles({name:'second.png',mimeType:'image/png',buffer:imageBuffer});await idle();
+ assert.equal(await page.locator('#pi-stored-photos img').count(),2);
+ const photoListing=db.sqlite.prepare("SELECT id FROM gear_listings WHERE status='available'").get().id;
+ const storedPhoto=db.sqlite.prepare('SELECT id FROM gear_local_photos ORDER BY position DESC LIMIT 1').get().id;
+ await page.locator('[data-photo-action="main"]').last().click();await idle();assert.equal(await page.locator('#pi-stored-photos img').first().getAttribute('src'),'/management/photos/'+storedPhoto);
+ await page.locator('[data-photo-action="remove"]').last().click();await idle();assert.equal(await page.locator('#pi-stored-photos img').count(),1);
+ assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),200);
+ assert.equal((await context.request.post(base+'/management/photos',{data:{id:photoListing,action:'remove',photoId:storedPhoto}})).status(),403);
+ assert.equal((await context.request.post(base+'/management/photos',{headers:{Origin:base,'X-Gear-CSRF':'0'.repeat(64)},data:{id:photoListing,action:'remove',photoId:storedPhoto}})).status(),403);
+ const anonymous=await browser.newContext({ignoreHTTPSErrors:true});assert.equal((await anonymous.request.get(base+'/management/photos/'+storedPhoto)).status(),404);await anonymous.close();
+ for(const width of [1040,390,320]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'photo manager overflow');}
+ if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-photos.png',fullPage:true});
+ await page.setViewportSize({width:1040,height:900});
  await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item').count(),1);
  // Repeated gear is rejected at confirmation; it never becomes a second public row.
  await page.locator('[data-screen="post"]').click();await page.locator('#pi-fill-demo').click();await page.locator('#pi-next-photos').click();await page.locator('#pi-next-review').click();await page.locator('#pi-post-submit').click();await idle();await page.locator('#pi-simulate-verify').click();await idle();
@@ -42,11 +59,11 @@ try{
  await page.locator('[data-manage="edit"]').click();assert.equal(await page.locator('#pi-post-email').isDisabled(),true);await page.locator('#pi-post-name').fill('Updated club bag');await page.locator('#pi-next-photos').click();await page.locator('#pi-next-review').click();await page.route('**/management/listing',route=>route.abort());await page.locator('#pi-post-submit').click();await idle();assert.equal(await page.locator('#pi-local-notice').isVisible(),true);assert.equal(await page.locator('#pi-post-name').inputValue(),'Updated club bag');
  await page.unroute('**/management/listing');await page.locator('#pi-post-submit').click();await idle();assert.equal(db.sqlite.prepare("SELECT title FROM gear_listings WHERE status='available'").get().title,'Updated club bag');
  const port=server.address().port;await new Promise(r=>{server.close(r);server.closeAllConnections();});db.close();db=null;db=openLocalDatabase(join(temp,'sample.sqlite'));server=localServer(db,{tls,preview:true});await listen(server,port);
- await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item h2').textContent(),'Updated club bag');
+ await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item h2').textContent(),'Updated club bag');assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_photos').get().n,1);assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="pending"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
- await page.locator('[data-manage="close"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'closed');
+ await page.locator('[data-manage="close"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'closed');assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="renew"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'available');
- await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');
+ await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');assert.equal(await page.locator('.pi-photo-stage img').count(),1);assert.equal(await page.locator('.pi-photo-stage img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
  if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-desktop.png',fullPage:true});
  // Mobile overflow and view rendering; browser console exceptions must remain empty.
  for(const width of [390,320]){await page.setViewportSize({width,height:900});for(const screen of ['gear','detail','post','manage']){await page.locator('[data-screen="'+screen+'"]').click();await idle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),screen+' overflow at '+width);}}

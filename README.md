@@ -46,6 +46,9 @@ Local verified mailbox transfers are described in [instructions/gear-email-chang
 Local D1/workerd results and the repeatable harness are in
 [instructions/gear-d1-validation.md](instructions/gear-d1-validation.md).
 
+Persistent local management photos are documented in
+[instructions/gear-photos.md](instructions/gear-photos.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 
@@ -64,11 +67,12 @@ An unlinked, noindex `/gear/` development preview exercises the screens with in-
 `node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
-All sample listings, management access, verification and contact actions are
-simulated. Inputs and local photos remain in memory and reset on reload.
-The public sample dataset is separate from seller drafts. Real uploads,
-authentication, delivery, automatic expiry cleanup and deletion retention remain
-unimplemented. The separate storage query already filters expiry on reads.
+Under ordinary static hosting, listings, management access, verification and
+contact actions are simulated; inputs and photos reset on reload. The opt-in
+local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
+The static public sample dataset is separate from seller drafts. Production
+uploads, authentication, delivery, automatic expiry cleanup and deletion
+retention remain unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Groups feature
