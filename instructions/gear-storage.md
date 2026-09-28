@@ -149,7 +149,10 @@ UI-to-storage integration must map the preview's offer labels to lowercase
 types, seller to sellerName, and include the explicit adult acknowledgement.
 The opt-in HTTPS local preview now connects these endpoints through
 `gear/local-api.mjs`; ordinary static hosting remains simulated. See
-[gear-connected-preview.md](gear-connected-preview.md).
+[gear-connected-preview.md](gear-connected-preview.md). A separate source-only
+Pages Function at `GET /api/gear/listings` reuses `readPublicListings` through
+the proposed `GEAR_DB` binding. It has no write path, returns empty photo arrays,
+is not connected to the UI, and has not been bound, provisioned or deployed.
 
 ## Local verification and duplicates (current increment)
 

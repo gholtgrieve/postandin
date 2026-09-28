@@ -191,14 +191,28 @@ no second Claude review.
 Review baseline: `87c1805`. Owner authorized the fixes and local commit, titled
 `Add Gear policies and automatic local retention cleanup` (see Git for hash).
 
-Next bounded task: design the production integration contract before coding.
-Inventory existing Pages routing and Gear adapters; specify remote D1/R2/mail,
-owner authentication, independent daily cleanup with retries/failure alerts,
-and recovery requirements. Identify owner/provider decisions and the smallest
-implementation slice. Keep this first step read-only and concise; do not
-provision services, add secrets, change bindings or deploy.
-No push/deployment. Production scheduled execution and failure notifications,
-remote mail/storage and disaster recovery remain separate launch requirements.
+### Source-only Pages listings increment — uncommitted
+
+The production-integration assessment selected one read-only seam before any
+write-capable work. `GET /api/gear/listings` now reads the existing explicit
+public projection through a proposed `GEAR_DB` Pages binding, adds empty photo
+arrays until the R2 increment, and returns `no-store` responses with generic
+missing-binding and query-failure errors. The static Gear UI is not connected.
+Focused tests cover current visibility, exclusion of private fields, the
+100-listing cap and deterministic ordering, response headers, missing
+configuration and safe D1 failure. All 101 Gear tests pass with this four-test
+increment included.
+
+No remote binding or database was configured, no migration was applied, and
+nothing was deployed. The next production increment should wait for the owner
+decisions on Cloudflare Access versus owner magic links, Resend sender/reply
+behavior, Cloudflare Images, and same-account versus off-account backup. After
+those decisions, keep the next code slice bounded to the production D1 schema
+and one adapter family rather than connecting the full UI at once.
+
+No push/deployment. Production writes, photos, mail, owner identity, scheduled
+cleanup/failure notifications and remote disaster recovery remain launch
+requirements.
 
 ### Checks and local commands
 
@@ -208,7 +222,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs
+node --test tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs
 git diff --check
 ```
 

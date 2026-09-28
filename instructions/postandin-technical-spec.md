@@ -332,6 +332,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 /functions/
   /api/
     coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v3`)
+    /gear/
+      listings.js          → Source-only GET public Gear projection through the proposed
+                              GEAR_DB D1 binding. UI not connected; binding not provisioned.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -1116,7 +1119,11 @@ for the observed coverage and remaining remote/legacy-data limits.
 
 The opt-in connected local HTTPS flow is described in
 [gear-connected-preview.md](gear-connected-preview.md). Ordinary static hosting
-remains simulated; there are no deployed Gear APIs. Persistent local management
+remains simulated; there are no deployed Gear APIs. A source-only
+`GET /api/gear/listings` Pages Function reads the public projection through a
+proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
+connected, and the response has empty photo arrays until R2 integration.
+Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
 
@@ -1134,8 +1141,9 @@ This adds local SQLite tables, not deployed identity or D1 operations.
 
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
-documented in [gear-storage.md](gear-storage.md). They do not add Pages routes
-or provision cloud services; ordinary static hosting remains in-memory.
+documented in [gear-storage.md](gear-storage.md). The separate source-only public
+list route reuses that projection; no write route or cloud service is
+provisioned, and ordinary static hosting remains in-memory.
 
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
@@ -1156,7 +1164,7 @@ retention remain unimplemented. The separate storage query already filters expir
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples; separate local storage exists, but no deployed backend or email. |
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples. A source-only public-list Pages handler exists but is not connected, bound or deployed; there is no production backend or email. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |
