@@ -67,7 +67,7 @@ continuation source; prior chat history is not required.
   run destructive/admin scripts unless the owner explicitly asks for that
   action.
 - A push to `main` deploys the Pages site automatically.
-- Changes under `group-do/` or `scheduler/`, and changes to shared runtime files
+- Changes under `group-do/`, `scheduler/` or `gear-maintenance/`, and changes to shared runtime files
   imported by either Worker (for example `lib/activities.js`, `lib/scrapeAll.js`,
   or `lib/scrapers/*.js` for the scheduler), also require a separate
   `wrangler deploy` from the affected Worker's directory. Never imply that

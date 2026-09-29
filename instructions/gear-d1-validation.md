@@ -37,9 +37,12 @@ All ten check groups passed:
    adapter while mocked outbound email remains local. The adapter itself is
    unit-tested in Node; this probe does not load the adapter module.
 2. Failed migration batch rolls schema changes back.
-3. All nine checked-in migrations apply to a fresh D1 database; the harness ledger
+3. All ten checked-in migrations apply to a fresh D1 database; the harness ledger
    makes repeated application a no-op. RETURNING and meta.changes have the expected
    shape, including a no-op update.
+   The real `gear-maintenance/src/index.js` entry module also loads and completes
+   an empty-data scheduled event in workerd with temporary D1, KV and Images
+   bindings; this prevents unsupported named exports from reaching deployment.
 4. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
    blocking of owner restore and injected moderation-audit failure rollback work
    through the actual D1 binding. The
@@ -47,8 +50,9 @@ All ten check groups passed:
    projection signal truncation and do not return seller email.
 5. Publication, immutable adult acknowledgement, hosted-photo metadata, public
    projection, production management-link issue/redeem/session recovery,
-   authenticated seller delete/recover, JSON club aggregation, guarded edits and
-   relisting work with the D1 binding.
+   authenticated seller delete/recover, durable outbox purge and mocked hosted
+   image deletion across bounded image-first passes, JSON club aggregation,
+   guarded edits and relisting work with the D1 binding.
 6. Actual D1 duplicate errors on verification, edit, relist and email transfer
    map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
@@ -58,11 +62,11 @@ All ten check groups passed:
 8. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-9. A populated version-6 database upgrades through version 9 with listing/session
+9. A populated version-6 database upgrades through version 10 with listing/session
    data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
 10. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The current 150-test Gear Node suite also passes. No runtime compatibility changes
+The current Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.
 
 ## Limits and handoff

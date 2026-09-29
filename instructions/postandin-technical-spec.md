@@ -389,6 +389,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               GROUPS KV + Durable Object group data to R2 daily. Also deployed
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
+/gear-maintenance/          → Separate, scheduled-only Gear cleanup Worker. Source-only until
+                              its D1, Images, state-KV and alert bindings are provisioned after
+                              explicit launch approval; deployed independently with Wrangler.
 /scripts/
   audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
                               Drop-in Hockey, and Public Skate terminology across
@@ -404,7 +407,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   admin-purge.js           → Local-only destructive-operation script; backs up before deleting
 ```
 
-**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js`, `scheduler/src/*.js`, or shared runtime imported by either Worker needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in the affected Worker's directory. For the scheduler, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`. Pushing alone will not change the Worker's live behavior.
+**Independent deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/`, `/scheduler/` or `/gear-maintenance/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches one of those Workers or shared runtime it imports needs both `git push` (so the source is versioned) **and** a manual `wrangler deploy` in the affected Worker's directory. For the schedule Worker, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`; Gear maintenance imports `lib/gear-maintenance.mjs`, `lib/gear-maintenance-alert.mjs`, `lib/gear-management-mail.mjs`, `lib/gear-validation.mjs` and `lib/gear-exchange.mjs`. Pushing alone will not change any Worker's live behavior.
 
 ---
 
@@ -1194,6 +1197,17 @@ no key, real delivery, UI, edge rate limit, purge job or backup reconciliation i
 configured or deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
 
+Source-only migration 10 adds a durable hosted-photo deletion outbox. The
+separate `gear-maintenance/` scheduled Worker stages provider IDs before D1
+listing/photo cascades, applies the approved draft/credential/history/deletion
+retention rules, deletes queued private Cloudflare Images objects idempotently,
+prioritizes bounded image work, shares a sub-limit D1/time budget across two
+attempts, retries once after one minute, and sends only first-failure and
+recovery alerts. Its Wrangler file is an unconfigured example; no D1, Images,
+KV, secret, cron or Worker is provisioned or deployed. Remote encrypted backup
+and tested disaster recovery remain separate launch gates; see
+[gear-production-maintenance.md](gear-production-maintenance.md).
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
@@ -1360,7 +1374,7 @@ workflow run and confirm it reports a match.
 - Do not make strategic, UX, or copy decisions unilaterally — scope those in chat first
 - Do not return `e.message`, `e.stack`, or other internal error details in any public-facing API response or rendered HTML — log server-side, return a generic message (see Error handling convention above)
 - Do not accept a client-supplied `memberId` for a group write without validating it against that group's actual member list first (see Cloudflare KV + Durable Objects above)
-- Do not run `git push` and assume it deployed everything — `/group-do/` and `/scheduler/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
+- Do not run `git push` and assume it deployed everything — `/group-do/`, `/scheduler/` and `/gear-maintenance/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
 - Do not add a new import to a `stick-and-puck/modules/*.js` file without checking the dependency order in File Structure above first — `utils.js` and `state.js` are leaves with no imports of their own; `schedule.js` and `rsvp.js` deliberately avoid importing from each other (that's why `GOING_PERSON_SVG` lives in `utils.js` instead of `schedule.js`) to prevent a circular import. If a new feature seems to need module A to import from module B and B to import from A, that's a sign the shared piece belongs in a lower-level module instead, not a sign to force the circular import through.
 
 ---
@@ -1375,7 +1389,7 @@ Fields: What's the issue (dropdown including "Groups feature"), Which rink, Deta
 Local seller deletion now supports a 30-day recovery window, explicit offline
 cleanup and tested SQLite record/photo snapshot restoration. See
 [Gear lifecycle](gear-lifecycle.md) for retention, commands and limitations.
-Production deletion/cleanup and remote disaster recovery remain launch gates.
+Production maintenance source exists, but deployment and remote disaster recovery remain launch gates.
 
 The Gear preview includes expandable rules, protective-equipment and privacy
 disclosures. Buyer contact now requires adult self-attestation in the form and
@@ -1386,4 +1400,4 @@ disclosure version; older records remain NULL.
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `gear-lifecycle.md`.
-Production scheduling and external failure alerts remain launch gates.
+Production scheduling and failure/recovery alerts remain unprovisioned deployment gates.

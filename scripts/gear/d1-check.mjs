@@ -4,12 +4,14 @@ import {createRequire} from 'node:module';
 import {readFileSync,readdirSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
 import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
+import {runGearMaintenance} from '../../lib/gear-maintenance.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -18,9 +20,9 @@ if(!modulePath)throw new Error('Set GEAR_WRANGLER_MODULE to an installed Wrangle
 const require=createRequire(import.meta.url),wranglerRequire=createRequire(require.resolve(modulePath));
 const {Miniflare}=wranglerRequire('miniflare');
 const {unstable_splitSqlQuery:splitSQL}=require(modulePath);
-const temp=mkdtempSync(join(tmpdir(),'gear-d1-'));
-let mf;let cleanupPromise;
-function cleanup(){return cleanupPromise??=Promise.resolve().then(()=>mf?.dispose()).finally(()=>rmSync(temp,{recursive:true,force:true}));}
+const temp=mkdtempSync(join(tmpdir(),'gear-d1-')),repoRoot=fileURLToPath(new URL('../../',import.meta.url));
+let mf,entryMf;let cleanupPromise;
+function cleanup(){return cleanupPromise??=Promise.all([mf?.dispose(),entryMf?.dispose()]).finally(()=>rmSync(temp,{recursive:true,force:true}));}
 const interrupt=()=>{cleanup().catch(()=>console.error('D1 check cleanup failed.')).finally(()=>process.exit(130));};
 process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
 const files=readdirSync(new URL('../../migrations/gear/',import.meta.url)).filter(f=>/^\d+.*\.sql$/.test(f)).sort();
@@ -46,9 +48,9 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,9,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,10,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
@@ -64,7 +66,13 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all nine migrations, deletion constraints/cascade and idempotent test ledger; D1 RETURNING/meta.changes.');
+ console.log('PASS: all ten migrations, deletion constraints/cascade, photo-deletion outbox and idempotent test ledger; D1 RETURNING/meta.changes.');
+ entryMf=new Miniflare({modules:true,scriptPath:join(repoRoot,'gear-maintenance/src/index.js'),modulesRoot:repoRoot,compatibilityDate:'2026-07-01',host:'127.0.0.1',
+  d1Databases:['GEAR_DB'],d1Persist:join(temp,'entry-d1'),kvNamespaces:['GEAR_MAINTENANCE_STATE'],kvPersist:join(temp,'entry-kv'),images:{binding:'IMAGES'},imagesPersist:join(temp,'entry-images'),
+  bindings:{GEAR_RESEND_API_KEY:'test_key',GEAR_ALERT_RECIPIENT:'owner@example.test'},outboundService:()=>new Response(JSON.stringify({id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})});
+ const entryDb=await entryMf.getD1Database('GEAR_DB');await migrate(entryDb);
+ const scheduledResult=await (await entryMf.getWorker()).scheduled({cron:'0 11 * * *',scheduledTime:Date.now()});assert.equal(scheduledResult.outcome,'ok');
+ console.log('PASS: actual scheduled-maintenance entry module loads and completes in workerd.');
  const deletionSchemaId=(await createDraft(db,{...sample,title:'Deletion schema'},140)).id;
  await assert.rejects(db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(deletionSchemaId,'unverified',141,142).run());
  await assert.rejects(db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(deletionSchemaId,'closed',141,141).run());
@@ -74,12 +82,18 @@ try{
  await db.prepare('DELETE FROM gear_listings WHERE id=?').bind(deletionSchemaId).run();
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_deletions WHERE listing_id=?').bind(deletionSchemaId).first()).n,0);
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_deletion_ledger WHERE listing_id=?').bind(deletionSchemaId).first()).n,1);
+ await assert.rejects(db.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at,attempts) VALUES(?,?,?,?)').bind('00000000-0000-4000-8000-000000000099',deletionSchemaId,-1,0).run());
  const lifecycleId=await publish(db,{title:'Seller lifecycle'},143),lifecycleAccess=await login(db,sample.email,144);
  assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'delete',id:lifecycleId},145),{ok:true});
  assert.equal((await readPublicListings(db,146)).some(row=>row.id===lifecycleId),false);
  assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'recover',id:lifecycleId},147),{ok:true});
  assert.equal((await readPublicListings(db,148)).some(row=>row.id===lifecycleId),true);
  await db.prepare('DELETE FROM gear_listings WHERE id=?').bind(lifecycleId).run();
+ const maintenanceId=await publish(db,{title:'Maintenance purge'},149),maintenanceProvider='00000000-0000-4000-8000-000000000098';
+ await recordHostedPhoto(db,maintenanceId,maintenanceProvider,150);await db.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").bind(maintenanceId).run();
+ await db.batch([db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(maintenanceId,'available',150,151),db.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').bind(maintenanceId,150,151)]);
+ const deletedImages=[];const maintenance=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{image:id=>({delete:async()=>{deletedImages.push(id);return true;}})}}},{now:151});
+ assert.equal(maintenance.purgedListings,1);assert.equal(maintenance.deletedPhotos,1);assert.deepEqual(deletedImages,[maintenanceProvider]);assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_photo_deletions').first()).n,0);assert.equal((await db.prepare('SELECT purged_at FROM gear_deletion_ledger WHERE listing_id=?').bind(maintenanceId).first()).purged_at,151);
  const id=await publish(db),access=await login(db);
  assert.equal(await submitReport(db,{listingId:id,reason:'Prohibited item'},149,'00000000-0000-4000-8000-000000000149'),true);
  await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(id).run();
@@ -131,7 +145,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: production management issue/redeem/recovery, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
+ console.log('PASS: production management issue/redeem/recovery, scheduled record/image cleanup, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
@@ -187,7 +201,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 9 with legacy acknowledgement and listing/session data preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 10 with legacy acknowledgement and listing/session data preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

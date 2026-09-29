@@ -154,11 +154,11 @@ made by older versions retain their original expiry metadata; retire those copie
 when adopting this policy. Do not hand-edit metadata or restore from stale clones.
 
 Local automation is not an OS background job: it runs only while this server is
-listening. No production scheduler, backup creation schedule, external failure
-notification or raw-log retention service is configured. Production must run
-daily independently of traffic, retry failures and alert the owner only on
-failure; these remain deployment requirements. No private request bodies are
-added to cleanup logs. Filesystem/Dropbox history erasure is outside this tool.
+listening. The separate source-only production Worker is documented in
+`gear-production-maintenance.md`; its bindings, cron, secrets and alerts are not
+provisioned or deployed. No production backup creation schedule or raw-log
+retention service is configured. No private request bodies are added to cleanup
+logs. Filesystem/Dropbox history erasure is outside this tool.
 
 Current package verification: all 97 Gear tests pass, including maintenance
 startup/retry/cancellation, automatic snapshot pruning, exact retention boundaries

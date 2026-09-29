@@ -84,9 +84,11 @@ no stale duplicate and leaves both the deletion and moderation state unchanged.
 Future authenticated seller recovery must remove the active deletion marker
 before owner restoration can be considered independently.
 
-This increment does not add permanent purge, remote retention cleanup or backup
-reconciliation. Production session issuance and mocked-delivery mail integration
-are separate source-only work. Because the ledger is
+Permanent purge and remote retention cleanup now have a separate source-only
+scheduled implementation in `gear-production-maintenance.md`; it is not
+configured or deployed. Backup reconciliation remains unimplemented. Production
+session issuance and mocked-delivery mail integration are separate source-only
+work. Because the ledger is
 stored in the same D1 database, restoring an older D1 copy also restores an older
 ledger. The future disaster-recovery procedure must reconcile the candidate
 restore against deletion evidence exported after that backup or kept outside

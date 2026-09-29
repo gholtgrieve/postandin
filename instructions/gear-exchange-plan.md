@@ -35,6 +35,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `26cb8a2` | Production owner moderation actions |
 | `b73385e` | Production seller-deletion foundation |
 | `6bed4ae` | Production seller deletion/recovery writes |
+| `d7da481` | Production seller management sessions |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -437,7 +438,7 @@ cookie parsing and documentation were corrected and regression-tested. Two
 re-reviews found no issues at any severity and concluded ready to commit. Committed
 as `6bed4ae` (`Add production Gear seller deletion writes`).
 
-### Production seller management sessions — current, uncommitted
+### Production seller management sessions — committed
 
 Four POST-only Pages routes now provide the production credential boundary:
 generic recovery request, explicit one-use token confirmation, stable reload
@@ -469,8 +470,53 @@ re-ran the real adapter in workerd with mocked outbound delivery. The harness
 wording was narrowed afterward to distinguish its runtime-option probe from the
 Node adapter test; no code changed after the clear verdict.
 
-Production photos/contact delivery, permanent cleanup with failure/recovery
-alerts and remote disaster recovery remain launch requirements.
+Committed locally as `d7da481` (`Add production Gear management sessions`).
+
+### Production scheduled maintenance — current, uncommitted
+
+Migration 10 adds a durable hosted-photo deletion outbox. Production cleanup
+copies every provider ID into that outbox in the same D1 batch that permanently
+purges a due seller deletion or three-day unverified draft, so the subsequent
+listing cascade cannot lose the remote deletion work. The cleanup core also
+applies the approved invalid-credential, 30-day report/history, generic retained
+removal-reason and 30-day post-purge ledger rules, removes orphan sellers, and
+drains bounded pages. A missing hosted image counts as success; provider failures
+increment only non-content attempt metadata and leave the outbox row for retry.
+The hosted-image queue drains before records and again afterward with the
+remaining budget; failed rows rotate behind untouched work.
+
+A dedicated scheduled-only Worker runs daily independently of Pages traffic. It
+validates every binding and alert setting before cleanup, retries once after one
+minute within the scheduled invocation, persists only failure episode state in a
+dedicated KV namespace, sends one failure alert after the retry and one recovery
+alert after a later successful run, and exposes no fetch route. Its checked-in
+Wrangler file is an inert example: no D1/Images/KV identifier, recipient, secret,
+cron or Worker has been provisioned or deployed. This is deliberately separate
+from the existing schedule/RSVP Worker. Both attempts share a 900-D1-operation,
+13-minute invocation budget and each attempt is capped at 440 operations.
+
+The first independent Claude review found 0 blocker, 1 high, 1 medium and 2 low.
+All findings were accepted: the unsupported numeric entry-module export was
+removed and guarded by loading the real Worker in workerd; shared D1/deadline
+budgets and image-first draining were added; recovery-alert failure no longer
+reruns successful cleanup; failure codes are logged before alert state; and
+failed image rows rotate behind untouched work. Re-review found 0 blocker, 0 high,
+0 medium and 3 low and concluded ready to merge. All three lows were accepted:
+post-record draining now absorbs newly staged photo bursts, four-second image
+waits and a five-minute record reserve prevent an Images outage from starving
+record purges, and fallback D1 attempt updates are charged to the operation
+budget. A final targeted re-review is pending because these change scheduling logic.
+
+The final targeted review found 0 blocker, 0 high, 0 medium and 2 low and again
+concluded ready to merge. Both lows were accepted: an all-failed image page now
+stops that drain instead of repeatedly cycling the same rows, and an empty queue
+can be confirmed inside the five-minute reserve without creating a false backlog.
+
+Remote encrypted backup, restore reconciliation, photo uploads and buyer-contact
+delivery remain separate launch requirements.
+
+All 167 Gear tests, all ten workerd/D1 groups, JavaScript syntax checks and
+`git diff --check` pass after the final fixes. No deployment has occurred.
 
 No push/deployment.
 
@@ -482,7 +528,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs
 git diff --check
 ```
 

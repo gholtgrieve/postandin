@@ -88,6 +88,13 @@ recovery and logout. A Resend adapter is tested with mock delivery only; no API
 key, real mail, UI connection or edge rate limit is configured. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
+The source-only production maintenance package adds an idempotent D1 cleanup
+core, durable hosted-photo deletion outbox, daily scheduled Worker entry point,
+one-minute retry, and failure/recovery-only Resend alerts. Its deploy config is
+an inert example with no resource IDs or secrets; nothing is provisioned or
+deployed. See
+[instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 
@@ -240,6 +247,8 @@ path together.
   directory when its code/config changes.
 - `scheduler/` is a separate Worker and requires `wrangler deploy` from that
   directory when its code/config or imported `lib/` runtime changes.
+- `gear-maintenance/` is a separate scheduled Worker and requires its own
+  completed config, reviewed migration/bindings and explicit `wrangler deploy`.
 - Never infer a Worker deployment from a Git push; verify each release path.
 
 ---
@@ -264,9 +273,10 @@ forward recent last-known-good rink/activity data for up to 24 hours.
 Local seller deletion now supports a 30-day recovery window, explicit offline
 cleanup and tested SQLite record/photo snapshot restoration. See
 [Gear lifecycle](instructions/gear-lifecycle.md) for retention, commands and limitations.
-Production deletion/cleanup and remote disaster recovery remain launch gates.
+Production maintenance deployment and remote disaster recovery remain launch gates.
 
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
-Production scheduling and external failure alerts remain launch gates.
+Production scheduling and external failure alerts now have source only;
+resource provisioning, staging verification and deployment remain launch gates.

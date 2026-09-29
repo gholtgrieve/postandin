@@ -1,0 +1,30 @@
+name = "postandin-gear-maintenance"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+workers_dev = false
+preview_urls = false
+
+[observability]
+enabled = true
+
+[triggers]
+# Daily at 11:00 UTC (~4am PDT / 3am PST). Cron is always UTC.
+crons = ["0 11 * * *"]
+
+[images]
+binding = "IMAGES"
+
+# Add the production D1 and a dedicated maintenance-state KV namespace only
+# after provisioning them and immediately before an owner-authorized deploy:
+# [[d1_databases]]
+# binding = "GEAR_DB"
+# database_name = "postandin-gear"
+# database_id = "<production database id>"
+#
+# [[kv_namespaces]]
+# binding = "GEAR_MAINTENANCE_STATE"
+# id = "<dedicated namespace id>"
+#
+# Set these with `wrangler secret put` rather than committing values:
+# GEAR_RESEND_API_KEY
+# GEAR_ALERT_RECIPIENT

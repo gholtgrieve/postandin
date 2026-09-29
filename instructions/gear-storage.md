@@ -275,7 +275,7 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all nine migrations, populated version-6 upgrade, persistence,
+Current D1 evidence: all ten migrations, populated version-6 upgrade, persistence,
 transaction/error semantics, moderation read projection and core storage flows
 passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and
