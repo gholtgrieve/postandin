@@ -77,3 +77,31 @@ test('player positions reflect the current Seattle Junior roster', () => {
   assert.match(statsPage, /Max Haglof McCallum<\/td><td>F<\/td>/);
   assert.match(statsPage, /Zaedan Longley<\/td><td>F\/D<\/td>/);
 });
+
+test('coach-review analytics preserve the basic tables and label data limitations', () => {
+  assert.match(statsPage, /Season Snapshot/);
+  assert.doesNotMatch(statsPage, /Coach-review draft/);
+  assert.doesNotMatch(statsPage, /These figures describe what has happened so far/);
+  assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);
+  assert.match(statsPage, /Shots by game/);
+  assert.match(statsPage, /Three-game shot-share trend/);
+  assert.match(statsPage, /34\.1%/);
+  assert.match(statsPage, /31\.4%/);
+  assert.equal((statsPage.match(/class="trend-point"/g) ?? []).length, 6);
+  assert.match(statsPage, /Game efficiency/);
+  assert.match(statsPage, /Seattle Junior share of shots/);
+  assert.match(statsPage, /Final goal differential/);
+  assert.match(statsPage, /On our goal \(−\)/);
+  assert.match(statsPage, /On their goal \(\+\)/);
+  assert.equal((statsPage.match(/class="diverging-chart game-shot-chart"/g) ?? []).length, 8);
+  assert.equal((statsPage.match(/class="diverging-chart period-goal-chart"/g) ?? []).length, 3);
+  assert.match(statsPage, /Goals by period/);
+  assert.match(statsPage, /Penalty profile/);
+  assert.match(statsPage, /Playing penalties only: 32 calls and 67 PIM/);
+  assert.match(statsPage, /Misconduct records are excluded/);
+  assert.doesNotMatch(statsPage, /id="misconducts-title"/);
+  assert.match(statsPage, /Goaltender workload/);
+  assert.match(statsPage, /Period-level shot totals are available for four games/);
+  assert.match(statsPage, /Shot location and high-danger chances are not currently tracked/);
+  assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
+});

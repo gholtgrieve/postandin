@@ -27,6 +27,8 @@
   --ink3: #6E6A61;
   --mustard: #9A7B00;
   --mustard2: #7C6300;
+  --opponent: #777167;
+  --positive: #315D45;
 }
 
 body {
@@ -34,7 +36,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.55;
 }
 
@@ -59,7 +61,7 @@ body {
 .eyebrow,
 .section-label,
 .stat-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -83,6 +85,125 @@ h1 .accent { color: var(--mustard); }
 .summary-stat { min-width: 0; padding: 15px; background: var(--panel); }
 .stat-label { display: block; margin-bottom: 4px; color: var(--ink3); }
 .stat-value { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: .04em; line-height: 1; }
+
+.analytics { margin-top: 38px; }
+.analytics-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+.analytics-heading h2 { font-size: 42px; }
+.analytics-deck { max-width: 760px; color: var(--ink2); }
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 20px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.signal { padding: 18px; background: var(--ink); color: var(--paper); }
+.signal-kicker { color: var(--mustard); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.signal strong { display: block; margin: 8px 0 7px; font-family: 'Bebas Neue', sans-serif; font-size: 30px; font-weight: 400; letter-spacing: .03em; line-height: 1; }
+.signal p { color: var(--rule); font-size: 13px; line-height: 1.5; }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 22px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.metric { min-width: 0; padding: 16px; background: var(--panel); }
+.metric-value { display: block; margin: 4px 0; font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: .03em; line-height: 1; }
+.metric-context { color: var(--ink3); font-size: 12px; }
+.chart-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 16px; }
+.chart-card { min-width: 0; padding: 18px; border: 1px solid var(--rule); background: var(--panel); }
+.chart-wide { margin-top: 16px; }
+.efficiency-shell { overflow-x: auto; margin-top: 16px; }
+.efficiency-chart { display: block; width: 100%; min-width: 720px; height: auto; font-family: 'IBM Plex Mono', monospace; }
+.efficiency-chart .grid-line { stroke: var(--rule); stroke-width: 1; }
+.efficiency-chart .zero-line { stroke: var(--ink2); stroke-width: 2; }
+.efficiency-chart .axis-line { stroke: var(--ink); stroke-width: 1.5; }
+.efficiency-chart .axis-text { fill: var(--ink3); font-size: 12px; }
+.efficiency-chart .axis-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.efficiency-chart .point-label { fill: var(--ink); font-size: 11px; font-weight: 700; }
+.efficiency-chart .point { stroke: var(--panel); stroke-width: 3; }
+.efficiency-chart .point.loss { fill: var(--opponent); }
+.efficiency-chart .point.tie { fill: var(--mustard); }
+.efficiency-chart .point.win { fill: var(--positive); }
+.trend-chart { display: block; width: 100%; min-width: 720px; height: auto; font-family: 'IBM Plex Mono', monospace; }
+.trend-chart .grid-line { stroke: var(--rule); stroke-width: 1; }
+.trend-chart .reference-line { stroke: var(--ink2); stroke-width: 2; stroke-dasharray: 7 6; }
+.trend-chart .axis-line { stroke: var(--ink); stroke-width: 1.5; }
+.trend-chart .axis-text { fill: var(--ink3); font-size: 12px; }
+.trend-chart .axis-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.trend-chart .trend-line { fill: none; stroke: var(--mustard); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+.trend-chart .trend-point { fill: var(--mustard); stroke: var(--panel); stroke-width: 3; }
+.trend-chart .trend-value { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.chart-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
+.chart-subtitle { margin-top: 8px; color: var(--ink3); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; color: var(--ink3); font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-mark { width: 25px; height: 9px; background: var(--mustard); }
+.legend-mark.opponent { background: var(--opponent); }
+.bar-chart { margin-top: 16px; }
+.game-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid var(--rule);
+}
+.game-label strong { display: block; font-size: 13px; }
+.game-label span { color: var(--ink3); font-size: 11px; }
+.paired-bars { display: grid; gap: 5px; }
+.bar-line { display: grid; grid-template-columns: 30px 1fr 30px; gap: 7px; align-items: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+.bar-code { color: var(--ink3); font-weight: 700; }
+.bar-track { height: 14px; background: var(--card); }
+.bar-fill { width: var(--width); height: 100%; background: var(--mustard); }
+.bar-fill.opponent { background: var(--opponent); }
+.bar-fill.positive { background: var(--positive); }
+.bar-value { text-align: right; }
+.diverging-chart {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.diverging-half { display: flex; align-items: center; height: 23px; }
+.diverging-half.negative { justify-content: flex-end; border-right: 1px solid var(--ink3); }
+.diverging-half.positive { justify-content: flex-start; }
+.diverging-fill { width: var(--width); height: 15px; background: var(--mustard); }
+.diverging-fill.opponent { background: var(--opponent); }
+.diverging-value.negative { text-align: right; }
+.diverging-value.positive { text-align: left; }
+.diverging-axis {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 30px;
+  gap: 5px;
+  color: var(--ink3);
+  font-size: 11px;
+}
+.diverging-axis span:nth-child(2) { text-align: left; }
+.diverging-axis span:nth-child(3) { text-align: right; }
+.axis-row { padding-top: 8px; padding-bottom: 0; border-top: 0; }
+.compact-row { padding: 8px 0; border-top: 1px solid var(--rule); }
+.compact-row:first-child { border-top: 0; }
+.compact-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+.compact-label span:last-child { color: var(--ink3); white-space: nowrap; }
+.penalty-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 30px; }
+.period-row { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule); }
+.period-row:first-child { border-top: 0; }
+.period-name { font-weight: 700; }
+.period-axis { padding-top: 8px; padding-bottom: 0; border-top: 0; }
+.workload-row { display: grid; grid-template-columns: 88px 1fr 76px; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--rule); }
+.workload-row:first-child { border-top: 0; }
+.workload-game strong { display: block; font-size: 12px; }
+.workload-game span { color: var(--ink3); font-size: 11px; }
+.workload-result { text-align: right; }
+.workload-result strong { display: block; font-size: 13px; }
+.workload-result span { color: var(--ink3); font-size: 11px; }
+.data-note { margin-top: 14px; padding-left: 10px; border-left: 4px solid var(--mustard); color: var(--ink3); font-size: 12px; }
 
 .stats-section { margin-top: 38px; }
 .section-label { margin-bottom: 9px; color: var(--ink3); }
@@ -128,6 +249,14 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
   .summary-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .stat-label { margin-bottom: 0; }
   .stat-value { font-size: 30px; }
+  .analytics-heading { align-items: start; flex-direction: column; }
+  .signal-grid, .metric-grid, .chart-grid { grid-template-columns: 1fr; }
+  .penalty-grid { grid-template-columns: 1fr; }
+  .metric { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 14px; }
+  .metric .stat-label { margin-bottom: 0; }
+  .metric-context { grid-column: 1 / -1; }
+  .game-row { grid-template-columns: 112px 1fr; }
+  .workload-row { grid-template-columns: 72px 1fr 65px; }
   th, td { padding: 9px 10px; }
 }
 </style>
@@ -157,6 +286,205 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
       <div class="summary-stat"><span class="stat-label">Games</span><span class="stat-value">8</span></div>
       <div class="summary-stat"><span class="stat-label">Record</span><span class="stat-value">1-6-1</span></div>
       <div class="summary-stat"><span class="stat-label">Goals For / Against</span><span class="stat-value">13 / 24</span></div>
+    </section>
+
+    <section class="analytics" aria-labelledby="analytics-heading">
+      <div class="analytics-heading">
+        <div>
+          <p class="section-label">Team performance</p>
+          <h2 id="analytics-heading">Season Snapshot</h2>
+        </div>
+      </div>
+      <p class="analytics-deck">Eight games provide an early summary of shot volume, scoring by period and penalties.</p>
+
+      <div class="signal-grid" aria-label="Current practice signals">
+        <article class="signal">
+          <span class="signal-kicker">Shot volume</span>
+          <strong>153 for · 316 against</strong>
+          <p>Seattle Junior has recorded 32.6% of the shots in its eight games. The game-by-game distribution is shown below.</p>
+        </article>
+        <article class="signal">
+          <span class="signal-kicker">Scoring by period</span>
+          <strong>First period even</strong>
+          <p>Goals for and against are 4–4 in the first period, 4–10 in the second and 5–10 in the third.</p>
+        </article>
+        <article class="signal">
+          <span class="signal-kicker">Penalties</span>
+          <strong>97 penalty minutes</strong>
+          <p>Thirty-two playing penalties account for 67 PIM. Three separate misconduct records account for the remaining 30 PIM.</p>
+        </article>
+      </div>
+
+      <div class="metric-grid" aria-label="Team performance metrics">
+        <div class="metric"><span class="stat-label">Shot share</span><strong class="metric-value">32.6%</strong><span class="metric-context">153 of 469 total shots</span></div>
+        <div class="metric"><span class="stat-label">Avg. shot differential</span><strong class="metric-value">−20.4</strong><span class="metric-context">per game</span></div>
+        <div class="metric"><span class="stat-label">Team save percentage</span><strong class="metric-value">92.4%</strong><span class="metric-context">292 saves on 316 shots</span></div>
+        <div class="metric"><span class="stat-label">Penalty minutes</span><strong class="metric-value">12.1</strong><span class="metric-context">per game</span></div>
+      </div>
+
+      <figure class="chart-card chart-wide" aria-labelledby="shots-title">
+        <figcaption>
+          <h3 class="chart-title" id="shots-title">Shots by game</h3>
+          <p class="chart-subtitle">Shots on Seattle Junior's goal extend left as negative pressure. Shots on the opponent's goal extend right.</p>
+          <div class="legend" aria-hidden="true"><span><i class="legend-mark opponent"></i>On our goal (−)</span><span><i class="legend-mark"></i>On their goal (+)</span></div>
+        </figcaption>
+        <div class="bar-chart">
+          <div class="game-row axis-row" aria-hidden="true"><span></span><div class="diverging-axis"><span></span><span>−50</span><span>+50</span><span></span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 12</strong><span>at Sno-King · L 1–3</span></div><div class="diverging-chart game-shot-chart" aria-label="37 shots on Seattle Junior's goal; 19 shots on Sno-King's goal"><span class="diverging-value negative">37</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:74%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:38%"></span></span><span class="diverging-value positive">19</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 13</strong><span>at Sno-King · L 2–4</span></div><div class="diverging-chart game-shot-chart" aria-label="44 shots on Seattle Junior's goal; 20 shots on Sno-King's goal"><span class="diverging-value negative">44</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:88%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 19</strong><span>vs Tacoma · T 2–2</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 20 shots on Tacoma's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 20</strong><span>vs Tacoma · L 2–4</span></div><div class="diverging-chart game-shot-chart" aria-label="37 shots on Seattle Junior's goal; 23 shots on Tacoma's goal"><span class="diverging-value negative">37</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:74%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:46%"></span></span><span class="diverging-value positive">23</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 25</strong><span>vs Wyoming · L 2–3</span></div><div class="diverging-chart game-shot-chart" aria-label="49 shots on Seattle Junior's goal; 18 shots on Team Wyoming's goal"><span class="diverging-value negative">49</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:98%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:36%"></span></span><span class="diverging-value positive">18</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 26</strong><span>vs Boise · L 1–3</span></div><div class="diverging-chart game-shot-chart" aria-label="36 shots on Seattle Junior's goal; 20 shots on Boise's goal"><span class="diverging-value negative">36</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:72%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 26</strong><span>at Montana · L 1–4</span></div><div class="diverging-chart game-shot-chart" aria-label="47 shots on Seattle Junior's goal; 16 shots on Montana's goal"><span class="diverging-value negative">47</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:94%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:32%"></span></span><span class="diverging-value positive">16</span></div></div>
+          <div class="game-row"><div class="game-label"><strong>Sep 27</strong><span>at Utah · W 2–1</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 17 shots on Utah's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:34%"></span></span><span class="diverging-value positive">17</span></div></div>
+        </div>
+      </figure>
+
+      <figure class="chart-card chart-wide" aria-labelledby="trend-title">
+        <figcaption>
+          <h3 class="chart-title" id="trend-title">Three-game shot-share trend</h3>
+          <p class="chart-subtitle">Each point combines the listed game with the two games immediately before it.</p>
+        </figcaption>
+        <div class="efficiency-shell" role="region" aria-label="Scrollable three-game shot-share trend chart">
+          <svg class="trend-chart" viewBox="0 0 800 350" role="img" aria-labelledby="trend-svg-title trend-svg-desc">
+            <title id="trend-svg-title">Three-game rolling Seattle Junior shot share</title>
+            <desc id="trend-svg-desc">Rolling shot share begins at 34.1 percent, peaks at 35.6 percent, falls to 29.0 percent and finishes at 31.4 percent.</desc>
+
+            <line class="reference-line" x1="80" y1="40" x2="700" y2="40" />
+            <line class="grid-line" x1="80" y1="113" x2="700" y2="113" />
+            <line class="grid-line" x1="80" y1="187" x2="700" y2="187" />
+            <line class="grid-line" x1="80" y1="260" x2="700" y2="260" />
+            <line class="axis-line" x1="80" y1="40" x2="80" y2="260" />
+            <line class="axis-line" x1="80" y1="260" x2="700" y2="260" />
+
+            <text class="axis-text" x="68" y="44" text-anchor="end">50%</text>
+            <text class="axis-text" x="68" y="117" text-anchor="end">40%</text>
+            <text class="axis-text" x="68" y="191" text-anchor="end">30%</text>
+            <text class="axis-text" x="68" y="264" text-anchor="end">20%</text>
+            <text class="axis-title" x="22" y="150" text-anchor="middle" transform="rotate(-90 22 150)">Seattle Junior shot share</text>
+            <text class="axis-text" x="695" y="33" text-anchor="end">Even share</text>
+
+            <path class="trend-line" d="M100 157 L210 146 L320 158 L430 163 L540 194 L650 177" />
+
+            <circle class="trend-point" cx="100" cy="157" r="8"><title>Through September 19 versus Tacoma: 34.1%</title></circle>
+            <text class="trend-value" x="100" y="143" text-anchor="middle">34.1%</text>
+            <circle class="trend-point" cx="210" cy="146" r="8"><title>Through September 20 versus Tacoma: 35.6%</title></circle>
+            <text class="trend-value" x="210" y="132" text-anchor="middle">35.6%</text>
+            <circle class="trend-point" cx="320" cy="158" r="8"><title>Through September 25 versus Team Wyoming: 33.9%</title></circle>
+            <text class="trend-value" x="320" y="180" text-anchor="middle">33.9%</text>
+            <circle class="trend-point" cx="430" cy="163" r="8"><title>Through September 26 versus Boise: 33.3%</title></circle>
+            <text class="trend-value" x="430" y="149" text-anchor="middle">33.3%</text>
+            <circle class="trend-point" cx="540" cy="194" r="8"><title>Through September 26 at Montana: 29.0%</title></circle>
+            <text class="trend-value" x="540" y="216" text-anchor="middle">29.0%</text>
+            <circle class="trend-point" cx="650" cy="177" r="8"><title>Through September 27 at Utah: 31.4%</title></circle>
+            <text class="trend-value" x="650" y="163" text-anchor="middle">31.4%</text>
+
+            <text class="axis-text" x="100" y="282" text-anchor="middle">Sep 19</text>
+            <text class="axis-text" x="210" y="282" text-anchor="middle">Sep 20</text>
+            <text class="axis-text" x="320" y="282" text-anchor="middle">Sep 25</text>
+            <text class="axis-text" x="430" y="282" text-anchor="middle">Sep 26</text>
+            <text class="axis-text" x="540" y="282" text-anchor="middle">Sep 26</text>
+            <text class="axis-text" x="650" y="282" text-anchor="middle">Sep 27</text>
+            <text class="axis-text" x="430" y="300" text-anchor="middle">Boise</text>
+            <text class="axis-text" x="540" y="300" text-anchor="middle">Montana</text>
+            <text class="axis-title" x="390" y="330" text-anchor="middle">Ending game in each three-game window</text>
+          </svg>
+        </div>
+        <p class="data-note">Rolling windows reduce the influence of a single game but remain based on a small early-season sample.</p>
+      </figure>
+
+      <figure class="chart-card chart-wide" aria-labelledby="efficiency-title">
+        <figcaption>
+          <h3 class="chart-title" id="efficiency-title">Game efficiency</h3>
+          <p class="chart-subtitle">Shot share is plotted left to right; final goal differential is plotted bottom to top. This compares game results with shot volume, but does not account for shot location or quality.</p>
+          <div class="legend" aria-hidden="true"><span><i class="legend-mark" style="background:var(--positive)"></i>Win</span><span><i class="legend-mark"></i>Tie</span><span><i class="legend-mark opponent"></i>Loss</span></div>
+        </figcaption>
+        <div class="efficiency-shell" role="region" aria-label="Scrollable game efficiency chart">
+          <svg class="efficiency-chart" viewBox="0 0 800 360" role="img" aria-labelledby="efficiency-svg-title efficiency-svg-desc">
+            <title id="efficiency-svg-title">Shot share versus goal differential for eight Seattle Junior games</title>
+            <desc id="efficiency-svg-desc">Utah is the only win, with 34 percent shot share and a plus-one goal differential. Tacoma on September 19 is the tie. The other six games are losses.</desc>
+
+            <line class="grid-line" x1="70" y1="55" x2="680" y2="55" />
+            <line class="zero-line" x1="70" y1="105" x2="680" y2="105" />
+            <line class="grid-line" x1="70" y1="155" x2="680" y2="155" />
+            <line class="grid-line" x1="70" y1="205" x2="680" y2="205" />
+            <line class="grid-line" x1="70" y1="255" x2="680" y2="255" />
+            <line class="axis-line" x1="70" y1="30" x2="70" y2="280" />
+            <line class="axis-line" x1="70" y1="280" x2="680" y2="280" />
+
+            <text class="axis-text" x="58" y="59" text-anchor="end">+1</text>
+            <text class="axis-text" x="58" y="109" text-anchor="end">0</text>
+            <text class="axis-text" x="58" y="159" text-anchor="end">−1</text>
+            <text class="axis-text" x="58" y="209" text-anchor="end">−2</text>
+            <text class="axis-text" x="58" y="259" text-anchor="end">−3</text>
+            <text class="axis-text" x="70" y="300" text-anchor="middle">20%</text>
+            <text class="axis-text" x="273" y="300" text-anchor="middle">30%</text>
+            <text class="axis-text" x="477" y="300" text-anchor="middle">40%</text>
+            <text class="axis-text" x="680" y="300" text-anchor="middle">50%</text>
+            <text class="axis-title" x="375" y="332" text-anchor="middle">Seattle Junior share of shots</text>
+            <text class="axis-title" x="18" y="155" text-anchor="middle" transform="rotate(-90 18 155)">Final goal differential</text>
+
+            <circle class="point loss" cx="353" cy="205" r="8"><title>September 12 at Sno-King: 33.9% shot share, −2 goal differential</title></circle>
+            <text class="point-label" x="345" y="224" text-anchor="end">Sep 12 · Sno-King</text>
+            <circle class="point loss" cx="299" cy="205" r="8"><title>September 13 at Sno-King: 31.3% shot share, −2 goal differential</title></circle>
+            <text class="point-label" x="291" y="194" text-anchor="end">Sep 13 · Sno-King</text>
+            <circle class="point tie" cx="431" cy="105" r="8"><title>September 19 versus Tacoma: 37.7% shot share, even goal differential</title></circle>
+            <text class="point-label" x="441" y="98">Sep 19 · Tacoma</text>
+            <circle class="point loss" cx="443" cy="205" r="8"><title>September 20 versus Tacoma: 38.3% shot share, −2 goal differential</title></circle>
+            <text class="point-label" x="451" y="224">Sep 20 · Tacoma</text>
+            <circle class="point loss" cx="210" cy="155" r="8"><title>September 25 versus Team Wyoming: 26.9% shot share, −1 goal differential</title></circle>
+            <text class="point-label" x="220" y="148">Sep 25 · Wyoming</text>
+            <circle class="point loss" cx="390" cy="205" r="8"><title>September 26 versus Boise: 35.7% shot share, −2 goal differential</title></circle>
+            <text class="point-label" x="398" y="194">Sep 26 · Boise</text>
+            <circle class="point loss" cx="180" cy="255" r="8"><title>September 26 at Montana: 25.4% shot share, −3 goal differential</title></circle>
+            <text class="point-label" x="190" y="248">Sep 26 · Montana</text>
+            <circle class="point win" cx="355" cy="55" r="8"><title>September 27 at Utah: 34.0% shot share, +1 goal differential</title></circle>
+            <text class="point-label" x="365" y="48">Sep 27 · Utah</text>
+          </svg>
+        </div>
+        <p class="data-note">A game above the zero line produced a positive goal differential. Position on this chart can reflect finishing and goaltending as well as team play.</p>
+      </figure>
+
+      <figure class="chart-card chart-wide" aria-labelledby="penalties-title">
+        <figcaption><h3 class="chart-title" id="penalties-title">Penalty profile</h3><p class="chart-subtitle">Playing penalties only: 32 calls and 67 PIM. Misconduct records are excluded.</p></figcaption>
+        <div class="penalty-grid bar-chart">
+          <div class="compact-row"><div class="compact-label"><strong>Roughing</strong><span>10 · 20 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:100%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Tripping</strong><span>8 · 16 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:80%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Slashing</strong><span>5 · 10 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:50%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Cross-checking</strong><span>4 · 8 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:40%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>High-sticking</strong><span>2 · 4 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:20%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Boarding</strong><span>1 · 5 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:10%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Hooking</strong><span>1 · 2 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:10%"></div></div></div>
+          <div class="compact-row"><div class="compact-label"><strong>Too many players</strong><span>1 · 2 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:10%"></div></div></div>
+        </div>
+      </figure>
+
+      <figure class="chart-card chart-wide" aria-labelledby="period-title">
+          <figcaption><h3 class="chart-title" id="period-title">Goals by period</h3><p class="chart-subtitle">Goals against extend left; goals for extend right. All eight games share a ten-goal scale.</p><div class="legend" aria-hidden="true"><span><i class="legend-mark opponent"></i>Goals against (−)</span><span><i class="legend-mark"></i>Goals for (+)</span></div></figcaption>
+          <div class="bar-chart">
+            <div class="period-row period-axis" aria-hidden="true"><span></span><div class="diverging-axis"><span></span><span>−10</span><span>+10</span><span></span></div></div>
+            <div class="period-row"><span class="period-name">P1</span><div class="diverging-chart period-goal-chart" aria-label="First period: 4 goals against and 4 goals for"><span class="diverging-value negative">4</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:40%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">4</span></div></div>
+            <div class="period-row"><span class="period-name">P2</span><div class="diverging-chart period-goal-chart" aria-label="Second period: 10 goals against and 4 goals for"><span class="diverging-value negative">10</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:100%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">4</span></div></div>
+            <div class="period-row"><span class="period-name">P3</span><div class="diverging-chart period-goal-chart" aria-label="Third period: 10 goals against and 5 goals for"><span class="diverging-value negative">10</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:100%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:50%"></span></span><span class="diverging-value positive">5</span></div></div>
+          </div>
+          <p class="data-note">Period-level shot totals are available for four games and are not yet shown as a season trend.</p>
+      </figure>
+
+      <figure class="chart-card chart-wide" aria-labelledby="workload-title">
+        <figcaption><h3 class="chart-title" id="workload-title">Goaltender workload</h3><p class="chart-subtitle">Shots faced and game save percentage. Each game had one Seattle Junior goalie appearance.</p></figcaption>
+        <div class="bar-chart">
+          <div class="workload-row"><div class="workload-game"><strong>Sep 12 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="37 shots faced"><div class="bar-fill opponent" style="--width:74%"></div></div><div class="workload-result"><strong>37 SA</strong><span>91.9 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 13 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="44 shots faced"><div class="bar-fill opponent" style="--width:88%"></div></div><div class="workload-result"><strong>44 SA</strong><span>90.9 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 19 · T</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill opponent" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>93.9 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 20 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="37 shots faced"><div class="bar-fill opponent" style="--width:74%"></div></div><div class="workload-result"><strong>37 SA</strong><span>89.2 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 25 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="49 shots faced"><div class="bar-fill opponent" style="--width:98%"></div></div><div class="workload-result"><strong>49 SA</strong><span>93.9 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 26 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="36 shots faced"><div class="bar-fill opponent" style="--width:72%"></div></div><div class="workload-result"><strong>36 SA</strong><span>91.7 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 26 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="47 shots faced"><div class="bar-fill opponent" style="--width:94%"></div></div><div class="workload-result"><strong>47 SA</strong><span>91.5 SV%</span></div></div>
+          <div class="workload-row"><div class="workload-game"><strong>Sep 27 · W</strong><span>Martinez</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill positive" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>97.0 SV%</span></div></div>
+        </div>
+        <p class="data-note">Save percentage describes results, not shot difficulty. Shot location and high-danger chances are not currently tracked.</p>
+      </figure>
     </section>
 
     <section class="stats-section" aria-labelledby="skaters-heading">
