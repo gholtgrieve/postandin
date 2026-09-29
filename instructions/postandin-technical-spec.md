@@ -1184,9 +1184,10 @@ not exist in the repo, and the required Cloudflare edge rate-limit rule is not
 provisioned.
 
 Source-only migration 9 adds production `gear_deletions` recovery markers and a
-minimal `gear_deletion_ledger`. Owner moderation restore now fails while an active
-seller-deletion marker exists. No production seller deletion/recovery route,
-purge job or backup reconciliation is implemented yet; see
+minimal `gear_deletion_ledger`. An exact-origin, cookie/CSRF-authenticated Pages
+route transactionally deletes and recovers seller listings, while owner restore
+fails whenever the active marker exists. No production session issuance, purge
+job or backup reconciliation is implemented yet; see
 [gear-production-deletions.md](gear-production-deletions.md).
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**

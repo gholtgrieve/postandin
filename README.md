@@ -77,9 +77,10 @@ Turnstile and a currently public listing before atomically inserting the bounded
 report fields. Its widget, secret and edge rate-limit rule are not configured;
 see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
 
-The source-only production seller-deletion foundation adds an active recovery
-marker and minimal purge ledger, and blocks owner restore while the active marker
-exists. It adds no seller route or cleanup job; see
+The source-only production seller-deletion path adds an active recovery marker,
+minimal purge ledger and authenticated delete/recover transaction, and blocks
+owner restore while the active marker exists. No production session-issuance UI
+or cleanup job is connected; see
 [instructions/gear-production-deletions.md](instructions/gear-production-deletions.md).
 
 An opt-in connected HTTPS preview is documented in

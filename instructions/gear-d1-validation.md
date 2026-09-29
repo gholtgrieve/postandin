@@ -43,8 +43,8 @@ All nine check groups passed:
    indexed production moderation tables and 101-row bounded private open-report
    projection signal truncation and do not return seller email.
 4. Publication, immutable adult acknowledgement, hosted-photo metadata, public
-   projection, session recovery, JSON club aggregation, guarded edits and
-   relisting work with the D1 binding.
+   projection, session recovery, authenticated seller delete/recover, JSON club
+   aggregation, guarded edits and relisting work with the D1 binding.
 5. Actual D1 duplicate errors on verification, edit, relist and email transfer
    map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
@@ -58,7 +58,7 @@ All nine check groups passed:
    data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
 9. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The current 129-test Gear Node suite also passes. No runtime compatibility changes
+The current 141-test Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.
 
 ## Limits and handoff

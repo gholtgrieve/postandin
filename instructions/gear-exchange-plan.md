@@ -386,7 +386,7 @@ seller-deletion provisioning gate and documentation drift were fixed. Focused
 re-review found 0 issues at every severity and concluded **ready to commit**.
 Committed locally as `26cb8a2` (`Add production Gear moderation actions`).
 
-### Production seller-deletion foundation — current, uncommitted
+### Production seller-deletion foundation — committed
 
 Migration 9 adds the production `gear_deletions` active recovery marker and the
 independent minimal `gear_deletion_ledger`. Both use constrained millisecond
@@ -400,11 +400,39 @@ unchanged moderation state while blocked, and successful owner restoration only
 after simulated seller recovery removes the marker. The workerd harness exercises
 the same guard through actual D1. See `gear-production-deletions.md`.
 
-No seller route, permanent purge, remote cleanup or restore reconciliation is
-implemented by this slice. The next bounded increment after review should add
-authenticated production seller deletion/recovery writes against this state.
-Production photos/mail, scheduled cleanup/failure notifications and remote
-disaster recovery remain launch requirements.
+Owner-mediated Claude review found one medium and four low issues. The ignored
+documentation file, seller-write contract, external reconciliation requirement,
+historical counts and missing restore-guard regressions were fixed. Re-review
+found 0 issues at every severity and concluded **ready to commit**. Committed as
+`b73385e` (`Add production Gear seller deletion foundation`).
+
+### Production seller deletion/recovery writes — current, uncommitted
+
+`POST /api/gear/management/deletion` now accepts bounded exact-origin JSON and
+requires a production-only `__Host-gear_session` cookie plus derived CSRF value,
+both matched to the existing hashed management-session state.
+Delete and recover recheck credential validity and listing ownership inside each
+D1 batch. Delete immediately hides the listing while atomically creating its
+30-day marker and ledger. Recovery preserves owner moderation, never extends the
+deadline or listing expiry, rechecks verification/quota/duplicates and expires
+stale duplicates transactionally. Current writes keep every active marker paired
+with its matching unpurged ledger; future purge/reconciliation must preserve that
+invariant until permanent cleanup and test owner-moderated records explicitly.
+
+Twelve focused tests cover HTTP/credential boundaries, including foreign and
+race-revoked recovery of owner-moderated records, plus replayed/overdue actions,
+public/report/moderation separation, owner removal, verification, quota,
+duplicates, elapsed recovery and injected delete/recover rollback. The workerd
+harness exercises authenticated deletion, hiding and recovery against actual D1.
+No production management-link email/session issuance, UI connection, permanent
+purge, remote cleanup or restore reconciliation is included. See
+`gear-production-deletions.md`.
+
+The next bounded increment after review should add the production management
+session recovery/confirmation boundary needed to issue seller credentials,
+without sending real mail or connecting the UI. Production photos/mail, scheduled
+cleanup/failure notifications and remote disaster recovery remain launch
+requirements.
 
 No push/deployment.
 
@@ -416,7 +444,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearProductionFoundation.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearProductionFoundation.test.mjs
 git diff --check
 ```
 

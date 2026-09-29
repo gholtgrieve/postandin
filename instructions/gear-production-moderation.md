@@ -72,11 +72,11 @@ check is only a diagnostic alarm for a future broken invariant; D1 has already
 committed when it runs. Public responses never contain the actor, report reason,
 owner reason, SQL or exception details.
 
-Production seller deletion and recovery routes are not implemented yet. Migration
-9 now supplies the durable deletion marker, and owner restore checks it so seller
-deletion cannot be bypassed. Do not provision the admin hostname and Access
-values with `GEAR_DB`—which would expose this action route even without an owner
-UI—until authenticated seller lifecycle and retention cleanup are complete.
+The source-only authenticated seller deletion/recovery transaction now writes the
+migration-9 marker, and owner restore checks it so seller deletion cannot be
+bypassed. Do not provision the admin hostname and Access values with `GEAR_DB`—
+which would expose this action route even without an owner UI—until production
+session issuance, retention cleanup and disaster recovery are complete.
 
 Merging the source alone does not make the routes usable: on ordinary Pages hosts
 the Access verifier denies it, and the dedicated admin hostname, Access policy,

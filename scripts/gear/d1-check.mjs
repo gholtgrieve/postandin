@@ -9,6 +9,7 @@ import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.m
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
+import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {issueLocalManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -67,6 +68,12 @@ try{
  await db.prepare('DELETE FROM gear_listings WHERE id=?').bind(deletionSchemaId).run();
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_deletions WHERE listing_id=?').bind(deletionSchemaId).first()).n,0);
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_deletion_ledger WHERE listing_id=?').bind(deletionSchemaId).first()).n,1);
+ const lifecycleId=await publish(db,{title:'Seller lifecycle'},143),lifecycleAccess=await login(db,sample.email,144);
+ assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'delete',id:lifecycleId},145),{ok:true});
+ assert.equal((await readPublicListings(db,146)).some(row=>row.id===lifecycleId),false);
+ assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'recover',id:lifecycleId},147),{ok:true});
+ assert.equal((await readPublicListings(db,148)).some(row=>row.id===lifecycleId),true);
+ await db.prepare('DELETE FROM gear_listings WHERE id=?').bind(lifecycleId).run();
  const id=await publish(db),access=await login(db);
  assert.equal(await submitReport(db,{listingId:id,reason:'Prohibited item'},149,'00000000-0000-4000-8000-000000000149'),true);
  await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(id).run();
@@ -118,7 +125,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: publication, acknowledgement, photo metadata, public projection, session recovery, JSON clubs, edit and relist via D1.');
+ console.log('PASS: publication, acknowledgement, photo metadata, public projection, session recovery, seller delete/recover, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
