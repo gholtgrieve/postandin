@@ -196,8 +196,8 @@ Review baseline: `87c1805`. Owner authorized the fixes and local commit, titled
 The production-integration assessment selected one read-only seam before any
 write-capable work. `GET /api/gear/listings` now reads the existing explicit
 public projection through a proposed `GEAR_DB` Pages binding, adds empty photo
-arrays until the R2 increment, and returns `no-store` responses with generic
-missing-binding and query-failure errors. The static Gear UI is not connected.
+arrays until the Cloudflare Images increment, and returns `no-store` responses
+with generic missing-binding and query-failure errors. The static Gear UI is not connected.
 Focused tests cover current visibility, exclusion of private fields, the
 100-listing cap and deterministic ordering, response headers, missing
 configuration and safe D1 failure. All 101 Gear tests pass with this four-test
@@ -208,7 +208,7 @@ Committed locally as `057e312` (`Add read-only Gear Pages listings route`).
 No remote binding or database was configured, no migration was applied, and
 nothing was deployed.
 
-### Production foundation increment — current, uncommitted
+### Production foundation increment — committed
 
 The owner approved Cloudflare Access for a private `gear-admin.postandin.com`
 moderation surface with exact identities and MFA; existing Cloudflare Images
@@ -249,10 +249,42 @@ first post-review workerd run exposed its lower compound-SELECT limit; the slot
 query now uses the already-supported `json_each` pattern. The corrected eight-group
 workerd harness and all 105 Gear tests pass. No second Claude review was requested.
 
-The next bounded increment after review should add the authenticated production
-owner boundary for moderation using verified Cloudflare Access claims. It must
-not provision Access or deploy; exact owner identities and IdP configuration
-remain owner-controlled deployment inputs.
+Committed locally as `150a984` (`Add Gear production storage foundation`).
+
+### Production owner authentication — current, uncommitted
+
+The source-only owner boundary validates `Cf-Access-Jwt-Assertion` with native
+Web Crypto. It requires HTTPS on `gear-admin.postandin.com`, an RS256 signature
+from the configured team-domain JWKS, exact issuer and application audience,
+bounded time claims and an email in the environment-provided owner allowlist.
+Plain JWK data is cached for five minutes and an unknown `kid` can force one
+refresh per team domain per minute for key rotation. Tokens and JWKS responses
+are bounded. Missing configuration or key-service failures fail closed with a
+generic 503; invalid identities and tokens receive a generic 403.
+
+`GET /api/gear/admin/session` returns only `authenticated:true` after verification
+and performs no read or write. No real identity, team domain, audience, Access
+application, custom domain, binding or secret is present in the repo. Focused
+tests generate temporary RSA keys and cover success, spoofing/failure paths,
+clock boundaries, configuration failures, cache reuse and key rotation. See
+`gear-access.md`. The final verifier and handler also pass a local
+Miniflare/workerd run with mocked keys, including valid access, cache reuse,
+denials, cooldown expiry and redirect rejection. The complete Gear suite passes
+with 112 tests.
+
+Owner-authorized direct Claude review initially found 1 high and 3 low issues:
+Workers incompatibility in the JWKS redirect mode, Unicode identity folding,
+unthrottled unknown-key refreshes and missing adversarial coverage. All were
+fixed with regression tests. Focused re-review confirmed the final source in
+workerd and found 0 blocker, 0 high and 0 medium code issues. Its sole remaining
+low item was this documentation update; the verdict is `Ready to commit`. Once
+merged, the route exists on Pages but remains inert with a generic 403 on every
+host except the dedicated admin host until that domain and Access configuration
+are owner-authorized and supplied.
+
+The next bounded increment after review should add the production moderation
+schema and a read-only authenticated report queue. Keep moderation writes and
+the public report-submission route separate until that projection is reviewed.
 
 No push/deployment. Production writes, photos, mail, owner identity, scheduled
 cleanup/failure notifications and remote disaster recovery remain launch
@@ -266,7 +298,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearProductionFoundation.test.mjs
 git diff --check
 ```
 

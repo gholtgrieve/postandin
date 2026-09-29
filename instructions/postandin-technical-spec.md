@@ -335,6 +335,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
     /gear/
       listings.js          → Source-only GET public Gear projection through the proposed
                               GEAR_DB D1 binding. UI not connected; binding not provisioned.
+      /admin/
+        session.js         → Source-only GET Cloudflare Access authentication probe for
+                              gear-admin.postandin.com. No moderation data or writes.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -1141,6 +1144,13 @@ Opt-in local owner authentication, report review, reversible removal and persist
 history are described in [gear-owner-moderation.md](gear-owner-moderation.md).
 This adds local SQLite tables, not deployed identity or D1 operations.
 
+The source-only production owner boundary is described in
+[gear-access.md](gear-access.md). It validates the Access assertion signature,
+issuer, audience, time claims, exact owner allowlist and admin host using native
+Web Crypto. The probe route returns only authentication state. No Access
+application, custom domain, environment value, moderation schema or action route
+is provisioned or deployed.
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
@@ -1168,7 +1178,7 @@ retention remain unimplemented. The separate storage query already filters expir
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples. A source-only public-list Pages handler exists but is not connected, bound or deployed; there is no production backend or email. |
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples. Source-only public-list and owner-authentication handlers exist but are not connected, configured, bound or deployed; there is no production backend or email. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |

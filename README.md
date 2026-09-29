@@ -63,6 +63,10 @@ evidence and a D1 metadata adapter for private Cloudflare Images. It provisions
 nothing and adds no upload, authentication or deployed write route; see
 [instructions/gear-storage.md](instructions/gear-storage.md).
 
+The source-only production owner boundary validates Cloudflare Access JWTs with
+native Web Crypto and an environment-provided exact allowlist. Nothing is
+provisioned or deployed; see [instructions/gear-access.md](instructions/gear-access.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 
