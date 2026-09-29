@@ -79,9 +79,14 @@ see [instructions/gear-production-reports.md](instructions/gear-production-repor
 
 The source-only production seller-deletion path adds an active recovery marker,
 minimal purge ledger and authenticated delete/recover transaction, and blocks
-owner restore while the active marker exists. No production session-issuance UI
-or cleanup job is connected; see
+owner restore while the active marker exists; see
 [instructions/gear-production-deletions.md](instructions/gear-production-deletions.md).
+
+The source-only production seller-access boundary adds same-origin Pages routes
+for generic recovery requests, explicit one-use link confirmation, reload
+recovery and logout. A Resend adapter is tested with mock delivery only; no API
+key, real mail, UI connection or edge rate limit is configured. See
+[instructions/gear-production-management.md](instructions/gear-production-management.md).
 
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
@@ -110,8 +115,8 @@ Under ordinary static hosting, listings, management access, verification and
 contact actions are simulated; inputs and photos reset on reload. The opt-in
 local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
 The static public sample dataset is separate from seller drafts. Production
-uploads, authentication, delivery, automatic expiry cleanup and deletion
-retention remain unimplemented. The separate storage query already filters expiry on reads.
+uploads, actual email delivery, automatic expiry cleanup and deletion retention
+remain unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Groups feature

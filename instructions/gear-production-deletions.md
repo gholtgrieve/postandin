@@ -1,9 +1,9 @@
 # Gear Exchange production seller deletion and recovery
 
 Status: source-only and not deployed. Migration 9 has not been applied remotely,
-no production seller session-issuance route or UI is connected, and no production
-record was read or changed. The authenticated mutation route therefore has no
-deployed credential source.
+no seller UI is connected, and no production record was read or changed. The
+separate source-only credential issuer is documented in
+`gear-production-management.md`; it is not configured or deployed.
 
 ## Storage boundary
 
@@ -48,7 +48,7 @@ conservatively.
 The route accepts only exact-origin JSON from `https://postandin.com`, rejects
 cross-site requests, bounds the raw body to 1 KiB before fatal UTF-8 decoding and
 requires exactly one production-only `__Host-gear_session` cookie plus the
-derived `X-Gear-CSRF` value. The future issuer must set that cookie from
+derived `X-Gear-CSRF` value. The source-only issuer sets that cookie from
 `postandin.com` with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/` and no
 `Domain` attribute. The raw credentials are SHA-256 hashed before D1 access.
 Every write rechecks the active, unrevoked session, its CSRF hash, its original
@@ -84,8 +84,9 @@ no stale duplicate and leaves both the deletion and moderation state unchanged.
 Future authenticated seller recovery must remove the active deletion marker
 before owner restoration can be considered independently.
 
-This increment does not add production session issuance/recovery email, permanent
-purge, remote retention cleanup or backup reconciliation. Because the ledger is
+This increment does not add permanent purge, remote retention cleanup or backup
+reconciliation. Production session issuance and mocked-delivery mail integration
+are separate source-only work. Because the ledger is
 stored in the same D1 database, restoring an older D1 copy also restores an older
 ledger. The future disaster-recovery procedure must reconcile the candidate
 restore against deletion evidence exported after that backup or kept outside

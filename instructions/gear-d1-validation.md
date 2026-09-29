@@ -31,34 +31,38 @@ SIGINT/SIGTERM. Only sample fixtures are used; raw credentials aren't printed.
 
 ## Observed results
 
-All nine check groups passed:
+All ten check groups passed:
 
-1. Failed migration batch rolls schema changes back.
-2. All nine checked-in migrations apply to a fresh D1 database; the harness ledger
+1. The Workers runtime accepts the `redirect:'manual'` option used by the provider
+   adapter while mocked outbound email remains local. The adapter itself is
+   unit-tested in Node; this probe does not load the adapter module.
+2. Failed migration batch rolls schema changes back.
+3. All nine checked-in migrations apply to a fresh D1 database; the harness ledger
    makes repeated application a no-op. RETURNING and meta.changes have the expected
    shape, including a no-op update.
-3. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
+4. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
    blocking of owner restore and injected moderation-audit failure rollback work
    through the actual D1 binding. The
    indexed production moderation tables and 101-row bounded private open-report
    projection signal truncation and do not return seller email.
-4. Publication, immutable adult acknowledgement, hosted-photo metadata, public
-   projection, session recovery, authenticated seller delete/recover, JSON club
-   aggregation, guarded edits and relisting work with the D1 binding.
-5. Actual D1 duplicate errors on verification, edit, relist and email transfer
+5. Publication, immutable adult acknowledgement, hosted-photo metadata, public
+   projection, production management-link issue/redeem/session recovery,
+   authenticated seller delete/recover, JSON club aggregation, guarded edits and
+   relisting work with the D1 binding.
+6. Actual D1 duplicate errors on verification, edit, relist and email transfer
    map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
-6. Email transfer is atomic, including destination creation and session/link
+7. Email transfer is atomic, including destination creation and session/link
    revocation. Injected failure, replay and existing-destination duplicate conflict
    behave correctly; resolving the conflict permits retry of the unconsumed token.
-7. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
+8. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-8. A populated version-6 database upgrades through version 9 with listing/session
+9. A populated version-6 database upgrades through version 9 with listing/session
    data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
-9. Stored data and migration bookkeeping survive disposal and restart of workerd.
+10. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The current 141-test Gear Node suite also passes. No runtime compatibility changes
+The current 150-test Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.
 
 ## Limits and handoff

@@ -11,7 +11,7 @@ import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
 import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
-import {issueLocalManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
+import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
 const modulePath=process.env.GEAR_WRANGLER_MODULE;
 if(!modulePath)throw new Error('Set GEAR_WRANGLER_MODULE to an installed Wrangler module absolute path.');
@@ -45,12 +45,18 @@ async function publishBeforeAdultMigration(db,now=100){
  ]);
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
-async function login(db,email=sample.email,now=200){const receipt=await issueLocalManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
+async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
 async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
  assert.equal(files.length,9,'Update migration coverage when adding a migration.');
- const runtimeOptions={modules:true,script:'export default {fetch(){return new Response(null,{status:404})}}',compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp};
+ const runtimeOptions={modules:true,script:`export default {async fetch(request){
+  if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
+  return new Response(null,{status:404});
+ }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp,
+  outboundService:request=>new Response(JSON.stringify({url:request.url,id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})};
  mf=new Miniflare(runtimeOptions);
+ const mailProbe=await mf.dispatchFetch('http://localhost/mail-runtime-probe');assert.equal(mailProbe.status,200);assert.equal((await mailProbe.json()).url,'https://api.resend.com/emails');
+ console.log('PASS: Workers accepts manual redirect handling while mocked outbound mail remains local.');
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_d1_check_migrations').first()).n,files.length);
  const probe=await db.prepare('UPDATE gear_sellers SET verified_at=1 WHERE id=? RETURNING id').bind('missing').run();
@@ -125,7 +131,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: publication, acknowledgement, photo metadata, public projection, session recovery, seller delete/recover, JSON clubs, edit and relist via D1.');
+ console.log('PASS: production management issue/redeem/recovery, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);

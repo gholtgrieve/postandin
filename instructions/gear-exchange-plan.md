@@ -32,6 +32,9 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `2d33253` | Local D1/workerd validation |
 | `afd29ba` | Reviewed connected local HTTPS preview |
 | `7753fa2` | Reviewed local email-change management UI |
+| `26cb8a2` | Production owner moderation actions |
+| `b73385e` | Production seller-deletion foundation |
+| `6bed4ae` | Production seller deletion/recovery writes |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -406,7 +409,7 @@ historical counts and missing restore-guard regressions were fixed. Re-review
 found 0 issues at every severity and concluded **ready to commit**. Committed as
 `b73385e` (`Add production Gear seller deletion foundation`).
 
-### Production seller deletion/recovery writes — current, uncommitted
+### Production seller deletion/recovery writes — committed
 
 `POST /api/gear/management/deletion` now accepts bounded exact-origin JSON and
 requires a production-only `__Host-gear_session` cookie plus derived CSRF value,
@@ -428,11 +431,46 @@ No production management-link email/session issuance, UI connection, permanent
 purge, remote cleanup or restore reconciliation is included. See
 `gear-production-deletions.md`.
 
-The next bounded increment after review should add the production management
-session recovery/confirmation boundary needed to issue seller credentials,
-without sending real mail or connecting the UI. Production photos/mail, scheduled
-cleanup/failure notifications and remote disaster recovery remain launch
-requirements.
+Direct Claude review found two medium and four low issues. The transaction result
+checks, session-race behavior, owner-moderated recovery, deletion-ledger pairing,
+cookie parsing and documentation were corrected and regression-tested. Two
+re-reviews found no issues at any severity and concluded ready to commit. Committed
+as `6bed4ae` (`Add production Gear seller deletion writes`).
+
+### Production seller management sessions — current, uncommitted
+
+Four POST-only Pages routes now provide the production credential boundary:
+generic recovery request, explicit one-use token confirmation, stable reload
+recovery without renewal, and CSRF-protected logout. Successful confirmation
+sets the host-only `__Host-gear_session` cookie with Secure, HttpOnly,
+SameSite=Strict and Path=/; JSON never returns the raw session. Link tokens remain
+hash-only in D1 and are carried in the email URL fragment so an ordinary page GET
+does not redeem them or put them in the request URL.
+
+The Resend adapter uses the approved `gear@postandin.com` sender and an
+environment-only API key. Tests mock every provider call; no real message was
+sent. Known addresses, unknown addresses and provider delivery failures receive
+the same generic 202 response, while delivery work is attached to the Pages
+request lifetime. The static UI remains disconnected. Before UI connection or
+deployment, provision per-IP/per-recipient recovery throttling and bot protection,
+configure/verify the sender and secret, then validate the production-host-only
+flow behind a temporary owner-only gate while the public UI remains disconnected.
+
+Direct Claude review found one high and four low issues. The Workers-incompatible
+`redirect:'error'` option was replaced with supported manual redirect handling;
+a mocked outbound workerd probe now guards the runtime behavior. The low findings
+were also addressed: failed logout clears stale cookies, recovery reuses the
+shared mailbox normalization (including non-ASCII addresses), delivery logs use
+non-sensitive reason codes, and the production-host-only validation procedure is
+documented accurately. All 150 Gear tests and all ten workerd/D1 groups pass after
+the fixes. Focused Claude re-review found 0 blocker, 0 high, 0 medium and one low
+documentation-precision issue, concluded **ready to merge**, and independently
+re-ran the real adapter in workerd with mocked outbound delivery. The harness
+wording was narrowed afterward to distinguish its runtime-option probe from the
+Node adapter test; no code changed after the clear verdict.
+
+Production photos/contact delivery, permanent cleanup with failure/recovery
+alerts and remote disaster recovery remain launch requirements.
 
 No push/deployment.
 
@@ -444,7 +482,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearProductionFoundation.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs
 git diff --check
 ```
 

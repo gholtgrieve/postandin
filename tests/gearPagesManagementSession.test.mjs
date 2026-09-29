@@ -1,0 +1,147 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as confirmRoute from '../functions/api/gear/management/confirm.js';
+import * as logoutRoute from '../functions/api/gear/management/logout.js';
+import * as recoveryRoute from '../functions/api/gear/management/recovery.js';
+import * as sessionRoute from '../functions/api/gear/management/session.js';
+import {createManagementConfirmHandler} from '../functions/api/gear/management/confirm.js';
+import {createManagementLogoutHandler} from '../functions/api/gear/management/logout.js';
+import {createManagementRecoveryHandler} from '../functions/api/gear/management/recovery.js';
+import {createManagementSessionHandler} from '../functions/api/gear/management/session.js';
+import {MANAGEMENT_TTL_MS,issueLocalManagementLink,issueManagementLink,recoverManagementSession} from '../lib/gear-management.mjs';
+import {GearManagementMailUnavailableError,sendManagementLink,validateManagementEmail} from '../lib/gear-management-mail.mjs';
+import {createDraft} from '../lib/gear-storage.mjs';
+import {confirmVerification,issueLocalVerification} from '../lib/gear-verification.mjs';
+import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
+
+const ORIGIN='https://postandin.com';
+const TOKEN='a'.repeat(64),SESSION='b'.repeat(64),CSRF='c'.repeat(64);
+const sample={title:'Club bag',description:'Worn zipper.',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'One size',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
+const responseId='01234567-89ab-4cde-8fab-0123456789ab';
+
+function request(path,body={},headers={}){
+  return new Request(ORIGIN+path,{method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/json',...headers},body:typeof body==='string'?body:JSON.stringify(body)});
+}
+async function publish(db,now=100){const {id}=await createDraft(db,sample,now);const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;}
+const context=(request,env={GEAR_DB:{}})=>({request,env});
+
+test('production management issue preserves local simulation while returning only a delivery receipt',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);
+    const production=await issueManagementLink(db,' SAMPLE@EXAMPLE.TEST ',200);
+    assert.equal(production.recipient,sample.email);assert.match(production.token,/^[a-f0-9]{64}$/);assert.equal(production.delivery,undefined);
+    const local=await issueLocalManagementLink(db,sample.email,201);
+    assert.equal(local.delivery,'local-simulation');assert.notEqual(local.token,production.token);
+    assert.equal(await issueManagementLink(db,'unknown@example.test',202),null);
+    const unicode={...sample,email:'müller@example.de',title:'Unicode seller'},draft=await createDraft(db,unicode,203),verification=await issueLocalVerification(db,draft.id,203);
+    assert.equal((await confirmVerification(db,verification.token,203)).verified,true);assert.equal((await issueManagementLink(db,' MÜLLER@EXAMPLE.DE ',204)).recipient,unicode.email);
+    assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_management_links').all()).includes(local.token),false);
+  }finally{db.close();}
+});
+
+test('Resend adapter sends a bounded fragment link with authorization and token-derived idempotency',async()=>{
+  let target,options;
+  const result=await sendManagementLink({recipient:sample.email,token:TOKEN},{GEAR_RESEND_API_KEY:'test_key'}, {fetcher:async(...args)=>{[target,options]=args;return new Response(JSON.stringify({id:responseId}),{status:200});}});
+  assert.deepEqual(result,{id:responseId});assert.equal(target,'https://api.resend.com/emails');assert.equal(options.method,'POST');assert.equal(options.redirect,'manual');
+  assert.equal(options.headers.Authorization,'Bearer test_key');assert.match(options.headers['Idempotency-Key'],/^gear-management-[a-f0-9]{64}$/);assert.equal(options.headers['Idempotency-Key'].includes(TOKEN),false);
+  const body=JSON.parse(options.body);assert.deepEqual(body.to,[sample.email]);assert.equal(body.from,'Post & In Gear <gear@postandin.com>');
+  assert.ok(body.text.includes(`/gear/#management=${TOKEN}`));assert.equal(body.text.includes('?management='),false);assert.equal(JSON.stringify(options.headers).includes(TOKEN),false);
+});
+
+test('mail validation and provider failures reveal no private provider detail',async()=>{
+  assert.equal(validateManagementEmail(' SAMPLE@Example.test '),sample.email);
+  assert.equal(validateManagementEmail(' MÜLLER@Example.de '),'müller@example.de');
+  for(const value of [null,'','bad','a@b','a b@example.test','x'.repeat(255)+'@example.test'])assert.equal(validateManagementEmail(value),null);
+  const cases=[
+    [{},async()=>new Response(JSON.stringify({id:responseId})),'config'],
+    [{GEAR_RESEND_API_KEY:'bad key'},async()=>new Response(JSON.stringify({id:responseId})),'config'],
+    [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('private upstream failure',{status:503}),'status:503'],
+    [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('{',{status:200}),'response'],
+    [{GEAR_RESEND_API_KEY:'key'},async()=>new Response(JSON.stringify({id:'bad'}),{status:200}),'response'],
+    [{GEAR_RESEND_API_KEY:'key'},async()=>{throw new Error('private network failure');},'network'],
+  ];
+  for(const [env,fetcher,code] of cases)await assert.rejects(sendManagementLink({recipient:sample.email,token:TOKEN},env,{fetcher}),error=>error instanceof GearManagementMailUnavailableError&&error.message==='Gear management mail unavailable.'&&error.code===code);
+  await assert.rejects(sendManagementLink({recipient:sample.email,token:TOKEN},{GEAR_RESEND_API_KEY:'key'},{timeoutMs:1,fetcher:(_url,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('private timeout'))))}),error=>error instanceof GearManagementMailUnavailableError&&error.code==='network');
+});
+
+test('recovery response is identical for known, unknown and failed delivery and never exposes credentials',async()=>{
+  const calls=[],pending=[],logs=[];
+  const handler=createManagementRecoveryHandler({issue:async(_db,email)=>email===sample.email?{recipient:email,token:TOKEN}:null,send:async receipt=>{calls.push(receipt);throw new GearManagementMailUnavailableError('status:503');},now:()=>200,log:(...values)=>logs.push(values)});
+  const run=async email=>{const response=await handler({...context(request('/api/gear/management/recovery',{email})),waitUntil(value){pending.push(value);}});return {status:response.status,body:await response.text()};};
+  const known=await run(sample.email),unknown=await run('unknown@example.test');await Promise.all(pending);
+  assert.deepEqual(known,unknown);assert.equal(known.status,202);assert.equal(known.body.includes(TOKEN),false);assert.deepEqual(calls,[{recipient:sample.email,token:TOKEN}]);
+  assert.deepEqual(logs,[['Gear management email delivery failed:','status:503']]);assert.equal(JSON.stringify(logs).includes(sample.email),false);assert.equal(JSON.stringify(logs).includes(TOKEN),false);
+});
+
+test('production routes complete confirmation, stable reload recovery, logout and replay protection',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);let receipt;const pending=[];
+    const recovery=createManagementRecoveryHandler({send:async value=>{receipt=value;},now:()=>200});
+    let response=await recovery({...context(request('/api/gear/management/recovery',{email:sample.email}),{GEAR_DB:db,GEAR_RESEND_API_KEY:'unused'}),waitUntil(value){pending.push(value);}});
+    assert.equal(response.status,202);await Promise.all(pending);assert.ok(receipt);
+    const confirm=createManagementConfirmHandler({now:()=>201});
+    assert.equal((await confirm(context(request('/api/gear/management/confirm',{token:receipt.token})))).status,400);
+    response=await confirm(context(request('/api/gear/management/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);
+    const cookie=response.headers.get('set-cookie');assert.equal(cookie,`__Host-gear_session=${cookie.split('=')[1].split(';')[0]}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MANAGEMENT_TTL_MS/1000}`);
+    const raw=cookie.match(/^__Host-gear_session=([a-f0-9]{64});/)[1],access=await response.json();assert.deepEqual(Object.keys(access).sort(),['csrf','expiresAt']);assert.equal(access.expiresAt,201+MANAGEMENT_TTL_MS);
+    assert.equal((await confirm(context(request('/api/gear/management/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}))).status,400);
+    const session=createManagementSessionHandler({now:()=>202});
+    response=await session(context(request('/api/gear/management/session',{}, {Cookie:`__Host-gear_session=${raw}`}),{GEAR_DB:db}));assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null);assert.deepEqual(await response.json(),access);
+    const logout=createManagementLogoutHandler({now:()=>203});
+    response=await logout(context(request('/api/gear/management/logout',{}, {Cookie:`__Host-gear_session=${raw}`,'X-Gear-CSRF':access.csrf}),{GEAR_DB:db}));assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),'__Host-gear_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');
+    assert.equal(await recoverManagementSession(db,raw,204),null);
+    assert.equal((await session(context(request('/api/gear/management/session',{}, {Cookie:`__Host-gear_session=${raw}`}),{GEAR_DB:db}))).status,401);
+  }finally{db.close();}
+});
+
+test('request boundary rejects wrong origin, content type, malformed and oversized bodies before adapters',async()=>{
+  let calls=0;const handlers=[
+    createManagementRecoveryHandler({issue:async()=>{calls++;return null;}}),
+    createManagementConfirmHandler({redeem:async()=>{calls++;return null;}}),
+    createManagementSessionHandler({recover:async()=>{calls++;return null;}}),
+    createManagementLogoutHandler({revoke:async()=>{calls++;return false;}}),
+  ];
+  const paths=['recovery','confirm','session','logout'];
+  for(let index=0;index<handlers.length;index++){
+    const handler=handlers[index],path=`/api/gear/management/${paths[index]}`,auth={Cookie:`__Host-gear_session=${SESSION}`,'X-Gear-CSRF':CSRF};
+    assert.equal((await handler(context(request(path,{}, {...auth,Origin:'https://example.test'})))).status,403);
+    assert.equal((await handler(context(request(path,{}, {...auth,'Sec-Fetch-Site':'cross-site'})))).status,403);
+    assert.equal((await handler(context(request(path,{}, {...auth,'Content-Type':'text/plain'})))).status,415);
+    assert.equal((await handler(context(request(path,'{',{...auth})))).status,400);
+    assert.equal((await handler(context(request(path,{value:'x'.repeat(1100)},{...auth})))).status,413);
+  }
+  assert.equal(calls,0);
+});
+
+test('session and logout reject missing, duplicate and lookalike cookies plus missing CSRF',async()=>{
+  let recovers=0,revokes=0;const session=createManagementSessionHandler({recover:async()=>{recovers++;return {csrf:CSRF,expiresAt:2};}}),logout=createManagementLogoutHandler({revoke:async()=>{revokes++;return true;}});
+  for(const Cookie of ['',`__Host-gear_session=${SESSION}; __Host-gear_session=${SESSION}`,`__Host-gear_session_extra=${SESSION}`]){
+    assert.equal((await session(context(request('/api/gear/management/session',{}, {Cookie})))).status,401);
+    assert.equal((await logout(context(request('/api/gear/management/logout',{}, {Cookie,'X-Gear-CSRF':CSRF})))).status,401);
+  }
+  assert.equal((await logout(context(request('/api/gear/management/logout',{}, {Cookie:`__Host-gear_session=${SESSION}`})))).status,403);
+  const stale=await createManagementLogoutHandler({revoke:async()=>false})(context(request('/api/gear/management/logout',{}, {Cookie:`__Host-gear_session=${SESSION}`,'X-Gear-CSRF':CSRF})));
+  assert.equal(stale.status,401);assert.equal(stale.headers.get('set-cookie'),'__Host-gear_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');
+  assert.equal(recovers,0);assert.equal(revokes,0);
+});
+
+test('missing bindings and private adapter exceptions produce generic responses',async()=>{
+  const routeCases=[
+    [createManagementRecoveryHandler(),request('/api/gear/management/recovery',{email:sample.email})],
+    [createManagementConfirmHandler(),request('/api/gear/management/confirm',{token:TOKEN,confirm:true})],
+    [createManagementSessionHandler(),request('/api/gear/management/session',{}, {Cookie:`__Host-gear_session=${SESSION}`})],
+    [createManagementLogoutHandler(),request('/api/gear/management/logout',{}, {Cookie:`__Host-gear_session=${SESSION}`,'X-Gear-CSRF':CSRF})],
+  ];
+  for(const [handler,value] of routeCases){const response=await handler(context(value,{}));assert.equal(response.status,503);assert.equal((await response.text()).includes('GEAR_DB'),false);}
+  const throwing=[
+    [createManagementRecoveryHandler({issue:async()=>{throw new Error('private issue detail');}}),request('/api/gear/management/recovery',{email:sample.email})],
+    [createManagementConfirmHandler({redeem:async()=>{throw new Error('private redeem detail');}}),request('/api/gear/management/confirm',{token:TOKEN,confirm:true})],
+    [createManagementSessionHandler({recover:async()=>{throw new Error('private recover detail');}}),request('/api/gear/management/session',{}, {Cookie:`__Host-gear_session=${SESSION}`})],
+    [createManagementLogoutHandler({revoke:async()=>{throw new Error('private revoke detail');}}),request('/api/gear/management/logout',{}, {Cookie:`__Host-gear_session=${SESSION}`,'X-Gear-CSRF':CSRF})],
+  ];
+  for(const [handler,value] of throwing){const response=await handler(context(value));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);}
+});
+
+test('Pages exposes only POST handlers so scanners cannot redeem or mutate with GET',()=>{
+  for(const route of [recoveryRoute,confirmRoute,sessionRoute,logoutRoute])assert.deepEqual(Object.keys(route).filter(key=>key.startsWith('onRequest')),['onRequestPost']);
+});

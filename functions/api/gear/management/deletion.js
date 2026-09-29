@@ -1,51 +1,14 @@
 import {changeSellerDeletion,validateSellerDeletionAction} from '../../../../lib/gear-seller-deletion.mjs';
-
-const PUBLIC_ORIGIN='https://postandin.com';
-const BODY_MAX_BYTES=1024;
-const HEADERS={
-  'Content-Type':'application/json; charset=UTF-8',
-  'Cache-Control':'no-store',
-  'Referrer-Policy':'no-referrer',
-  'X-Content-Type-Options':'nosniff',
-};
-const json=(status,body)=>new Response(JSON.stringify(body),{status,headers:HEADERS});
-
-function sessionCookie(request){
-  const name='__Host-gear_session';
-  const values=(request.headers.get('cookie')??'').split(';').map(value=>value.trim()).filter(value=>value.slice(0,value.indexOf('='))===name);
-  return values.length===1?values[0].slice(name.length+1):'';
-}
-
-async function requestJson(request){
-  const declared=Number(request.headers.get('content-length'));
-  if(Number.isFinite(declared)&&declared>BODY_MAX_BYTES)return {tooLarge:true};
-  if(!request.body)return {invalid:true};
-  const reader=request.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});
-  let total=0,text='';
-  try{
-    while(true){
-      const {done,value}=await reader.read();if(done)break;
-      total+=value.byteLength;
-      if(total>BODY_MAX_BYTES){try{await reader.cancel();}catch{}return {tooLarge:true};}
-      text+=decoder.decode(value,{stream:true});
-    }
-    text+=decoder.decode();
-  }catch{return {invalid:true};}
-  finally{reader.releaseLock();}
-  try{return {value:JSON.parse(text)};}catch{return {invalid:true};}
-}
+import {managementJson as json,managementRequestError,managementRequestJson,managementSession} from '../../../../lib/gear-management-http.mjs';
 
 export function createSellerDeletionHandler({change=changeSellerDeletion,now=Date.now}={}){
   return async function sellerDeletion(context){
-    let url;
-    try{url=new URL(context.request.url);}catch{return json(403,{error:'Request not allowed.'});}
-    if(url.origin!==PUBLIC_ORIGIN||context.request.headers.get('origin')!==PUBLIC_ORIGIN||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
-    if(context.request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')return json(415,{error:'Use JSON.'});
-    const session=sessionCookie(context.request);
+    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const session=managementSession(context.request);
     if(!session)return json(401,{error:'Access unavailable.'});
     const csrf=context.request.headers.get('x-gear-csrf')??'';
     if(!csrf)return json(403,{error:'Request not allowed.'});
-    const body=await requestJson(context.request);
+    const body=await managementRequestJson(context.request);
     if(body.tooLarge)return json(413,{error:'Request too large.'});
     if(body.invalid)return json(400,{error:'Invalid request.'});
     const input=validateSellerDeletionAction(body.value);

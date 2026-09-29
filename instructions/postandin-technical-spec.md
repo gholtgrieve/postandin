@@ -1186,8 +1186,12 @@ provisioned.
 Source-only migration 9 adds production `gear_deletions` recovery markers and a
 minimal `gear_deletion_ledger`. An exact-origin, cookie/CSRF-authenticated Pages
 route transactionally deletes and recovers seller listings, while owner restore
-fails whenever the active marker exists. No production session issuance, purge
-job or backup reconciliation is implemented yet; see
+fails whenever the active marker exists. Source-only production management routes
+request a generic recovery email, explicitly redeem a one-use token into a
+host-only session, recover the derived CSRF value after reload without renewal,
+and revoke the session on logout. The Resend adapter is covered with mocked HTTP;
+no key, real delivery, UI, edge rate limit, purge job or backup reconciliation is
+configured or deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
