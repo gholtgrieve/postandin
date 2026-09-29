@@ -72,6 +72,11 @@ an Access-authenticated, read-only open-report queue. It adds no public report
 submission or moderation writes; see
 [instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
 
+The source-only public report route requires exact-origin JSON, server-validated
+Turnstile and a currently public listing before atomically inserting the bounded
+report fields. Its widget, secret and edge rate-limit rule are not configured;
+see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 
@@ -85,7 +90,7 @@ but the UI is not connected and no remote binding, database, API deployment or
 other cloud resource exists. The separate owner-only
 `GET /api/gear/admin/reports` route reads the proposed moderation queue only
 after Access verification. Run the focused route and storage tests with
-`node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
+`node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
 
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved

@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
+import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {issueLocalManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -57,6 +58,11 @@ try{
  console.log('PASS: migration batch failure rolls schema changes back.');
  console.log('PASS: all eight migrations and idempotent test ledger; D1 RETURNING/meta.changes.');
  const id=await publish(db),access=await login(db);
+ assert.equal(await submitReport(db,{listingId:id,reason:'Prohibited item'},149,'00000000-0000-4000-8000-000000000149'),true);
+ await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(id).run();
+ assert.equal(await submitReport(db,{listingId:id,reason:'Other concern'},150,'00000000-0000-4000-8000-000000000150'),false);
+ assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_reports WHERE listing_id=?').bind(id).first()).n,1);
+ await db.prepare("UPDATE gear_listings SET status='available' WHERE id=?").bind(id).run();
  await db.prepare('INSERT INTO gear_reports(id,listing_id,listing_title,reason,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),id,'Bag snapshot','Other concern',150).run();
  assert.ok(await db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='gear_reports_listing'").first());
  await db.prepare(`WITH RECURSIVE sequence(value) AS (
@@ -65,7 +71,7 @@ try{
   SELECT printf('workerd-%03d',value),?,'Bag snapshot','Other concern',150+value FROM sequence`).bind(id).run();
  const moderationResult=await readOpenModerationReports(db);
  assert.equal(moderationResult.reports.length,100);assert.equal(moderationResult.reports[0].listingId,id);assert.equal(moderationResult.truncated,true);assert.equal(JSON.stringify(moderationResult).includes(sample.email),false);
- console.log('PASS: indexed production moderation schema, bounded private projection and truncation signal via D1.');
+ console.log('PASS: atomic report acceptance/rejection, indexed moderation schema, bounded private projection and truncation signal via D1.');
  const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
  assert.equal(photo.position,0);assert.equal((await readHostedPhotos(db,id))[0].providerId,photo.providerId);
  assert.deepEqual(await recoverManagementSession(db,access.session,201),{csrf:access.csrf,expiresAt:access.expiresAt});

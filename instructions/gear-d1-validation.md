@@ -37,9 +37,9 @@ All nine check groups passed:
 2. All eight checked-in migrations apply to a fresh D1 database; the harness ledger
    makes repeated application a no-op. RETURNING and meta.changes have the expected
    shape, including a no-op update.
-3. The indexed production moderation tables and 101-row bounded private
-   open-report projection work through the actual D1 binding, signal truncation
-   and do not return seller email.
+3. Atomic public report insertion, the indexed production moderation tables and
+   101-row bounded private open-report projection work through the actual D1
+   binding, signal truncation and do not return seller email.
 4. Publication, immutable adult acknowledgement, hosted-photo metadata, public
    projection, session recovery, JSON club aggregation, guarded edits and
    relisting work with the D1 binding.
@@ -56,7 +56,7 @@ All nine check groups passed:
    data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
 9. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The current 116-test Gear Node suite also passes. No runtime compatibility changes
+The current 121-test Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.
 
 ## Limits and handoff

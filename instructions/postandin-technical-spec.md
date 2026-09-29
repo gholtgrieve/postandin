@@ -335,6 +335,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
     /gear/
       listings.js          → Source-only GET public Gear projection through the proposed
                               GEAR_DB D1 binding. UI not connected; binding not provisioned.
+      reports.js           → Source-only POST public report submission with exact-origin
+                              JSON, server-side Turnstile and atomic GEAR_DB eligibility.
       /admin/
         session.js         → Source-only GET Cloudflare Access authentication probe for
                               gear-admin.postandin.com. No moderation data or writes.
@@ -1159,8 +1161,19 @@ Source-only migration 8 adds constrained production `gear_reports`,
 touching `GEAR_DB`, then returns at most 100 newest open reports plus a truncation
 flag, with current listing review fields but no seller email/ID, acknowledgement
 evidence or image provider IDs. Public report submission and every moderation
-write remain unimplemented; see
+write remain separate; see
 [gear-production-moderation.md](gear-production-moderation.md).
+
+The source-only public `POST /api/gear/reports` route is described in
+[gear-production-reports.md](gear-production-reports.md). It accepts only
+exact-origin JSON from `https://postandin.com`, bounds the body, validates a
+single-use Turnstile token server-side for hostname `postandin.com` and action
+`gear-report`, then uses one `INSERT ... SELECT` statement to recheck current
+listing/seller verification, public status and strict future expiry while
+inserting the report. It sends no reporter IP to Siteverify and stores no
+reporter identity. The static form is not connected, the site key and secret do
+not exist in the repo, and the required Cloudflare edge rate-limit rule is not
+provisioned.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
