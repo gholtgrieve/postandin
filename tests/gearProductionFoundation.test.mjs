@@ -52,7 +52,7 @@ test('production migrations preserve legacy listings without inventing acknowled
   try{
     const db=openLocalDatabase(path);
     try{
-      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,8);
+      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,9);
       const acknowledgement=db.sqlite.prepare("SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id='legacy'").get();
       assert.equal(acknowledgement.adult_acknowledged_at,null);
       assert.equal(acknowledgement.disclosure_version,null);
@@ -60,6 +60,23 @@ test('production migrations preserve legacy listings without inventing acknowled
       assert.equal(db.sqlite.prepare('SELECT disclosure_version FROM gear_listings WHERE id=?').get(created.id).disclosure_version,ADULT_ACKNOWLEDGEMENT_VERSION);
     }finally{db.close();}
   }finally{rmSync(dir,{recursive:true});}
+});
+
+test('production seller deletion marker is constrained and its purge ledger survives listing deletion',async()=>{
+  const db=openLocalDatabase();
+  try{
+    const {id}=await createDraft(db,input,100);
+    assert.ok(db.sqlite.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='gear_deletions_due'").get());
+    assert.ok(db.sqlite.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='gear_deletion_ledger_retention'").get());
+    assert.throws(()=>db.sqlite.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').run(id,'unverified',200,300),/CHECK constraint/);
+    assert.throws(()=>db.sqlite.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').run(id,'closed',200,200),/CHECK constraint/);
+    db.sqlite.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').run(id,'closed',200,300);
+    assert.throws(()=>db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,?)').run(id,200,300,299),/CHECK constraint/);
+    db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').run(id,200,300);
+    db.sqlite.prepare('DELETE FROM gear_listings WHERE id=?').run(id);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_deletions').get().n,0);
+    assert.deepEqual({...db.sqlite.prepare('SELECT * FROM gear_deletion_ledger').get()},{listing_id:id,deleted_at:200,purge_at:300,purged_at:null});
+  }finally{db.close();}
 });
 
 test('hosted photo metadata is ordered, capped, private and cascade-deleted',async()=>{

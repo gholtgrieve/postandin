@@ -358,7 +358,7 @@ was requested.
 
 Committed locally as `9e20410` (`Add production Gear report submission`).
 
-### Production moderation actions — current, uncommitted
+### Production moderation actions — committed
 
 `POST /api/gear/admin/actions` now provides the source-only owner write boundary
 for `dismiss`, `remove` and `restore`. It requires the exact admin URL and Origin,
@@ -380,11 +380,31 @@ all three actions and injected audit-failure rollback against actual D1. No owne
 UI was connected and no remote resource or policy was changed. See
 `gear-production-moderation.md`.
 
-The next bounded increment after review should add the production seller-deletion
-marker and enforce it during owner restore before connecting the production owner
-UI or provisioning the admin hostname, Access values and D1 binding. Seller
-deletion/recovery, production photos/mail, scheduled cleanup/failure
-notifications and remote disaster recovery remain launch requirements.
+Owner-authorized Claude review found 0 blocker, 0 high, 1 medium and 3 low
+issues. The actor-source regression, post-commit diagnostic wording,
+seller-deletion provisioning gate and documentation drift were fixed. Focused
+re-review found 0 issues at every severity and concluded **ready to commit**.
+Committed locally as `26cb8a2` (`Add production Gear moderation actions`).
+
+### Production seller-deletion foundation — current, uncommitted
+
+Migration 9 adds the production `gear_deletions` active recovery marker and the
+independent minimal `gear_deletion_ledger`. Both use constrained millisecond
+timestamps; the active marker cascades with a purged listing while the ledger is
+retained for future anti-resurrection and backup reconciliation. Due-time indexes
+support later cleanup without adding a scheduler in this slice.
+
+Owner moderation restore now fails with no writes while an active seller-deletion
+marker exists. Tests cover schema constraints, marker cascade, ledger survival,
+unchanged moderation state while blocked, and successful owner restoration only
+after simulated seller recovery removes the marker. The workerd harness exercises
+the same guard through actual D1. See `gear-production-deletions.md`.
+
+No seller route, permanent purge, remote cleanup or restore reconciliation is
+implemented by this slice. The next bounded increment after review should add
+authenticated production seller deletion/recovery writes against this state.
+Production photos/mail, scheduled cleanup/failure notifications and remote
+disaster recovery remain launch requirements.
 
 No push/deployment.
 

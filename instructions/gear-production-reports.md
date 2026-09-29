@@ -59,7 +59,7 @@ separately authorize and configure:
 3. a Cloudflare edge rate-limit rule scoped to the report endpoint, verified to
    challenge or block abusive clients before they consume Worker/Siteverify/D1
    work;
-4. migration 8 and the `GEAR_DB` binding under the separately reviewed
+4. migrations 8–9 and the `GEAR_DB` binding under the separately reviewed
    deployment/rollback procedure.
 
 Turnstile is necessary but does not replace rate limiting. No reporter IP is
@@ -85,5 +85,5 @@ configuration/hostname/action diagnostics, timeout, redirect/network/service
 and malformed/oversized response failures, real route-verifier wiring, missing
 D1, safe eligibility and database failures, and security headers. Tests use temporary databases, fictitious
 identities and mocked Siteverify responses; they make no real network call.
-The existing eight-migration workerd harness also exercises successful and
+The existing nine-migration workerd harness also exercises successful and
 ineligible atomic report insertion through an actual local D1 binding.

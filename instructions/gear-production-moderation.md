@@ -72,12 +72,11 @@ check is only a diagnostic alarm for a future broken invariant; D1 has already
 committed when it runs. Public responses never contain the actor, report reason,
 owner reason, SQL or exception details.
 
-Production seller deletion and recovery are not implemented yet. Before launch,
-their durable deletion marker must be added to the restore eligibility check so
-owner restoration cannot bypass seller deletion. Do not provision the admin
-hostname, Access values or `GEAR_DB` binding—which would expose this action route
-even without an owner UI—until that lifecycle integration and retention cleanup
-are complete.
+Production seller deletion and recovery routes are not implemented yet. Migration
+9 now supplies the durable deletion marker, and owner restore checks it so seller
+deletion cannot be bypassed. Do not provision the admin hostname and Access
+values with `GEAR_DB`—which would expose this action route even without an owner
+UI—until authenticated seller lifecycle and retention cleanup are complete.
 
 Merging the source alone does not make the routes usable: on ordinary Pages hosts
 the Access verifier denies it, and the dedicated admin hostname, Access policy,
@@ -104,7 +103,7 @@ headers, missing configuration/binding and safe query failure. Focused action
 tests cover all transitions, replay and eligibility conflicts, unchanged
 expiry/report evidence, audit rollback, stale-duplicate rollback, exact Origin,
 bounded/malformed JSON, Access-before-write behavior, verified actor selection,
-generic failures and response headers. The eight-migration D1 harness passes on
+generic failures and response headers. The nine-migration D1 harness passes on
 Wrangler 4.107.0, Miniflare 4.20260701.0 and workerd 1.20260701.1, including
 actual D1 dismiss/remove/restore and injected audit rollback as well as
 moderation insert/read, the listing index and 101-row truncation signal, idempotent migration ledger,

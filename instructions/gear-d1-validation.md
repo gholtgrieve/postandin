@@ -34,11 +34,12 @@ SIGINT/SIGTERM. Only sample fixtures are used; raw credentials aren't printed.
 All nine check groups passed:
 
 1. Failed migration batch rolls schema changes back.
-2. All eight checked-in migrations apply to a fresh D1 database; the harness ledger
+2. All nine checked-in migrations apply to a fresh D1 database; the harness ledger
    makes repeated application a no-op. RETURNING and meta.changes have the expected
    shape, including a no-op update.
-3. Atomic public report insertion, owner dismiss/remove/restore and injected
-   moderation-audit failure rollback work through the actual D1 binding. The
+3. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
+   blocking of owner restore and injected moderation-audit failure rollback work
+   through the actual D1 binding. The
    indexed production moderation tables and 101-row bounded private open-report
    projection signal truncation and do not return seller email.
 4. Publication, immutable adult acknowledgement, hosted-photo metadata, public
@@ -53,11 +54,11 @@ All nine check groups passed:
 7. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-8. A populated version-6 database upgrades through version 8 with listing/session
+8. A populated version-6 database upgrades through version 9 with listing/session
    data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
 9. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
-The current 128-test Gear Node suite also passes. No runtime compatibility changes
+The current 129-test Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.
 
 ## Limits and handoff

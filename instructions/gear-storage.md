@@ -26,7 +26,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All eight migrations, the acknowledgement
+Local tests exercise real SQLite. All nine migrations, the acknowledgement
 write, photo metadata adapter and private moderation projection also pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
@@ -275,7 +275,7 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all eight migrations, populated version-6 upgrade, persistence,
+Current D1 evidence: all nine migrations, populated version-6 upgrade, persistence,
 transaction/error semantics, moderation read projection and core storage flows
 passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and

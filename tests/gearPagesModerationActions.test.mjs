@@ -38,12 +38,24 @@ test('production moderation removes and restores without changing expiry or repo
     assert.deepEqual({...db.sqlite.prepare('SELECT previous_status,removed_at,reason FROM gear_removals WHERE listing_id=?').get(id)},{previous_status:'pending',removed_at:200,reason:'Policy violation'});
     assert.equal(db.sqlite.prepare('SELECT resolution FROM gear_reports WHERE id=?').get(reportId).resolution,'removed');
     assert.equal(await moderateListing(db,action('remove',reportId,'Policy violation'),201),false);
-    assert.equal(await moderateListing(db,action('restore',id,'Reviewed and eligible'),202),true);
+    const staleDuplicate=await publish(db,{title:sample.title},202);
+    db.sqlite.prepare('UPDATE gear_listings SET expires_at=? WHERE id=?').run(203,staleDuplicate);
+    db.sqlite.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').run(id,'removed',202,203);
+    db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').run(id,202,203);
+    assert.equal(await moderateListing(db,action('restore',id,'Blocked by overdue seller deletion'),204),false);
+    assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'removed');
+    assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(staleDuplicate).status,'available');
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_removals').get().n,1);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_moderation_history').get().n,1);
+    db.sqlite.prepare('DELETE FROM gear_deletions WHERE listing_id=?').run(id);
+    assert.equal(await moderateListing(db,action('restore',id,'Reviewed and eligible'),205),true);
     assert.deepEqual({...db.sqlite.prepare('SELECT status,expires_at FROM gear_listings WHERE id=?').get(id)},{status:'pending',expires_at:expiry});
+    assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(staleDuplicate).status,'expired');
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_deletion_ledger WHERE listing_id=?').get(id).n,1);
     assert.equal(db.sqlite.prepare('SELECT * FROM gear_removals WHERE listing_id=?').get(id),undefined);
     assert.equal(db.sqlite.prepare('SELECT resolution FROM gear_reports WHERE id=?').get(reportId).resolution,'removed');
     assert.deepEqual(db.sqlite.prepare('SELECT action FROM gear_moderation_history ORDER BY id').all().map(row=>row.action),['remove','restore']);
-    assert.equal(await moderateListing(db,action('restore',id,'Reviewed and eligible'),203),false);
+    assert.equal(await moderateListing(db,action('restore',id,'Reviewed and eligible'),206),false);
   }finally{db.close();}
 });
 

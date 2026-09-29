@@ -1183,6 +1183,12 @@ reporter identity. The static form is not connected, the site key and secret do
 not exist in the repo, and the required Cloudflare edge rate-limit rule is not
 provisioned.
 
+Source-only migration 9 adds production `gear_deletions` recovery markers and a
+minimal `gear_deletion_ledger`. Owner moderation restore now fails while an active
+seller-deletion marker exists. No production seller deletion/recovery route,
+purge job or backup reconciliation is implemented yet; see
+[gear-production-deletions.md](gear-production-deletions.md).
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,
