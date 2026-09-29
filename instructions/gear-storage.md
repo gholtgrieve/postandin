@@ -169,12 +169,17 @@ records metadata. The acknowledgement time must equal the listing creation time,
 and migration 7 recognizes only `gear-adult-v1`; a changed disclosure requires a
 new migration as well as a new application constant.
 
-Production Images integration must reconcile the remote object and D1 metadata
-on every failure. If Direct Creator Upload succeeds but metadata insertion returns
-NULL or throws, the route must delete that new object or enqueue an idempotent
-deletion. At permanent listing purge, delete each Images object by `provider_id`
+Production Images integration must reconcile the remote objects and D1 metadata
+on every failure. Direct Creator Upload creates only a private quarantine; after
+trusted sanitization creates the replacement, a failed metadata insertion must
+delete or enqueue both unneeded objects. At permanent listing purge, delete each
+Images object by `provider_id`
 before deleting the listing row, or first persist those IDs in a durable deletion
 outbox; a cascading D1 delete alone would discard the only cleanup reference.
+The sanitized object records its quarantine provider ID as fixed metadata. Daily
+maintenance must also list sanitized Gear objects and delete, after a grace
+period, any object absent from both `gear_photos` and an in-flight finalization
+record; this covers a provider commit followed by an exception or Worker loss.
 Retries and failure/recovery alerts belong to the maintenance Worker. These remote
 operations and their tests are not implemented in this source-only increment.
 Photo insertion chooses the lowest free position, so a future removal operation

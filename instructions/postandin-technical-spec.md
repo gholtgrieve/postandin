@@ -1208,6 +1208,21 @@ KV, secret, cron or Worker is provisioned or deployed. Remote encrypted backup
 and tested disaster recovery remain separate launch gates; see
 [gear-production-maintenance.md](gear-production-maintenance.md).
 
+The source-only production photo adapter uses a ten-minute Direct Creator Upload
+as a private, unattached quarantine. Finalization downloads and bounds the actual
+bytes, requires Cloudflare Images to decode and scale down without upscaling,
+requests a still WebP, and independently rejects metadata/animation/unknown
+chunks, malformed ordering or output beyond the expected 1600-pixel scale-down.
+Only verified, stream-bounded output is uploaded as a new private hosted image,
+with the quarantine ID recorded as a non-personal reconciliation key; the
+quarantine is deleted or returned as a durable cleanup reference. Because Pages
+Functions have no Images binding, a dedicated Worker reached by service binding
+is required after pinning a compatible toolchain. Authenticated quarantine
+ownership, D1 attachment/removal/reorder routes, abandoned-quarantine and
+unreferenced-sanitized-image reconciliation, and signed URL projections remain
+the next slice; see
+[gear-production-photos.md](gear-production-photos.md).
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,

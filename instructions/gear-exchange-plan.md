@@ -36,6 +36,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `b73385e` | Production seller-deletion foundation |
 | `6bed4ae` | Production seller deletion/recovery writes |
 | `d7da481` | Production seller management sessions |
+| `2944ffb` | Production scheduled maintenance |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -472,7 +473,7 @@ Node adapter test; no code changed after the clear verdict.
 
 Committed locally as `d7da481` (`Add production Gear management sessions`).
 
-### Production scheduled maintenance — current, uncommitted
+### Production scheduled maintenance — committed
 
 Migration 10 adds a durable hosted-photo deletion outbox. Production cleanup
 copies every provider ID into that outbox in the same D1 batch that permanently
@@ -512,11 +513,43 @@ concluded ready to merge. Both lows were accepted: an all-failed image page now
 stops that drain instead of repeatedly cycling the same rows, and an empty queue
 can be confirmed inside the five-minute reserve without creating a false backlog.
 
-Remote encrypted backup, restore reconciliation, photo uploads and buyer-contact
-delivery remain separate launch requirements.
+Remote encrypted backup, restore reconciliation, production photo routes and
+buyer-contact delivery remain separate launch requirements.
 
 All 167 Gear tests, all ten workerd/D1 groups, JavaScript syntax checks and
 `git diff --check` pass after the final fixes. No deployment has occurred.
+
+Committed locally as `2944ffb` (`Add production Gear scheduled maintenance`).
+
+### Production photo sanitization/upload — current, uncommitted
+
+`lib/gear-image-upload.mjs` implements the owner-approved private quarantine and
+sanitize flow. It issues a ten-minute signed-only Direct Creator Upload, reads
+back the actual private bytes, enforces 5 MiB/24 MP/12,000-side input bounds,
+uses Cloudflare decode and still-WebP scale-down to a 1600-pixel box, and verifies
+the returned RIFF container structure, safe feature flags, expected scale-down
+dimensions and absence of metadata, animation or unknown chunks.
+Only verified output (at most 10,000,000 bytes) is uploaded as a new private
+image with its quarantine ID as a non-personal reconciliation key. The original
+quarantine is deleted, with failed cleanup IDs exposed only for durable route
+compensation. This refines the earlier Direct Creator Upload
+decision: the direct object is temporary quarantine, never the published image.
+
+Twelve mocked-binding tests cover upload issuance, response validation, streamed
+decode input, exact transformed bytes, byte/dimension bounds, container rejection,
+lossy/lossless/alpha acceptance, quarantine gates, generic failures, private
+upload enforcement and cleanup compensation. The
+offline Miniflare transform did not complete a disposable local fixture, so the
+real Images transform/upload path remains an isolated-staging check rather than
+claimed local evidence. No route, binding, resource or deployment was added.
+
+Next within this area: pin a toolchain that supports hosted Direct Creator Upload;
+add a dedicated Images Worker reached through a Pages service binding; implement
+management-authenticated quarantine ownership and attachment/removal/reorder;
+reconcile abandoned quarantines and unreferenced sanitized images; compensate D1
+failures through immediate delete or the durable deletion outbox; and project
+short-lived signed URLs. `pending` and `unavailable` finalization attempts remain
+retryable and do not consume quarantine ownership.
 
 No push/deployment.
 
@@ -528,7 +561,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs
 git diff --check
 ```
 
@@ -572,7 +605,8 @@ Claude pass before commit.
 Connected-preview integration now sorts by cents and restores management focus.
 `offerFields` assumes validated browser input; production storage additionally
 uses `validateDraft`. Persistent local management photos are implemented;
-production photo storage remains future work.
+the trusted production sanitizer/upload foundation now exists, while attachment,
+delivery and management routes remain future work.
 
 Local D1 batch/SQL checks pass; see `gear-d1-validation.md`. Remaining
 integration/launch checks: remote D1 and deployed
