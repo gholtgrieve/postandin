@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
+import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
 import {issueLocalManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -42,9 +43,9 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueLocalManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,7,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,8,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:'export default {fetch(){return new Response(null,{status:404})}}',compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp};
  mf=new Miniflare(runtimeOptions);
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
@@ -54,8 +55,17 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all seven migrations and idempotent test ledger; D1 RETURNING/meta.changes.');
+ console.log('PASS: all eight migrations and idempotent test ledger; D1 RETURNING/meta.changes.');
  const id=await publish(db),access=await login(db);
+ await db.prepare('INSERT INTO gear_reports(id,listing_id,listing_title,reason,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),id,'Bag snapshot','Other concern',150).run();
+ assert.ok(await db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='gear_reports_listing'").first());
+ await db.prepare(`WITH RECURSIVE sequence(value) AS (
+   VALUES(1) UNION ALL SELECT value+1 FROM sequence WHERE value<100
+  ) INSERT INTO gear_reports(id,listing_id,listing_title,reason,created_at)
+  SELECT printf('workerd-%03d',value),?,'Bag snapshot','Other concern',150+value FROM sequence`).bind(id).run();
+ const moderationResult=await readOpenModerationReports(db);
+ assert.equal(moderationResult.reports.length,100);assert.equal(moderationResult.reports[0].listingId,id);assert.equal(moderationResult.truncated,true);assert.equal(JSON.stringify(moderationResult).includes(sample.email),false);
+ console.log('PASS: indexed production moderation schema, bounded private projection and truncation signal via D1.');
  const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
  assert.equal(photo.position,0);assert.equal((await readHostedPhotos(db,id))[0].providerId,photo.providerId);
  assert.deepEqual(await recoverManagementSession(db,access.session,201),{csrf:access.csrf,expiresAt:access.expiresAt});
@@ -121,7 +131,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades to 7 with legacy acknowledgement and listing/session data preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 8 with legacy acknowledgement and listing/session data preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

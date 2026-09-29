@@ -67,6 +67,11 @@ The source-only production owner boundary validates Cloudflare Access JWTs with
 native Web Crypto and an environment-provided exact allowlist. Nothing is
 provisioned or deployed; see [instructions/gear-access.md](instructions/gear-access.md).
 
+The source-only production moderation foundation adds constrained D1 tables and
+an Access-authenticated, read-only open-report queue. It adds no public report
+submission or moderation writes; see
+[instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
+
 An opt-in connected HTTPS preview is documented in
 [instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
 
@@ -77,8 +82,10 @@ are implemented separately from the preview;
 see [local storage instructions](instructions/gear-storage.md). A source-only
 `GET /api/gear/listings` Pages Function now exercises the public D1 projection,
 but the UI is not connected and no remote binding, database, API deployment or
-other cloud resource exists. Run the focused route and storage tests with
-`node --test tests/gearPagesListings.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
+other cloud resource exists. The separate owner-only
+`GET /api/gear/admin/reports` route reads the proposed moderation queue only
+after Access verification. Run the focused route and storage tests with
+`node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
 
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved

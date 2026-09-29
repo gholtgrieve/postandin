@@ -34,7 +34,7 @@ test('new drafts record immutable adult acknowledgement evidence',async()=>{
   }finally{db.close();}
 });
 
-test('migration 7 preserves legacy listings without inventing acknowledgement',async()=>{
+test('production migrations preserve legacy listings without inventing acknowledgement',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'gear-v6-')),path=join(dir,'db.sqlite');
   const legacy=new DatabaseSync(path);
   try{
@@ -52,7 +52,7 @@ test('migration 7 preserves legacy listings without inventing acknowledgement',a
   try{
     const db=openLocalDatabase(path);
     try{
-      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,7);
+      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,8);
       const acknowledgement=db.sqlite.prepare("SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id='legacy'").get();
       assert.equal(acknowledgement.adult_acknowledged_at,null);
       assert.equal(acknowledgement.disclosure_version,null);

@@ -338,6 +338,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
       /admin/
         session.js         → Source-only GET Cloudflare Access authentication probe for
                               gear-admin.postandin.com. No moderation data or writes.
+        reports.js         → Source-only Access-authenticated GET of at most 100 open
+                              moderation reports from GEAR_DB. No writes or seller email.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -1148,8 +1150,17 @@ The source-only production owner boundary is described in
 [gear-access.md](gear-access.md). It validates the Access assertion signature,
 issuer, audience, time claims, exact owner allowlist and admin host using native
 Web Crypto. The probe route returns only authentication state. No Access
-application, custom domain, environment value, moderation schema or action route
-is provisioned or deployed.
+application, custom domain, environment value or action route is provisioned or
+deployed. The separate source-only production schema follows.
+
+Source-only migration 8 adds constrained production `gear_reports`,
+`gear_removals` and `gear_moderation_history` tables. The owner-only
+`GET /api/gear/admin/reports` Pages Function verifies the Access assertion before
+touching `GEAR_DB`, then returns at most 100 newest open reports plus a truncation
+flag, with current listing review fields but no seller email/ID, acknowledgement
+evidence or image provider IDs. Public report submission and every moderation
+write remain unimplemented; see
+[gear-production-moderation.md](gear-production-moderation.md).
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

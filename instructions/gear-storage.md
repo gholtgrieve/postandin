@@ -18,7 +18,7 @@ add a deployed write route.
 - `lib/gear-photo-storage.mjs`: low-level D1 metadata writes and reads for
   Cloudflare Images identifiers. It performs no upload, authorization or URL signing.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–7 once and preserves records on reopening.
+  It applies migrations 1–8 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -26,9 +26,9 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All seven migrations, the acknowledgement write
-and the photo metadata adapter also pass the local workerd/D1 harness. This is not
-a remote D1 or deployed Pages test.
+Local tests exercise real SQLite. All eight migrations, the acknowledgement
+write, photo metadata adapter and private moderation projection also pass the
+local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
 ## Run locally
 
@@ -275,8 +275,9 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all seven migrations, populated version-6 upgrade, persistence,
-transaction/error semantics and core storage flows passed in local workerd. See
+Current D1 evidence: all eight migrations, populated version-6 upgrade, persistence,
+transaction/error semantics, moderation read projection and core storage flows
+passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and
 remaining limits. Earlier untested-D1 statements describe prior increments, not
 the current state.

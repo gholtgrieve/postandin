@@ -251,7 +251,7 @@ workerd harness and all 105 Gear tests pass. No second Claude review was request
 
 Committed locally as `150a984` (`Add Gear production storage foundation`).
 
-### Production owner authentication — current, uncommitted
+### Production owner authentication — committed
 
 The source-only owner boundary validates `Cf-Access-Jwt-Assertion` with native
 Web Crypto. It requires HTTPS on `gear-admin.postandin.com`, an RS256 signature
@@ -282,9 +282,45 @@ merged, the route exists on Pages but remains inert with a generic 403 on every
 host except the dedicated admin host until that domain and Access configuration
 are owner-authorized and supplied.
 
-The next bounded increment after review should add the production moderation
-schema and a read-only authenticated report queue. Keep moderation writes and
-the public report-submission route separate until that projection is reviewed.
+Committed locally as `2efd790` (`Add Cloudflare Access owner boundary for Gear`).
+
+### Production moderation read foundation — current, uncommitted
+
+Migration 8 adds production `gear_reports`, `gear_removals` and
+`gear_moderation_history` tables with bounded enum, status, reason and timestamp
+constraints. The names deliberately differ from the local-only moderation
+tables. Reports and active removals retain listing foreign keys so permanent
+purge must remove them first; history intentionally has no foreign key so its
+bounded audit record can survive until independent retention cleanup.
+
+`GET /api/gear/admin/reports` verifies the existing Cloudflare Access assertion
+before checking `GEAR_DB` or running a query. It returns at most the newest 100
+open reports with current listing review fields and a `truncated` flag when older
+open reports remain. The projection omits seller email/ID, duplicate keys,
+acknowledgement evidence and Cloudflare Images IDs.
+Missing auth/configuration/binding and database failures return generic no-store
+responses. The route is read-only: there is still no production report
+submission, moderation action, owner UI connection or remote cleanup.
+
+Focused tests cover migration constraints, ordering/capping, field privacy,
+auth-before-D1 behavior and generic failures. The eight-migration D1 harness
+passes on Wrangler 4.107.0 / Miniflare 4.20260701.0 / workerd 1.20260701.1,
+including the production moderation projection and populated version-6 upgrade.
+The complete Gear suite passes all 116 tests. See
+`gear-production-moderation.md`.
+
+Owner-authorized Claude review found 0 blocker, 0 high, 0 medium and 3 low
+issues, with a `Ready to commit` verdict. All three lows are addressed:
+`gear_reports.listing_id` is indexed before migration 8 is applied anywhere,
+the bounded queue signals truncation, and regression coverage proves Access
+denial happens before binding inspection or D1 work through both injected and
+real handler wiring. Claude could not run its workerd command because of its
+session permissions; Codex ran the documented harness successfully before and
+after these fixes.
+
+The next bounded increment after review should add the public report-submission
+write route with production-grade abuse controls, while keeping moderation
+actions and owner UI connection separate.
 
 No push/deployment. Production writes, photos, mail, owner identity, scheduled
 cleanup/failure notifications and remote disaster recovery remain launch
@@ -298,7 +334,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearProductionFoundation.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearProductionFoundation.test.mjs
 git diff --check
 ```
 
