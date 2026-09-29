@@ -320,7 +320,7 @@ after these fixes.
 
 Committed locally as `4d3b634` (`Add production Gear moderation read foundation`).
 
-### Production report submission — current, uncommitted
+### Production report submission — committed
 
 `POST /api/gear/reports` now provides the source-only public write boundary. It
 requires the exact `https://postandin.com` request URL and Origin, rejects
@@ -356,13 +356,37 @@ preview hosts are intentionally denied. All focused checks, the nine-group D1
 harness and all 121 Gear tests pass after these changes. No second Claude review
 was requested.
 
-The next bounded increment after review should add authenticated production
-moderation actions with atomic report resolution/removal/history writes. Keep
-the production owner UI connection separate until those actions are reviewed.
+Committed locally as `9e20410` (`Add production Gear report submission`).
 
-No push/deployment. Production writes, photos, mail, owner identity, scheduled
-cleanup/failure notifications and remote disaster recovery remain launch
-requirements.
+### Production moderation actions — current, uncommitted
+
+`POST /api/gear/admin/actions` now provides the source-only owner write boundary
+for `dismiss`, `remove` and `restore`. It requires the exact admin URL and Origin,
+bounded JSON and the existing Cloudflare Access identity before inspecting D1.
+The verified owner email, never a client-provided actor, is stored in bounded
+moderation history.
+
+Each accepted action runs as one D1 transaction. Dismiss preserves the listing;
+remove records prior available/pending state, removes the listing, resolves the
+report and writes history; restore preserves expiry and rechecks verification,
+quota and live duplicates while expiring only stale duplicate rows. Stale,
+ineligible and replayed actions make no changes. Audit or constraint failure
+rolls back all related writes. The post-batch result check is a diagnostic alarm
+only; all rollback claims refer to failures raised inside the D1 batch.
+
+Seven focused tests cover transitions, conflicts, rollback, request bounds,
+Access-before-D1 behavior and generic failures. The workerd harness exercises
+all three actions and injected audit-failure rollback against actual D1. No owner
+UI was connected and no remote resource or policy was changed. See
+`gear-production-moderation.md`.
+
+The next bounded increment after review should add the production seller-deletion
+marker and enforce it during owner restore before connecting the production owner
+UI or provisioning the admin hostname, Access values and D1 binding. Seller
+deletion/recovery, production photos/mail, scheduled cleanup/failure
+notifications and remote disaster recovery remain launch requirements.
+
+No push/deployment.
 
 ### Checks and local commands
 
@@ -372,7 +396,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearProductionFoundation.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearProductionFoundation.test.mjs
 git diff --check
 ```
 

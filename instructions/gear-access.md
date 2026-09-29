@@ -2,7 +2,8 @@
 
 Status: source-only and not deployed. No Cloudflare Access application, custom
 domain, environment value, owner identity or secret was configured by this
-increment. The production moderation schema and actions remain separate work.
+increment. Production moderation schema and action increments were added later;
+see `gear-production-moderation.md`.
 
 ## Boundary
 

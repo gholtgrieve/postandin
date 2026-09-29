@@ -342,6 +342,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               gear-admin.postandin.com. No moderation data or writes.
         reports.js         → Source-only Access-authenticated GET of at most 100 open
                               moderation reports from GEAR_DB. No writes or seller email.
+        actions.js         → Source-only Access-authenticated POST for exact-origin
+                              dismiss/remove/restore with transactional D1 history.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -1152,16 +1154,22 @@ The source-only production owner boundary is described in
 [gear-access.md](gear-access.md). It validates the Access assertion signature,
 issuer, audience, time claims, exact owner allowlist and admin host using native
 Web Crypto. The probe route returns only authentication state. No Access
-application, custom domain, environment value or action route is provisioned or
-deployed. The separate source-only production schema follows.
+application, custom domain or environment value is provisioned or deployed. The
+separate source-only production schema and action route follow.
 
 Source-only migration 8 adds constrained production `gear_reports`,
 `gear_removals` and `gear_moderation_history` tables. The owner-only
 `GET /api/gear/admin/reports` Pages Function verifies the Access assertion before
 touching `GEAR_DB`, then returns at most 100 newest open reports plus a truncation
 flag, with current listing review fields but no seller email/ID, acknowledgement
-evidence or image provider IDs. Public report submission and every moderation
-write remain separate; see
+evidence or image provider IDs. The source-only
+`POST /api/gear/admin/actions` route reuses the same Access identity, requires
+exact admin Origin and bounded JSON, and transactionally dismisses a report,
+removes its listing, or restores a removed listing while recording bounded owner
+history. Restore preserves the previous status and expiry and rechecks current
+verification, quota and duplicates. Production seller deletion is not yet
+implemented, so its future deletion marker must also block owner restore before
+launch. See
 [gear-production-moderation.md](gear-production-moderation.md).
 
 The source-only public `POST /api/gear/reports` route is described in
