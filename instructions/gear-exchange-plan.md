@@ -39,6 +39,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `2944ffb` | Production scheduled maintenance |
 | `e851788` | Private production photo sanitization foundation |
 | `cfbc2cc` | Owner-approved 25-megapixel Gear photo limit |
+| `b7002f5` | Durable production photo quarantine state |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -568,7 +569,7 @@ sanitization foundation`); the owner-approved pixel-limit follow-up was committe
 as `cfbc2cc` (`Raise Gear photo pixel limit`). No source from this package is
 deployed or imported by a production route.
 
-### Production photo quarantine state — current increment
+### Production photo quarantine state — committed
 
 Migration 11 and `lib/gear-photo-quarantine.mjs` add source-only D1 ownership and
 in-flight attachment state for private Direct Creator Upload quarantines. A
@@ -607,13 +608,52 @@ sanitized provider ID in both code and schema, with regression coverage. The
 post-verdict change is a narrow validation guard and does not alter transaction
 ordering.
 
-This remains below the network boundary. No route, Worker, binding, provider
-call or deployment is included. Next: connect it to a small dedicated Images
-Worker through a Pages service binding, with immediate/outbox compensation;
+Committed locally as `b7002f5` (`Add durable Gear photo quarantine state`). This
+remains below the network boundary. No route, Worker, binding, provider call or
+deployment is included. Next: connect it to a small dedicated Images Worker
+through a Pages service binding, with immediate/outbox compensation;
 then add removal/reorder, signed public projection, upload rate limits and
 maintenance reconciliation for both quarantine originals and sanitized objects.
 
 No push/deployment.
+
+### Dedicated Gear Images service Worker — current increment
+
+`gear-images/src/index.js` is a small service-binding-only Worker around the
+reviewed provider adapter. Its bounded internal JSON contract creates a private
+Direct Creator Upload, sanitizes one validated quarantine ID, or performs an
+idempotent compensation delete. It returns retryable `pending`/`unavailable`
+states distinctly, carries terminal cleanup IDs only to the calling Pages
+Function, uses generic public-safe failures and emits no provider IDs in logs.
+
+The inert `gear-images/wrangler.toml.example` disables workers.dev and preview
+URLs and declares only the Images binding. It has no route, service binding,
+account identifier, secret or deploy command. Pages endpoints and D1 coordination
+are deliberately the next slice; this Worker is not browser-facing.
+
+Mocked-binding tests cover method, JSON/body bounds, exact shapes, provider-state
+mapping, cleanup-reference preservation, generic failures and idempotent delete.
+The real entry module loads in current workerd and fails closed because the
+installed July 2026 runtime does not yet expose hosted Images management methods.
+Cloudflare documented `createDirectUpload()` in September 2026, so a newer pinned
+Wrangler/workerd must pass isolated staging before deployment. No real image was
+created, transformed or deleted.
+
+All 193 Gear tests, the eleven-migration workerd/D1 harness plus real Images
+entry loading/fail-closed check, JavaScript syntax checks and `git diff --check`
+pass before external review.
+
+Claude's initial review found 0 blocker, 0 high, 1 medium and 3 low findings.
+All were accepted: upload creation/config outages now return retryable 503 while
+terminal sanitize failures remain 422; compensation delete has a four-second
+deadline; cleanup IDs are routed directly to the durable outbox; and deployment
+and test documentation includes the new Worker. Focused re-review found 0 blocker,
+0 high, 0 medium and one documentation-only low, with a **Ready to commit**
+verdict. The final wording now states exactly which statuses are retryable and
+requires Pages to persist cleanup IDs even from create-time 503 responses. No
+behavioral code changed after the clear re-review. A final real-entry run caught
+and removed an unsupported numeric named export; the timeout remains an internal
+constant, and the corrected Worker loads in workerd.
 
 ### Checks and local commands
 
@@ -623,7 +663,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs
 git diff --check
 ```
 

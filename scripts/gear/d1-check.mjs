@@ -22,8 +22,8 @@ const require=createRequire(import.meta.url),wranglerRequire=createRequire(requi
 const {Miniflare}=wranglerRequire('miniflare');
 const {unstable_splitSqlQuery:splitSQL}=require(modulePath);
 const temp=mkdtempSync(join(tmpdir(),'gear-d1-')),repoRoot=fileURLToPath(new URL('../../',import.meta.url));
-let mf,entryMf;let cleanupPromise;
-function cleanup(){return cleanupPromise??=Promise.all([mf?.dispose(),entryMf?.dispose()]).finally(()=>rmSync(temp,{recursive:true,force:true}));}
+let mf,entryMf,imagesMf;let cleanupPromise;
+function cleanup(){return cleanupPromise??=Promise.all([mf?.dispose(),entryMf?.dispose(),imagesMf?.dispose()]).finally(()=>rmSync(temp,{recursive:true,force:true}));}
 const interrupt=()=>{cleanup().catch(()=>console.error('D1 check cleanup failed.')).finally(()=>process.exit(130));};
 process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
 const files=readdirSync(new URL('../../migrations/gear/',import.meta.url)).filter(f=>/^\d+.*\.sql$/.test(f)).sort();
@@ -74,6 +74,10 @@ try{
  const entryDb=await entryMf.getD1Database('GEAR_DB');await migrate(entryDb);
  const scheduledResult=await (await entryMf.getWorker()).scheduled({cron:'0 11 * * *',scheduledTime:Date.now()});assert.equal(scheduledResult.outcome,'ok');
  console.log('PASS: actual scheduled-maintenance entry module loads and completes in workerd.');
+ imagesMf=new Miniflare({modules:true,scriptPath:join(repoRoot,'gear-images/src/index.js'),modulesRoot:repoRoot,compatibilityDate:'2026-07-01',host:'127.0.0.1',images:{binding:'IMAGES'},imagesPersist:join(temp,'service-images')});
+ const invalidImageRequest=await imagesMf.dispatchFetch('http://localhost/internal/gear/photos/sanitize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quarantineProviderId:'bad'})});
+ assert.equal(invalidImageRequest.status,503);
+ console.log('PASS: actual service-binding-only Gear Images entry module loads and fails closed because this local workerd lacks hosted Images management methods.');
  const deletionSchemaId=(await createDraft(db,{...sample,title:'Deletion schema'},140)).id;
  await assert.rejects(db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(deletionSchemaId,'unverified',141,142).run());
  await assert.rejects(db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(deletionSchemaId,'closed',141,141).run());

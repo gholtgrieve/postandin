@@ -256,6 +256,8 @@ path together.
   directory when its code/config or imported `lib/` runtime changes.
 - `gear-maintenance/` is a separate scheduled Worker and requires its own
   completed config, reviewed migration/bindings and explicit `wrangler deploy`.
+- `gear-images/` is a separate service-binding-only Worker and requires its own
+  reviewed Images binding, isolated staging check and explicit `wrangler deploy`.
 - Never infer a Worker deployment from a Git push; verify each release path.
 
 ---

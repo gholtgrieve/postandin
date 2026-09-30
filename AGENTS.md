@@ -67,9 +67,9 @@ continuation source; prior chat history is not required.
   run destructive/admin scripts unless the owner explicitly asks for that
   action.
 - A push to `main` deploys the Pages site automatically.
-- Changes under `group-do/`, `scheduler/` or `gear-maintenance/`, and changes to shared runtime files
-  imported by either Worker (for example `lib/activities.js`, `lib/scrapeAll.js`,
-  or `lib/scrapers/*.js` for the scheduler), also require a separate
+- Changes under `group-do/`, `scheduler/`, `gear-maintenance/` or `gear-images/`, and changes to shared runtime files
+  imported by those Workers (for example `lib/activities.js`, `lib/scrapeAll.js`,
+  or `lib/scrapers/*.js` for the scheduler and `lib/gear-image-*.mjs` for Gear Images), also require a separate
   `wrangler deploy` from the affected Worker's directory. Never imply that
   `git push` deployed those Workers.
 - Do not use real secrets for testing. If live credentials or production writes

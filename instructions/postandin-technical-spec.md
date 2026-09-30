@@ -392,6 +392,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 /gear-maintenance/          → Separate, scheduled-only Gear cleanup Worker. Source-only until
                               its D1, Images, state-KV and alert bindings are provisioned after
                               explicit launch approval; deployed independently with Wrangler.
+/gear-images/               → Separate, service-binding-only Gear image-management Worker.
+                              Source-only and non-public; Pages upload/finalize routes will call
+                              it after an isolated-staging toolchain check and launch approval.
 /scripts/
   audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
                               Drop-in Hockey, and Public Skate terminology across
@@ -407,7 +410,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   admin-purge.js           → Local-only destructive-operation script; backs up before deleting
 ```
 
-**Independent deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/`, `/scheduler/` or `/gear-maintenance/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches one of those Workers or shared runtime it imports needs both `git push` (so the source is versioned) **and** a manual `wrangler deploy` in the affected Worker's directory. For the schedule Worker, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`; Gear maintenance imports `lib/gear-maintenance.mjs`, `lib/gear-maintenance-alert.mjs`, `lib/gear-management-mail.mjs`, `lib/gear-validation.mjs` and `lib/gear-exchange.mjs`. Pushing alone will not change any Worker's live behavior.
+**Independent deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/`, `/scheduler/`, `/gear-maintenance/` or `/gear-images/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches one of those Workers or shared runtime it imports needs both `git push` (so the source is versioned) **and** a manual `wrangler deploy` in the affected Worker's directory. For the schedule Worker, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`; Gear maintenance imports `lib/gear-maintenance.mjs`, `lib/gear-maintenance-alert.mjs`, `lib/gear-management-mail.mjs`, `lib/gear-validation.mjs` and `lib/gear-exchange.mjs`; Gear Images imports `lib/gear-image-upload.mjs` and `lib/gear-image-provider-id.mjs`. Pushing alone will not change any Worker's live behavior.
 
 ---
 
@@ -1404,7 +1407,7 @@ workflow run and confirm it reports a match.
 - Do not make strategic, UX, or copy decisions unilaterally — scope those in chat first
 - Do not return `e.message`, `e.stack`, or other internal error details in any public-facing API response or rendered HTML — log server-side, return a generic message (see Error handling convention above)
 - Do not accept a client-supplied `memberId` for a group write without validating it against that group's actual member list first (see Cloudflare KV + Durable Objects above)
-- Do not run `git push` and assume it deployed everything — `/group-do/`, `/scheduler/` and `/gear-maintenance/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
+- Do not run `git push` and assume it deployed everything — `/group-do/`, `/scheduler/`, `/gear-maintenance/` and `/gear-images/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
 - Do not add a new import to a `stick-and-puck/modules/*.js` file without checking the dependency order in File Structure above first — `utils.js` and `state.js` are leaves with no imports of their own; `schedule.js` and `rsvp.js` deliberately avoid importing from each other (that's why `GOING_PERSON_SVG` lives in `utils.js` instead of `schedule.js`) to prevent a circular import. If a new feature seems to need module A to import from module B and B to import from A, that's a sign the shared piece belongs in a lower-level module instead, not a sign to force the circular import through.
 
 ---

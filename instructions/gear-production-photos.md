@@ -114,13 +114,26 @@ The claim and sanitized provider ID remain server-side and are never accepted
 from or returned to the browser as authority. The adapter and schema also reject
 using the original quarantine ID as the sanitized ID.
 
-The current local Wrangler/workerd/Miniflare build does not implement hosted
-Images `createDirectUpload`, despite the method being in the current Cloudflare
-binding documentation. The route increment must first pin a compatible toolchain
-and compatibility date. Cloudflare Pages Functions do not expose an Images
-binding, so the image endpoints should live in a small dedicated Worker reached
-from Pages through a service binding. That Worker has a separate deploy and
-rollback path; neither is created or deployed in this slice.
+`gear-images/src/index.js` now supplies the source-only provider boundary as a
+small service-binding-only Worker. Its example config disables public worker and
+preview URLs; no route, resource or binding is provisioned. Pages Functions will
+reach it through a `GEAR_IMAGES` service binding in the next slice. The Worker
+accepts only bounded internal JSON for create, sanitize and idempotent delete,
+and keeps provider errors generic while returning cleanup references to Pages.
+Create-time provider/config failures and sanitize `pending`/`unavailable` states
+return 409/503 and are retryable. Every other sanitize failure—including byte
+read, decode, transform or final hosted-upload failure—is terminal 422 after
+best-effort compensation. Pages must persist `cleanupProviderIds` from every
+response that includes them, including a create-time 503. Delete waits at most
+four seconds before returning 503 so Pages can queue the ID. Cleanup IDs go
+directly into `gear_photo_deletions`; they are not round-tripped through the
+stricter immediate delete endpoint.
+
+The installed Wrangler/workerd/Miniflare build loads the real entry module but
+does not expose hosted Images management methods, including `createDirectUpload`.
+Cloudflare added those binding methods in September 2026. Before deployment, pin
+a newer compatible toolchain and verify the real binding in isolated staging.
+The Worker has a separate deploy and rollback path and remains undeployed.
 
 No production image was uploaded during implementation. Deterministic tests use
 mocked bindings and cover the direct-upload contract, stream inputs, exact byte
@@ -147,8 +160,10 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 
 ```bash
 node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
+node --test tests/gearImagesWorker.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
+node --check gear-images/src/index.js
 GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```
