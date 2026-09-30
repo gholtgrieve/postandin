@@ -1,8 +1,8 @@
 # Gear Exchange production photo pipeline
 
 Status: source-only foundation and not deployed. D1 quarantine ownership,
-authenticated Pages orchestration and atomic attachment exist, but no UI,
-service binding, delivery variant, signed-delivery key or production resource
+authenticated Pages orchestration, atomic attachment and exact-origin management
+UI wiring exist, but no service binding, delivery variant, signed-delivery key or production resource
 is configured.
 
 ## Private quarantine and trusted sanitization
@@ -190,8 +190,19 @@ The route slice now:
   state. A concurrent upload/removal loses safely instead of resurrecting or
   dropping an object.
 
-The next lifecycle slice must connect the reviewed routes to the UI and complete
-isolated staging plus launch operations without weakening these gates.
+The UI connection is now source-complete: it validates local file type/size,
+creates a private upload, sends multipart bytes directly to the exact HTTPS
+Cloudflare Images upload host without cookies or referrer, retries only the
+explicit still-processing finalize response, then reloads signed management
+photos. It also removes photos and promotes a photo to the first position using
+the complete current ID order. Provider IDs remain inside the adapter and are
+not rendered. The multipart filename is the fixed non-personal `gear-photo`, not
+the original device filename. Four still-processing responses leave the private
+quarantine unattached for scheduled reconciliation and tell the seller to wait
+before uploading again; another upload consumes another daily attempt. One
+failed signed management thumbnail triggers one bounded snapshot refresh each
+time the photo panel is opened. Isolated staging and launch operations remain
+separate gates.
 
 Reconciliation treats expired unclaimed rows, expired claim leases and every row
 with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does not
@@ -259,6 +270,7 @@ node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
 node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
 node --test tests/gearPhotoRateLimit.test.mjs
 node --test tests/gearPagesListings.test.mjs
+node --test tests/gearProductionManagementUI.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
 node --check gear-images/src/index.js

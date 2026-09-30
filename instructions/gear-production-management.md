@@ -1,7 +1,7 @@
 # Gear Exchange production seller management sessions
 
 Status: source-only and not deployed. No D1 binding, Resend API key, sender-domain
-configuration, edge rate limit, UI connection or production route has been
+configuration, edge rate limit or production route has been
 provisioned. Tests use temporary sample databases and mocked provider responses;
 no real email or production record was used.
 
@@ -47,6 +47,22 @@ Responses are JSON with `no-store`, `no-referrer` and `nosniff` headers.
    each write. Validation errors return bounded field messages; stale or rejected
    writes return a generic conflict.
 
+The static browser module now activates the production management adapter only
+when `location.origin` is exactly `https://postandin.com`; loopback connected mode
+and the ordinary static demo remain separate. It reads `#management=` once,
+immediately removes the whole fragment with `history.replaceState`, and then
+explicitly POSTs the strict 64-character token. Existing cookies recover through
+the session route when the seller opens Manage; an ordinary production page load
+makes no anonymous session request. The UI supports generic recovery requests, logout, the
+transactional management snapshot, listing edits/status changes, seller
+delete/recover and the reviewed photo routes. It never stores a CSRF value or
+credential persistently; each mutation first recovers the current CSRF value.
+New-listing publication and verified email changes remain unavailable in
+production mode instead of falling through to preview simulations. Buyer contact
+and reporting also stay disabled until their production UI increments. The
+hard-coded browse examples remain clearly labelled as sample listings at every
+viewport, and their relative ages are suppressed on the production origin.
+
 Expired, replayed, revoked, wrong-mailbox and malformed credentials fail without
 issuing access. Raw tokens, sessions and CSRF values are never stored in D1.
 
@@ -59,14 +75,14 @@ Pages request lifetime. A provider failure is logged server-side but deliberatel
 does not change the public 202 response, which avoids disclosing whether an email
 belongs to a verified seller. A later request safely replaces the previous link.
 
-Do not connect the public UI or deploy these routes until the owner has explicitly
+Do not deploy these routes until the owner has explicitly
 authorized deployment and the recovery endpoint has Cloudflare edge controls for
 per-IP and per-recipient throttling plus bot abuse. Staging must verify the Resend
 sender and secret without exercising this production-host-only flow. End-to-end
 cookie, delivery and logout validation must run on `postandin.com` behind a
-temporary owner-only gate while the public UI remains disconnected; a separate
+temporary owner-only gate while the public UI remains unlinked; a separate
 staging origin would require an explicit code/configuration change. The management
-UI must remove the token fragment with `history.replaceState` immediately after
+UI removes the token fragment with `history.replaceState` immediately after
 reading it. Logs use only non-sensitive delivery reason codes and must contain no
 credential or recipient. This slice does not add retries; retry
 and failure-only operational alerts belong to the separately approved maintenance
@@ -75,7 +91,7 @@ work so a provider outage cannot create mail loops.
 ## Verification
 
 ```bash
-node --test tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearManagement.test.mjs
+node --test tests/gearProductionManagementUI.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearManagement.test.mjs
 GEAR_WRANGLER_MODULE=/absolute/path/to/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

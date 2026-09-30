@@ -86,7 +86,9 @@ The source-only production seller-access boundary adds same-origin Pages routes
 for generic recovery requests, explicit one-use link confirmation, reload
 recovery, logout, signed owner-listing reads, and CSRF-protected listing edits and
 status changes. A Resend adapter is tested with mock delivery only; no API key,
-real mail, UI connection or edge rate limit is configured. See
+real mail or edge rate limit is configured. The browser UI now connects these
+routes only on the exact production origin, while deployment and provider
+configuration remain separate launch work. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
 The source-only production maintenance package adds an idempotent D1 cleanup
@@ -110,8 +112,9 @@ Cloudflare Images signed URLs for one configured variant. Upload creation has an
 exact 60-per-current-seller UTC-day D1 budget; email transfer starts a fresh
 target-seller budget. A separate 12-per-minute source-IP edge rule remains a
 required launch configuration, and its desired one-minute period and ten-minute
-block require at least Cloudflare Pro under the current plan table. No UI,
-service binding, secret, resource, edge rule or route is deployed; see
+block require at least Cloudflare Pro under the current plan table. No service
+binding, secret, resource, edge rule or route is deployed. The exact-origin
+management UI source performs direct upload, finalize, removal and reorder; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in

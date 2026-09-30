@@ -1202,9 +1202,17 @@ verified listings outside seller-deletion recovery (including owner-moderated
 removed listings) with signed ordered photos plus minimal deletion recovery
 metadata, and apply CSRF-protected edits or state changes through the existing
 D1 invariants. The Resend adapter is covered with mocked HTTP; no key, real
-delivery, UI, edge rate limit, production cleanup schedule or backup
+delivery, edge rate limit, production cleanup schedule or backup
 reconciliation is configured or deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
+
+The source-only browser management adapter activates only at the exact
+`https://postandin.com` origin. It erases a management token fragment immediately,
+then uses explicit same-origin POSTs for confirmation, session reload, recovery,
+logout, listing changes, seller deletion/recovery and photo management. Direct
+photo bytes go only to the validated HTTPS Cloudflare Images upload host with
+credentials omitted and no referrer. Production new-listing publication and
+email changes remain disconnected so they cannot silently use demo behavior.
 
 Source-only migration 10 adds a durable hosted-photo deletion outbox. The
 separate `gear-maintenance/` scheduled Worker stages provider IDs before D1
@@ -1237,7 +1245,7 @@ daily maintenance run removes it. A separate launch-time Cloudflare rule must
 rate-limit the production hostname and exact upload path by source IP at 12
 requests per minute with a ten-minute block; use a POST match when the plan
 supports it. The desired periods require at least Pro under Cloudflare's current
-plan table, and no rule is provisioned. UI wiring and launch operations remain;
+plan table, and no rule is provisioned. Launch operations remain;
 see
 [gear-production-photos.md](gear-production-photos.md).
 

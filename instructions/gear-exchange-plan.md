@@ -796,6 +796,41 @@ groups, JavaScript syntax checks and diff checks pass.
 Next: connect the management UI to these routes and the existing session,
 deletion and photo endpoints.
 
+### Production seller management UI — complete locally
+
+The browser now activates production management only at the exact canonical
+HTTPS origin. It consumes and immediately erases strict management-link
+fragments, recovers sessions without renewal, and connects generic recovery,
+logout, listing reads/edits/status changes, seller deletion/recovery and photo
+upload/finalize/remove/reorder to the reviewed Pages routes. Photo originals are
+sent directly to the exact HTTPS Cloudflare Images upload host with credentials
+omitted and no referrer; pending processing receives a small bounded retry.
+Provider IDs are never rendered. The local connected preview and inert static
+demo remain separate. Production posting and email changes remain deliberately
+unavailable rather than simulated.
+
+All 247 Gear tests and all 14 local workerd/D1 groups pass without production
+resources, mail, images, secrets or data. The eight new focused browser-adapter
+tests cover fragment removal, canonical-origin enforcement, POST/CSRF request
+shape, safe errors, credentialless direct upload, bounded pending-finalize retry,
+exhaustion recovery copy, local file checks and editor projection. Production
+contact/report simulations are disabled, sample browse records remain labelled
+in always-visible production copy with relative ages suppressed,
+the original filename is not uploaded, and signed management thumbnails receive
+one bounded refresh per opened photo panel. A production-origin browser harness
+still requires the external Playwright runtime and isolated route mocks or
+staging. No deployment, binding or provider configuration is part of this
+increment. After review and commit, the next bounded implementation is the
+production posting and email-verification flow.
+
+Claude's initial review found 0 blocker/high, two medium and three low issues.
+The MIME/import-graph guard, production copy and sample disclosure, disabled
+simulation paths, photo retry/refresh behavior, generic upload filename and
+documentation were corrected. The final targeted re-review found no defects at
+any severity and returned `ready to merge` at the source level. Production-origin
+browser, real Images and deployed-header checks remain staging gates, not local
+source claims.
+
 ### Checks and local commands
 
 Run from the canonical checkout:
@@ -804,7 +839,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs
 git diff --check
 ```
 
@@ -978,9 +1013,11 @@ drafts store integer cents and clear inactive offer fields. Price formatting,
 field limits, focus, photo labels and no-photo states are shared/consistent.
 Closed listings may be explicitly relisted for 30 days; expired listings may be
 renewed, subject to the active limit. Deleted preview records cannot be renewed.
-Both browser modules have explicit JavaScript MIME/no-cache rules (the gear
-module inherits no-cache from /gear/*). Actual Pages headers remain a deployment
-check; no production deployment is authorized by this edit.
+All browser modules in the static import graph have explicit JavaScript
+MIME/no-cache rules (the `/gear/` modules inherit no-cache from `/gear/*`), with
+a recursive source regression check. Actual Pages response headers for every
+module remain a deployment check; no production deployment is authorized by
+this edit.
 
 Local persistence increment: see [gear-storage.md](gear-storage.md) for the
 schema, local-only API, validation, tests and local D1 evidence; remote D1 remains untested.

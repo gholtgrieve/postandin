@@ -41,3 +41,10 @@
 
 /gear/gear.mjs
   Content-Type: application/javascript
+
+/gear/production-api.mjs
+  Content-Type: application/javascript
+
+/lib/gear-image-provider-id.mjs
+  Content-Type: application/javascript
+  Cache-Control: no-cache
