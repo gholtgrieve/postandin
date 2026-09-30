@@ -656,7 +656,7 @@ behavioral code changed after the clear re-review. A final real-entry run caught
 and removed an unsupported numeric named export; the timeout remains an internal
 constant, and the corrected Worker loads in workerd.
 
-### Authenticated production photo routes — current increment
+### Authenticated production photo routes — committed `050c87d`
 
 Two source-only Pages handlers now join the existing management session/CSRF
 boundary, D1 quarantine state and dedicated Images service contract. Upload
@@ -671,9 +671,9 @@ No Pages binding, UI, provider resource or rate-limit rule is configured. The
 routes additionally require an explicit `GEAR_PHOTO_UPLOADS_ENABLED=true` launch
 flag, so adding only the service binding fails closed. All service calls are
 mocked in route tests, and D1 checks use temporary storage.
-Next after review/commit: scheduled reconciliation for abandoned quarantines and
-unreferenced sanitized objects, followed by removal/reorder, signed public
-projection, upload rate limits and the remaining launch operations.
+Next: scheduled reconciliation for abandoned quarantines and unreferenced
+sanitized objects, followed by removal/reorder, signed public projection, upload
+rate limits and the remaining launch operations.
 
 The final package passes all 210 Gear tests, 29 focused photo tests, JavaScript
 syntax checks, `git diff --check`, and the temporary-storage D1/workerd harness.
@@ -686,6 +686,34 @@ with three optional hardening items; live-photo enqueue guards, access/flag
 regressions, same-ID rejection and precise durability wording resolved all
 three. A final narrow review found 0 blocker, 0 high, 0 medium and 0 low issues
 and again returned **Ready to commit**.
+
+### Scheduled photo reconciliation — current increment
+
+Migration 12 preserves existing hosted-photo deletion work while allowing a
+provider-discovered orphan to carry no misleading listing ID. The daily
+maintenance pass now atomically stages and consumes expired unclaimed
+quarantines, exact-expired five-minute claim leases, and retained sanitized
+conflicts. It lists both fixed private Gear image purposes with a 24-hour grace
+period, validates provider metadata again, rechecks D1 immediately before each
+enqueue, and protects attached photos plus retained sanitized-conflict rows.
+Provider commits that precede any D1 write are protected by the grace period.
+
+Provider listing is capped at ten 100-object pages per purpose per attempt and
+saves its opaque continuation cursor after every page. A larger inventory resumes
+normally on the next attempt; malformed pages and provider failures follow the
+existing retry and failure-only alert path. The deletion drain excludes every currently
+referenced provider ID, and retention cleanup removes a stale live-reference
+outbox row without calling Images. No provider resource, cron, database, image,
+mail or deploy operation is part of this increment.
+
+Cursor progress is coalesced to one KV write per attempt only when it changes. A
+rejected saved cursor is cleared and retried once; unreadable or malformed cursor
+state falls back to an empty sweep and cannot block record cleanup. Provider-side
+purpose filtering is only an optimization because every returned object is
+revalidated client-side.
+
+Next after review/commit: ownership-checked removal/reorder and short-lived signed
+public photo projection, then upload rate limits and remaining launch operations.
 
 ### Checks and local commands
 

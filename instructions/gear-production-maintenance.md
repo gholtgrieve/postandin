@@ -1,6 +1,6 @@
 # Gear Exchange production scheduled maintenance
 
-Status: source-only and not deployed. Migration 10 has not been applied remotely.
+Status: source-only and not deployed. Migrations 10–12 have not been applied remotely.
 No Gear D1 database, Images binding, maintenance-state KV namespace, Resend secret,
 alert recipient, Cron Trigger or Worker has been provisioned. The checked-in
 `gear-maintenance/wrangler.toml.example` is intentionally not deployable until an
@@ -30,8 +30,23 @@ recipient before making any cleanup write. It then works within one shared
    reports and moderation history at 30 days; and purge ledger rows 30 days after
    the original purge. Active removal enforcement remains, while its free-text
    reason becomes fixed generic text after 30 days. Sellers are removed only after
-   their last listing and dependent credentials are gone.
-4. Deletes queued objects through `IMAGES.hosted.image(id).delete()`. Both `true`
+   their last listing and dependent credentials are gone. The same bounded record
+   pass stages and consumes expired unclaimed quarantines, claimed rows only after
+   both their upload TTL and five-minute lease have expired, and every retained
+   sanitized-conflict row. Both provider IDs are
+   durably queued before such a row is removed.
+4. Lists private hosted objects by the exact `gear-photo-quarantine` and
+   `gear-photo` metadata purposes. Objects at least 24 hours old are queued only
+   when D1 has no matching quarantine, retained sanitized-conflict row, or attached
+   photo reference. A second atomic reference guard closes the list/write race;
+   objects uploaded before any D1 write are protected by the 24-hour grace period.
+   Listing is capped at ten 100-object pages per purpose per attempt. The next
+   opaque cursor is tracked after every page, so reaching the cap is normal progress
+   and the next attempt resumes instead of alerting or restarting from the oldest
+   object. Progress is coalesced to one maintenance-KV write per attempt, only when
+   it changed. Completing a purpose clears its cursor; a rejected saved cursor is
+   cleared and retried once from the beginning.
+5. Deletes queued objects through `IMAGES.hosted.image(id).delete()`. Both `true`
    (deleted) and `false` (already absent) are success, making retries idempotent.
    Failure increments an attempt count and timestamp but retains the outbox row;
    no provider ID or private record value is logged or emailed. After record
@@ -40,12 +55,12 @@ recipient before making any cleanup write. It then works within one shared
 
 The outbox deliberately has no listing foreign key. It survives the D1 cascade
 and is retained without a time limit until the hosted object is confirmed absent.
-Migration 11 photo-quarantine rows likewise survive listing purge, but the current
-maintenance Worker does not process them yet. Before launch, reconciliation must
-delete expired unclaimed or lease-expired quarantines, treat rows with a
-`sanitized_provider_id` as cleanup targets, and sweep both
-`purpose:gear-photo-quarantine` originals and unreferenced `purpose:gear-photo`
-objects. Only sanitized provider IDs present in `gear_photos` are live.
+Migration 12 permits a null `listing_id` for provider-discovered orphans, where no
+truthful listing context remains. The deletion drain excludes every provider ID
+currently referenced by an attached photo, quarantine original, or retained
+sanitized-conflict row; retention pruning removes such stale queue entries without
+calling Images. Migration 11 quarantine rows likewise survive listing purge so
+the scheduled pass can stage remote cleanup before consuming them.
 
 ## Retry and alerts
 
@@ -68,14 +83,28 @@ healthy-run message is sent.
 Alert messages contain only the event time and fixed operational guidance. They
 contain no listing, seller, recipient, token, provider ID, request body or database
 error. The Resend request uses manual redirect handling, a ten-second timeout and
-an episode-derived idempotency key. Recovery-alert or KV failure does not rerun a
-successful cleanup. Worker logs use generic failure codes; inspect
+an episode-derived idempotency key. Recovery-alert or failure-episode KV failure
+does not rerun a successful cleanup. Cursor-progress KV failure triggers the
+one-minute idempotent retry so a large sweep cannot silently stop advancing.
+Worker logs use generic failure codes; inspect
 Cloudflare's invocation/binding diagnostics for service-level detail.
+
+Unreadable or malformed reconciliation cursor state is treated as empty so it
+cannot block due record deletion or outbox draining. If an incident requires a
+manual restart of the provider sweep, delete only the
+`gear-photo-reconciliation-cursors-v1` key from the dedicated maintenance KV;
+do not delete the separate failure episode key or any D1 row.
+
+The Worker requests server-side metadata filtering for each purpose and then
+revalidates every returned object's ID, privacy, draft state, purpose, source and
+upload time. Cleanup safety does not depend on the provider applying that filter;
+the local workerd binding currently ignores it, and the populated-binding harness
+therefore exercises the client-side guard.
 
 ## Deployment boundary
 
 Do not copy the example to `wrangler.toml`, create resources, set secrets, apply
-migration 10 remotely, or deploy until the full Gear project is complete and the
+migrations remotely, or deploy until the full Gear project is complete and the
 owner explicitly authorizes deployment. At that time, in a separately reviewed
 runbook:
 
@@ -95,7 +124,7 @@ Cloudflare references used for this design:
 [scheduled handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/),
 [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/),
 [D1 limits](https://developers.cloudflare.com/d1/platform/limits/),
-and [hosted Images binding deletion](https://developers.cloudflare.com/images/storage/binding/).
+and [hosted Images binding listing/deletion](https://developers.cloudflare.com/images/storage/binding/).
 
 ## Verification
 
@@ -110,5 +139,8 @@ mocked Resend fetches. They cover outbox-before-cascade, exact deadlines, race
 loss, rollback, missing-image idempotency, retained failed work and poison-row
 rotation, bounded operation/time budgets, pre/post-record image paging, retry timing, alert
 deduplication/recovery and recovery-alert isolation, configuration failure before cleanup,
-generic provider failures, migration upgrade and the D1 cleanup path. No remote
+generic provider failures, quarantine expiry/lease/conflict reconciliation,
+24-hour hosted-orphan grace, live-reference races, malformed/bounded listing,
+persisted cursor resume, 100-object D1 reference checks and populated local Images listing,
+migration upgrade and the D1 cleanup path. No remote
 resource or real message is used.

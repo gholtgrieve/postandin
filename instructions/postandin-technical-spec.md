@@ -1225,8 +1225,7 @@ routes coordinate that Worker with durable quarantine ownership, retry-safe D1
 attachment and immediate/outbox compensation. Both bindings and an explicit
 `GEAR_PHOTO_UPLOADS_ENABLED=true` flag are required before the routes operate;
 rate limiting remains mandatory before enabling that flag. UI wiring,
-removal/reorder, abandoned-quarantine and
-unreferenced-sanitized-image reconciliation, and signed URL projections remain;
+removal/reorder and signed URL projections remain;
 see
 [gear-production-photos.md](gear-production-photos.md).
 
@@ -1243,6 +1242,18 @@ six-photo listing retains the sanitized ID for cleanup and cannot attach it late
 if a slot opens. Combined attached photos and live unsanitized reservations are
 capped at six per listing. No route, binding or provider operation is part of
 migration 11.
+
+Source-only migration 12 preserves the hosted-photo deletion outbox while
+allowing provider-discovered orphans to omit a misleading listing ID. Scheduled
+maintenance now consumes expired or conflict quarantine rows only after durable
+outbox staging, lists both fixed Gear image purposes with a 24-hour grace period,
+and atomically queues only provider objects without attached or retained-conflict
+D1 references. Each purpose pass scans at most 1,000 returned objects per attempt;
+ordinary page caps save an opaque cursor in maintenance KV and resume on the next
+attempt. Progress is coalesced to one KV write per attempt; rejected cursors reset
+once and unreadable cursor state cannot block record cleanup. Malformed pages use
+the existing retry and failure-only alert path.
+The deletion drain never calls Images for a provider ID that is currently live.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

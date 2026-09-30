@@ -43,9 +43,11 @@ ID in `gear_photo_deletions` before responding.
 No request/response API can identify an image if the provider stores it and then
 throws before returning its ID, or if the Worker stops after upload and before D1
 attachment. The sanitized upload's `purpose` and `source` metadata make those
-objects discoverable. Scheduled reconciliation must list both Gear photo purposes
-and apply the explicit live/cleanup rules below; a retained conflict row is not a
-live reference.
+objects discoverable. Scheduled reconciliation now lists both Gear photo purposes
+with a 24-hour grace period, validates the private fixed metadata, and atomically
+queues only objects with no D1 reference. A retained sanitized conflict row is
+cleanup work. A sanitized provider commit that happened before its D1 write has no
+D1 reference and is protected only by the 24-hour grace period.
 
 ## Durable ownership and attachment state
 
@@ -123,18 +125,19 @@ The route slice now:
 
 The next lifecycle slice must:
 
-- let scheduled maintenance find and purge abandoned/expired quarantine records;
-- reconcile unreferenced sanitized images by their fixed purpose/source metadata
-  so a provider commit followed by an exception or Worker loss cannot retain an
-  image indefinitely;
 - keep removal and reorder ownership-checked; and
 - project only short-lived signed URLs for the configured public variant.
 
-Reconciliation must treat expired unclaimed rows, expired claim leases and every
-row with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does
-not cascade or stage these rows. The future sweep must cover both
-`purpose:gear-photo-quarantine` originals and `purpose:gear-photo` sanitized
-objects; only sanitized IDs in `gear_photos` are live references.
+Reconciliation treats expired unclaimed rows, expired claim leases and every row
+with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does not
+cascade these rows. The sweep covers both `purpose:gear-photo-quarantine`
+originals and `purpose:gear-photo` sanitized objects. Attached references are
+protected, retained conflicts remain cleanup work, and pre-D1 in-flight uploads
+rely on the grace period. Each purpose pass scans at most 1,000 returned objects
+per attempt and saves its opaque continuation cursor, so a larger inventory
+resumes on the next attempt without a false alert.
+The provider is asked to filter by purpose, but every returned object is checked
+again because the local workerd Images binding currently ignores that option.
 
 No original filename, user-provided metadata, image bytes, upload URL or signed
 delivery URL belongs in D1. Provider IDs are cleanup references, not credentials.

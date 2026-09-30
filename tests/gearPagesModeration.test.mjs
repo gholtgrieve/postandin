@@ -21,7 +21,7 @@ const context=(db,extra={})=>({request:request(),env:{GEAR_DB:db,...extra}});
 test('migration 8 adds constrained production moderation tables',async()=>{
   const db=openLocalDatabase();
   try{
-    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,11);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,12);
     assert.ok(db.sqlite.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='gear_reports_listing'").get());
     const id=await listing(db),reportId=crypto.randomUUID();
     db.sqlite.prepare('INSERT INTO gear_reports(id,listing_id,listing_title,reason,created_at) VALUES(?,?,?,?,?)')

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGearMaintenanceWorker,runScheduledGearMaintenance} from '../gear-maintenance/src/index.js';
 import {GearMaintenanceAlertError,sendMaintenanceAlert} from '../lib/gear-maintenance-alert.mjs';
-import {createGearMaintenanceBudget,GEAR_DAY_MS,GEAR_MAINTENANCE_RETRY_MS,GearMaintenanceError,cleanupGearRecords,deleteQueuedPhotos,runGearMaintenance} from '../lib/gear-maintenance.mjs';
+import {createGearMaintenanceBudget,GEAR_DAY_MS,GEAR_MAINTENANCE_RETRY_MS,GEAR_PHOTO_RECONCILIATION_GRACE_MS,GearMaintenanceError,cleanupGearRecords,cleanupPhotoQuarantines,deleteQueuedPhotos,reconcileHostedGearPhotos,runGearMaintenance} from '../lib/gear-maintenance.mjs';
 import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {submitReport} from '../lib/gear-report-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
@@ -12,6 +12,8 @@ import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 const sample={title:'Bag',description:'Sample wear',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
 const providerId='00000000-0000-4000-8000-000000000001';
 const responseId='01234567-89ab-4cde-8fab-0123456789ab';
+const emptyImageList=async()=>({images:[],listComplete:true});
+const provider=index=>`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`;
 async function publish(db,now=100){const draft=await createDraft(db,sample,now),receipt=await issueLocalVerification(db,draft.id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return draft.id;}
 const count=(db,table)=>db.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get().n;
 
@@ -70,11 +72,116 @@ test('short retention prunes only exact-due private state and preserves active r
   }finally{db.close();}
 });
 
+test('quarantine reconciliation stages exact-due originals and sanitized conflicts but preserves live claims',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db,100),sellerId=db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(id).seller_id;
+    const insert=db.sqlite.prepare(`INSERT INTO gear_photo_quarantines
+      (provider_id,listing_id,seller_id,created_at,expires_at,claim_hash,claimed_at,sanitized_provider_id,sanitized_at,attachment_id)
+      VALUES(?,?,?,?,?,?,?,?,?,?)`);
+    const now=1000000,claimHash='a'.repeat(64);
+    insert.run(provider(10),id,sellerId,100,now,null,null,null,null,null);
+    insert.run(provider(11),id,sellerId,100,now-1,claimHash,now-1,null,null,null);
+    insert.run(provider(12),id,sellerId,100,now,'d'.repeat(64),now-300000,null,null,null);
+    insert.run(provider(13),id,sellerId,100,now+1,'b'.repeat(64),now-1,provider(14),now-1,crypto.randomUUID());
+    const result=await cleanupPhotoQuarantines(db,{now});
+    assert.deepEqual(result,{reconciledQuarantines:3,batchFull:false});
+    assert.deepEqual(db.sqlite.prepare('SELECT provider_id FROM gear_photo_quarantines ORDER BY provider_id').all().map(row=>row.provider_id),[provider(11)]);
+    assert.deepEqual(db.sqlite.prepare('SELECT provider_id FROM gear_photo_deletions ORDER BY provider_id').all().map(row=>row.provider_id),[provider(10),provider(12),provider(13),provider(14)]);
+  }finally{db.close();}
+});
+
+test('quarantine reconciliation is atomic when durable outbox staging fails',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db,100),sellerId=db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(id).seller_id;
+    db.sqlite.prepare(`INSERT INTO gear_photo_quarantines
+      (provider_id,listing_id,seller_id,created_at,expires_at) VALUES(?,?,?,?,?)`).run(provider(20),id,sellerId,100,200);
+    db.sqlite.exec("CREATE TRIGGER fail_reconciliation_outbox BEFORE INSERT ON gear_photo_deletions BEGIN SELECT RAISE(ABORT,'injected reconciliation failure'); END");
+    await assert.rejects(cleanupPhotoQuarantines(db,{now:200}),/injected reconciliation failure/);
+    assert.equal(count(db,'gear_photo_quarantines'),1);assert.equal(count(db,'gear_photo_deletions'),0);
+  }finally{db.close();}
+});
+
+test('hosted reconciliation queues only old private orphans and protects every live database reference',async()=>{
+  const db=openLocalDatabase();try{
+    const now=2*GEAR_PHOTO_RECONCILIATION_GRACE_MS,id=await publish(db,100),sellerId=db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(id).seller_id;
+    await recordHostedPhoto(db,id,provider(31),101);
+    db.sqlite.prepare(`INSERT INTO gear_photo_quarantines
+      (provider_id,listing_id,seller_id,created_at,expires_at,claim_hash,claimed_at,sanitized_provider_id,sanitized_at,attachment_id)
+      VALUES(?,?,?,?,?,?,?,?,?,?)`).run(provider(32),id,sellerId,100,now+1000,'c'.repeat(64),101,provider(33),102,crypto.randomUUID());
+    const old=new Date(now-GEAR_PHOTO_RECONCILIATION_GRACE_MS).toISOString(),recent=new Date(now-GEAR_PHOTO_RECONCILIATION_GRACE_MS+1).toISOString(),calls=[];
+    const image=(imageId,purpose,extra={})=>({id:imageId,uploaded:old,requireSignedURLs:true,draft:false,meta:{purpose,...extra}});
+    const images={hosted:{list:async request=>{calls.push(request);return {images:request.filter.metadata.purpose==='gear-photo-quarantine'
+      ?[image(provider(32),'gear-photo-quarantine'),image(provider(34),'gear-photo-quarantine'),{...image(provider(35),'gear-photo-quarantine'),draft:true},{...image(provider(36),'gear-photo-quarantine'),uploaded:recent}]
+      :[image(provider(31),'gear-photo',{source:provider(90)}),image(provider(33),'gear-photo',{source:provider(91)}),image(provider(37),'gear-photo',{source:provider(92)}),{...image(provider(38),'gear-photo',{source:provider(93)}),requireSignedURLs:false},image(provider(39),'gear-photo',{source:'invalid'})],listComplete:true};}}};
+    const result=await reconcileHostedGearPhotos(db,images,{now});
+    assert.deepEqual(result,{reconciledPhotos:2,scanIncomplete:false});
+    assert.deepEqual(db.sqlite.prepare('SELECT provider_id,listing_id FROM gear_photo_deletions ORDER BY provider_id').all().map(row=>({...row})),[
+      {provider_id:provider(34),listing_id:null},{provider_id:provider(37),listing_id:null},
+    ]);
+    assert.deepEqual(calls.map(call=>call.filter.metadata.purpose),['gear-photo-quarantine','gear-photo']);
+    assert.ok(calls.every(call=>call.limit===100&&call.sortOrder==='asc'));
+  }finally{db.close();}
+});
+
+test('photo deletion never calls Images for a provider ID that becomes live',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db),live=provider(40);await recordHostedPhoto(db,id,live,110);
+    db.sqlite.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').run(live,null,120);
+    let calls=0;assert.deepEqual(await deleteQueuedPhotos(db,{hosted:{image(){calls++;throw new Error('must not run');}}},{now:130}),{deletedPhotos:0,failedPhotos:0,batchFull:false});
+    assert.equal(calls,0);await cleanupGearRecords(db,{now:130});assert.equal(count(db,'gear_photo_deletions'),0);
+  }finally{db.close();}
+});
+
+test('scheduled pass discovers and drains an old hosted orphan in the same attempt',async()=>{
+  const db=openLocalDatabase();try{
+    const now=2*GEAR_PHOTO_RECONCILIATION_GRACE_MS,orphan=provider(41),deleted=[];
+    const images={hosted:{
+      list:async request=>({images:request.filter.metadata.purpose==='gear-photo'
+        ?[{id:orphan,uploaded:new Date(now-GEAR_PHOTO_RECONCILIATION_GRACE_MS).toISOString(),requireSignedURLs:true,draft:false,meta:{purpose:'gear-photo',source:provider(42)}}]:[],listComplete:true}),
+      image:id=>({delete:async()=>{deleted.push(id);return true;}}),
+    }};
+    const result=await runGearMaintenance({GEAR_DB:db,IMAGES:images},{now});
+    assert.equal(result.reconciledPhotos,1);assert.equal(result.deletedPhotos,1);assert.deepEqual(deleted,[orphan]);assert.equal(count(db,'gear_photo_deletions'),0);
+  }finally{db.close();}
+});
+
+test('hosted reconciliation rejects malformed provider pages and signals its page cap',async()=>{
+  const db=openLocalDatabase();try{
+    await assert.rejects(reconcileHostedGearPhotos(db,{hosted:{list:async()=>({images:[]})}},{now:GEAR_DAY_MS}),error=>error instanceof GearMaintenanceError&&error.code==='photo-reconcile');
+    const cursors=[];let calls=0;const images={hosted:{list:async request=>{calls++;cursors.push(request.cursor);return {images:[],cursor:`page-${calls}`,listComplete:false};}}};
+    assert.deepEqual(await reconcileHostedGearPhotos(db,images,{now:GEAR_DAY_MS,maxPages:2}),{reconciledPhotos:0,scanIncomplete:true});
+    assert.equal(calls,4);assert.deepEqual(cursors,[undefined,'page-1',undefined,'page-3']);
+    assert.deepEqual(await reconcileHostedGearPhotos(db,{hosted:{list:async()=>({images:[],cursor:null,listComplete:true})}},{now:GEAR_DAY_MS}),{reconciledPhotos:0,scanIncomplete:false});
+  }finally{db.close();}
+});
+
+test('a rejected saved provider cursor is cleared and retried once from the beginning',async()=>{
+  const db=openLocalDatabase();try{
+    const requests=[],saved=[];const images={hosted:{list:async request=>{
+      requests.push({purpose:request.filter.metadata.purpose,cursor:request.cursor});
+      if(request.cursor==='stale-cursor')throw new Error('invalid cursor');
+      return {images:[],listComplete:true};
+    }}};
+    assert.deepEqual(await reconcileHostedGearPhotos(db,images,{now:GEAR_DAY_MS,reconciliationCursors:{'gear-photo':'stale-cursor'},saveReconciliationCursor:async(...args)=>saved.push(args)}),{reconciledPhotos:0,scanIncomplete:false});
+    assert.deepEqual(requests,[{purpose:'gear-photo-quarantine',cursor:undefined},{purpose:'gear-photo',cursor:'stale-cursor'},{purpose:'gear-photo',cursor:undefined}]);
+    assert.deepEqual(saved,[['gear-photo-quarantine',null],['gear-photo',null],['gear-photo',null]]);
+  }finally{db.close();}
+});
+
+test('reconciliation failure still drains photo work staged before provider listing',async()=>{
+  const db=openLocalDatabase();try{
+    const queued=provider(43);db.sqlite.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').run(queued,null,1);const deleted=[];
+    const images={hosted:{list:async()=>{throw new Error('private list failure');},image:id=>({delete:async()=>{deleted.push(id);return true;}})}};
+    await assert.rejects(runGearMaintenance({GEAR_DB:db,IMAGES:images},{now:2,maxPhotoBatches:1}),error=>error instanceof GearMaintenanceError&&error.code==='photo-reconcile');
+    assert.deepEqual(deleted,[queued]);assert.equal(count(db,'gear_photo_deletions'),0);
+  }finally{db.close();}
+});
+
 test('maintenance drains bounded record and photo pages and reports an oversized backlog',async()=>{
   const db=openLocalDatabase();try{
     const now=10*GEAR_DAY_MS;
     for(let index=0;index<3;index++){const draft=await createDraft(db,{...sample,email:`draft${index}@example.test`,title:`Draft ${index}`},now-3*GEAR_DAY_MS);await recordHostedPhoto(db,draft.id,`00000000-0000-4000-8000-${String(index+2).padStart(12,'0')}`,now-1);}
-    const deleted=[];const env={GEAR_DB:db,IMAGES:{hosted:{image:id=>({delete:async()=>{deleted.push(id);return true;}})}}};
+    const deleted=[];const env={GEAR_DB:db,IMAGES:{hosted:{list:emptyImageList,image:id=>({delete:async()=>{deleted.push(id);return true;}})}}};
     const result=await runGearMaintenance(env,{now,batchSize:1,maxRecordBatches:5,maxPhotoBatches:5});assert.equal(result.purgedDrafts,3);assert.equal(result.deletedPhotos,3);assert.equal(deleted.length,3);
     for(let index=0;index<2;index++)await createDraft(db,{...sample,email:`more${index}@example.test`,title:`More ${index}`},now-3*GEAR_DAY_MS);
     await assert.rejects(runGearMaintenance(env,{now,batchSize:1,maxRecordBatches:1,maxPhotoBatches:1}),error=>error instanceof GearMaintenanceError&&error.code==='record-backlog');
@@ -87,7 +194,7 @@ test('shared operation budget stays below the invocation limit and drains photos
     for(let index=0;index<50;index++)await createDraft(db,{...sample,email:`budget${index}@example.test`,title:`Budget ${index}`},now-3*GEAR_DAY_MS);
     for(let index=0;index<80;index++)db.sqlite.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').run(`00000000-0000-4000-8001-${String(index).padStart(12,'0')}`,crypto.randomUUID(),now-1);
     const deleted=[],budget=createGearMaintenanceBudget();
-    const env={GEAR_DB:db,IMAGES:{hosted:{image:id=>({delete:async()=>{deleted.push(id);return true;}})}}};
+    const env={GEAR_DB:db,IMAGES:{hosted:{list:emptyImageList,image:id=>({delete:async()=>{deleted.push(id);return true;}})}}};
     await assert.rejects(runGearMaintenance(env,{now,budget}),error=>error instanceof GearMaintenanceError&&error.code==='record-backlog');
     assert.equal(deleted.length,80);assert.equal(count(db,'gear_photo_deletions'),0);assert.equal(count(db,'gear_listings'),10);
     assert.ok(budget.remaining>=460);assert.ok(budget.remaining<900);
@@ -101,7 +208,7 @@ test('record cleanup uses remaining budget to drain every newly staged photo',as
       const draft=await createDraft(db,{...sample,email:`burst${listing}@example.test`,title:`Burst ${listing}`},now-3*GEAR_DAY_MS);
       for(let photo=0;photo<6;photo++)await recordHostedPhoto(db,draft.id,`00000000-0000-4${String(listing).padStart(3,'0')}-8003-${String(photo).padStart(12,'0')}`,now-1);
     }
-    const result=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{image:id=>({delete:async()=>{deleted.push(id);return true;}})}}},{now});
+    const result=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{list:emptyImageList,image:id=>({delete:async()=>{deleted.push(id);return true;}})}}},{now});
     assert.equal(result.purgedDrafts,30);assert.equal(result.deletedPhotos,180);assert.equal(deleted.length,180);assert.equal(count(db,'gear_photo_deletions'),0);
   }finally{db.close();}
 });
@@ -110,7 +217,7 @@ test('slow Images failures preserve time for due record cleanup',async()=>{
   const db=openLocalDatabase();try{
     const now=10*GEAR_DAY_MS,draft=await createDraft(db,{...sample,email:'slow@example.test',title:'Slow images'},now-3*GEAR_DAY_MS);let clock=0;
     for(let index=0;index<80;index++)db.sqlite.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').run(`00000000-0000-4000-8004-${String(index).padStart(12,'0')}`,crypto.randomUUID(),now-1);
-    const budget=createGearMaintenanceBudget({deadline:13*60*1000,clock:()=>clock}),images={hosted:{image:()=>({delete:async()=>{clock+=4000;throw new Error('slow provider');}})}};
+    const budget=createGearMaintenanceBudget({deadline:13*60*1000,clock:()=>clock}),images={hosted:{list:emptyImageList,image:()=>({delete:async()=>{clock+=4000;throw new Error('slow provider');}})}};
     await assert.rejects(runGearMaintenance({GEAR_DB:db,IMAGES:images},{now,budget}),error=>error instanceof GearMaintenanceError&&error.code==='photo-delete');
     assert.equal(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(draft.id),undefined);assert.equal(clock,80*4000);
   }finally{db.close();}
@@ -119,8 +226,8 @@ test('slow Images failures preserve time for due record cleanup',async()=>{
 test('empty image queue inside the time reserve does not create a false backlog',async()=>{
   const db=openLocalDatabase();try{
     const budget=createGearMaintenanceBudget({deadline:300000,clock:()=>1});
-    const result=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{image(){throw new Error('must not run');}}}},{now:1,budget});
-    assert.deepEqual(result,{purgedListings:0,purgedDrafts:0,prunedRows:0,deletedPhotos:0});
+    const result=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{list:emptyImageList,image(){throw new Error('must not run');}}}},{now:1,budget});
+    assert.deepEqual(result,{purgedListings:0,purgedDrafts:0,prunedRows:0,reconciledQuarantines:0,reconciledPhotos:0,deletedPhotos:0});
   }finally{db.close();}
 });
 
@@ -134,7 +241,7 @@ test('fallback attempt update is charged after an outbox delete failure',async()
 
 test('expired maintenance deadline stops before a binding call',async()=>{
   let calls=0;const budget=createGearMaintenanceBudget({deadline:100,clock:()=>100});
-  const env={GEAR_DB:{prepare(){calls++;throw new Error('must not run');},batch(){calls++;throw new Error('must not run');}},IMAGES:{hosted:{image(){calls++;throw new Error('must not run');}}}};
+  const env={GEAR_DB:{prepare(){calls++;throw new Error('must not run');},batch(){calls++;throw new Error('must not run');}},IMAGES:{hosted:{list(){calls++;throw new Error('must not run');},image(){calls++;throw new Error('must not run');}}}};
   await assert.rejects(runGearMaintenance(env,{now:100,budget}),error=>error instanceof GearMaintenanceError&&error.code==='photo-backlog');assert.equal(calls,0);
 });
 
@@ -151,7 +258,7 @@ test('failed photo rows rotate behind untouched work',async()=>{
 
 function fakeEnvironment(){
   const values=new Map();return {values,env:{
-    GEAR_DB:{prepare(){},batch(){}},IMAGES:{hosted:{image(){}}},GEAR_RESEND_API_KEY:'test_key',GEAR_ALERT_RECIPIENT:'owner@example.test',
+    GEAR_DB:{prepare(){},batch(){}},IMAGES:{hosted:{image(){},list(){}}},GEAR_RESEND_API_KEY:'test_key',GEAR_ALERT_RECIPIENT:'owner@example.test',
     GEAR_MAINTENANCE_STATE:{async get(key){return values.has(key)?JSON.parse(values.get(key)):null;},async put(key,value){values.set(key,value);},async delete(key){values.delete(key);}},
   }};
 }
@@ -165,6 +272,32 @@ test('scheduled maintenance retries after one minute, sends one failure alert, t
   const result=await runScheduledGearMaintenance(env,{run:async()=>({purgedListings:0}),send,now:()=>400});assert.equal(result.retried,false);assert.equal(alerts.length,2);assert.equal(alerts[1].kind,'recovery');assert.equal(alerts[1].episode,alerts[0].episode);assert.equal(values.size,0);
   values.set('gear-maintenance-status-v1',JSON.stringify({failing:true,alerted:false,episode:crypto.randomUUID(),failedAt:500}));
   await runScheduledGearMaintenance(env,{run:async()=>({purgedListings:0}),send,now:()=>501});assert.equal(alerts.length,2);assert.equal(values.size,0);
+});
+
+test('scheduled retry resumes provider listing from the cursor saved by the first attempt',async()=>{
+  const {env,values}=fakeEnvironment(),seen=[];let calls=0;
+  const result=await runScheduledGearMaintenance(env,{now:()=>200,delay:async()=>{},send:async()=>({id:responseId}),run:async(_env,options)=>{
+    calls++;seen.push({...options.reconciliationCursors});
+    if(calls===1){await options.saveReconciliationCursor('gear-photo','next-page');throw new GearMaintenanceError('photo-reconcile');}
+    return {purgedListings:0};
+  }});
+  assert.equal(result.retried,true);assert.deepEqual(seen,[{},{'gear-photo':'next-page'}]);
+  assert.equal(JSON.parse(values.get('gear-photo-reconciliation-cursors-v1'))['gear-photo'],'next-page');
+});
+
+test('scheduled cursor state writes at most once per attempt and unreadable state cannot block cleanup',async()=>{
+  const {env,values}=fakeEnvironment();let puts=0,deletes=0,runs=0;
+  const originalGet=env.GEAR_MAINTENANCE_STATE.get,originalPut=env.GEAR_MAINTENANCE_STATE.put,originalDelete=env.GEAR_MAINTENANCE_STATE.delete;
+  env.GEAR_MAINTENANCE_STATE.put=async(...args)=>{puts++;return originalPut(...args);};
+  env.GEAR_MAINTENANCE_STATE.delete=async(...args)=>{deletes++;return originalDelete(...args);};
+  await runScheduledGearMaintenance(env,{now:()=>200,send:async()=>({id:responseId}),run:async(_env,options)=>{
+    runs++;for(let index=0;index<20;index++)await options.saveReconciliationCursor('gear-photo',`page-${index}`);return {purgedListings:0};
+  }});
+  assert.equal(runs,1);assert.equal(puts,1);assert.equal(deletes,0);assert.equal(JSON.parse(values.get('gear-photo-reconciliation-cursors-v1'))['gear-photo'],'page-19');
+  values.set('gear-photo-reconciliation-cursors-v1',JSON.stringify({unexpected:'bad'}));
+  await runScheduledGearMaintenance(env,{now:()=>201,send:async()=>({id:responseId}),run:async(_env,options)=>{assert.deepEqual(options.reconciliationCursors,{});return {purgedListings:0};}});
+  env.GEAR_MAINTENANCE_STATE.get=async(key,...args)=>{if(key==='gear-photo-reconciliation-cursors-v1')throw new Error('KV read unavailable');return originalGet(key,...args);};
+  await runScheduledGearMaintenance(env,{now:()=>202,send:async()=>({id:responseId}),run:async(_env,options)=>{assert.deepEqual(options.reconciliationCursors,{});return {purgedListings:0};}});
 });
 
 test('recovery alert failure does not rerun successful maintenance',async()=>{

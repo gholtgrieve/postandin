@@ -90,7 +90,8 @@ key, real mail, UI connection or edge rate limit is configured. See
 
 The source-only production maintenance package adds an idempotent D1 cleanup
 core, durable hosted-photo deletion outbox, daily scheduled Worker entry point,
-one-minute retry, and failure/recovery-only Resend alerts. Its deploy config is
+abandoned-quarantine and provider-orphan reconciliation, one-minute retry, and
+failure/recovery-only Resend alerts. Its deploy config is
 an inert example with no resource IDs or secrets; nothing is provisioned or
 deployed. See
 [instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
@@ -100,7 +101,7 @@ that reserve ten-minute private quarantine uploads through a dedicated Images
 service Worker, then claim, sanitize and atomically attach only the verified
 still WebP. Provider/D1 failures are compensated immediately or through the
 durable deletion outbox when D1 remains writable; unresolved provider commits
-are a launch-gated reconciliation case. No UI, service binding or route is deployed; see
+are found by the bounded 24-hour-grace reconciliation sweep. No UI, service binding or route is deployed; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in

@@ -21,7 +21,7 @@ add a deployed write route.
   leases and atomic attachment for private production photo quarantines. It
   performs no provider call and exposes no route.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–11 once and preserves records on reopening.
+  It applies migrations 1–12 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -29,7 +29,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All eleven migrations, the acknowledgement
+Local tests exercise real SQLite. All twelve migrations, the acknowledgement
 write, photo metadata/quarantine adapters and private moderation projection pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
