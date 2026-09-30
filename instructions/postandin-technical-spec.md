@@ -1219,10 +1219,13 @@ chunks, malformed ordering or output beyond the expected 1600-pixel scale-down.
 Only verified, stream-bounded output is uploaded as a new private hosted image,
 with the quarantine ID recorded as a non-personal reconciliation key; the
 quarantine is deleted or returned as a durable cleanup reference. Because Pages
-Functions have no Images binding, a dedicated Worker reached by service binding
-is required after pinning a compatible toolchain. Durable authenticated
-quarantine ownership and atomic D1 attachment state now exist below the route
-boundary. Route wiring, removal/reorder, abandoned-quarantine and
+Functions have no Images binding, a dedicated Worker is reached by a future
+`GEAR_IMAGES` service binding. Source-only authenticated upload and finalize
+routes coordinate that Worker with durable quarantine ownership, retry-safe D1
+attachment and immediate/outbox compensation. Both bindings and an explicit
+`GEAR_PHOTO_UPLOADS_ENABLED=true` flag are required before the routes operate;
+rate limiting remains mandatory before enabling that flag. UI wiring,
+removal/reorder, abandoned-quarantine and
 unreferenced-sanitized-image reconciliation, and signed URL projections remain;
 see
 [gear-production-photos.md](gear-production-photos.md).

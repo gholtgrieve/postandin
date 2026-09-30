@@ -1,21 +1,22 @@
 # Gear Exchange production photo pipeline
 
-Status: source-only foundation and not deployed. D1 quarantine ownership and
-atomic attachment state exist, but no route, Images binding, delivery variant,
-signed-delivery key or production resource is configured.
+Status: source-only foundation and not deployed. D1 quarantine ownership,
+authenticated Pages orchestration and atomic attachment exist, but no UI,
+service binding, delivery variant, signed-delivery key or production resource
+is configured.
 
 ## Private quarantine and trusted sanitization
 
 `lib/gear-image-upload.mjs` implements the provider-facing portion of the
 owner-approved workflow:
 
-1. The future authenticated route asks Cloudflare Images for a Direct Creator
+1. The authenticated upload route asks Cloudflare Images for a Direct Creator
    Upload URL that expires after ten minutes. The object is marked only as a
    Gear quarantine object and requires signed delivery.
 2. The browser uploads the original directly to that private quarantine. The
    original is temporarily stored by Cloudflare, but is never published or
    attached to a listing.
-3. The future finalize route passes the quarantine provider ID to the adapter.
+3. The authenticated finalize route passes the quarantine provider ID to the adapter.
    The adapter downloads the actual bytes, enforces a 5 MiB streaming limit, and
    requires Cloudflare Images to decode an image no larger than 25 million
    pixels or 12,000 pixels on either side.
@@ -73,29 +74,56 @@ the only remote cleanup reference. A valid in-flight claim may finish after the
 upload URL/quarantine issuance deadline, but never after its own five-minute
 lease.
 
-The future issuing/finalizing route must delete or durably enqueue provider IDs
-when a provider call succeeds but the D1 record/attachment step fails. Migration
-11 is state only; it does not expose a network endpoint or call Cloudflare Images.
-Issuance reserves at most six combined attached photos and live unsanitized
-quarantines per listing. The route must perform a cheap pre-check and apply
-per-seller and per-IP upload rate limits before creating the billable provider
-object; a rejected D1 reservation still requires immediate provider compensation.
+`POST /api/gear/management/photos/upload` performs a cheap authenticated capacity
+pre-check before creating a billable provider object, then applies the atomic D1
+reservation. A raced rejection triggers the Worker's bounded immediate delete;
+if that fails, Pages writes the provider ID to `gear_photo_deletions` before
+responding. Issuance reserves at most six combined attached photos and live
+unsanitized quarantines per listing.
 
-## Remaining route and lifecycle requirements
+`POST /api/gear/management/photos/finalize` takes a claim lease, distinguishes
+retryable pending/unavailable states from terminal rejection, and never returns
+the sanitized provider ID. Retryable states release the claim. Terminal states
+atomically queue cleanup and consume it. Attachment retries once with the same
+claim and sanitized ID after an indeterminate D1 exception, so a committed replay
+cannot cause a live image to be deleted. Cleanup references returned by the
+service are bounded and validated. Terminal references are durably queued;
+after successful attachment the original is staged atomically by the attach
+batch, and any additional service references are staged best-effort.
 
-The next slice must:
+If both attachment attempts throw, Pages makes one conditional outbox insert for
+the sanitized ID; the insert is a no-op if either ambiguous attempt actually
+committed it to `gear_photos`. If D1 is still unavailable, the route returns a
+generic failure and the required provider-metadata reconciliation remains the
+only way to find that unreferenced sanitized object. Reconciliation is therefore
+a launch prerequisite, not optional cleanup.
 
-- require the existing seller management session and CSRF protection on both
+Both endpoints require the existing exact-origin management session and CSRF
+header and use bounded exact-shape JSON. The browser receives only the temporary
+quarantine ID, provider upload URL and reservation deadline. The claim and
+sanitized ID stay server-side. Per-seller and per-IP upload rate limiting remains
+a launch gate and must be applied before the upload route is exposed. Source also
+requires `GEAR_PHOTO_UPLOADS_ENABLED=true`, in addition to both bindings, so merely
+adding the service binding cannot accidentally enable uploads.
+
+## Route behavior and remaining lifecycle requirements
+
+The route slice now:
+
+- requires the existing seller management session and CSRF protection on both
   upload creation and finalization;
-- call the durable record/claim/attach operations at the provider boundaries;
+- calls the durable record/claim/attach operations at the provider boundaries;
   `pending` means the browser upload has not finished and `unavailable` is
   retryable, so each must release the claim without consuming the quarantine;
-- transactionally attach the sanitized provider ID or immediately delete/enqueue
+- transactionally attaches the sanitized provider ID or immediately deletes/enqueues
   it if D1 attachment fails; on an indeterminate batch exception, first retry
   attachment with the same server-held claim and sanitized ID so `attached` or
-  `conflict` can prevent unsafe compensation;
-- delete or enqueue the original quarantine on every terminal failure, and let
-  scheduled maintenance find and purge abandoned/expired quarantine records;
+  success prevents unsafe compensation and a confirmed conflict can be cleaned;
+- deletes or enqueues the original quarantine on every terminal failure.
+
+The next lifecycle slice must:
+
+- let scheduled maintenance find and purge abandoned/expired quarantine records;
 - reconcile unreferenced sanitized images by their fixed purpose/source metadata
   so a provider commit followed by an exception or Worker loss cannot retain an
   image indefinitely;
@@ -116,8 +144,8 @@ using the original quarantine ID as the sanitized ID.
 
 `gear-images/src/index.js` now supplies the source-only provider boundary as a
 small service-binding-only Worker. Its example config disables public worker and
-preview URLs; no route, resource or binding is provisioned. Pages Functions will
-reach it through a `GEAR_IMAGES` service binding in the next slice. The Worker
+preview URLs; no route, resource or binding is provisioned. The Pages source
+expects a future `GEAR_IMAGES` service binding. The Worker
 accepts only bounded internal JSON for create, sanitize and idempotent delete,
 and keeps provider errors generic while returning cleanup references to Pages.
 Create-time provider/config failures and sanitize `pending`/`unavailable` states
@@ -160,10 +188,13 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 
 ```bash
 node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
-node --test tests/gearImagesWorker.test.mjs
+node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
 node --check gear-images/src/index.js
+node --check lib/gear-pages-photo-service.mjs
+node --check functions/api/gear/management/photos/upload.js
+node --check functions/api/gear/management/photos/finalize.js
 GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

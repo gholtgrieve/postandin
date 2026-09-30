@@ -95,11 +95,12 @@ an inert example with no resource IDs or secrets; nothing is provisioned or
 deployed. See
 [instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
 
-The source-only production photo foundation issues ten-minute private quarantine
-uploads, then downloads, bounds, decodes and re-encodes each image through the
-Cloudflare Images binding. It verifies a still, metadata-free WebP container,
-uploads only that result as a new private hosted image and deletes the quarantine.
-No route or binding is deployed; see
+The source-only production photo foundation includes authenticated Pages routes
+that reserve ten-minute private quarantine uploads through a dedicated Images
+service Worker, then claim, sanitize and atomically attach only the verified
+still WebP. Provider/D1 failures are compensated immediately or through the
+durable deletion outbox when D1 remains writable; unresolved provider commits
+are a launch-gated reconciliation case. No UI, service binding or route is deployed; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in

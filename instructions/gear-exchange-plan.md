@@ -40,6 +40,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `e851788` | Private production photo sanitization foundation |
 | `cfbc2cc` | Owner-approved 25-megapixel Gear photo limit |
 | `b7002f5` | Durable production photo quarantine state |
+| `bfafb1a` | Dedicated Gear Images service Worker foundation |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -617,7 +618,7 @@ maintenance reconciliation for both quarantine originals and sanitized objects.
 
 No push/deployment.
 
-### Dedicated Gear Images service Worker — current increment
+### Dedicated Gear Images service Worker — committed `bfafb1a`
 
 `gear-images/src/index.js` is a small service-binding-only Worker around the
 reviewed provider adapter. Its bounded internal JSON contract creates a private
@@ -655,6 +656,37 @@ behavioral code changed after the clear re-review. A final real-entry run caught
 and removed an unsupported numeric named export; the timeout remains an internal
 constant, and the corrected Worker loads in workerd.
 
+### Authenticated production photo routes — current increment
+
+Two source-only Pages handlers now join the existing management session/CSRF
+boundary, D1 quarantine state and dedicated Images service contract. Upload
+creation preflights ownership and six-photo capacity before provider work, then
+compensates a raced D1 rejection through immediate delete or the durable outbox.
+Finalize leases the quarantine, releases retryable pending/unavailable attempts,
+consumes terminal failures into cleanup, and retries an indeterminate attachment
+once with the identical claim and sanitized ID. Only a temporary quarantine ID,
+upload URL and expiry reach the browser; sanitized IDs and claims remain private.
+
+No Pages binding, UI, provider resource or rate-limit rule is configured. The
+routes additionally require an explicit `GEAR_PHOTO_UPLOADS_ENABLED=true` launch
+flag, so adding only the service binding fails closed. All service calls are
+mocked in route tests, and D1 checks use temporary storage.
+Next after review/commit: scheduled reconciliation for abandoned quarantines and
+unreferenced sanitized objects, followed by removal/reorder, signed public
+projection, upload rate limits and the remaining launch operations.
+
+The final package passes all 210 Gear tests, 29 focused photo tests, JavaScript
+syntax checks, `git diff --check`, and the temporary-storage D1/workerd harness.
+Claude's first review found 0 blocker, 0 high, 3 medium and 4 low issues. The
+accepted fixes remove pre-attach cleanup failure, conditionally stage sanitized
+objects after ambiguous double attachment failure, preserve cleanup IDs from
+malformed service success, distinguish expired access, add an explicit enable
+flag and cover the failure/race paths. Re-review returned **Ready to commit**
+with three optional hardening items; live-photo enqueue guards, access/flag
+regressions, same-ID rejection and precise durability wording resolved all
+three. A final narrow review found 0 blocker, 0 high, 0 medium and 0 low issues
+and again returned **Ready to commit**.
+
 ### Checks and local commands
 
 Run from the canonical checkout:
@@ -663,7 +695,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs
 git diff --check
 ```
 
