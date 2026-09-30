@@ -44,6 +44,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `050c87d` | Authenticated production photo upload/finalize routes |
 | `329ef5f` | Scheduled orphaned-photo reconciliation |
 | `0cecb52` | Authenticated production photo removal/reorder routes |
+| `f50c030` | Signed public Gear photo projection |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -726,7 +727,7 @@ provider storage. Concurrent upload/removal changes lose safely rather than
 dropping new metadata or resurrecting a removed object. Responses expose no
 provider IDs, and no UI, binding, resource or deployment is included.
 
-### Signed public photo projection — current increment
+### Signed public photo projection — committed `f50c030`
 
 The source-only public listings route now reads visible listing fields and their
 ordered attached photo references in one D1 statement, then replaces each private
@@ -743,7 +744,34 @@ that an already-issued URL can remain usable for up to ten minutes after a
 takedown. The existing public coach-page images do not require the variant-level
 bypass.
 
-Next after review/commit: upload rate limits and remaining launch operations.
+### Production photo upload abuse controls — complete locally
+
+Migration 13 adds a short-lived per-seller upload-attempt counter. After the
+existing authenticated capacity preflight and before any provider call, Pages
+atomically consumes one of 60 attempts for that seller in the current UTC day.
+The counter applies across all of the seller's listings, returns a generic 429
+with a bounded `Retry-After` at the limit, rechecks the live session/CSRF,
+ownership and manageable state, and never stores an IP address. Counter rows
+become cleanup-eligible at the UTC-day boundary and daily maintenance removes them.
+It is keyed to the current verified-email seller record, so confirming an email
+transfer begins a fresh target-seller budget; it is not a global provider cap.
+
+The complementary launch-only Cloudflare rate rule is documented but not
+provisioned: production hostname and exact upload path, source-IP counter, 12
+requests per 60 seconds, ten-minute block, plus method `POST` when the plan
+supports that expression field. Cloudflare notes edge counters are per data
+center, can overshoot and can fail open. The desired periods require at least Pro
+under the current plan table; Free needs an owner-approved alternative or an
+upgrade before launch. No rule, migration, binding, resource, secret or deployment
+was applied.
+
+Claude re-review found 0 blocker, 0 high and 0 medium issues after the route-level
+ordering, race handling, shared predicates and documentation fixes. All 235 Gear
+tests, all 14 local workerd/D1 groups, JavaScript syntax checks and diff checks
+pass.
+
+Next: connect the management UI to the completed production routes, then finish
+the separately authorized launch operations.
 
 ### Checks and local commands
 
@@ -753,7 +781,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs
 git diff --check
 ```
 

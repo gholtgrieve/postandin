@@ -1,6 +1,6 @@
 # Gear Exchange production scheduled maintenance
 
-Status: source-only and not deployed. Migrations 10–12 have not been applied remotely.
+Status: source-only and not deployed. Migrations 10–13 have not been applied remotely.
 No Gear D1 database, Images binding, maintenance-state KV namespace, Resend secret,
 alert recipient, Cron Trigger or Worker has been provisioned. The checked-in
 `gear-maintenance/wrangler.toml.example` is intentionally not deployable until an
@@ -34,7 +34,8 @@ recipient before making any cleanup write. It then works within one shared
    pass stages and consumes expired unclaimed quarantines, claimed rows only after
    both their upload TTL and five-minute lease have expired, and every retained
    sanitized-conflict row. Both provider IDs are
-   durably queued before such a row is removed.
+   durably queued before such a row is removed. The same retention batch removes
+   seller photo-upload counters due at their UTC-day boundary.
 4. Lists private hosted objects by the exact `gear-photo-quarantine` and
    `gear-photo` metadata purposes. Objects at least 24 hours old are queued only
    when D1 has no matching quarantine, retained sanitized-conflict row, or attached

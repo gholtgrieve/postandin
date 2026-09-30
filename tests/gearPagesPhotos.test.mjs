@@ -86,6 +86,54 @@ test('upload route preflights before provider work and compensates a lost D1 res
   }finally{db.close();}
 });
 
+test('upload route consumes the seller budget before provider work and returns a bounded retry',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db),access=await login(db);let providerCalls=0;
+    const images=service(async()=>{providerCalls++;throw new Error('provider must not run');});
+    let response=await createGearPhotoUploadHandler({consume:async()=>({allowed:false,retryAfterSeconds:321}),now:()=>200})
+      ({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,images)});
+    assert.equal(response.status,429);assert.equal(response.headers.get('retry-after'),'321');assert.deepEqual(await response.json(),{error:'Too many photo uploads. Try again later.'});assert.equal(providerCalls,0);
+    response=await createGearPhotoUploadHandler({consume:async()=>({allowed:false,retryAfterSeconds:86401}),now:()=>200})
+      ({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,images)});
+    assert.equal(response.status,429);assert.equal(response.headers.get('retry-after'),'60');assert.equal(providerCalls,0);
+  }finally{db.close();}
+});
+
+test('upload route preserves real preflight, provider-failure and exhausted-budget ordering',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db),access=await login(db);let providerCalls=0;
+    for(let position=0;position<6;position++)db.sqlite.prepare('INSERT INTO gear_photos VALUES(?,?,?,?,?)').run(crypto.randomUUID(),id,provider(position+1),position,190);
+    const images=service(async()=>{providerCalls++;return json(503,{error:'unavailable'});});
+    const handler=createGearPhotoUploadHandler({now:()=>200});
+    let response=await handler({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,images)});
+    assert.equal(response.status,409);assert.equal(providerCalls,0);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_photo_upload_limits').get().n,0);
+    db.sqlite.prepare('DELETE FROM gear_photos WHERE listing_id=?').run(id);
+    response=await handler({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,images)});
+    assert.equal(response.status,503);assert.equal(providerCalls,1);
+    assert.equal(db.sqlite.prepare('SELECT attempts FROM gear_photo_upload_limits').get().attempts,1);
+    db.sqlite.prepare('UPDATE gear_photo_upload_limits SET attempts=60').run();
+    response=await handler({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,images)});
+    assert.equal(response.status,429);assert.equal(Number(response.headers.get('retry-after'))>=1,true);assert.equal(providerCalls,1);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_photo_quarantines').get().n,0);
+  }finally{db.close();}
+});
+
+test('upload route maps authorization lost between preflight and budget consumption to listing conflict',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db),access=await login(db);let providerCalls=0;
+    const preflight=async(database,session,csrf,listingId,now)=>{
+      const allowed=await canRecordPhotoQuarantine(database,session,csrf,listingId,now);
+      database.sqlite.prepare('UPDATE gear_management_sessions SET revoked_at=? WHERE session_hash IS NOT NULL').run(now);
+      return allowed;
+    };
+    const response=await createGearPhotoUploadHandler({preflight,now:()=>200})
+      ({request:request('/api/gear/management/photos/upload',{listingId:id},access),env:bindings(db,service(async()=>{providerCalls++;return json(500,{});}))});
+    assert.equal(response.status,409);assert.deepEqual(await response.json(),{error:'This listing cannot accept another photo.'});assert.equal(providerCalls,0);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_photo_upload_limits').get().n,0);
+  }finally{db.close();}
+});
+
 test('upload route compensates a thrown reservation and keeps outbox failures generic',async()=>{
   const db=openLocalDatabase();
   try{
@@ -275,12 +323,12 @@ test('finalize compensates a confirmed attachment rejection and malformed servic
 });
 
 test('photo routes reject invalid transport and service responses without provider or D1 writes',async()=>{
-  let creates=0,claims=0;const upload=createGearPhotoUploadHandler({access:async()=>true,preflight:async()=>{creates++;return true;}}),finalize=createGearPhotoFinalizeHandler({access:async()=>true,claim:async()=>{claims++;return null;}}),env=bindings({},service(async()=>json(200,{private:'detail'})));
+  let creates=0,claims=0;const upload=createGearPhotoUploadHandler({access:async()=>true,preflight:async()=>{creates++;return true;},consume:async()=>({allowed:true})}),finalize=createGearPhotoFinalizeHandler({access:async()=>true,claim:async()=>{claims++;return null;}}),env=bindings({},service(async()=>json(200,{private:'detail'})));
   assert.equal((await upload({request:request('/api/gear/management/photos/upload',{listingId:listing(1)},null,{url:'https://preview.pages.dev/api/gear/management/photos/upload'}),env})).status,403);
   assert.equal((await upload({request:request('/api/gear/management/photos/upload',{listingId:'bad'},null),env})).status,400);
   assert.equal((await finalize({request:request('/api/gear/management/photos/finalize',{quarantineProviderId:'bad'},null),env})).status,400);
   assert.equal(creates,0);assert.equal(claims,0);
-  const response=await createGearPhotoUploadHandler({access:async()=>true,preflight:async()=>true})({request:request('/api/gear/management/photos/upload',{listingId:listing(1)},null),env});
+  const response=await createGearPhotoUploadHandler({access:async()=>true,preflight:async()=>true,consume:async()=>({allowed:true})})({request:request('/api/gear/management/photos/upload',{listingId:listing(1)},null),env});
   assert.equal(response.status,503);assert.equal((await response.text()).includes('private'),false);
   assert.equal((await upload({request:request('/api/gear/management/photos/upload',{listingId:listing(1)},null,{headers:{Cookie:''}}),env})).status,401);
   assert.equal((await finalize({request:request('/api/gear/management/photos/finalize',{quarantineProviderId:provider(1)},null,{headers:{'X-Gear-CSRF':''}}),env})).status,403);

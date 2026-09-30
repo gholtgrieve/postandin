@@ -189,7 +189,7 @@ test('version-1 database upgrades with drafts preserved and keys backfilled',asy
   const db=openLocalDatabase(path);try{
    const row=db.sqlite.prepare("SELECT * FROM gear_listings WHERE id='legacy'").get();
    assert.equal(row.status,'unverified');assert.ok(row.duplicate_key);
-   assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,12);
+   assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,13);
    await createDraft(db,input);
    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listings').get().n,2);
   }finally{db.close();}

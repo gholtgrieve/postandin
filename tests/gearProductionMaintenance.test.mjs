@@ -63,12 +63,16 @@ test('outbox failure rolls back listing, photo, report, marker and ledger change
 test('short retention prunes only exact-due private state and preserves active removal enforcement',async()=>{
   const db=openLocalDatabase();try{
     const now=40*GEAR_DAY_MS,id=await publish(db,0),draft=await createDraft(db,{...sample,email:'draft@example.test',title:'Draft'},now-3*GEAR_DAY_MS),fresh=await createDraft(db,{...sample,email:'fresh@example.test',title:'Fresh'},now-3*GEAR_DAY_MS+1);
+    const sellerId=db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(id).seller_id;
+    db.sqlite.prepare('INSERT INTO gear_photo_upload_limits VALUES(?,?,?,?)').run(sellerId,now-GEAR_DAY_MS,1,now);
+    db.sqlite.prepare('INSERT INTO gear_photo_upload_limits VALUES(?,?,?,?)').run(sellerId,now,1,now+GEAR_DAY_MS);
     db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(id);db.sqlite.prepare('INSERT INTO gear_removals VALUES(?,?,?,?)').run(id,'available',now-30*GEAR_DAY_MS,'Private old reason');
     db.sqlite.prepare('INSERT INTO gear_moderation_history(actor,action,listing_id,reason,before_status,after_status,created_at) VALUES(?,?,?,?,?,?,?)').run('owner@example.test','preserve-removal',id,'Old history','removed','removed',now-30*GEAR_DAY_MS);
     db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,?)').run(crypto.randomUUID(),1,2,now-30*GEAR_DAY_MS);
     await cleanupGearRecords(db,{now});
     assert.equal(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(draft.id),undefined);assert.ok(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(fresh.id));
     assert.equal(count(db,'gear_moderation_history'),0);assert.equal(count(db,'gear_deletion_ledger'),0);assert.equal(db.sqlite.prepare('SELECT reason FROM gear_removals WHERE listing_id=?').get(id).reason,'Removal remains in effect; original reason expired.');
+    assert.deepEqual(db.sqlite.prepare('SELECT expires_at FROM gear_photo_upload_limits').all().map(row=>row.expires_at),[now+GEAR_DAY_MS]);
   }finally{db.close();}
 });
 

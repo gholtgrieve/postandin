@@ -103,10 +103,33 @@ a launch prerequisite, not optional cleanup.
 Both endpoints require the existing exact-origin management session and CSRF
 header and use bounded exact-shape JSON. The browser receives only the temporary
 quarantine ID, provider upload URL and reservation deadline. The claim and
-sanitized ID stay server-side. Per-seller and per-IP upload rate limiting remains
-a launch gate and must be applied before the upload route is exposed. Source also
-requires `GEAR_PHOTO_UPLOADS_ENABLED=true`, in addition to both bindings, so merely
-adding the service binding cannot accidentally enable uploads.
+sanitized ID stay server-side. Before any provider call, upload creation now
+atomically consumes an exact D1 budget of 60 attempts per seller per UTC day,
+across all listings, after the authenticated capacity preflight. A limit response
+is generic 429 with `Retry-After`; failed provider calls still consume the budget.
+The budget is tied to the current seller record, whose identity is the verified
+email address. Confirming an email transfer starts a fresh budget on the target
+seller record, and this counter is not a site-wide provider-cost ceiling.
+Migration 13 stores only seller ID, aligned window, count and expiry—never an IP
+address—and makes a row cleanup-eligible at the UTC-day boundary. Daily
+maintenance removes due rows. Source also requires
+`GEAR_PHOTO_UPLOADS_ENABLED=true`, in addition to both bindings, so merely adding
+the service binding cannot accidentally enable uploads.
+
+The complementary per-IP control stays at Cloudflare's edge and is a launch gate:
+match hostname `postandin.com` and the exact
+`/api/gear/management/photos/upload` path, count by source IP, allow 12 requests
+per 60 seconds and block for ten minutes. On Business or above, also match method
+`POST`; lower plans do not expose Method in the rule expression. Current
+Cloudflare availability requires at least Pro for the 60-second counting period
+and ten-minute mitigation; Free offers only ten seconds for each. Confirm the
+live zone plan before launch and upgrade or obtain an explicit owner decision on
+a documented alternative—do not silently weaken this gate. It is deliberately
+not represented as application code or provisioned by this increment.
+Cloudflare documents that edge counters are scoped per data center, may briefly
+overshoot and can fail open under infrastructure overload. The exact D1
+seller-account budget is therefore the provider-cost backstop for authenticated
+traffic, but it is not a global provider ceiling.
 
 `POST /api/gear/management/photos/remove` accepts exactly
 `{listingId,photoId}`. `POST /api/gear/management/photos/reorder` accepts exactly
@@ -138,8 +161,7 @@ same Images account must keep **Always allow public access** disabled; recheck
 that invariant whenever adding or changing a variant. Public coach-page images
 can remain image-level public without enabling that variant bypass; confirm their
 stored objects use `requireSignedURLs=false` before disabling an existing bypass.
-A listing
-takedown prevents new URLs immediately, but a URL already issued can work for up
+A listing takedown prevents new URLs immediately, but a URL already issued can work for up
 to ten minutes, and a browser can retain bytes it already fetched according to
 the variant's browser TTL.
 
@@ -149,6 +171,8 @@ The route slice now:
 
 - requires the existing seller management session and CSRF protection on both
   upload creation and finalization;
+- consumes the seller's exact daily upload budget before any billable provider
+  work, while full listings fail the cheaper capacity preflight without consuming it;
 - calls the durable record/claim/attach operations at the provider boundaries;
   `pending` means the browser upload has not finished and `unavailable` is
   retryable, so each must release the claim without consuming the quarantine;
@@ -166,9 +190,8 @@ The route slice now:
   state. A concurrent upload/removal loses safely instead of resurrecting or
   dropping an object.
 
-The next lifecycle slice must:
-
-- rate-limit upload creation per seller and source IP before exposure.
+The next lifecycle slice must connect the reviewed routes to the UI and complete
+isolated staging plus launch operations without weakening these gates.
 
 Reconciliation treats expired unclaimed rows, expired claim leases and every row
 with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does not
@@ -234,6 +257,7 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 ```bash
 node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
 node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
+node --test tests/gearPhotoRateLimit.test.mjs
 node --test tests/gearPagesListings.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
@@ -246,6 +270,7 @@ node --check functions/api/gear/management/photos/remove.js
 node --check functions/api/gear/management/photos/reorder.js
 node --check lib/gear-photo-delivery.mjs
 node --check functions/api/gear/listings.js
+node --check lib/gear-photo-rate-limit.mjs
 GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

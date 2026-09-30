@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {createDraft,readPublicListings,readPublicListingsWithPhotoRefs} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
 import {removeManagedPhoto,reorderManagedPhotos} from '../../lib/gear-photo-management.mjs';
+import {consumeSellerPhotoUpload,GEAR_SELLER_PHOTO_UPLOADS_PER_DAY} from '../../lib/gear-photo-rate-limit.mjs';
 import {attachClaimedPhoto,canRecordPhotoQuarantine,claimPhotoQuarantine,discardClaimedPhoto,hasPhotoManagementAccess,queuePhotoDeletionIfUnattached,queuePhotoDeletions,recordPhotoQuarantine} from '../../lib/gear-photo-quarantine.mjs';
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
@@ -50,9 +51,9 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,12,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,13,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
@@ -65,10 +66,15 @@ try{
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_d1_check_migrations').first()).n,files.length);
  const probe=await db.prepare('UPDATE gear_sellers SET verified_at=1 WHERE id=? RETURNING id').bind('missing').run();
  assert.equal(probe.meta.changes,0);assert.deepEqual(probe.results,[]);
+ const uploadCascadeSeller='00000000-0000-4000-8000-000000000013';
+ await db.prepare('INSERT INTO gear_sellers(id,email,created_at) VALUES(?,?,?)').bind(uploadCascadeSeller,'upload-cascade@example.test',0).run();
+ await db.prepare('INSERT INTO gear_photo_upload_limits VALUES(?,?,?,?)').bind(uploadCascadeSeller,0,1,86400000).run();
+ await db.prepare('DELETE FROM gear_sellers WHERE id=?').bind(uploadCascadeSeller).run();
+ assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_photo_upload_limits WHERE seller_id=?').bind(uploadCascadeSeller).first()).n,0);
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all twelve migrations, deletion constraints/cascade, photo cleanup/outbox and quarantine state; D1 RETURNING/meta.changes.');
+ console.log('PASS: all thirteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine and upload-limit state; D1 RETURNING/meta.changes.');
  const reconciliationNow=2*86400000,reconciliationSource='00000000-0000-4000-8000-000000000095';
  const reconciliationImages=Array.from({length:100},(_,index)=>({id:`00000000-0000-4001-8000-${String(index).padStart(12,'0')}`,
   uploaded:new Date(0).toISOString(),requireSignedURLs:true,draft:false,meta:{purpose:'gear-photo',source:reconciliationSource}}));
@@ -159,6 +165,10 @@ try{
  assert.equal(moderationResult.reports.length,100);assert.equal(moderationResult.reports[0].listingId,id);assert.equal(moderationResult.truncated,true);assert.equal(JSON.stringify(moderationResult).includes(sample.email),false);
  console.log('PASS: atomic report acceptance/rejection, owner dismiss/remove/restore and audit-failure rollback, indexed moderation schema, bounded private projection and truncation signal via D1.');
  const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
+ assert.equal((await consumeSellerPhotoUpload(db,access.session,access.csrf,id,200)).allowed,true);
+ await db.prepare('UPDATE gear_photo_upload_limits SET attempts=?').bind(GEAR_SELLER_PHOTO_UPLOADS_PER_DAY-1).run();
+ assert.equal((await consumeSellerPhotoUpload(db,access.session,access.csrf,id,200)).remaining,0);
+ assert.equal((await consumeSellerPhotoUpload(db,access.session,access.csrf,id,200)).allowed,false);
  assert.equal(photo.position,0);assert.equal((await readHostedPhotos(db,id))[0].providerId,photo.providerId);
  const quarantineProvider='00000000-0000-4000-8000-000000000002',sanitizedProvider='00000000-0000-4000-8000-000000000003';
  assert.equal(await hasPhotoManagementAccess(db,access.session,access.csrf,200),true);
@@ -271,7 +281,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 12 with legacy data and queued photo deletion state preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 13 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

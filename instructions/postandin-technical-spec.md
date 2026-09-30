@@ -1227,8 +1227,14 @@ Functions have no Images binding, a dedicated Worker is reached by a future
 routes coordinate that Worker with durable quarantine ownership, retry-safe D1
 attachment and immediate/outbox compensation. Both bindings and an explicit
 `GEAR_PHOTO_UPLOADS_ENABLED=true` flag are required before the routes operate;
-rate limiting remains mandatory before enabling that flag. UI wiring,
-upload rate limiting and launch operations remain;
+an exact source-only D1 seller budget now caps upload creation at 60 attempts per
+UTC day across all listings. Migration 13 retains only seller/window/count data
+until it becomes cleanup-eligible at the UTC-day boundary; the next successful
+daily maintenance run removes it. A separate launch-time Cloudflare rule must
+rate-limit the production hostname and exact upload path by source IP at 12
+requests per minute with a ten-minute block; use a POST match when the plan
+supports it. The desired periods require at least Pro under Cloudflare's current
+plan table, and no rule is provisioned. UI wiring and launch operations remain;
 see
 [gear-production-photos.md](gear-production-photos.md).
 
@@ -1280,6 +1286,18 @@ a listing takedown for at most ten minutes, and browsers may retain bytes alread
 fetched under the configured variant's browser TTL. Production and Preview Pages
 both require the account hash, fixed variant and Images **Keys** signing value;
 the signing value is a whitespace-free Pages secret, not an API token.
+
+Upload creation runs the existing authenticated capacity preflight before
+atomically consuming the seller's UTC-day D1 budget, then calls the Images
+service. Provider failures consume the attempt; a full listing does not. The
+limit response is generic 429 with `Retry-After`. Session, CSRF, listing ownership
+and manageable state are rechecked by the counter write. D1 stores no network
+address. The counter is keyed to the current verified-email seller record; an
+email transfer starts a fresh target-seller budget, and there is no global
+provider ceiling. Cloudflare's separately configured source-IP rule is a
+burst-control layer whose counters are per data center, may briefly overshoot and
+can fail open; the D1 seller-account counter is the exact authenticated-traffic
+backstop.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

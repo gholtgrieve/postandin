@@ -105,8 +105,12 @@ are found by the bounded 24-hour-grace reconciliation sweep. Authenticated
 source-only routes also remove and reorder attached metadata with exact snapshot
 and ownership checks; removal queues remote deletion atomically. The source-only
 public listing route now replaces private photo references with ten-minute
-Cloudflare Images signed URLs for one configured variant. No UI, service binding,
-secret, resource or route is deployed; see
+Cloudflare Images signed URLs for one configured variant. Upload creation has an
+exact 60-per-current-seller UTC-day D1 budget; email transfer starts a fresh
+target-seller budget. A separate 12-per-minute source-IP edge rule remains a
+required launch configuration, and its desired one-minute period and ten-minute
+block require at least Cloudflare Pro under the current plan table. No UI,
+service binding, secret, resource, edge rule or route is deployed; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in

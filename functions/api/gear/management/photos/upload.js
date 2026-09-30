@@ -2,10 +2,11 @@ import {isGearImageProviderId} from '../../../../../lib/gear-image-provider-id.m
 import {managementJson as json,managementRequestError,managementRequestJson,managementSession} from '../../../../../lib/gear-management-http.mjs';
 import {canRecordPhotoQuarantine,hasPhotoManagementAccess,queuePhotoDeletions,recordPhotoQuarantine} from '../../../../../lib/gear-photo-quarantine.mjs';
 import {createGearPhotoUpload,deleteGearPhotoImmediately} from '../../../../../lib/gear-pages-photo-service.mjs';
+import {consumeSellerPhotoUpload} from '../../../../../lib/gear-photo-rate-limit.mjs';
 
 function input(value){return value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&isGearImageProviderId(value.listingId)?value:null;}
 
-export function createGearPhotoUploadHandler({access=hasPhotoManagementAccess,preflight=canRecordPhotoQuarantine,create=createGearPhotoUpload,record=recordPhotoQuarantine,remove=deleteGearPhotoImmediately,queue=queuePhotoDeletions,now=Date.now}={}){
+export function createGearPhotoUploadHandler({access=hasPhotoManagementAccess,preflight=canRecordPhotoQuarantine,consume=consumeSellerPhotoUpload,create=createGearPhotoUpload,record=recordPhotoQuarantine,remove=deleteGearPhotoImmediately,queue=queuePhotoDeletions,now=Date.now}={}){
   return async function gearPhotoUpload(context){
     const requestError=managementRequestError(context.request);if(requestError)return requestError;
     const session=managementSession(context.request);if(!session)return json(401,{error:'Access unavailable.'});
@@ -19,6 +20,12 @@ export function createGearPhotoUploadHandler({access=hasPhotoManagementAccess,pr
     try{
       if(!await access(db,session,csrf,timestamp))return json(401,{error:'Access unavailable.'});
       if(!await preflight(db,session,csrf,values.listingId,timestamp))return json(409,{error:'This listing cannot accept another photo.'});
+      const budget=await consume(db,session,csrf,values.listingId,timestamp);
+      if(!budget?.allowed&&budget?.reason==='unavailable')return json(409,{error:'This listing cannot accept another photo.'});
+      if(!budget?.allowed){
+        const retry=Number.isSafeInteger(budget?.retryAfterSeconds)&&budget.retryAfterSeconds>=1&&budget.retryAfterSeconds<=86400?budget.retryAfterSeconds:60;
+        return json(429,{error:'Too many photo uploads. Try again later.'},{'Retry-After':String(retry)});
+      }
       const created=await create(service);
       if(created.cleanupProviderIds?.length)await queue(db,values.listingId,created.cleanupProviderIds,timestamp);
       if(created.kind!=='created')return json(503,{error:'Photo uploads are temporarily unavailable.'});
