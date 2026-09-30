@@ -1137,11 +1137,14 @@ The opt-in connected local HTTPS flow is described in
 remains simulated; there are no deployed Gear APIs. A source-only
 `GET /api/gear/listings` Pages Function reads the public projection through a
 proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
-connected, and the response has empty photo arrays until hosted-image integration.
+connected, and the route remains unavailable until D1 plus all three signed-photo
+delivery settings are configured. The source projection now replaces ordered
+hosted-image references with ten-minute signed photo URLs.
 The approved production direction uses the existing Cloudflare Images account
 rather than R2 for Gear photos. Source-only migration 7 records immutable
 adult-acknowledgement evidence and hosted-image metadata (provider ID and order
-only); no Gear upload route, signed URL, binding or cloud resource is configured.
+only). Source-only upload, management and signed-delivery code exists, but no
+Gear binding, secret, variant or cloud resource is configured.
 Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
@@ -1225,7 +1228,7 @@ routes coordinate that Worker with durable quarantine ownership, retry-safe D1
 attachment and immediate/outbox compensation. Both bindings and an explicit
 `GEAR_PHOTO_UPLOADS_ENABLED=true` flag are required before the routes operate;
 rate limiting remains mandatory before enabling that flag. UI wiring,
-removal/reorder and signed URL projections remain;
+upload rate limiting and launch operations remain;
 see
 [gear-production-photos.md](gear-production-photos.md).
 
@@ -1261,7 +1264,22 @@ stages the private provider ID in `gear_photo_deletions` before metadata disappe
 Both operations recheck an exact bounded photo snapshot inside one D1 batch;
 reorder requires the complete current ID permutation, so a concurrent upload or
 removal rolls back rather than losing or resurrecting metadata. Provider IDs stay
-server-side. Signed public delivery remains the next photo lifecycle slice.
+server-side during management operations.
+
+The source-only public listing projection reads visible listing fields and ordered
+photo references in one D1 statement, then replaces each reference with a
+ten-minute Cloudflare Images signed URL for a fixed configured variant. The HMAC
+key is a Pages secret; account hash and variant are fixed bindings, never request
+input. The response has no standalone provider ID, no hidden listing photos and
+no cacheable listing JSON. Missing configuration or malformed stored references
+fail closed. The Cloudflare delivery URL necessarily contains its image ID, but
+the short-lived signature is the access authority only while every variant in
+the Images account keeps **Always allow public access** disabled. This is a
+launch and every-new-variant verification item. Already-issued URLs can survive
+a listing takedown for at most ten minutes, and browsers may retain bytes already
+fetched under the configured variant's browser TTL. Production and Preview Pages
+both require the account hash, fixed variant and Images **Keys** signing value;
+the signing value is a whitespace-free Pages secret, not an API token.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

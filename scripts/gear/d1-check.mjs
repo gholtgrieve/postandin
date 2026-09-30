@@ -5,7 +5,7 @@ import {readFileSync,readdirSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
+import {createDraft,readPublicListings,readPublicListingsWithPhotoRefs} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
 import {removeManagedPhoto,reorderManagedPhotos} from '../../lib/gear-photo-management.mjs';
 import {attachClaimedPhoto,canRecordPhotoQuarantine,claimPhotoQuarantine,discardClaimedPhoto,hasPhotoManagementAccess,queuePhotoDeletionIfUnattached,queuePhotoDeletions,recordPhotoQuarantine} from '../../lib/gear-photo-quarantine.mjs';
@@ -171,6 +171,7 @@ try{
  await db.prepare('DROP TRIGGER fail_quarantine_photo').run();
  const attached=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,202);
  assert.equal(attached.ok,true);assert.equal(attached.photo.position,1);assert.equal((await readHostedPhotos(db,id))[1].providerId,sanitizedProvider);
+ assert.deepEqual((await readPublicListingsWithPhotoRefs(db,202))[0].photoRefs.map(row=>row.providerId),[photo.providerId,sanitizedProvider]);
  assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(quarantineProvider).first()).listing_id,id);
  assert.equal(await reorderManagedPhotos(db,access.session,access.csrf,id,[attached.photo.id,photo.id],202),true);
  assert.deepEqual((await readHostedPhotos(db,id)).map(row=>row.id),[attached.photo.id,photo.id]);

@@ -103,8 +103,10 @@ still WebP. Provider/D1 failures are compensated immediately or through the
 durable deletion outbox when D1 remains writable; unresolved provider commits
 are found by the bounded 24-hour-grace reconciliation sweep. Authenticated
 source-only routes also remove and reorder attached metadata with exact snapshot
-and ownership checks; removal queues remote deletion atomically. No UI, service
-binding or route is deployed; see
+and ownership checks; removal queues remote deletion atomically. The source-only
+public listing route now replaces private photo references with ten-minute
+Cloudflare Images signed URLs for one configured variant. No UI, service binding,
+secret, resource or route is deployed; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in

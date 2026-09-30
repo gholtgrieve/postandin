@@ -117,6 +117,32 @@ shared 400/401/403/413/415/500/503 management-route errors. They need only
 `GEAR_DB`: unlike upload/finalize, they do not create or call a provider object,
 so the upload feature flag and Images service binding do not gate them.
 
+`GET /api/gear/listings` reads the visible listing and ordered attached-photo
+snapshot in one D1 statement. Pages signs each attached reference for ten minutes
+using `GEAR_IMAGES_ACCOUNT_HASH`, `GEAR_IMAGES_PUBLIC_VARIANT` and the secret
+`GEAR_IMAGES_SIGNING_KEY`, then returns the established `{id,name,url}` photo
+shape. The account hash and variant are path-safe fixed configuration; the route
+never accepts either from a request. It returns no standalone provider ID, signs
+no hidden listing photo, uses one timestamp for the query and every signature,
+and fails closed with a generic response if delivery configuration is absent or
+stored references are malformed. The image ID necessarily remains inside the
+signed Cloudflare delivery URL, but is not authorization without a valid expiry
+and signature. The listing response remains `Cache-Control: no-store`.
+
+Launch must configure all three settings in both the Production and Preview
+Pages environments; otherwise the entire listings route returns 503, even when a
+listing has no photos. `GEAR_IMAGES_SIGNING_KEY` is the Cloudflare Images **Keys**
+signing value, not an API token, and must be stored as a Pages secret without
+surrounding whitespace. The configured variant and every other variant in the
+same Images account must keep **Always allow public access** disabled; recheck
+that invariant whenever adding or changing a variant. Public coach-page images
+can remain image-level public without enabling that variant bypass; confirm their
+stored objects use `requireSignedURLs=false` before disabling an existing bypass.
+A listing
+takedown prevents new URLs immediately, but a URL already issued can work for up
+to ten minutes, and a browser can retain bytes it already fetched according to
+the variant's browser TTL.
+
 ## Route behavior and remaining lifecycle requirements
 
 The route slice now:
@@ -142,7 +168,7 @@ The route slice now:
 
 The next lifecycle slice must:
 
-- project only short-lived signed URLs for the configured public variant.
+- rate-limit upload creation per seller and source IP before exposure.
 
 Reconciliation treats expired unclaimed rows, expired claim leases and every row
 with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does not
@@ -208,6 +234,7 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 ```bash
 node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
 node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
+node --test tests/gearPagesListings.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
 node --check gear-images/src/index.js
@@ -217,6 +244,8 @@ node --check functions/api/gear/management/photos/finalize.js
 node --check lib/gear-photo-management.mjs
 node --check functions/api/gear/management/photos/remove.js
 node --check functions/api/gear/management/photos/reorder.js
+node --check lib/gear-photo-delivery.mjs
+node --check functions/api/gear/listings.js
 GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

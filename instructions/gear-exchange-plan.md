@@ -43,6 +43,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `bfafb1a` | Dedicated Gear Images service Worker foundation |
 | `050c87d` | Authenticated production photo upload/finalize routes |
 | `329ef5f` | Scheduled orphaned-photo reconciliation |
+| `0cecb52` | Authenticated production photo removal/reorder routes |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -714,7 +715,7 @@ state falls back to an empty sweep and cannot block record cleanup. Provider-sid
 purpose filtering is only an optimization because every returned object is
 revalidated client-side.
 
-### Authenticated production photo removal/reorder — current increment
+### Authenticated production photo removal/reorder — committed `0cecb52`
 
 Source-only Pages handlers now let a seller remove one attached photo or submit a
 complete order of the listing's current photo IDs. The D1 adapter rechecks the
@@ -725,8 +726,24 @@ provider storage. Concurrent upload/removal changes lose safely rather than
 dropping new metadata or resurrecting a removed object. Responses expose no
 provider IDs, and no UI, binding, resource or deployment is included.
 
-Next after review/commit: short-lived signed public photo projection, then upload
-rate limits and remaining launch operations.
+### Signed public photo projection — current increment
+
+The source-only public listings route now reads visible listing fields and their
+ordered attached photo references in one D1 statement, then replaces each private
+reference with a ten-minute signed `imagedelivery.net` URL for the configured
+Cloudflare Images account hash and fixed public variant. The signing key stays in
+the Pages secret binding, all photos in one response share one expiry, and the
+route fails closed on missing configuration or malformed stored references. It
+does not return a standalone provider ID or sign photos for hidden listings. No
+UI, secret, variant, binding, resource or deployment is included.
+
+Launch must configure the three delivery settings in both Pages environments,
+keep **Always allow public access** disabled on every Images variant, and accept
+that an already-issued URL can remain usable for up to ten minutes after a
+takedown. The existing public coach-page images do not require the variant-level
+bypass.
+
+Next after review/commit: upload rate limits and remaining launch operations.
 
 ### Checks and local commands
 
