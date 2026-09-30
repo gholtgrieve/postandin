@@ -151,12 +151,22 @@ test('actual hosted byte length and decoded dimensions are bounded',async()=>{
   for(const overrides of [
     {hosted:{image:()=>({details:async()=>({id:quarantineId,draft:false,requireSignedURLs:true,meta:{purpose:'gear-photo-quarantine'}}),bytes:async()=>new Blob([tooLarge]).stream(),delete:async()=>true}),upload:async()=>{throw new Error('unused');}}},
     {info:async()=>({width:12001,height:1})},{info:async()=>({width:1,height:12001})},
-    {info:async()=>({width:6000,height:4001})},{info:async()=>({width:'1200',height:800})},
+    {info:async()=>({width:6250,height:4001})},{info:async()=>({width:'1200',height:800})},
     {info:async()=>({format:'image/svg+xml'})},
   ]){
     const base=bindings(),images={...base.images,...overrides,hosted:overrides.hosted||base.images.hosted};
     await assert.rejects(sanitizeQuarantinedHostedImage(images,quarantineId),error=>error.code==='input'&&error.cleanupProviderIds.length===0);
   }
+});
+
+test('production bounds accept current 24 MP phone dimensions and reject above 25 million pixels',async()=>{
+  const phone=bindings({info:async()=>({width:5712,height:4284})});
+  phone.images.input=()=>({transform(){return this;},async output(){return {response:()=>new Response(webp(1600,1200),{headers:{'content-type':'image/webp'}})};}});
+  assert.deepEqual(await sanitizeQuarantinedHostedImage(phone.images,quarantineId),{providerId,cleanupProviderIds:[]});
+
+  const over=bindings({info:async()=>({width:5000,height:5001})});
+  await assert.rejects(sanitizeQuarantinedHostedImage(over.images,quarantineId),error=>error.code==='input'&&error.cleanupProviderIds.length===0);
+  assert.equal(over.records.has(quarantineId),false);
 });
 
 test('input and output size limits are inclusive and output dimensions must match scale-down',async()=>{

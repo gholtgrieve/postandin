@@ -18,7 +18,7 @@ The ordinary static demo continues to use temporary browser previews.
 `scripts/gear/local-photos.mjs` is Node/macOS-only tooling. It uses the existing
 system `/usr/bin/sips` decoder, with no npm dependency. PNG, JPEG and WebP inputs
 must have a recognized signature, valid canonical base64, at most 5 MiB, at most
-24 million pixels and no side above 12,000 pixels. Each probe/conversion has a
+25 million pixels and no side above 12,000 pixels. Each probe/conversion has a
 15-second timeout. The trusted process re-encodes PNG pixels with a maximum
 1600-pixel side, resizing only when needed so smaller images stay unchanged
 in size. A bounded EXIF/TIFF orientation reader handles all eight rotations and

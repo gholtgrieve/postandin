@@ -9,6 +9,11 @@ import {join} from 'node:path';
 const run=promisify(execFile),hash=s=>createHash('sha256').update(s).digest('hex');
 export class PhotoError extends Error {}
 export const MAX_PHOTO_BYTES=5*1024*1024;
+export const MAX_PHOTO_PIXELS=25_000_000;
+export function validPhotoDimensions(width,height){
+ return Number.isSafeInteger(width)&&Number.isSafeInteger(height)&&width>0&&height>0
+  &&width*height<=MAX_PHOTO_PIXELS&&Math.max(width,height)<=12000;
+}
 export function initializePhotos(db){db.sqlite.exec(`CREATE TABLE IF NOT EXISTS gear_local_photos (
  id TEXT PRIMARY KEY, listing_id TEXT NOT NULL REFERENCES gear_listings(id) ON DELETE CASCADE,
  position INTEGER NOT NULL, content BLOB NOT NULL, created_at INTEGER NOT NULL)`);}
@@ -62,7 +67,7 @@ export async function sanitizePhoto(data){
   const opts={timeout:15000,maxBuffer:65536};
   const probe=await run('/usr/bin/sips',['-g','pixelWidth','-g','pixelHeight',input],opts);
   const width=Number(probe.stdout.match(/pixelWidth: (\d+)/)?.[1]),height=Number(probe.stdout.match(/pixelHeight: (\d+)/)?.[1]);
-  if(!width||!height||width*height>24000000||Math.max(width,height)>12000)throw new PhotoError('Choose an image no larger than 24 megapixels.');
+  if(!validPhotoDimensions(width,height))throw new PhotoError('Choose an image no larger than 25 megapixels.');
   const orientation=imageOrientation(bytes);
   // sips applies flips before rotation, regardless of argument order.
   const transforms={2:['-f','horizontal'],3:['-r','180'],4:['-f','vertical'],5:['-r','90','-f','vertical'],6:['-r','90'],7:['-r','90','-f','horizontal'],8:['-r','270']};

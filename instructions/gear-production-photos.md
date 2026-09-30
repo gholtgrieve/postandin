@@ -16,7 +16,7 @@ owner-approved workflow:
    attached to a listing.
 3. The future finalize route passes the quarantine provider ID to the adapter.
    The adapter downloads the actual bytes, enforces a 5 MiB streaming limit, and
-   requires Cloudflare Images to decode an image no larger than 24 million
+   requires Cloudflare Images to decode an image no larger than 25 million
    pixels or 12,000 pixels on either side.
 4. The Images binding scales down to a 1600-pixel box without upscaling and
    requests a still WebP at quality 85. Cloudflare documents that non-JPEG

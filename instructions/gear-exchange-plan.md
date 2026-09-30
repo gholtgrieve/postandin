@@ -37,6 +37,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `6bed4ae` | Production seller deletion/recovery writes |
 | `d7da481` | Production seller management sessions |
 | `2944ffb` | Production scheduled maintenance |
+| `e851788` | Private production photo sanitization foundation |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -521,11 +522,11 @@ All 167 Gear tests, all ten workerd/D1 groups, JavaScript syntax checks and
 
 Committed locally as `2944ffb` (`Add production Gear scheduled maintenance`).
 
-### Production photo sanitization/upload — current, uncommitted
+### Production photo sanitization/upload — committed
 
 `lib/gear-image-upload.mjs` implements the owner-approved private quarantine and
 sanitize flow. It issues a ten-minute signed-only Direct Creator Upload, reads
-back the actual private bytes, enforces 5 MiB/24 MP/12,000-side input bounds,
+back the actual private bytes, enforces 5 MiB/25 MP/12,000-side input bounds,
 uses Cloudflare decode and still-WebP scale-down to a 1600-pixel box, and verifies
 the returned RIFF container structure, safe feature flags, expected scale-down
 dimensions and absence of metadata, animation or unknown chunks.
@@ -535,7 +536,7 @@ quarantine is deleted, with failed cleanup IDs exposed only for durable route
 compensation. This refines the earlier Direct Creator Upload
 decision: the direct object is temporary quarantine, never the published image.
 
-Twelve mocked-binding tests cover upload issuance, response validation, streamed
+Thirteen mocked-binding tests cover upload issuance, response validation, streamed
 decode input, exact transformed bytes, byte/dimension bounds, container rejection,
 lossy/lossless/alpha acceptance, quarantine gates, generic failures, private
 upload enforcement and cleanup compensation. The
@@ -550,6 +551,21 @@ reconcile abandoned quarantines and unreferenced sanitized images; compensate D1
 failures through immediate delete or the durable deletion outbox; and project
 short-lived signed URLs. `pending` and `unavailable` finalization attempts remain
 retryable and do not consume quarantine ownership.
+
+Claude's initial review found 0 blocker, 0 high, 2 medium and 5 low findings.
+The medium findings were resolved with independent output verification, immediate
+compensation, stronger tests and a required sanitized-orphan reconciliation
+sweep. Focused re-review found 0 blocker, 0 high, 1 medium test-coverage gap and
+1 low valid-WebP false rejection. The requested regression tests were added and
+transparent extended-lossless WebP is accepted. The owner approved raising the
+pixel ceiling from 24 million to 25 million while retaining the 5 MiB byte cap;
+both local and production boundaries now accept 5712×4284 phone photos and reject
+anything above 25 million pixels. All 181 Gear tests and syntax/diff checks pass.
+
+The foundation was committed locally as `e851788` (`Add private Gear photo
+sanitization foundation`); the owner-approved pixel-limit follow-up is included
+in the next local commit. No source from this package is deployed or imported by
+a production route.
 
 No push/deployment.
 

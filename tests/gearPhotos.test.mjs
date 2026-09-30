@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {deflateSync,inflateSync} from 'node:zlib';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
-import {initializePhotos,changePhotos,photoRows,photoContent,sanitizePhoto} from '../scripts/gear/local-photos.mjs';
+import {initializePhotos,changePhotos,photoRows,photoContent,sanitizePhoto,validPhotoDimensions} from '../scripts/gear/local-photos.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../lib/gear-verification.mjs';
 import {issueLocalManagementLink,redeemManagementLink,changeListingState} from '../lib/gear-management.mjs';
@@ -38,6 +38,12 @@ async function publish(db,patch={}){const {id}=await createDraft(db,{...sample,.
 test('trusted local sanitizer decodes pixels and strips metadata; rejects spoofed and malformed files',async()=>{
  const image=await sanitizePhoto(fixture());assert.equal(image.toString('ascii',1,4),'PNG');assert.equal(image.includes(Buffer.from('private GPS')),false);
  for(const value of [Buffer.from('<svg/>').toString('base64'),'!!!!',Buffer.from([255,216,255,0]).toString('base64'),'A'.repeat(7*1024*1024)])await assert.rejects(sanitizePhoto(value));
+});
+test('local photo dimensions include current 24 MP phone output but stop at 25 million pixels',()=>{
+ assert.equal(validPhotoDimensions(5712,4284),true);
+ assert.equal(validPhotoDimensions(5000,5000),true);
+ assert.equal(validPhotoDimensions(5000,5001),false);
+ assert.equal(validPhotoDimensions(12001,1),false);
 });
 test('photos persist, enforce owner/CSRF/six limit, reorder/delete and follow listing visibility and email transfer',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'gear-photo-test-')),path=join(dir,'db.sqlite');let db=openLocalDatabase(path);initializePhotos(db);
