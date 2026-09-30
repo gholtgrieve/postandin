@@ -773,6 +773,29 @@ pass.
 Next: connect the management UI to the completed production routes, then finish
 the separately authorized launch operations.
 
+### Production seller listing management routes — complete locally
+
+Two source-only POST-only Pages handlers now expose the already-tested seller
+listing adapters without connecting the browser UI. The authenticated read
+returns one transactional snapshot of verified listings outside seller-deletion
+recovery (including owner-moderated removed listings), ordered ten-minute signed
+photo URLs and minimal seller-deletion recovery metadata; it returns no seller email,
+seller ID or standalone image provider ID. The authenticated mutation route
+accepts exact edit or state-change shapes, permits the full 24 KiB bounded listing body,
+recovers the stable session CSRF without renewing the session, and rechecks all
+ownership, verification, status, expiry, duplicate and quota rules in D1.
+
+Both routes require the production origin and host-only session; mutations also
+require matching CSRF. Missing photo-delivery configuration fails the read closed.
+No UI, binding, secret, provider resource, migration or deployment is included.
+Claude re-review found 0 blocker, 0 high and 0 medium issues after the
+moderated-listing visibility, transactional snapshot, Unicode body bound,
+session-race and coverage fixes. All 239 Gear tests, all 14 local workerd/D1
+groups, JavaScript syntax checks and diff checks pass.
+
+Next: connect the management UI to these routes and the existing session,
+deletion and photo endpoints.
+
 ### Checks and local commands
 
 Run from the canonical checkout:
@@ -781,7 +804,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs
 git diff --check
 ```
 

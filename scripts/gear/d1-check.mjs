@@ -16,7 +16,7 @@ import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
 import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
 import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
-import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
+import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
 const modulePath=process.env.GEAR_WRANGLER_MODULE;
 if(!modulePath)throw new Error('Set GEAR_WRANGLER_MODULE to an installed Wrangler module absolute path.');
@@ -113,6 +113,7 @@ try{
  await assert.rejects(db.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at,attempts) VALUES(?,?,?,?)').bind('00000000-0000-4000-8000-000000000099',deletionSchemaId,-1,0).run());
  const lifecycleId=await publish(db,{title:'Seller lifecycle'},143),lifecycleAccess=await login(db,sample.email,144);
  assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'delete',id:lifecycleId},145),{ok:true});
+ assert.deepEqual((await readManagedSnapshotWithPhotoRefs(db,lifecycleAccess.session,146)).deleted.map(row=>row.id),[lifecycleId]);
  assert.equal((await readPublicListings(db,146)).some(row=>row.id===lifecycleId),false);
  assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'recover',id:lifecycleId},147),{ok:true});
  assert.equal((await readPublicListings(db,148)).some(row=>row.id===lifecycleId),true);
@@ -165,6 +166,7 @@ try{
  assert.equal(moderationResult.reports.length,100);assert.equal(moderationResult.reports[0].listingId,id);assert.equal(moderationResult.truncated,true);assert.equal(JSON.stringify(moderationResult).includes(sample.email),false);
  console.log('PASS: atomic report acceptance/rejection, owner dismiss/remove/restore and audit-failure rollback, indexed moderation schema, bounded private projection and truncation signal via D1.');
  const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
+ assert.deepEqual((await readManagedSnapshotWithPhotoRefs(db,access.session,200)).listings.find(row=>row.id===id).photoRefs,[{id:photo.id,providerId:photo.providerId}]);
  assert.equal((await consumeSellerPhotoUpload(db,access.session,access.csrf,id,200)).allowed,true);
  await db.prepare('UPDATE gear_photo_upload_limits SET attempts=?').bind(GEAR_SELLER_PHOTO_UPLOADS_PER_DAY-1).run();
  assert.equal((await consumeSellerPhotoUpload(db,access.session,access.csrf,id,200)).remaining,0);

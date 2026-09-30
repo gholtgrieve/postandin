@@ -84,8 +84,9 @@ owner restore while the active marker exists; see
 
 The source-only production seller-access boundary adds same-origin Pages routes
 for generic recovery requests, explicit one-use link confirmation, reload
-recovery and logout. A Resend adapter is tested with mock delivery only; no API
-key, real mail, UI connection or edge rate limit is configured. See
+recovery, logout, signed owner-listing reads, and CSRF-protected listing edits and
+status changes. A Resend adapter is tested with mock delivery only; no API key,
+real mail, UI connection or edge rate limit is configured. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
 The source-only production maintenance package adds an idempotent D1 cleanup

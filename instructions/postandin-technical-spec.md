@@ -1176,9 +1176,8 @@ evidence or image provider IDs. The source-only
 exact admin Origin and bounded JSON, and transactionally dismisses a report,
 removes its listing, or restores a removed listing while recording bounded owner
 history. Restore preserves the previous status and expiry and rechecks current
-verification, quota and duplicates. Production seller deletion is not yet
-implemented, so its future deletion marker must also block owner restore before
-launch. See
+verification, quota and duplicates. The implemented production seller-deletion
+marker blocks owner restore while seller recovery remains active. See
 [gear-production-moderation.md](gear-production-moderation.md).
 
 The source-only public `POST /api/gear/reports` route is described in
@@ -1198,9 +1197,13 @@ route transactionally deletes and recovers seller listings, while owner restore
 fails whenever the active marker exists. Source-only production management routes
 request a generic recovery email, explicitly redeem a one-use token into a
 host-only session, recover the derived CSRF value after reload without renewal,
-and revoke the session on logout. The Resend adapter is covered with mocked HTTP;
-no key, real delivery, UI, edge rate limit, purge job or backup reconciliation is
-configured or deployed. See `gear-production-management.md` and
+revoke the session on logout, return a transactional snapshot of the owner's
+verified listings outside seller-deletion recovery (including owner-moderated
+removed listings) with signed ordered photos plus minimal deletion recovery
+metadata, and apply CSRF-protected edits or state changes through the existing
+D1 invariants. The Resend adapter is covered with mocked HTTP; no key, real
+delivery, UI, edge rate limit, production cleanup schedule or backup
+reconciliation is configured or deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
 
 Source-only migration 10 adds a durable hosted-photo deletion outbox. The

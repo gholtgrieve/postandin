@@ -43,15 +43,21 @@ export function openLocalDatabase(path=':memory:') {
     sqlite,
     prepare(sql) {
       const statement=sqlite.prepare(sql);
+      const mutating=/^\s*(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(sql);
       return {bind(...args) {return {
         run:()=>statement.run(...args),
         first:async()=>statement.get(...args)??null,
         all:async()=>({results:statement.all(...args)}),
+        _batch:()=>{
+          if(!statement.columns().length)return statement.run(...args);
+          const results=statement.all(...args),changes=mutating?results.length:0;
+          return {results,changes,meta:{changes}};
+        },
       };}};
     },
     async batch(statements) {
       sqlite.exec('BEGIN');
-      try {const result=statements.map(s=>s.run());sqlite.exec('COMMIT');return result;}
+      try {const result=statements.map(s=>s._batch?s._batch():s.run());sqlite.exec('COMMIT');return result;}
       catch(error) {sqlite.exec('ROLLBACK');throw error;}
     },
     close:()=>sqlite.close(),

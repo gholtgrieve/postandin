@@ -5,10 +5,12 @@ configuration, edge rate limit, UI connection or production route has been
 provisioned. Tests use temporary sample databases and mocked provider responses;
 no real email or production record was used.
 
-## Credential flow
+## Credential flow and listing routes
 
-All four endpoints are POST-only, accept at most 1 KiB of fatal UTF-8 JSON and
-require the exact `https://postandin.com` URL origin and browser `Origin` header.
+All six seller-management endpoints described here are POST-only and require the exact
+`https://postandin.com` URL origin and browser `Origin` header. The listing-write
+route accepts at most 24 KiB of fatal UTF-8 JSON so every valid bounded Unicode
+listing fits; the others accept at most 1 KiB.
 Responses are JSON with `no-store`, `no-referrer` and `nosniff` headers.
 
 1. `POST /api/gear/management/recovery` validates and normalizes an email. A
@@ -30,6 +32,20 @@ Responses are JSON with `no-store`, `no-referrer` and `nosniff` headers.
    no session, sets no cookie and never extends expiry.
 5. `POST /api/gear/management/logout` additionally requires `X-Gear-CSRF`, revokes
    the live session and clears the cookie with `Max-Age=0`.
+6. `POST /api/gear/management/listings` accepts exactly `{}` and requires the
+   live host-only session. One D1 batch returns up to 100 verified owner listings
+   that are not in seller-deletion recovery, including owner-moderated removed
+   listings, plus their ordered photos as ten-minute signed URLs. The same
+   snapshot includes a separate bounded seller-deletion list containing only
+   listing ID, title and deletion dates. Past-deadline rows remain visible as
+   awaiting cleanup; the UI must offer recovery only while `purgeAt` is future.
+   Seller email/ID and standalone image provider IDs never enter the response.
+7. `POST /api/gear/management/listing` requires the live session and matching
+   `X-Gear-CSRF`. It accepts either an exact `{id,action}` state mutation or
+   `{id,action:"edit",listing}`. Existing D1 adapters recheck ownership, session,
+   CSRF, verification, status, expiry, duplicate and active-listing rules inside
+   each write. Validation errors return bounded field messages; stale or rejected
+   writes return a generic conflict.
 
 Expired, replayed, revoked, wrong-mailbox and malformed credentials fail without
 issuing access. Raw tokens, sessions and CSRF values are never stored in D1.
@@ -43,7 +59,7 @@ Pages request lifetime. A provider failure is logged server-side but deliberatel
 does not change the public 202 response, which avoids disclosing whether an email
 belongs to a verified seller. A later request safely replaces the previous link.
 
-Do not connect the UI or deploy these routes until the owner has explicitly
+Do not connect the public UI or deploy these routes until the owner has explicitly
 authorized deployment and the recovery endpoint has Cloudflare edge controls for
 per-IP and per-recipient throttling plus bot abuse. Staging must verify the Resend
 sender and secret without exercising this production-host-only flow. End-to-end
@@ -59,7 +75,7 @@ work so a provider outage cannot create mail loops.
 ## Verification
 
 ```bash
-node --test tests/gearPagesManagementSession.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearManagement.test.mjs
+node --test tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearManagement.test.mjs
 GEAR_WRANGLER_MODULE=/absolute/path/to/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```
@@ -69,4 +85,5 @@ responses, provider request shape and failures, POST-only confirmation, one-use
 tokens, host-only cookies, stable reload recovery, logout revocation, missing and
 duplicate cookies, generic public errors and the full temporary-database session
 lifecycle. The D1/workerd harness uses the production issue/redeem/recovery core
-and a local-only outbound-service probe verifies the Workers redirect option.
+plus managed photo/deletion projections, and a local-only outbound-service probe
+verifies the Workers redirect option.
