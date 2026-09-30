@@ -1,5 +1,6 @@
 import { REPORT_REASONS, CATEGORIES, SIZES, CONDITIONS, CLUBS, LIMITS, matchesListing, clubNames, offerFields, formatPrice, normalize } from '../lib/gear-exchange.mjs';
-import {productionAPI,takeManagementToken,safeError as productionSafeError,previewListing as productionPreviewListing,listingInput as productionListingInput} from './production-api.mjs';
+import {productionAPI,takeManagementToken,takeVerificationToken,safeError as productionSafeError,previewListing as productionPreviewListing,listingInput as productionListingInput,draftListingInput as productionDraftListingInput} from './production-api.mjs';
+import {loadProductionTurnstile} from './production-turnstile.mjs';
 
 (async()=>{
 const root=document.getElementById('pi-gear-preview');
@@ -7,10 +8,13 @@ const $=s=>root.querySelector(s);
 const localMode=root.dataset.localApi==='true';
 const productionMode=!localMode&&location.origin==='https://postandin.com';
 const connectedMode=localMode||productionMode;
+const recognizedVerificationLink=productionMode&&location.hash.startsWith('#verification=');
+const verificationToken=productionMode?takeVerificationToken():null;
 const managementToken=productionMode?takeManagementToken():null;
-const adapter=localMode?await import('./local-api.mjs'):productionMode?{productionAPI,safeError:productionSafeError,previewListing:productionPreviewListing,listingInput:productionListingInput}:null;
+const adapter=localMode?await import('./local-api.mjs'):productionMode?{productionAPI,safeError:productionSafeError,previewListing:productionPreviewListing,listingInput:productionListingInput,draftListingInput:productionDraftListingInput}:null;
 const api=localMode?adapter.localAPI():productionMode?adapter.productionAPI():null;
 let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
+let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
 let deleted=[];
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
@@ -19,7 +23,7 @@ function serverField(error){
  if(error.emailChange&&error.fields?.email){const input=$('#pi-change-email');input.setCustomValidity(error.fields.email);return input;}
  const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',adult:'pi-adult',otherClub:'pi-other-club'};
  for(const [key,message] of Object.entries(error.fields||{})){
-  const input=$('#'+fields[key]);if(!input)continue;
+  if(!Object.hasOwn(fields,key))continue;const input=$('#'+fields[key]);if(!input)continue;
   input.setCustomValidity(message);showPostStep(Number(input.closest('[data-post-step]').dataset.postStep));return input;
  }
  return null;
@@ -37,6 +41,7 @@ async function localAction(task){
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
   else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
+  if(productionMode){syncProductionSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
  }
 }
 function freezeFields(){root.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);}
@@ -172,7 +177,28 @@ const postMap={title:'pi-post-name',price:'pi-post-price',category:'pi-post-cate
 for(const [id,key] of Object.entries({...Object.fromEntries(Object.entries(postMap).filter(([k])=>k!=='price').map(([k,v])=>[v,k==='seller'?'name':k])), 'pi-other-club':'otherClub','pi-buyer-name':'name','pi-buyer-email':'email','pi-buyer-message':'message','pi-recovery-email':'email'})){if(LIMITS[key])$('#'+id).maxLength=LIMITS[key];}
 $('#pi-post-price').min=String(LIMITS.minPriceCents/100);$('#pi-post-price').max=String(LIMITS.maxPriceCents/100);
 function go(screen){state.screen=screen;render();if((localMode&&['gear','manage'].includes(screen))||(productionMode&&screen==='manage'))localAction(refreshLocal);const heading=$('.pi-'+state.screen+' h1');heading.tabIndex=-1;heading.focus();root.scrollIntoView({block:'start',behavior:'instant'});}
-function showPostStep(step){postStep=step;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});}
+function reusesProductionDraft(){return productionMode&&!editingId&&localDraftId&&pendingDraft&&JSON.stringify(pendingDraft)===JSON.stringify(draft());}
+function syncProductionSubmit(){if(productionMode)$('#pi-post-submit').disabled=!editingId&&postStep===3&&!turnstileToken&&!reusesProductionDraft();}
+function disableProductionPosting(message='Listing is temporarily unavailable.'){
+ postingAvailable=false;turnstileToken='';$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent=message;$('#pi-new-listing').hidden=true;syncProductionSubmit();
+}
+function resetProductionTurnstile(message='Complete the privacy check to continue.'){
+ if(!productionMode)return;turnstileToken='';if(turnstileClient&&turnstileWidget!==null){try{turnstileClient.reset(turnstileWidget);}catch{disableProductionPosting();return;}}
+ $('#pi-turnstile-status').textContent=message;syncProductionSubmit();
+}
+function ensureProductionTurnstile(){
+ if(!productionMode||editingId||!postingAvailable||!turnstileClient)return;
+ const container=$('#pi-post-turnstile');if(reusesProductionDraft()){container.hidden=true;$('#pi-turnstile-status').textContent='This saved draft can request another email without a new privacy check.';syncProductionSubmit();return;}container.hidden=false;if(turnstileWidget!==null)return;
+ try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-post',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{turnstileToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-turnstile-status').textContent=turnstileToken?'Privacy check complete.':'Complete the privacy check to continue.';syncProductionSubmit();},'expired-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionSubmit();},'error-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();turnstileWidget=widget;}
+ catch{disableProductionPosting();}
+}
+async function configureProductionPosting(){
+ if(!productionMode)return;
+  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;}
+ catch{turnstileSiteKey='';turnstileClient=null;disableProductionPosting();}
+ finally{postingLoading=false;}
+}
+function showPostStep(step){postStep=step;verifyMode=null;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});if(productionMode&&step===3){if(editingId){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}else ensureProductionTurnstile();}syncProductionSubmit();}
 function offerChanged(){const type=$('input[name=offer]:checked').value;$('#pi-asking-label').hidden=type!=='Sale';$('#pi-post-price').disabled=type!=='Sale';$('#pi-trade-label').hidden=type!=='Trade';$('#pi-post-trade').disabled=type!=='Trade';$('#pi-post-trade').required=type==='Trade';}
 function clubsChanged(){const other=$('input[name=club][value=Other]').checked;$('#pi-other-club').required=other;if(!other){$('#pi-other-club').value='';$('#pi-other-club').setCustomValidity('');}}
 $('#pi-other-club').addEventListener('input',()=>{const filled=$('#pi-other-club').value.trim().length>0;$('input[name=club][value=Other]').checked=filled;$('#pi-other-club').required=filled;});
@@ -189,7 +215,7 @@ $('#pi-post-form').addEventListener('submit',e=>e.preventDefault());$('#pi-post-
 $('#pi-next-photos').addEventListener('click',()=>{if(validStep(1)){showPostStep(2);$(localMode?'#pi-post-seller':'#pi-add-sample').focus({preventScroll:true});}});
 $('#pi-next-review').addEventListener('click',()=>{if(validStep(2)){renderReview();showPostStep(3);}});
 root.querySelectorAll('[data-post-back]').forEach(el=>el.addEventListener('click',()=>showPostStep(Number(el.dataset.postBack))));
-function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;$('.pi-age-check').hidden=false;$('#pi-adult').disabled=false;verificationReceipt=null;localDraftId=null;}editingId=null;pendingDraft=null;postPhotos=[];$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
+function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;$('.pi-age-check').hidden=false;$('#pi-adult').disabled=false;verificationReceipt=null;localDraftId=null;}editingId=null;pendingDraft=null;verifyMode=null;postPhotos=[];if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
 function fillPost(d){for(const [key,id]of Object.entries(postMap))$('#'+id).value=key==='price'?(d.type==='Sale'?(d.priceCents/100).toFixed(2):''):(d[key]??'');$('input[name=offer][value="'+d.type+'"]').checked=true;root.querySelectorAll('input[name=club]').forEach(el=>el.checked=d.clubs.includes(el.value));$('#pi-other-club').value=d.otherClub||'';$('#pi-adult').checked=true;postPhotos=connectedMode?[]:d.photos.map(p=>({...p}));offerChanged();clubsChanged();renderPhotos();}
 $('#pi-fill-demo').addEventListener('click',()=>{resetPost();fillPost({title:'Seattle Junior hockey bag',type:'Sale',priceCents:4000,category:'Bags & accessories',size:'Junior',fit:'Junior bag, 30 × 18 × 15 in',condition:'Used — good',city:'Seattle',clubs:['Seattle Junior'],description:'Seattle Junior branded bag. Our player has changed clubs, so this is ready for another family. Scuffs on the bottom. All zippers work.',seller:'Alex',email:'seller@example.com',photos:[{name:'Front view — sample',url:null},{name:'Club logo — sample',url:null},{name:'Wear detail — sample',url:null}]});});
 function activeCount(){return managed.filter(r=>['Available','Pending'].includes(r.status)).length;}
@@ -197,8 +223,9 @@ function feedback(message){$('#pi-manage-feedback').textContent=message;$('#pi-m
 function expiry(){return Date.now()+LIMITS.durationDays*24*60*60*1000;}
 function renderManaged(){if(connectedMode){renderLocalManaged();return;}$('#pi-active-count').textContent=activeCount()+' of 10 active listings';$('#pi-managed-list').innerHTML=managed.map(r=>'<article class="pi-managed-item"><h2>'+esc(r.title)+'</h2><div class="pi-managed-meta">'+esc(formatPrice(r.type.toLowerCase(),r.priceCents))+' · '+esc(r.city)+' · '+esc(r.status)+(r.expires&&['Available','Pending'].includes(r.status)?' · Expires '+new Date(r.expires).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div><div class="pi-managed-actions"><button type="button" data-manage="edit" data-id="'+esc(r.id)+'">Edit</button>'+(['Available','Pending'].includes(r.status)?'<button type="button" data-manage="pending" data-id="'+esc(r.id)+'">'+(r.status==='Pending'?'Mark available':'Mark pending')+'</button><button type="button" data-manage="close" data-id="'+esc(r.id)+'">Close listing</button>':'<button type="button" data-manage="renew" data-id="'+esc(r.id)+'">'+(r.status==='Closed'?'Relist for 30 days':'Renew for 30 days')+'</button>')+'<button type="button" data-manage="delete" data-id="'+esc(r.id)+'">Delete listing</button></div></article>').join('');}
 $('#pi-post-submit').addEventListener('click',()=>{if(connectedMode){localAction(saveLocal);return;}if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}const d=draft();const existing=managed.find(r=>r.id===editingId);if(existing&&existing.email===d.email){Object.assign(existing,d);renderManaged();feedback('Changes saved in this preview.');go('manage');return;}if(!existing&&activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close a listing before adding another.');go('manage');return;}pendingDraft=d;$('#pi-verify-email').textContent=d.email;$('#pi-email-item').textContent=d.title;$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;});
-$('#pi-simulate-verify').addEventListener('click',()=>{if(localMode){localAction(verifyLocal);return;}if(!pendingDraft)return;const existing=managed.find(r=>r.id===editingId);if(existing){Object.assign(existing,pendingDraft);}else{if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before publishing another.');go('manage');return;}managed.unshift({...pendingDraft,id:'demo-'+Date.now(),status:'Available',expires:expiry()});}pendingDraft=null;renderManaged();feedback('Verification simulated. Your sample listing is ready to manage; nothing was published.');go('manage');});
-function startNew(){if(productionMode){feedback('New listing publication is not available yet.');go('manage');return;}if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before adding another.');go('manage');return;}resetPost();go('post');}
+$('#pi-simulate-verify').addEventListener('click',()=>{if(productionMode){if(verifyMode==='confirm')localAction(confirmProductionLink);else if(verifyMode==='deliver')localAction(requestVerification);return;}if(localMode){localAction(verifyLocal);return;}if(!pendingDraft)return;const existing=managed.find(r=>r.id===editingId);if(existing){Object.assign(existing,pendingDraft);}else{if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before publishing another.');go('manage');return;}managed.unshift({...pendingDraft,id:'demo-'+Date.now(),status:'Available',expires:expiry()});}pendingDraft=null;renderManaged();feedback('Verification simulated. Your sample listing is ready to manage; nothing was published.');go('manage');});
+function openNew(){if(productionMode&&!postingAvailable){feedback('New listing publication is temporarily unavailable.');go('manage');return;}if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before adding another.');go('manage');return;}resetPost();go('post');}
+async function startNew(){if(productionMode&&postingLoading){if(localBusy)return;await localAction(()=>postingSetup);if(state.screen==='post'&&verifyMode==='confirm'&&productionVerificationToken)return;}openNew();}
 $('#pi-new-listing').addEventListener('click',startNew);
 $('#pi-managed-list').addEventListener('click',e=>{if(connectedMode){manageLocal(e);return;}const b=e.target.closest('[data-manage]');if(!b)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;switch(b.dataset.manage){case'delete':deleteId=r.id;$('#pi-delete-dialog').showModal();$('#pi-delete-cancel').focus();return;case'edit':resetPost();editingId=r.id;fillPost(r);$('#pi-post-title').textContent='Edit Your Listing';go('post');return;case'pending':r.status=r.status==='Pending'?'Available':'Pending';break;case'close':r.status='Closed';break;case'renew':if(activeCount()>=LIMITS.activeListings){feedback('Close another listing before renewing this one.');return;}r.status='Available';r.expires=expiry();break;}renderManaged();feedback(r.title+' — '+r.status.toLowerCase()+' in this preview.');});
 $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidden=!$('#pi-recovery-form').hidden;});$('#pi-recovery-form').addEventListener('submit',e=>e.preventDefault());$('#pi-recovery-send').addEventListener('click',()=>{if(connectedMode){localAction(requestLocalLogin);return;}if($('#pi-recovery-form').reportValidity())$('#pi-recovery-result').hidden=false;});
@@ -216,18 +243,46 @@ function renderLocalManaged(){
 }
 async function saveLocal(){
  if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}
- const d=draft(),input=localMode?adapter.listingInput(d,$('#pi-adult').checked,Boolean(editingId)):adapter.listingInput(d);freezeFields();
+ const d=draft(),input=localMode?adapter.listingInput(d,$('#pi-adult').checked,Boolean(editingId)):productionMode&&!editingId?adapter.draftListingInput(d,$('#pi-adult').checked):adapter.listingInput(d);freezeFields();
  if(editingId){await api.write({id:editingId,action:'edit',listing:input});await afterSuccess(localMode?'Changes saved to the local database.':'Changes saved.','manage');return;}
- if(productionMode)throw adapter.safeError('New listing publication is not available yet.');
  // Reuse an already-created draft when only receipt delivery failed and content is unchanged.
- if(!localDraftId||JSON.stringify(pendingDraft)!==JSON.stringify(d)){const created=await api.request('/drafts',input);localDraftId=created.id;pendingDraft=d;verificationReceipt=null;}
+ if(!localDraftId||JSON.stringify(pendingDraft)!==JSON.stringify(d)){
+  let created;
+  if(productionMode){if(!postingAvailable||!turnstileToken)throw adapter.safeError('Complete the privacy check and try again.');const token=turnstileToken;try{created=await api.createDraft(input,token);}finally{resetProductionTurnstile();}}
+  else created=await api.request('/drafts',input);
+  localDraftId=created.id;pendingDraft=d;verificationReceipt=null;
+ }
  await requestVerification();
 }
+function showProductionDelivery(){
+ verifyMode='deliver';
+ $('#pi-verify-title').textContent='Check your email';$('#pi-verify-intro-text').textContent='A verification link was requested for ';$('#pi-verify-email').hidden=false;$('#pi-verify-email').textContent=pendingDraft.email;$('#pi-verify-detail').textContent='Open the email link, then explicitly confirm publication here. The link expires in 30 minutes.';
+ $('#pi-email-label').textContent='EMAIL DELIVERY · POST & IN';$('#pi-email-item').textContent=pendingDraft.title;$('#pi-simulate-verify').textContent='Send another verification email';$('#pi-verify-note').textContent='If delivery is uncertain, check your inbox before retrying. This draft is saved for three days. Earlier verification emails publish the earlier saved version.';$('#pi-verify-back').hidden=false;
+ $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;
+}
+function showProductionConfirmation(){
+ verifyMode='confirm';
+ state.screen='post';render();$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Publish this listing?';$('#pi-verify-intro-text').textContent='Your email link is ready to confirm';$('#pi-verify-email').hidden=true;$('#pi-verify-email').textContent='';$('#pi-verify-detail').textContent='Choose Publish listing to verify the email and publish this one draft. This does not sign you in.';
+ $('#pi-email-label').textContent='EMAIL LINK CONFIRMATION';$('#pi-email-item').textContent='The verification credential was removed from the address bar.';$('#pi-simulate-verify').textContent='Publish listing';$('#pi-verify-note').textContent='If the confirmation already succeeded but its response was lost, retrying safely confirms that result.';$('#pi-verify-back').hidden=true;
+ const heading=$('.pi-post h1');heading.tabIndex=-1;heading.focus();
+}
+function takeChangedVerificationLink(){
+ if(!productionMode||!location.hash.startsWith('#verification='))return;
+ const token=takeVerificationToken();if(!token){showLocalError('This verification link is invalid or incomplete. Request a new email.');return;}
+ productionVerificationToken=token;if(localBusy){verificationScreenPending=true;return;}showProductionConfirmation();
+}
+if(productionMode)window.addEventListener('hashchange',takeChangedVerificationLink);
 async function requestVerification(){
  if(!localDraftId)throw adapter.safeError('Submit the listing form first.');
+ if(productionMode){showProductionDelivery();await api.requestVerification(localDraftId);return '#pi-verify-title';}
  verificationReceipt=(await api.request('/drafts/'+localDraftId+'/verification',{})).receipt;
  $('#pi-verify-email').textContent=pendingDraft.email;$('#pi-email-item').textContent=pendingDraft.title;
  $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;
+}
+async function confirmProductionLink(){
+ if(!productionVerificationToken)throw adapter.safeError('This verification link is unavailable. Request a new email from the listing form.');
+ const token=productionVerificationToken;freezeFields();const result=await api.confirmVerification(token);if(productionVerificationToken===token)productionVerificationToken=null;
+ await afterSuccess(result.alreadyVerified?'This listing was already published. Request a management link below to sign in.':'Listing published. Request a management link below to sign in.','manage');return '#pi-recovery-email';
 }
 async function verifyLocal(){
  if(!verificationReceipt)throw adapter.safeError('Request a new local verification link below.');
@@ -317,14 +372,13 @@ if(connectedMode){
   $('.pi-manage .pi-demo-note').textContent='Local simulated inbox · Sample addresses only; this does not prove email ownership';
   $('.pi-post .pi-demo-note').firstChild.textContent='Local sample data · Saved on this computer; no real email. ';
   $('#pi-simulate-verify').textContent='Confirm local verification';
-  $('#pi-verify-screen > p').innerHTML='A simulated verification link is ready for <strong id="pi-verify-email"></strong>.';
-  $('#pi-verify-screen > p:nth-of-type(2)').textContent='Confirm below to publish locally. Sign in separately to manage listings.';
+  $('#pi-verify-intro-text').textContent='A simulated verification link is ready for ';$('#pi-verify-detail').textContent='Confirm below to publish locally. Sign in separately to manage listings.';
  }
  else{
   $('.pi-preview-bar > span').firstChild.textContent='GEAR EXCHANGE DEVELOPMENT · SAMPLE LISTINGS · Production seller management ';
   data.forEach(row=>row.age='');
   $('.pi-manage .pi-demo-note').textContent='Private seller management';
-  $('.pi-post .pi-demo-note').firstChild.textContent='Editing saves changes to your listing. Photos are managed separately. ';
+  $('.pi-post .pi-demo-note').firstChild.textContent='New listings require email verification. Photos are added after publication. ';
   $('#pi-fill-demo').hidden=true;
   $('#pi-new-listing').hidden=true;
   $('.pi-photo-heading').hidden=true;$('#pi-upload-grid').hidden=true;$('.pi-upload-actions').hidden=true;
@@ -363,6 +417,10 @@ let deleteId=null;
 $('#pi-delete-cancel').onclick=()=>$('#pi-delete-dialog').close();
 $('#pi-delete-confirm').onclick=()=>{if(connectedMode){localAction(async()=>{try{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}else await api.deletion({id:deleteId,action:'delete'});}finally{$('#pi-delete-dialog').close();}photoListingId=null;await afterSuccess(localMode?'Listing deleted locally. Recovery is available for 30 days.':'Listing deleted. Recovery is available for 30 days.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
 render();
-if(productionMode&&managementToken)await localAction(async()=>{clearLocalAccess();await api.confirm(managementToken);signedIn=true;await afterSuccess('Signed in.','manage');});
+postingSetup=productionMode?configureProductionPosting():null;
+if(productionMode&&productionVerificationToken)showProductionConfirmation();
+else if(recognizedVerificationLink)showLocalError('This verification link is invalid or incomplete. Request a new email.');
+else if(productionMode&&managementToken)await localAction(async()=>{clearLocalAccess();await api.confirm(managementToken);signedIn=true;await afterSuccess('Signed in.','manage');});
 else if(localMode)await localAction(refreshLocal);
+if(postingSetup)await postingSetup;
 })();

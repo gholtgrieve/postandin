@@ -91,14 +91,16 @@ routes only on the exact production origin, while deployment and provider
 configuration remain separate launch work. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
-The source-only production posting boundary validates the full listing and a
+The source-only production posting flow validates the full listing and a
 dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
 A random draft ID permits at most five verification emails with a one-minute
 cooldown; the Resend adapter
 sends a 30-minute fragment credential only to the stored address, and a separate
 explicit POST publishes the listing without creating a management session. The
-browser UI, Turnstile widget/site key, secret, D1 binding, Resend key and required
-edge rate limits are not connected or deployed; see
+exact-origin browser loads Turnstile only when a public site key is configured,
+erases verification fragments before network work, and keeps confirmation usable
+when new posting is disabled. The site key, secret, D1 binding, Resend key and
+required edge rate limits are not configured or deployed; see
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
 
 The source-only production maintenance package adds an idempotent D1 cleanup

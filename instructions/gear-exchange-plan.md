@@ -859,9 +859,47 @@ whole-response timeout. The final targeted re-review found 0 blocker, 0 high,
 Real Turnstile, Resend, production-origin browser and deployed-header checks
 remain launch gates; no provider or production resource was contacted.
 
-Next: connect the production browser posting flow,
-including configuration-gated Turnstile rendering and immediate fragment
-removal, while preserving the local preview and inert static demo.
+### Production posting and verification UI — reviewed and complete locally
+
+The exact production origin now fetches only the public Turnstile site key from
+a no-store same-origin config route. New posting remains disabled unless that
+configuration is valid and Cloudflare's exact explicit-render script loads.
+The flexible-width widget uses action `gear-post`; a narrow-screen container
+gives its documented 300 px minimum the page gutter it needs. Its bounded token is sent only
+in the JSON draft request and reset after use. Turnstile owns automatic error
+retry and expiry refresh. Unchanged-draft delivery retries reuse the in-memory
+draft UUID, preserve honest JSON or non-JSON 429/5xx status and Retry-After, and
+never reveal a token or recipient.
+
+Strict verification fragments are erased synchronously before awaited imports
+or network work. Opening a link remains inert until the user explicitly chooses
+Publish listing; confirmation creates no management session and remains usable
+when new-posting configuration is absent. The local connected preview and inert
+static demo retain their existing behavior. No site key, secret, binding,
+provider request, production data, remote migration or deployment is included.
+
+All 275 Gear tests, 41 focused source tests, JavaScript syntax checks and diff
+checks pass. Both the
+isolated mocked production-origin Chrome flow and the existing temporary
+local/static HTTPS harness pass. The production harness covers configured
+posting, action and request shape, delivery state, fragment removal, explicit
+confirmation while posting configuration is absent, saved-draft resend,
+verification/delivery mode isolation, non-JSON edge 429 behavior, phone width,
+the click-during-config race, a newer same-tab verification link arriving during
+confirmation, and the missing-config posting gate. Claude's initial review found
+0 blocker, 0 high, 2 medium and 11 low issues. After those fixes, re-review found
+0 blocker, 0 high, 0 medium and 4 low issues. Those findings were
+fixed with focused regressions: form state is restored before the new-listing
+screen opens, a newer verification credential is retained across an in-flight
+confirmation, every harness page uses the same provider interception, and the
+real widget's 300 px minimum is represented at 320 px. Two targeted re-reviews
+then found five low harness/UX gaps followed by two low state residuals. All were
+fixed; the final reviewer confirmed the earlier blocker/high/medium findings
+remain closed and approved the increment for local commit.
+
+Next after review and commit: connect production public browse/detail to the
+existing safe listing projection so a published listing can be discovered
+without relying on sample records.
 
 ### Checks and local commands
 
@@ -871,7 +909,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearProductionPostingUI.test.mjs
 git diff --check
 ```
 

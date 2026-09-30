@@ -1,8 +1,8 @@
 # Gear production posting and email verification
 
-Status: source-only backend foundation, not deployed. No D1 binding, Turnstile
-widget/site key or secret, Resend key, edge rule, production data or real mail was
-created or used.
+Status: source-only backend and browser flow, not deployed. No D1 binding,
+Turnstile widget/site key or secret, Resend key, edge rule, production data or
+real mail was created or used.
 
 ## Request flow
 
@@ -44,6 +44,35 @@ for a still-live draft so the durable delivery count cannot reset; the eventual
 draft purge removes it by cascade. Consumed rows remain only through token expiry
 so a lost success response can be acknowledged.
 
+## Browser flow and public configuration
+
+Production behavior activates only at exact origin `https://postandin.com`.
+`GET /api/gear/config` returns only the public `GEAR_TURNSTILE_SITE_KEY`, with
+no-store, no-referrer and nosniff headers. It fails closed when the key is absent
+or invalid. New-listing controls remain unavailable in that state, but emailed
+verification confirmation continues to work.
+
+When configured, the browser loads Cloudflare's exact
+`https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit` script,
+renders a flexible-width widget with action `gear-post`, and enables a new draft
+only after its callback provides a bounded token. The token is sent only in the
+JSON draft request and the widget is reset after every draft attempt. Error and
+expiry callbacks clear the token while Turnstile owns its automatic retry and
+refresh. An already-created unchanged draft ID is kept in memory when email
+delivery fails, so the verification-screen resend button requests another
+message without another draft or Turnstile solve. Editing the form creates a new
+draft and requires a fresh token. The delivery screen warns that older messages
+publish their earlier saved draft content.
+
+The browser reads a strict `#verification=<64-hex-token>` fragment and erases it
+synchronously before any awaited import or network work. It never auto-publishes:
+the user must choose **Publish listing**, which sends the token in a no-referrer
+JSON POST. A successful confirmation does not create a management session; the
+seller requests a separate management link. The local connected preview and
+ordinary inert demo retain their existing behavior. Recognized malformed links
+show a generic invalid-link message, and same-document verification navigation
+uses the same read-and-erase confirmation flow.
+
 ## Provider boundary
 
 The Resend adapter uses the fixed sender `Post & In Gear <gear@postandin.com>`, a
@@ -55,8 +84,7 @@ include the address, raw token, provider body or API key.
 
 ## Abuse and launch gates
 
-The browser must not be connected until it can acquire a production Turnstile
-token for `gear-post`. Before launch, provision and verify:
+Before launch, provision and verify:
 
 - separate staging and production D1/Turnstile/Resend configuration;
 - a production-host-restricted Turnstile widget and matching secret;
@@ -69,6 +97,11 @@ token for `gear-post`. Before launch, provision and verify:
 
 No real provider call is permitted in repository tests. Unit tests inject local
 provider responses, and database checks use temporary sample storage only.
+The isolated production browser harness intercepts every API and Turnstile
+request; it does not contact providers or production resources. It covers an
+HTML edge 429 with Retry-After, saved-draft resend, verification/delivery mode
+isolation, click-during-config state restoration, same-tab verification-token
+races, a 300 px Turnstile stand-in at 320 px, and the missing-config gate.
 
 ## Local verification
 
@@ -76,6 +109,8 @@ Run focused checks from the canonical checkout:
 
 ```bash
 node --test tests/gearPagesVerification.test.mjs tests/gearVerification.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearPagesReportSubmission.test.mjs
+node --test tests/gearProductionPostingUI.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearPreviewVisibility.test.mjs
+GEAR_PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/gear/browser-production-posting-check.mjs
 node --check lib/gear-verification.mjs
 node --check lib/gear-verification-mail.mjs
 node --check lib/gear-turnstile.mjs

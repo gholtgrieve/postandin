@@ -33,7 +33,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDir
   initializePhotos(db);
   const contact=localContact(db,{sink:contactSink});
   const reportQueue=localReports(db,{persistent:Boolean(owner)});
-  const assets=new Map(preview?['gear/index.html','gear/gear.css','gear/gear.mjs','gear/local-api.mjs','lib/gear-exchange.mjs'].map(path=>['/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8')]):[]);
+  const assets=new Map(preview?['gear/index.html','gear/gear.css','gear/gear.mjs','gear/local-api.mjs','gear/production-api.mjs','gear/production-turnstile.mjs','lib/gear-exchange.mjs','lib/gear-image-provider-id.mjs'].map(path=>['/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8')]):[]);
   if(preview&&owner)for(const path of ['gear/owner.html','gear/owner.css','gear/owner.mjs'])assets.set('/'+path,readFileSync(new URL('../../'+path,import.meta.url),'utf8'));
   const ownerCookie=value=>`gear_owner=${value}; Path=/owner; HttpOnly; Secure; SameSite=Strict; Max-Age=${value?OWNER_TTL_MS/1000:0}`;
   function ownerSession(req){const values=(req.headers.cookie||'').split(';').map(s=>s.trim()).filter(s=>s.startsWith('gear_owner='));return values.length===1?values[0].slice(11):'';}

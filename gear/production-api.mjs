@@ -1,6 +1,8 @@
 import {isGearImageProviderId} from '../lib/gear-image-provider-id.mjs';
 
 const TOKEN=/^[a-f0-9]{64}$/;
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const SITE_KEY=/^[\x21-\x7e]{1,128}$/;
 const MAX_RESPONSE_BYTES=64*1024;
 const MAX_PHOTO_BYTES=5*1024*1024;
 const PHOTO_TYPES=new Set(['image/jpeg','image/png','image/webp']);
@@ -9,19 +11,28 @@ export function safeError(message,status=0,fields=null){return Object.assign(new
 
 // Read once and erase before any network work so credentials never remain in
 // copied URLs, browser history entries or later same-document navigation.
-export function takeManagementToken(locationValue=location,historyValue=history){
-  if(!locationValue.hash.startsWith('#management='))return null;
-  const value=locationValue.hash.slice('#management='.length);
+function takeLinkToken(kind,locationValue,historyValue){
+  const prefix=`#${kind}=`;if(!locationValue.hash.startsWith(prefix))return null;
+  const value=locationValue.hash.slice(prefix.length);
   historyValue.replaceState(historyValue.state,'',locationValue.pathname+locationValue.search);
   return TOKEN.test(value)?value:null;
 }
+export function takeManagementToken(locationValue=location,historyValue=history){return takeLinkToken('management',locationValue,historyValue);}
+export function takeVerificationToken(locationValue=location,historyValue=history){return takeLinkToken('verification',locationValue,historyValue);}
 
 async function responseJson(response){
-  const text=await response.text();
-  if(text.length>MAX_RESPONSE_BYTES)throw safeError('The server returned an unreadable response. Please try again.');
-  let result;try{result=JSON.parse(text);}catch{throw safeError('The server returned an unreadable response. Please try again.');}
-  if(!result||typeof result!=='object'||Array.isArray(result))throw safeError('The server returned an unreadable response. Please try again.');
-  if(!response.ok)throw safeError(response.status===401?'Your session has ended. Request a new management link.':result.error||'Unable to complete this request.',response.status,result.fields);
+  const retry=Number(response.headers.get('retry-after')),retryAfter=Number.isSafeInteger(retry)&&retry>0?retry:null;
+  const failure=(result=null)=>{
+    const fallback=response.status===401?'Your session has ended. Request a new management link.':response.status===429?'Too many requests. Wait before trying again.':response.status>=500?'This service is temporarily unavailable. Please try again later.':'Unable to complete this request.';
+    const message=typeof result?.error==='string'&&result.error.length<=300?result.error:fallback;
+    const fields=result?.fields&&typeof result.fields==='object'&&!Array.isArray(result.fields)?Object.fromEntries(Object.entries(result.fields).filter(([,value])=>typeof value==='string'&&value.length<=300)):null;
+    return Object.assign(safeError(message,response.status,fields),{retryAfter});
+  };
+  let text;try{text=await response.text();}catch{if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
+  if(text.length>MAX_RESPONSE_BYTES){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
+  let result;try{result=JSON.parse(text);}catch{if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
+  if(!result||typeof result!=='object'||Array.isArray(result)){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
+  if(!response.ok)throw failure(result);
   return result;
 }
 
@@ -33,7 +44,15 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     catch{throw safeError('The request could not be confirmed. Check the connection and try again.');}
     return responseJson(response);
   }
+  async function createDraft(listing,turnstileToken){const result=await request('/drafts',{listing,turnstileToken});if(!UUID.test(result.id??'')||result.status!=='unverified')throw safeError('The server returned an unreadable response. Please try again.');return result;}
+  async function confirmVerification(token){const result=await request('/verification/confirm',{token,confirm:true});if(result.verified!==true||!UUID.test(result.listingId??'')||(result.alreadyVerified!==undefined&&result.alreadyVerified!==true))throw safeError('The server returned an unreadable response. Please try again.');return result;}
+  async function requestVerification(id){const result=await request('/verification/request',{id});if(typeof result.message!=='string'||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
   const session=()=>request('/management/session');
+  async function config(){
+    let response;try{response=await fetcher('/api/gear/config',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{Accept:'application/json'}});}
+    catch{throw safeError('Gear posting is temporarily unavailable.');}
+    const result=await responseJson(response);if(typeof result.turnstileSiteKey!=='string'||!SITE_KEY.test(result.turnstileSiteKey)||/\s/.test(result.turnstileSiteKey))throw safeError('The server returned an unreadable response. Please try again.');return result;
+  }
   async function authenticated(path,body){const access=await session();return request(path,body,access.csrf);}
   async function uploadPhoto(listingId,file){
     if(!file||!PHOTO_TYPES.has(file.type)||!Number.isSafeInteger(file.size)||file.size<1||file.size>MAX_PHOTO_BYTES)throw safeError('Choose a JPG, PNG, or WebP image up to 5 MB.');
@@ -54,7 +73,10 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     }
   }
   return {
-    request,session,uploadPhoto,
+    request,session,config,uploadPhoto,
+    createDraft,
+    requestVerification,
+    confirmVerification,
     confirm:token=>request('/management/confirm',{token,confirm:true}),
     recover:email=>request('/management/recovery',{email}),
     write:body=>authenticated('/management/listing',body),
@@ -67,3 +89,4 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
 
 export function previewListing(row){return {...row,type:row.type==='sale'?'Sale':row.type==='free'?'Free':'Trade',seller:row.sellerName,place:row.city,photos:row.photos||[],age:'',pending:row.status==='pending',status:row.status[0].toUpperCase()+row.status.slice(1),expires:row.expiresAt};}
 export function listingInput(d){return {title:d.title,description:d.description,category:d.category,size:d.size,fit:d.fit,condition:d.condition,city:d.city,type:d.type.toLowerCase(),priceCents:d.priceCents,trade:d.trade,clubs:d.clubs,otherClub:d.otherClub,sellerName:d.seller};}
+export function draftListingInput(d,adult){return {...listingInput(d),email:d.email,adult:adult===true};}
