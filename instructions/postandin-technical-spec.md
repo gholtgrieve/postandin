@@ -1255,6 +1255,14 @@ once and unreadable cursor state cannot block record cleanup. Malformed pages us
 the existing retry and failure-only alert path.
 The deletion drain never calls Images for a provider ID that is currently live.
 
+Source-only seller photo-management routes remove or reorder attached photos only
+after the existing session, CSRF, ownership and manageable-state checks. Removal
+stages the private provider ID in `gear_photo_deletions` before metadata disappears.
+Both operations recheck an exact bounded photo snapshot inside one D1 batch;
+reorder requires the complete current ID permutation, so a concurrent upload or
+removal rolls back rather than losing or resurrecting metadata. Provider IDs stay
+server-side. Signed public delivery remains the next photo lifecycle slice.
+
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 
 The local-only draft schema, validation, persistence, token verification,

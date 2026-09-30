@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
+import {removeManagedPhoto,reorderManagedPhotos} from '../../lib/gear-photo-management.mjs';
 import {attachClaimedPhoto,canRecordPhotoQuarantine,claimPhotoQuarantine,discardClaimedPhoto,hasPhotoManagementAccess,queuePhotoDeletionIfUnattached,queuePhotoDeletions,recordPhotoQuarantine} from '../../lib/gear-photo-quarantine.mjs';
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
@@ -171,6 +172,11 @@ try{
  const attached=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,202);
  assert.equal(attached.ok,true);assert.equal(attached.photo.position,1);assert.equal((await readHostedPhotos(db,id))[1].providerId,sanitizedProvider);
  assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(quarantineProvider).first()).listing_id,id);
+ assert.equal(await reorderManagedPhotos(db,access.session,access.csrf,id,[attached.photo.id,photo.id],202),true);
+ assert.deepEqual((await readHostedPhotos(db,id)).map(row=>row.id),[attached.photo.id,photo.id]);
+ assert.equal(await removeManagedPhoto(db,access.session,access.csrf,id,photo.id,203),true);
+ assert.deepEqual((await readHostedPhotos(db,id)).map(row=>row.providerId),[sanitizedProvider]);
+ assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(photo.providerId).first()).listing_id,id);
  const attachmentReplay=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,203);
  assert.deepEqual(attachmentReplay,{ok:false,reason:'attached'});
  const discardedProvider='00000000-0000-4000-8000-000000000004',discardedCleanup='cleanup_reference_004';
@@ -182,6 +188,20 @@ try{
  assert.equal(await queuePhotoDeletionIfUnattached(db,id,sanitizedProvider,205),false);
  assert.equal(await queuePhotoDeletions(db,id,[sanitizedProvider],205),0);
  assert.equal(await queuePhotoDeletionIfUnattached(db,id,'00000000-0000-4000-8000-000000000005',205),true);
+ const staleCompanion=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000006',205);
+ let racedPhotoRemoval=false;
+ const stalePhotoDb={prepare:(...args)=>db.prepare(...args),batch:async statements=>{
+  if(!racedPhotoRemoval){
+   racedPhotoRemoval=true;
+   assert.equal(await removeManagedPhoto(db,access.session,access.csrf,id,attached.photo.id,205),true);
+   assert.equal(await removeManagedPhoto(db,access.session,access.csrf,id,staleCompanion.id,205),true);
+  }
+  return db.batch(statements);
+ }};
+ assert.equal(await reorderManagedPhotos(stalePhotoDb,access.session,access.csrf,id,[staleCompanion.id,attached.photo.id],206),false);
+ assert.deepEqual(await readHostedPhotos(db,id),[]);
+ assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(sanitizedProvider).first()).listing_id,id);
+ assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(staleCompanion.providerId).first()).listing_id,id);
  assert.deepEqual(await recoverManagementSession(db,access.session,201),{csrf:access.csrf,expiresAt:access.expiresAt});
  assert.equal((await readPublicListings(db,201)).length,1);
  assert.equal(await editManagedListing(db,access.session,access.csrf,id,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},202),true);

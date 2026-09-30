@@ -108,6 +108,15 @@ a launch gate and must be applied before the upload route is exposed. Source als
 requires `GEAR_PHOTO_UPLOADS_ENABLED=true`, in addition to both bindings, so merely
 adding the service binding cannot accidentally enable uploads.
 
+`POST /api/gear/management/photos/remove` accepts exactly
+`{listingId,photoId}`. `POST /api/gear/management/photos/reorder` accepts exactly
+`{listingId,photoIds}`, where `photoIds` is the complete ordered set of one to six
+current attached photo IDs. Both require the same exact-origin session and CSRF
+checks. They return 200 on success, 409 for a stale or rejected mutation, and the
+shared 400/401/403/413/415/500/503 management-route errors. They need only
+`GEAR_DB`: unlike upload/finalize, they do not create or call a provider object,
+so the upload feature flag and Images service binding do not gate them.
+
 ## Route behavior and remaining lifecycle requirements
 
 The route slice now:
@@ -121,11 +130,18 @@ The route slice now:
   it if D1 attachment fails; on an indeterminate batch exception, first retry
   attachment with the same server-held claim and sanitized ID so `attached` or
   success prevents unsafe compensation and a confirmed conflict can be cleaned;
-- deletes or enqueues the original quarantine on every terminal failure.
+- deletes or enqueues the original quarantine on every terminal failure;
+- removes an attached photo only for the current seller/session/listing, stages its
+  provider ID in the durable deletion outbox in the same D1 transaction, and
+  compacts the remaining order without exposing a provider ID;
+- accepts only a complete, duplicate-free ordering of the listing's current photo
+  IDs. Reorder replaces the metadata set atomically after rechecking the exact
+  pre-read snapshot, ownership, CSRF, session lifetime and manageable listing
+  state. A concurrent upload/removal loses safely instead of resurrecting or
+  dropping an object.
 
 The next lifecycle slice must:
 
-- keep removal and reorder ownership-checked; and
 - project only short-lived signed URLs for the configured public variant.
 
 Reconciliation treats expired unclaimed rows, expired claim leases and every row
@@ -191,13 +207,16 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 
 ```bash
 node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
-node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs
+node --test tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
 node --check lib/gear-image-upload.mjs
 node --check lib/gear-photo-quarantine.mjs
 node --check gear-images/src/index.js
 node --check lib/gear-pages-photo-service.mjs
 node --check functions/api/gear/management/photos/upload.js
 node --check functions/api/gear/management/photos/finalize.js
+node --check lib/gear-photo-management.mjs
+node --check functions/api/gear/management/photos/remove.js
+node --check functions/api/gear/management/photos/reorder.js
 GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

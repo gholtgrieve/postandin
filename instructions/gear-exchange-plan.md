@@ -41,6 +41,8 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `cfbc2cc` | Owner-approved 25-megapixel Gear photo limit |
 | `b7002f5` | Durable production photo quarantine state |
 | `bfafb1a` | Dedicated Gear Images service Worker foundation |
+| `050c87d` | Authenticated production photo upload/finalize routes |
+| `329ef5f` | Scheduled orphaned-photo reconciliation |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -687,7 +689,7 @@ regressions, same-ID rejection and precise durability wording resolved all
 three. A final narrow review found 0 blocker, 0 high, 0 medium and 0 low issues
 and again returned **Ready to commit**.
 
-### Scheduled photo reconciliation — current increment
+### Scheduled photo reconciliation — committed `329ef5f`
 
 Migration 12 preserves existing hosted-photo deletion work while allowing a
 provider-discovered orphan to carry no misleading listing ID. The daily
@@ -712,8 +714,19 @@ state falls back to an empty sweep and cannot block record cleanup. Provider-sid
 purpose filtering is only an optimization because every returned object is
 revalidated client-side.
 
-Next after review/commit: ownership-checked removal/reorder and short-lived signed
-public photo projection, then upload rate limits and remaining launch operations.
+### Authenticated production photo removal/reorder — current increment
+
+Source-only Pages handlers now let a seller remove one attached photo or submit a
+complete order of the listing's current photo IDs. The D1 adapter rechecks the
+live session, CSRF, seller/listing ownership, manageable state and an exact bounded
+photo snapshot inside the mutation batch. Removal writes the provider ID to the
+durable deletion outbox before replacing the metadata set; reorder never touches
+provider storage. Concurrent upload/removal changes lose safely rather than
+dropping new metadata or resurrecting a removed object. Responses expose no
+provider IDs, and no UI, binding, resource or deployment is included.
+
+Next after review/commit: short-lived signed public photo projection, then upload
+rate limits and remaining launch operations.
 
 ### Checks and local commands
 
@@ -723,7 +736,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs
 git diff --check
 ```
 
