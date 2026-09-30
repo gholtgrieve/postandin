@@ -831,6 +831,38 @@ any severity and returned `ready to merge` at the source level. Production-origi
 browser, real Images and deployed-header checks remain staging gates, not local
 source claims.
 
+### Production posting and verification backend — complete locally
+
+The source-only Pages boundary now has exact-origin POST handlers for validated
+draft creation, verification-email delivery and explicit one-use confirmation.
+Creation requires a server-validated Turnstile response with the dedicated
+`gear-post` action before D1 is written. Migration 14 adds a five-message
+per-draft delivery cap; source also enforces a one-minute cooldown and the
+three-day draft deadline. The random draft UUID is the retry capability, and
+delivery always goes to the address already stored with that draft. The Resend
+adapter sends a 30-minute fragment link, bounds provider response time and size,
+logs no email or bearer token, and provider/configuration failure is reported
+honestly. A definite pre-delivery rejection conditionally releases its count and
+cooldown; ambiguous provider outcomes remain reserved, and maintenance preserves
+the cap row until the live draft is purged. Opening a link cannot publish;
+confirmation safely acknowledges a committed response retry and does not create
+a management session. No binding, secret, widget, rate-limit rule, provider
+resource, remote migration or deployment is included.
+
+All 268 Gear tests pass at bounded concurrency, as do all 15 local
+workerd/D1 groups, JavaScript syntax checks and diff checks. The D1 harness uses
+only temporary storage. Claude's initial review and first re-review findings were
+fixed, including durable cap preservation, actual D1 execution, definite-failure
+rollback, ambiguous provider outcomes, stale-token races, replay state and the
+whole-response timeout. The final targeted re-review found 0 blocker, 0 high,
+0 medium and 0 low issues and approved the source increment for local commit.
+Real Turnstile, Resend, production-origin browser and deployed-header checks
+remain launch gates; no provider or production resource was contacted.
+
+Next: connect the production browser posting flow,
+including configuration-gated Turnstile rendering and immediate fragment
+removal, while preserving the local preview and inert static demo.
+
 ### Checks and local commands
 
 Run from the canonical checkout:
@@ -839,7 +871,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs
 git diff --check
 ```
 

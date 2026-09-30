@@ -91,6 +91,16 @@ routes only on the exact production origin, while deployment and provider
 configuration remain separate launch work. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
+The source-only production posting boundary validates the full listing and a
+dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
+A random draft ID permits at most five verification emails with a one-minute
+cooldown; the Resend adapter
+sends a 30-minute fragment credential only to the stored address, and a separate
+explicit POST publishes the listing without creating a management session. The
+browser UI, Turnstile widget/site key, secret, D1 binding, Resend key and required
+edge rate limits are not connected or deployed; see
+[instructions/gear-production-verification.md](instructions/gear-production-verification.md).
+
 The source-only production maintenance package adds an idempotent D1 cleanup
 core, durable hosted-photo deletion outbox, daily scheduled Worker entry point,
 abandoned-quarantine and provider-orphan reconciliation, one-minute retry, and
@@ -144,8 +154,8 @@ Under ordinary static hosting, listings, management access, verification and
 contact actions are simulated; inputs and photos reset on reload. The opt-in
 local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
 The static public sample dataset is separate from seller drafts. Production
-uploads, actual email delivery, automatic expiry cleanup and deletion retention
-remain unimplemented. The separate storage query already filters expiry on reads.
+provider configuration, remote migrations, staging checks and deployment remain
+unimplemented. The separate storage query already filters expiry on reads.
 
 
 ## Groups feature

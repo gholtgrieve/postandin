@@ -6,7 +6,7 @@ import {createGearMaintenanceBudget,GEAR_DAY_MS,GEAR_MAINTENANCE_RETRY_MS,GEAR_P
 import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {submitReport} from '../lib/gear-report-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
-import {confirmVerification,issueLocalVerification} from '../lib/gear-verification.mjs';
+import {confirmVerification,issueLocalVerification,issueVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../lib/gear-verification.mjs';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 
 const sample={title:'Bag',description:'Sample wear',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
@@ -73,6 +73,20 @@ test('short retention prunes only exact-due private state and preserves active r
     assert.equal(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(draft.id),undefined);assert.ok(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(fresh.id));
     assert.equal(count(db,'gear_moderation_history'),0);assert.equal(count(db,'gear_deletion_ledger'),0);assert.equal(db.sqlite.prepare('SELECT reason FROM gear_removals WHERE listing_id=?').get(id).reason,'Removal remains in effect; original reason expired.');
     assert.deepEqual(db.sqlite.prepare('SELECT expires_at FROM gear_photo_upload_limits').all().map(row=>row.expires_at),[now+GEAR_DAY_MS]);
+  }finally{db.close();}
+});
+
+test('maintenance preserves the verification delivery cap until the live draft is purged',async()=>{
+  const db=openLocalDatabase();try{
+    const now=2*GEAR_DAY_MS,firstIssue=now-TOKEN_TTL_MS-(VERIFICATION_MAX_ISSUES-1)*VERIFICATION_REISSUE_COOLDOWN_MS;
+    const draft=await createDraft(db,{...sample,title:'Capped live draft'},firstIssue-1);
+    for(let index=0;index<VERIFICATION_MAX_ISSUES;index++)assert.ok(await issueVerification(db,draft.id,firstIssue+index*VERIFICATION_REISSUE_COOLDOWN_MS));
+    assert.equal(db.sqlite.prepare('SELECT issue_count FROM gear_verification_tokens').get().issue_count,VERIFICATION_MAX_ISSUES);
+    await cleanupGearRecords(db,{now});
+    assert.equal(db.sqlite.prepare('SELECT issue_count FROM gear_verification_tokens').get().issue_count,VERIFICATION_MAX_ISSUES);
+    assert.deepEqual(await issueVerification(db,draft.id,now+VERIFICATION_REISSUE_COOLDOWN_MS),{limited:true,reason:'cap'});
+    await cleanupGearRecords(db,{now:firstIssue-1+3*GEAR_DAY_MS});
+    assert.equal(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(draft.id),undefined);assert.equal(count(db,'gear_verification_tokens'),0);
   }finally{db.close();}
 });
 

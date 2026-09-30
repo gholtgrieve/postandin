@@ -133,7 +133,10 @@ invalid credentials at next cleanup; deletion ledger 30 days after first purge.
 The 30-day seller recovery window remains unchanged. Verified expired/closed
 listings are not automatically deleted by this increment.
 
-Cleanup removes expired/consumed verification and management links, expired or
+Cleanup retains expired unconsumed verification rows for live drafts so their
+delivery cap cannot reset, and retains consumed verification rows through token
+expiry for lost-response confirmation. Draft deletion cascades the former.
+Cleanup removes expired/consumed management links, expired or
 revoked sessions, and expired/consumed transfers or transfers tied to an invalid
 session. Transfer rows are removed before their referenced sessions. It preserves
 other listings and sellers still owning any listing, including recovering ones.

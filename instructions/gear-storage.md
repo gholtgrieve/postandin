@@ -23,7 +23,7 @@ add a deployed write route.
 - `lib/gear-photo-rate-limit.mjs`: exact per-seller UTC-day upload-attempt budget
   used before production provider work; it stores no network address.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–13 once and preserves records on reopening.
+  It applies migrations 1–14 once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -31,7 +31,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All thirteen migrations, the acknowledgement
+Local tests exercise real SQLite. All fourteen migrations, the acknowledgement
 write, photo metadata/quarantine adapters and private moderation projection pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
@@ -93,11 +93,11 @@ seller IDs or verification data. The first page is bounded at 100 records;
 pagination/search integration comes with the real browse API.
 
 Verified email changes now exist locally; see [gear-email-change.md](gear-email-change.md).
-Next: bounded draft abuse controls, then
-D1/HTTPS validation and UI integration. Per-listing verification, publication
-quota, and authenticated management exist locally. Before any remote API exists,
-validate deployed authorization and add request abuse limits and retention cleanup.
-This local server is not a production security boundary or deployable API.
+Production verification delivery now has source-level cooldown/cap controls and
+an exact draft-retention boundary; see
+[gear-production-verification.md](gear-production-verification.md). D1/HTTPS
+staging validation, browser integration and edge abuse limits remain. This local
+server is not a production security boundary or deployable API.
 
 ## Migration and rollback
 

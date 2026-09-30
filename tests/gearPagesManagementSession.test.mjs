@@ -61,7 +61,7 @@ test('mail validation and provider failures reveal no private provider detail',a
     [{GEAR_RESEND_API_KEY:'key'},async()=>{throw new Error('private network failure');},'network'],
   ];
   for(const [env,fetcher,code] of cases)await assert.rejects(sendManagementLink({recipient:sample.email,token:TOKEN},env,{fetcher}),error=>error instanceof GearManagementMailUnavailableError&&error.message==='Gear management mail unavailable.'&&error.code===code);
-  await assert.rejects(sendManagementLink({recipient:sample.email,token:TOKEN},{GEAR_RESEND_API_KEY:'key'},{timeoutMs:1,fetcher:(_url,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('private timeout'))))}),error=>error instanceof GearManagementMailUnavailableError&&error.code==='network');
+  await assert.rejects(sendManagementLink({recipient:sample.email,token:TOKEN},{GEAR_RESEND_API_KEY:'key'},{timeoutMs:1,fetcher:(_url,{signal})=>new Promise((_resolve,reject)=>{if(signal.aborted)reject(new Error('private timeout'));else signal.addEventListener('abort',()=>reject(new Error('private timeout')),{once:true});})}),error=>error instanceof GearManagementMailUnavailableError&&error.code==='network');
 });
 
 test('recovery response is identical for known, unknown and failed delivery and never exposes credentials',async()=>{

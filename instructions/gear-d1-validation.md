@@ -37,43 +37,48 @@ All current check groups passed:
    adapter while mocked outbound email remains local. The adapter itself is
    unit-tested in Node; this probe does not load the adapter module.
 2. Failed migration batch rolls schema changes back.
-3. All thirteen checked-in migrations apply to a fresh D1 database; the harness
+3. All fourteen checked-in migrations apply to a fresh D1 database; the harness
    ledger makes repeated application a no-op. RETURNING and meta.changes have the
    expected shape, including a no-op update. The seller foreign-key cascade also
-   removes its photo-upload counter in actual D1.
-4. A full 100-object Images page reconciles without exceeding D1's bound-parameter
+   removes its photo-upload counter in actual D1. Verification delivery count is
+   constrained by migration 14.
+4. Production verification issuance, cooldown, the five-message cap,
+   failed-delivery release, confirmation replay and maintenance preservation run
+   through actual D1. A populated pre-migration token upgrades with count one.
+5. A full 100-object Images page reconciles without exceeding D1's bound-parameter
    limit.
-5. The real `gear-maintenance/src/index.js` entry module loads and completes an
+6. The real `gear-maintenance/src/index.js` entry module loads and completes an
    empty-data scheduled event in workerd with temporary D1, KV and Images bindings;
    this prevents unsupported named exports from reaching deployment.
-6. A populated local Images-binding list shape drives orphan reconciliation and
+7. A populated local Images-binding list shape drives orphan reconciliation and
    cleanup end to end.
-7. The real service-binding-only `gear-images/src/index.js` entry module loads and
+8. The real service-binding-only `gear-images/src/index.js` entry module loads and
    fails closed against the local test binding, which deliberately lacks hosted
    Images management methods.
-8. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
+9. Atomic public report insertion, owner dismiss/remove/restore, seller-deletion
    blocking of owner restore and injected moderation-audit failure rollback work
    through the actual D1 binding. The
    indexed production moderation tables and 101-row bounded private open-report
    projection signal truncation and do not return seller email.
-9. Publication, immutable adult acknowledgement, hosted-photo metadata, public
+10. Publication, immutable adult acknowledgement, hosted-photo metadata, public
    projection, production management-link issue/redeem/session recovery,
    authenticated seller delete/recover, durable outbox purge and mocked hosted
    image deletion across bounded image-first passes, the exact seller upload
    budget, JSON club aggregation, guarded edits and relisting work with the D1
    binding.
-10. Actual D1 duplicate errors on verification, edit, relist and email transfer
+11. Actual D1 duplicate errors on verification, edit, relist and email transfer
    map to generic failure; a failed edit rolls back
    the whole batch, including stale-duplicate cleanup.
-11. Email transfer is atomic, including destination creation and session/link
+12. Email transfer is atomic, including destination creation and session/link
    revocation. Injected failure, replay and existing-destination duplicate conflict
    behave correctly; resolving the conflict permits retry of the unconsumed token.
-12. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
+13. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-13. A populated version-6 database upgrades through version 13 with listing/session
-   data preserved, legacy acknowledgement left NULL, and email transfer working afterward.
-14. Stored data and migration bookkeeping survive disposal and restart of workerd.
+14. A populated version-6 database upgrades through version 14 with listing/session
+   data preserved, legacy acknowledgement left NULL, bounded verification-delivery
+   state added, and email transfer working afterward.
+15. Stored data and migration bookkeeping survive disposal and restart of workerd.
 
 The current Gear Node suite also passes. No runtime compatibility changes
 to application code or SQL were required by this validation increment.

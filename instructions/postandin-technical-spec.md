@@ -1214,6 +1214,29 @@ photo bytes go only to the validated HTTPS Cloudflare Images upload host with
 credentials omitted and no referrer. Production new-listing publication and
 email changes remain disconnected so they cannot silently use demo behavior.
 
+The source-only production posting boundary exposes exact-origin POST routes for
+draft creation, verification-email delivery and explicit confirmation. Draft
+creation validates the complete listing before server-side Turnstile validation
+for hostname `postandin.com` and action `gear-post`, then writes only an
+unverified D1 record. Its random UUID is a temporary capability for resending a
+verification message to the address already stored with that draft; it never
+selects a new recipient. Resend receives a 30-minute, one-listing bearer token in
+the URL fragment, and opening the link cannot publish because confirmation is a
+separate POST. Tokens are stored only as SHA-256 hashes. Production delivery is
+limited to five messages per draft with a one-minute cooldown; reissue revokes
+the old token. Confirmation is single-use at the mutation boundary, safely
+acknowledges a committed response retry within token expiry, and publication
+rechecks draft state, seller/email consistency, the active-listing quota and
+duplicate constraints atomically. Confirmation does
+not create a seller-management session. Provider failure returns an honest error
+while preserving the three-day draft for retry; a token-guarded rollback releases
+the failed attempt's count and cooldown without changing a newer issuance.
+Maintenance retains the cap row for the life of an unverified draft. Issuance and confirmation enforce
+that retention boundary even if scheduled cleanup is delayed. The browser flow, Turnstile
+widget/site key, D1 and secret bindings, Resend key, and edge limits for posting
+and verification delivery are still launch work; see
+`gear-production-verification.md`.
+
 Source-only migration 10 adds a durable hosted-photo deletion outbox. The
 separate `gear-maintenance/` scheduled Worker stages provider IDs before D1
 listing/photo cascades, applies the approved draft/credential/history/deletion

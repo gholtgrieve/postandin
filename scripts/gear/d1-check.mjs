@@ -14,8 +14,8 @@ import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
 import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
-import {reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
-import {issueLocalVerification,confirmVerification} from '../../lib/gear-verification.mjs';
+import {cleanupGearRecords,reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
+import {confirmProductionVerification,issueLocalVerification,issueVerification,releaseFailedVerificationIssue,confirmVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../../lib/gear-verification.mjs';
 import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
 const modulePath=process.env.GEAR_WRANGLER_MODULE;
@@ -53,11 +53,11 @@ async function publishBeforeAdultMigration(db,now=100){
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
 async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,13,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,14,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
- }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA'],d1Persist:temp,
+ }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA','VERIFY'],d1Persist:temp,
   outboundService:request=>new Response(JSON.stringify({url:request.url,id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})};
  mf=new Miniflare(runtimeOptions);
  const mailProbe=await mf.dispatchFetch('http://localhost/mail-runtime-probe');assert.equal(mailProbe.status,200);assert.equal((await mailProbe.json()).url,'https://api.resend.com/emails');
@@ -74,7 +74,27 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all thirteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine and upload-limit state; D1 RETURNING/meta.changes.');
+ console.log('PASS: all fourteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload-limit and verification-delivery state; D1 RETURNING/meta.changes.');
+ const verifyDb=await mf.getD1Database('VERIFY');await migrate(verifyDb);
+ const verifyNow=10*86400000,verifyDraft=await createDraft(verifyDb,{...sample,email:'verify@example.test',title:'D1 verification delivery'},verifyNow);
+ const firstVerification=await issueVerification(verifyDb,verifyDraft.id,verifyNow+1);assert.ok(firstVerification);
+ assert.deepEqual(await issueVerification(verifyDb,verifyDraft.id,verifyNow+2),{limited:true,reason:'cooldown',retryAfterSeconds:60});
+ for(let index=1;index<VERIFICATION_MAX_ISSUES;index++)assert.ok(await issueVerification(verifyDb,verifyDraft.id,verifyNow+1+index*VERIFICATION_REISSUE_COOLDOWN_MS));
+ assert.deepEqual(await issueVerification(verifyDb,verifyDraft.id,verifyNow+1+VERIFICATION_MAX_ISSUES*VERIFICATION_REISSUE_COOLDOWN_MS),{limited:true,reason:'cap'});
+ const capped=await verifyDb.prepare('SELECT issue_count FROM gear_verification_tokens WHERE listing_id=?').bind(verifyDraft.id).first();assert.equal(capped.issue_count,VERIFICATION_MAX_ISSUES);
+ const latestToken=await issueVerification(verifyDb,(await createDraft(verifyDb,{...sample,email:'confirm@example.test',title:'D1 confirm replay'},verifyNow)).id,verifyNow+1);
+ const confirmed=await confirmProductionVerification(verifyDb,latestToken.token,verifyNow+2);assert.equal(confirmed.verified,true);assert.equal((await confirmProductionVerification(verifyDb,latestToken.token,verifyNow+3)).alreadyVerified,true);
+ const failedDraft=await createDraft(verifyDb,{...sample,email:'failed@example.test',title:'D1 failed delivery'},verifyNow),failedReceipt=await issueVerification(verifyDb,failedDraft.id,verifyNow+1);
+ assert.equal(await releaseFailedVerificationIssue(verifyDb,failedDraft.id,'a'.repeat(64),verifyNow+2),false);
+ assert.equal(await releaseFailedVerificationIssue(verifyDb,failedDraft.id,failedReceipt.token,verifyNow+2),true);assert.equal(await verifyDb.prepare('SELECT issue_count FROM gear_verification_tokens WHERE listing_id=?').bind(failedDraft.id).first(),null);
+ const rollbackDraft=await createDraft(verifyDb,{...sample,email:'rollback@example.test',title:'D1 failed resend rollback'},verifyNow),rollbackFirst=await issueVerification(verifyDb,rollbackDraft.id,verifyNow+1);
+ const rollbackNow=verifyNow+1+VERIFICATION_REISSUE_COOLDOWN_MS,rollbackSecond=await issueVerification(verifyDb,rollbackDraft.id,rollbackNow),rollbackBefore=await verifyDb.prepare('SELECT * FROM gear_verification_tokens WHERE listing_id=?').bind(rollbackDraft.id).first();
+ assert.equal(await releaseFailedVerificationIssue(verifyDb,rollbackDraft.id,rollbackFirst.token,rollbackNow),false);assert.deepEqual({...await verifyDb.prepare('SELECT * FROM gear_verification_tokens WHERE listing_id=?').bind(rollbackDraft.id).first()},{...rollbackBefore});
+ assert.equal(await releaseFailedVerificationIssue(verifyDb,rollbackDraft.id,rollbackSecond.token,rollbackNow),true);const rolledBack=await verifyDb.prepare('SELECT issue_count,created_at,expires_at FROM gear_verification_tokens WHERE listing_id=?').bind(rollbackDraft.id).first();
+ assert.deepEqual({...rolledBack},{issue_count:1,created_at:rollbackNow-VERIFICATION_REISSUE_COOLDOWN_MS,expires_at:rollbackNow-VERIFICATION_REISSUE_COOLDOWN_MS+1});
+ await cleanupGearRecords(verifyDb,{now:verifyNow+1+(VERIFICATION_MAX_ISSUES-1)*VERIFICATION_REISSUE_COOLDOWN_MS+TOKEN_TTL_MS});
+ assert.equal((await verifyDb.prepare('SELECT issue_count FROM gear_verification_tokens WHERE listing_id=?').bind(verifyDraft.id).first()).issue_count,VERIFICATION_MAX_ISSUES);
+ console.log('PASS: production verification cooldown, cap, failed-delivery release, confirmation replay and maintenance preservation execute through D1.');
  const reconciliationNow=2*86400000,reconciliationSource='00000000-0000-4000-8000-000000000095';
  const reconciliationImages=Array.from({length:100},(_,index)=>({id:`00000000-0000-4001-8000-${String(index).padStart(12,'0')}`,
   uploaded:new Date(0).toISOString(),requireSignedURLs:true,draft:false,meta:{purpose:'gear-photo',source:reconciliationSource}}));
@@ -277,13 +297,14 @@ try{
  const preservedOutbox='00000000-0000-4000-8000-000000000097';
  await upgrade.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at,attempts,last_attempt_at) VALUES(?,?,?,?,?)').bind(preservedOutbox,oldId,190,2,191).run();
  await migrate(upgrade);
+ assert.equal((await upgrade.prepare('SELECT issue_count FROM gear_verification_tokens WHERE listing_id=?').bind(oldId).first()).issue_count,1);
  assert.deepEqual(await upgrade.prepare('SELECT * FROM gear_photo_deletions WHERE provider_id=?').bind(preservedOutbox).first(),{provider_id:preservedOutbox,listing_id:oldId,queued_at:190,attempts:2,last_attempt_at:191});
  await upgrade.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').bind('00000000-0000-4000-8000-000000000096',null,192).run();
  const acknowledgement=await upgrade.prepare('SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id=?').bind(oldId).first();
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 13 with legacy data and queued photo deletion state preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 14 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

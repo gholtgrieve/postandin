@@ -26,9 +26,13 @@ recipient before making any cleanup write. It then works within one shared
    moderation state/history and the listing, and stamps the minimal deletion
    ledger when applicable. Every statement rechecks the due marker or draft state,
    so seller recovery or verification winning the race leaves all content intact.
-3. Removes expired/consumed links, tokens and transfers; revoked/expired sessions;
-   reports and moderation history at 30 days; and purge ledger rows 30 days after
-   the original purge. Active removal enforcement remains, while its free-text
+3. Removes expired/consumed management links and transfers; revoked/expired
+   sessions; and verification tokens after expiry unless their unverified draft
+   remains inside its three-day lifetime. That live-draft token row retains the
+   durable five-message delivery count until draft deletion cascades it. Consumed
+   verification rows remain through token expiry for lost-response confirmation.
+   The pass also removes reports and moderation history at 30 days and purge
+   ledger rows 30 days after the original purge. Active removal enforcement remains, while its free-text
    reason becomes fixed generic text after 30 days. Sellers are removed only after
    their last listing and dependent credentials are gone. The same bounded record
    pass stages and consumes expired unclaimed quarantines, claimed rows only after
