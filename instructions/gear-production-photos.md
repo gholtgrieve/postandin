@@ -1,7 +1,8 @@
 # Gear Exchange production photo pipeline
 
-Status: source-only foundation and not deployed. No route, Images binding,
-delivery variant, signed-delivery key or production resource is configured.
+Status: source-only foundation and not deployed. D1 quarantine ownership and
+atomic attachment state exist, but no route, Images binding, delivery variant,
+signed-delivery key or production resource is configured.
 
 ## Private quarantine and trusted sanitization
 
@@ -41,24 +42,58 @@ ID in `gear_photo_deletions` before responding.
 No request/response API can identify an image if the provider stores it and then
 throws before returning its ID, or if the Worker stops after upload and before D1
 attachment. The sanitized upload's `purpose` and `source` metadata make those
-objects discoverable. Scheduled reconciliation must list `purpose:gear-photo`
-objects and, after a grace period, delete any object absent from both `gear_photos`
-and an in-flight finalization record.
+objects discoverable. Scheduled reconciliation must list both Gear photo purposes
+and apply the explicit live/cleanup rules below; a retained conflict row is not a
+live reference.
 
-## Route and lifecycle requirements for the next slice
+## Durable ownership and attachment state
 
-The adapter is intentionally below authorization and D1. The next slice must:
+Migration 11 adds `gear_photo_quarantines`. `lib/gear-photo-quarantine.mjs`
+records each Direct Creator Upload provider ID against the authenticated seller
+and listing for ten minutes. It stores neither session/CSRF values nor upload
+credentials. Finalization takes a five-minute, SHA-256-only claim lease so
+concurrent requests cannot both process one quarantine. Record and claim require
+a current management session, matching CSRF value, verified listing ownership
+and a manageable listing state.
+
+After the asynchronous transform, attachment repeats every authorization and
+ownership check inside the D1 batch. The batch records the sanitized provider
+ID, inserts it into the lowest free photo slot, stages the original quarantine
+ID in `gear_photo_deletions`, and consumes the quarantine as one transaction.
+The outbox step is unconditional and idempotent: it safely covers both a failed
+original-image deletion and a provider object already gone. Revocation, ownership
+transfer, stale claims and wrong claims cannot attach. A replay after a committed
+attachment returns a distinct non-compensating `attached` result, so the route
+must never compensate a sanitized ID already present in `gear_photos`. If all six slots are
+occupied, the quarantine retains the sanitized provider ID as a durable cleanup
+reference. That retained row is a cleanup target, not a live image reference;
+it can never later attach merely because a slot becomes free. Quarantine rows deliberately
+have no seller/listing foreign key: deletion or ownership transfer must not erase
+the only remote cleanup reference. A valid in-flight claim may finish after the
+upload URL/quarantine issuance deadline, but never after its own five-minute
+lease.
+
+The future issuing/finalizing route must delete or durably enqueue provider IDs
+when a provider call succeeds but the D1 record/attachment step fails. Migration
+11 is state only; it does not expose a network endpoint or call Cloudflare Images.
+Issuance reserves at most six combined attached photos and live unsanitized
+quarantines per listing. The route must perform a cheap pre-check and apply
+per-seller and per-IP upload rate limits before creating the billable provider
+object; a rejected D1 reservation still requires immediate provider compensation.
+
+## Remaining route and lifecycle requirements
+
+The next slice must:
 
 - require the existing seller management session and CSRF protection on both
   upload creation and finalization;
-- bind each quarantine ID to that seller and listing at issuance, then consume
-  that binding exactly once after successful finalization so another seller
-  cannot finalize or delete it; `pending` means the browser upload has not
-  finished and `unavailable` is retryable, so neither consumes the binding;
-- recheck listing ownership, listing state and the six-photo limit after the
-  asynchronous transform, before attaching the sanitized provider ID;
+- call the durable record/claim/attach operations at the provider boundaries;
+  `pending` means the browser upload has not finished and `unavailable` is
+  retryable, so each must release the claim without consuming the quarantine;
 - transactionally attach the sanitized provider ID or immediately delete/enqueue
-  it if D1 attachment fails;
+  it if D1 attachment fails; on an indeterminate batch exception, first retry
+  attachment with the same server-held claim and sanitized ID so `attached` or
+  `conflict` can prevent unsafe compensation;
 - delete or enqueue the original quarantine on every terminal failure, and let
   scheduled maintenance find and purge abandoned/expired quarantine records;
 - reconcile unreferenced sanitized images by their fixed purpose/source metadata
@@ -67,8 +102,17 @@ The adapter is intentionally below authorization and D1. The next slice must:
 - keep removal and reorder ownership-checked; and
 - project only short-lived signed URLs for the configured public variant.
 
+Reconciliation must treat expired unclaimed rows, expired claim leases and every
+row with `sanitized_provider_id IS NOT NULL` as cleanup work. Listing purge does
+not cascade or stage these rows. The future sweep must cover both
+`purpose:gear-photo-quarantine` originals and `purpose:gear-photo` sanitized
+objects; only sanitized IDs in `gear_photos` are live references.
+
 No original filename, user-provided metadata, image bytes, upload URL or signed
 delivery URL belongs in D1. Provider IDs are cleanup references, not credentials.
+The claim and sanitized provider ID remain server-side and are never accepted
+from or returned to the browser as authority. The adapter and schema also reject
+using the original quarantine ID as the sanitized ID.
 
 The current local Wrangler/workerd/Miniflare build does not implement hosted
 Images `createDirectUpload`, despite the method being in the current Cloudflare
@@ -102,7 +146,9 @@ and [format/size limits](https://developers.cloudflare.com/images/get-started/li
 ## Verification
 
 ```bash
-node --test tests/gearImageUpload.test.mjs
+node --test tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs
 node --check lib/gear-image-upload.mjs
+node --check lib/gear-photo-quarantine.mjs
+GEAR_WRANGLER_MODULE=/usr/local/lib/node_modules/wrangler node scripts/gear/d1-check.mjs
 git diff --check
 ```

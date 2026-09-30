@@ -40,6 +40,12 @@ recipient before making any cleanup write. It then works within one shared
 
 The outbox deliberately has no listing foreign key. It survives the D1 cascade
 and is retained without a time limit until the hosted object is confirmed absent.
+Migration 11 photo-quarantine rows likewise survive listing purge, but the current
+maintenance Worker does not process them yet. Before launch, reconciliation must
+delete expired unclaimed or lease-expired quarantines, treat rows with a
+`sanitized_provider_id` as cleanup targets, and sweep both
+`purpose:gear-photo-quarantine` originals and unreferenced `purpose:gear-photo`
+objects. Only sanitized provider IDs present in `gear_photos` are live.
 
 ## Retry and alerts
 

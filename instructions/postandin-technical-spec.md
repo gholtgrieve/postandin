@@ -1217,11 +1217,26 @@ Only verified, stream-bounded output is uploaded as a new private hosted image,
 with the quarantine ID recorded as a non-personal reconciliation key; the
 quarantine is deleted or returned as a durable cleanup reference. Because Pages
 Functions have no Images binding, a dedicated Worker reached by service binding
-is required after pinning a compatible toolchain. Authenticated quarantine
-ownership, D1 attachment/removal/reorder routes, abandoned-quarantine and
-unreferenced-sanitized-image reconciliation, and signed URL projections remain
-the next slice; see
+is required after pinning a compatible toolchain. Durable authenticated
+quarantine ownership and atomic D1 attachment state now exist below the route
+boundary. Route wiring, removal/reorder, abandoned-quarantine and
+unreferenced-sanitized-image reconciliation, and signed URL projections remain;
+see
 [gear-production-photos.md](gear-production-photos.md).
+
+Source-only migration 11 durably binds each private quarantine provider ID to
+the authenticated seller and listing without storing bearer credentials. A
+five-minute hash-only claim lease serializes finalization. The D1 attachment
+batch rechecks current session, CSRF, ownership and listing state, records the
+sanitized provider ID, inserts the lowest free photo position, durably queues the
+original provider ID for idempotent deletion, and consumes the quarantine
+atomically. A committed-operation replay returns a distinct non-compensating
+result rather than an ambiguous failure. Rows intentionally do not cascade with sellers/listings,
+so deletion or email transfer cannot discard remote cleanup references. A full
+six-photo listing retains the sanitized ID for cleanup and cannot attach it later
+if a slot opens. Combined attached photos and live unsanitized reservations are
+capped at six per listing. No route, binding or provider operation is part of
+migration 11.
 
 **Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
 

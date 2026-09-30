@@ -38,6 +38,7 @@ Branch at handoff: `codex/gear-exchange-foundation`.
 | `d7da481` | Production seller management sessions |
 | `2944ffb` | Production scheduled maintenance |
 | `e851788` | Private production photo sanitization foundation |
+| `cfbc2cc` | Owner-approved 25-megapixel Gear photo limit |
 
 These commits were created locally. No push, merge, production migration or
 provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
@@ -563,9 +564,54 @@ both local and production boundaries now accept 5712×4284 phone photos and reje
 anything above 25 million pixels. All 181 Gear tests and syntax/diff checks pass.
 
 The foundation was committed locally as `e851788` (`Add private Gear photo
-sanitization foundation`); the owner-approved pixel-limit follow-up is included
-in the next local commit. No source from this package is deployed or imported by
-a production route.
+sanitization foundation`); the owner-approved pixel-limit follow-up was committed
+as `cfbc2cc` (`Raise Gear photo pixel limit`). No source from this package is
+deployed or imported by a production route.
+
+### Production photo quarantine state — current increment
+
+Migration 11 and `lib/gear-photo-quarantine.mjs` add source-only D1 ownership and
+in-flight attachment state for private Direct Creator Upload quarantines. A
+ten-minute quarantine is bound to the current verified seller and listing. A
+five-minute, hash-only claim lease prevents concurrent finalization. Attachment
+rechecks the live management session, CSRF value, seller/listing ownership,
+listing state and claim inside one D1 batch, chooses the lowest free photo slot,
+stages the original provider ID in the deletion outbox, and consumes the
+quarantine only after the metadata insert succeeds. Successful attachment replay
+returns a distinct non-compensating `attached` result rather than an ambiguous
+failure, preventing a route from deleting an image referenced by a live listing.
+
+The state row deliberately survives listing deletion and email ownership transfer
+so remote cleanup work cannot be lost. A six-slot conflict retains the sanitized
+provider ID for cleanup and cannot later attach after a slot becomes free; a
+failed batch rolls that ID back. Issuance atomically caps combined attached photos
+and live reservations at six per listing. Focused SQLite tests cover schema
+constraints, cross-seller access, expiry/lease boundaries, wrong and stale claims,
+session revocation, state and transfer invalidation, insert rollback, replay,
+successful attachment and slot conflict. The eleven-migration workerd/D1 harness
+independently exercises the adapter and injected-failure rollback using temporary
+storage only.
+
+All 189 Gear tests, the eleven-migration workerd/D1 harness, JavaScript syntax
+checks and `git diff --check` pass after the review fixes.
+
+Claude's initial review found 0 blocker, 0 high, 3 medium and 4 low findings.
+All were accepted: per-attempt attachment gating and a distinct committed-replay
+outcome remove compensation ambiguity; successful attachment atomically stages
+the original provider ID; security/time/race regressions were added; malformed
+claim states are schema-rejected; provider validation is shared; reconciliation
+is explicit; and live reservations are capped. Focused re-review found 0 blocker,
+0 high, 0 medium and one optional low, with a **Ready to commit** verdict. That
+last defense-in-depth item was also fixed by rejecting an identical original and
+sanitized provider ID in both code and schema, with regression coverage. The
+post-verdict change is a narrow validation guard and does not alter transaction
+ordering.
+
+This remains below the network boundary. No route, Worker, binding, provider
+call or deployment is included. Next: connect it to a small dedicated Images
+Worker through a Pages service binding, with immediate/outbox compensation;
+then add removal/reorder, signed public projection, upload rate limits and
+maintenance reconciliation for both quarantine originals and sanitized objects.
 
 No push/deployment.
 

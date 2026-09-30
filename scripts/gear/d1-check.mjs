@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createDraft,readPublicListings} from '../../lib/gear-storage.mjs';
 import {recordHostedPhoto,readHostedPhotos} from '../../lib/gear-photo-storage.mjs';
+import {attachClaimedPhoto,claimPhotoQuarantine,recordPhotoQuarantine} from '../../lib/gear-photo-quarantine.mjs';
 import {readOpenModerationReports} from '../../lib/gear-moderation-storage.mjs';
 import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
@@ -48,9 +49,9 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,10,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,11,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
@@ -66,7 +67,7 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all ten migrations, deletion constraints/cascade, photo-deletion outbox and idempotent test ledger; D1 RETURNING/meta.changes.');
+ console.log('PASS: all eleven migrations, deletion constraints/cascade, photo cleanup/outbox and quarantine state; D1 RETURNING/meta.changes.');
  entryMf=new Miniflare({modules:true,scriptPath:join(repoRoot,'gear-maintenance/src/index.js'),modulesRoot:repoRoot,compatibilityDate:'2026-07-01',host:'127.0.0.1',
   d1Databases:['GEAR_DB'],d1Persist:join(temp,'entry-d1'),kvNamespaces:['GEAR_MAINTENANCE_STATE'],kvPersist:join(temp,'entry-kv'),images:{binding:'IMAGES'},imagesPersist:join(temp,'entry-images'),
   bindings:{GEAR_RESEND_API_KEY:'test_key',GEAR_ALERT_RECIPIENT:'owner@example.test'},outboundService:()=>new Response(JSON.stringify({id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})});
@@ -138,6 +139,18 @@ try{
  console.log('PASS: atomic report acceptance/rejection, owner dismiss/remove/restore and audit-failure rollback, indexed moderation schema, bounded private projection and truncation signal via D1.');
  const photo=await recordHostedPhoto(db,id,'00000000-0000-4000-8000-000000000001',200);
  assert.equal(photo.position,0);assert.equal((await readHostedPhotos(db,id))[0].providerId,photo.providerId);
+ const quarantineProvider='00000000-0000-4000-8000-000000000002',sanitizedProvider='00000000-0000-4000-8000-000000000003';
+ assert.ok(await recordPhotoQuarantine(db,access.session,access.csrf,id,quarantineProvider,200));
+ const quarantineClaim=await claimPhotoQuarantine(db,access.session,access.csrf,quarantineProvider,201);assert.ok(quarantineClaim);
+ await db.prepare("CREATE TRIGGER fail_quarantine_photo BEFORE INSERT ON gear_photos BEGIN SELECT RAISE(ABORT,'injected photo failure'); END").run();
+ await assert.rejects(attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,202),/injected photo failure/);
+ assert.equal((await db.prepare('SELECT sanitized_provider_id FROM gear_photo_quarantines WHERE provider_id=?').bind(quarantineProvider).first()).sanitized_provider_id,null);
+ await db.prepare('DROP TRIGGER fail_quarantine_photo').run();
+ const attached=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,202);
+ assert.equal(attached.ok,true);assert.equal(attached.photo.position,1);assert.equal((await readHostedPhotos(db,id))[1].providerId,sanitizedProvider);
+ assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(quarantineProvider).first()).listing_id,id);
+ const attachmentReplay=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,203);
+ assert.deepEqual(attachmentReplay,{ok:false,reason:'attached'});
  assert.deepEqual(await recoverManagementSession(db,access.session,201),{csrf:access.csrf,expiresAt:access.expiresAt});
  assert.equal((await readPublicListings(db,201)).length,1);
  assert.equal(await editManagedListing(db,access.session,access.csrf,id,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},202),true);
@@ -145,7 +158,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: production management issue/redeem/recovery, scheduled record/image cleanup, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
+ console.log('PASS: production management issue/redeem/recovery, scheduled record/image cleanup, quarantine claim/attachment, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
@@ -201,7 +214,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 10 with legacy acknowledgement and listing/session data preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 11 with legacy acknowledgement and listing/session data preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

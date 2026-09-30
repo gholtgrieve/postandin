@@ -52,7 +52,7 @@ test('production migrations preserve legacy listings without inventing acknowled
   try{
     const db=openLocalDatabase(path);
     try{
-      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,10);
+      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,11);
       const acknowledgement=db.sqlite.prepare("SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id='legacy'").get();
       assert.equal(acknowledgement.adult_acknowledged_at,null);
       assert.equal(acknowledgement.disclosure_version,null);
