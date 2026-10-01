@@ -22,13 +22,17 @@ test('public posting config is canonical, no-store and fails closed without a va
   assert.equal((await run('https://preview.pages.dev/api/gear/config',{GEAR_TURNSTILE_SITE_KEY:SITE_KEY})).status,403);
   assert.equal((await run(undefined,{GEAR_TURNSTILE_SITE_KEY:SITE_KEY},{'Sec-Fetch-Site':'cross-site'})).status,403);
   assert.equal((await run()).status,503);assert.equal((await run(undefined,{GEAR_TURNSTILE_SITE_KEY:'bad key'})).status,503);
-  const response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:' '+SITE_KEY+' '});assert.equal(response.status,200);assert.deepEqual(await response.json(),{turnstileSiteKey:SITE_KEY});assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('referrer-policy'),'no-referrer');assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+  let response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:' '+SITE_KEY+' '});assert.equal(response.status,200);assert.deepEqual(await response.json(),{turnstileSiteKey:SITE_KEY,contactEnabled:false});assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('referrer-policy'),'no-referrer');assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+  for(const value of ['TRUE','1',' true']){response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:SITE_KEY,GEAR_CONTACT_ENABLED:value,GEAR_RESEND_API_KEY:'test_key',GEAR_DB:{}});assert.equal((await response.json()).contactEnabled,false);}
+  response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:SITE_KEY,GEAR_CONTACT_ENABLED:'true',GEAR_RESEND_API_KEY:'test_key'});assert.equal((await response.json()).contactEnabled,false);
+  response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:SITE_KEY,GEAR_CONTACT_ENABLED:'true',GEAR_DB:{}});assert.equal((await response.json()).contactEnabled,false);
+  response=await run(undefined,{GEAR_TURNSTILE_SITE_KEY:SITE_KEY,GEAR_CONTACT_ENABLED:'true',GEAR_RESEND_API_KEY:'test_key',GEAR_DB:{}});assert.deepEqual(await response.json(),{turnstileSiteKey:SITE_KEY,contactEnabled:true});
   assert.deepEqual(Object.keys(configRoute).filter(key=>key.startsWith('onRequest')),['onRequestGet']);
 });
 
 test('production posting adapter uses bounded same-origin requests and preserves Retry-After',async()=>{
-  const calls=[];let requests=0;const api=productionAPI({origin:ORIGIN,fetcher:async(url,options)=>{calls.push({url,options});if(url==='/api/gear/config')return json(200,{turnstileSiteKey:SITE_KEY});if(url.endsWith('/verification/request'))return ++requests===1?json(202,{message:'Verification email accepted for delivery.'}):new Response('<h1>limited</h1>',{status:429,headers:{'Retry-After':'42','Content-Type':'text/html'}});return json(url.endsWith('/drafts')?201:200,url.endsWith('/drafts')?{id:'00000000-0000-4000-8000-000000000001',status:'unverified'}:{verified:true,listingId:'00000000-0000-4000-8000-000000000001'});}});
-  assert.deepEqual(await api.config(),{turnstileSiteKey:SITE_KEY});
+  const calls=[];let requests=0;const api=productionAPI({origin:ORIGIN,fetcher:async(url,options)=>{calls.push({url,options});if(url==='/api/gear/config')return json(200,{turnstileSiteKey:SITE_KEY,contactEnabled:false});if(url.endsWith('/verification/request'))return ++requests===1?json(202,{message:'Verification email accepted for delivery.'}):new Response('<h1>limited</h1>',{status:429,headers:{'Retry-After':'42','Content-Type':'text/html'}});return json(url.endsWith('/drafts')?201:200,url.endsWith('/drafts')?{id:'00000000-0000-4000-8000-000000000001',status:'unverified'}:{verified:true,listingId:'00000000-0000-4000-8000-000000000001'});}});
+  assert.deepEqual(await api.config(),{turnstileSiteKey:SITE_KEY,contactEnabled:false});
   const listing={title:'Bag'};await api.createDraft(listing,'turnstile-token');
   assert.deepEqual(await api.requestVerification('00000000-0000-4000-8000-000000000001'),{message:'Verification email accepted for delivery.'});
   await assert.rejects(api.requestVerification('00000000-0000-4000-8000-000000000001'),error=>error.safe&&error.status===429&&error.retryAfter===42&&/Too many requests/.test(error.message));

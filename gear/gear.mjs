@@ -16,6 +16,7 @@ const api=localMode?adapter.localAPI():productionMode?adapter.productionAPI():nu
 let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
 let publicGeneration=0,publicLoading=productionMode,publicFailed=false,publicFetchedAt=0,publicPhotoRefreshAt=0,publicPhotoRefreshing=false;
 let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
+let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null,contactRetryLocked=false;
 let deleted=[];
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){delete localNotice.dataset.source;localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
@@ -43,7 +44,7 @@ async function localAction(task){
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
   else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
-  if(productionMode){syncProductionSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
+  if(productionMode){syncProductionSubmit();syncProductionContactRetryLock();syncProductionContactSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
  }
 }
 function freezeFields(){root.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);}
@@ -118,6 +119,7 @@ show(photos[active],active);photos.forEach((p,i)=>{const b=document.createElemen
 }
 function resetContact(){
 for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).setCustomValidity('');
+if(productionMode){contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();resetProductionContactTurnstile();}
 $('#pi-contact-form').reset();$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;
 $('#pi-report-form').reset();$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=true;$('#pi-report-open').hidden=false;
 }
@@ -155,18 +157,39 @@ async function sendLocalContact(){
  freezeFields();await api.request('/contact',input);
  form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
 }
+function syncProductionContactSubmit(){if(productionMode)$('#pi-preview-send').disabled=!contactAvailable||!contactToken;}
+function syncProductionContactRetryLock(){
+ if(!productionMode)return;for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).readOnly=contactRetryLocked;for(const id of ['pi-buyer-adult','pi-buyer-share'])$('#'+id).disabled=contactRetryLocked;$('#pi-preview-send').textContent=contactRetryLocked?'Retry unchanged message':'Send message';
+}
+function resetProductionContactTurnstile(message='Complete the privacy check to send your message.'){
+ if(!productionMode)return;contactToken='';if(turnstileClient&&contactWidget!==null){try{turnstileClient.reset(contactWidget);}catch{contactAvailable=false;}}
+ $('#pi-contact-turnstile-status').textContent=contactAvailable?message:'Buyer contact is temporarily unavailable.';syncProductionContactSubmit();
+}
+function ensureProductionContactTurnstile(){
+ if(!productionMode||!contactAvailable||!turnstileClient)return;
+ const container=$('#pi-contact-turnstile');container.hidden=false;if(contactWidget!==null)return;
+ try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-contact',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{contactToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-contact-turnstile-status').textContent=contactToken?(contactRetryLocked?'Privacy check complete. Retry this unchanged message; leaving or reloading may send a duplicate.':'Privacy check complete.'):'Complete the privacy check to send your message.';syncProductionContactSubmit();},'expired-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionContactSubmit();},'error-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionContactSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();contactWidget=widget;}
+ catch{contactAvailable=false;container.hidden=true;$('#pi-contact-open').disabled=true;$('#pi-contact-open').textContent='Buyer contact is temporarily unavailable';resetProductionContactTurnstile();}
+}
+async function sendProductionContact(){
+ const form=$('#pi-contact-form');for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).setCustomValidity($('#'+id).value.trim()?'':'Please complete this field.');
+ if(!form.reportValidity())return;if(!contactAvailable||!contactToken)throw adapter.safeError('Complete the privacy check and try again.');
+ contactRequestId=contactRequestId||crypto.randomUUID();const input={id:state.selected,requestId:contactRequestId,name:$('#pi-buyer-name').value,email:$('#pi-buyer-email').value,message:$('#pi-buyer-message').value,shareEmail:$('#pi-buyer-share').checked,adult:$('#pi-buyer-adult').checked,turnstileToken:contactToken};
+ freezeFields();let resetMessage;try{await api.contact(input);}catch(error){if(error.status===404||error.status===409){contactRequestId=null;contactRetryLocked=false;}else if(error.status===0||error.status>=500){contactRetryLocked=true;resetMessage='Delivery could not be confirmed. Retry this unchanged message; leaving or reloading may send a duplicate.';}throw error;}finally{syncProductionContactRetryLock();resetProductionContactTurnstile(resetMessage);}
+ contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
+}
 if(localMode){
  $('#pi-preview-send').textContent='Save to local test inbox';
  $('#pi-contact-success h2').textContent='Message saved locally';
  $('#pi-contact-success p').textContent='Your sample message was saved to the local test inbox.';
 }
-function openContact(){if(productionMode)return;$('#pi-contact-intro').hidden=true;$('#pi-contact-form').hidden=false;$('#pi-contact-success').hidden=true;$('#pi-buyer-name').focus({preventScroll:true});}
+function openContact(){if(productionMode&&!contactAvailable)return;$('#pi-contact-intro').hidden=true;$('#pi-contact-form').hidden=false;$('#pi-contact-success').hidden=true;if(productionMode)ensureProductionContactTurnstile();$('#pi-buyer-name').focus({preventScroll:true});}
 $('#pi-contact-open').addEventListener('click',openContact);
-$('#pi-contact-cancel').addEventListener('click',()=>{resetContact();$('#pi-contact-open').focus({preventScroll:true});});
+$('#pi-contact-cancel').addEventListener('click',()=>{if(productionMode&&contactRetryLocked){resetProductionContactTurnstile('Retry the unchanged message; leaving or reloading may send a duplicate.');$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;}else resetContact();$('#pi-contact-open').focus({preventScroll:true});});
 $('#pi-contact-again').addEventListener('click',openContact);
 $('#pi-contact-form').addEventListener('submit',e=>e.preventDefault());
 $('#pi-contact-form').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#pi-preview-send').click();}});
-$('#pi-preview-send').addEventListener('click',()=>{if(productionMode)return;if(localMode){localAction(sendLocalContact);return;}const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
+$('#pi-preview-send').addEventListener('click',()=>{if(productionMode){localAction(sendProductionContact);return;}if(localMode){localAction(sendLocalContact);return;}const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
 for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).addEventListener('input',e=>e.target.setCustomValidity(''));
 options('#pi-report-reason',REPORT_REASONS,'Choose a reason');
 if(localMode){
@@ -212,8 +235,8 @@ function ensureProductionTurnstile(){
 }
 async function configureProductionPosting(){
  if(!productionMode)return;
-  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;}
- catch{turnstileSiteKey='';turnstileClient=null;disableProductionPosting();}
+  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;contactAvailable=config.contactEnabled;if(contactAvailable){$('#pi-contact-open').textContent='Contact seller';$('#pi-contact-open').disabled=false;$('#pi-preview-send').textContent='Send message';$('#pi-contact-note').textContent='Messages are emailed to the seller. Keep sensitive information out of your message.';$('#pi-contact-success h2').textContent='Message accepted';$('#pi-contact-success p').textContent='Your message was accepted for delivery to the seller.';$('#pi-contact-success small').textContent='The seller can reply directly to your email.';}resetProductionContactTurnstile();}
+ catch{turnstileSiteKey='';turnstileClient=null;contactAvailable=false;disableProductionPosting();resetProductionContactTurnstile();}
  finally{postingLoading=false;}
 }
 function showPostStep(step){postStep=step;verifyMode=null;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});if(productionMode&&step===3){if(editingId){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}else ensureProductionTurnstile();}syncProductionSubmit();}
@@ -399,7 +422,7 @@ if(connectedMode){
   $('#pi-fill-demo').hidden=true;
   $('#pi-new-listing').hidden=true;
   $('.pi-photo-heading').hidden=true;$('#pi-upload-grid').hidden=true;$('.pi-upload-actions').hidden=true;
-  $('#pi-contact-open').textContent='Buyer contact is not available yet';$('#pi-contact-open').disabled=true;
+  $('#pi-contact-open').textContent='Buyer contact is temporarily unavailable';$('#pi-contact-open').disabled=true;
   $('#pi-report-open').textContent='Reporting is not available yet';$('#pi-report-open').disabled=true;
  }
  $('#pi-recovery-send').textContent=localMode?'Request local management link':'Email me a management link';

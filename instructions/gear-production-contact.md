@@ -1,10 +1,12 @@
 # Gear Exchange production buyer-contact boundary
 
-Source-only production backend on `codex/gear-exchange-foundation`. The public
-contact button remains disabled. No D1 binding, Turnstile action, Resend key,
-edge rule, mail, production data or deployment is created by this increment.
-The route also fails closed unless `GEAR_CONTACT_ENABLED` is exactly `true`, so
-shared posting/verification bindings and secrets cannot enable contact by accident.
+Source-only production backend and browser form on
+`codex/gear-exchange-foundation`. No D1 binding, Resend key, edge rule, mail,
+production data or deployment is created by this increment. Public config stays
+off unless the D1 binding, bounded Resend configuration and exact
+`GEAR_CONTACT_ENABLED=true` flag are all present; the route independently checks
+the same delivery configuration. Shared posting/verification settings therefore
+cannot enable contact by accident.
 
 ## Contract
 
@@ -46,6 +48,18 @@ Success is returned only after Resend acceptance and a durable sent receipt, or
 for a replay already marked sent. A lost receipt can safely retry the same UUID.
 Responses never include seller/buyer addresses or message text.
 
+On the exact production origin, the form remains disabled unless the no-store
+config response explicitly reports that contact is enabled. Opening it renders a
+separate explicit Turnstile widget with action `gear-contact`. The browser owns
+the request UUID: network, unreadable-response and any `5xx` retries keep it while obtaining a fresh
+Turnstile token. After an uncertain failure, the original fields are locked and
+preserved across Cancel/reopen so a retry cannot silently change the idempotent
+payload. Leaving the Gear screen or reloading cannot preserve this private
+in-memory state, so the retry notice warns that doing so may send a duplicate.
+`409`, `404` and success discard the UUID and unlock the form. Success
+copy says only that the provider accepted the message for delivery. Static demo
+and connected local contact behavior remain unchanged.
+
 Delivery first claims the private copy for 60 seconds and atomically rechecks
 that the listing and seller remain public, verified, unexpired and addressed to
 the same seller email. A simultaneous request receives `503` with
@@ -69,12 +83,14 @@ operation budget.
 
 ```bash
 node --test tests/gearPagesContact.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs
+node --test tests/gearProductionContactUI.test.mjs tests/gearProductionPostingUI.test.mjs
 GEAR_WRANGLER_MODULE=/absolute/path/to/wrangler node scripts/gear/d1-check.mjs
+GEAR_PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/gear/browser-production-contact-check.mjs
 node --test tests/gear*.test.mjs
 git diff --check
 ```
 
 All tests use synthetic addresses, injected provider responses and temporary
-databases. Enabling the button, creating a Turnstile widget action/edge rule,
-configuring D1 or Resend, explicitly enabling contact, staging allowlisted delivery and deploying remain
-separate explicitly authorized work.
+databases. Configuring D1, Resend and the edge rule, explicitly enabling contact,
+staging allowlisted delivery and deploying remain separate explicitly authorized
+work.

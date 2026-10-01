@@ -153,8 +153,11 @@ with `node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.tes
 A source-only production buyer-contact boundary now adds durable request
 idempotency, hashed ten-minute abuse accounting, 24-hour private delivery copies,
 the dedicated `gear-contact` Turnstile action and a bounded plain-text Resend
-adapter. The production button remains disabled and no mail/service configuration
-exists; the route independently requires `GEAR_CONTACT_ENABLED=true`. See
+adapter. The exact production-origin form is connected through a config-gated
+dedicated Turnstile widget and preserves the same request UUID across uncertain
+retries. The button remains disabled unless D1, a valid Resend key and exact
+`GEAR_CONTACT_ENABLED=true` are all present; no mail/service configuration exists
+and the route independently checks the same delivery configuration. See
 [production contact instructions](instructions/gear-production-contact.md).
 
 Shared field options and search logic are in `lib/gear-exchange.mjs`.

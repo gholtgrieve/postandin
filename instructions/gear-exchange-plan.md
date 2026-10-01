@@ -949,7 +949,7 @@ route additionally requires the exact `GEAR_CONTACT_ENABLED=true` flag. Provider
 and public responses are bounded and generic, and scheduled maintenance removes
 attempts due at ten minutes and private delivery copies due at 24 hours.
 
-The production contact button remains disabled. Tests use temporary databases,
+The production contact button remained disabled in this backend slice. Tests use temporary databases,
 synthetic addresses and injected mail responses. No D1 binding, Turnstile
 configuration, feature flag, edge rate rule, Resend key, real message or deployment is part of
 this increment. See [gear-production-contact.md](gear-production-contact.md).
@@ -965,9 +965,37 @@ commit. Before commit, the recommended bounded retry hardening was also applied:
 an in-progress delivery now returns a retryable `503`, the claim atomically
 rechecks current eligibility and recipient, and the retry contract is documented.
 
-Next after review and commit: connect the production contact form and dedicated
-Turnstile widget to this boundary, then complete launch-readiness checks. Do not
-deploy without explicit owner approval.
+### Production buyer-contact UI — implemented and reviewed
+
+The exact production-origin form now reads the no-store contact feature flag,
+stays disabled unless it is exactly enabled, renders a dedicated explicit
+`gear-contact` Turnstile widget and sends through the bounded production adapter.
+The browser keeps its request UUID across network, unreadable-response and any `5xx` retries while using
+a fresh single-use Turnstile token. An uncertain retry locks and preserves the
+original fields across Cancel/reopen to prevent a changed payload from becoming
+a duplicate email; `409` or `404` unlocks the form and starts a new UUID. The
+retry notice warns that leaving the Gear screen or reloading loses this private
+in-memory protection and may send a duplicate.
+The static demo and connected local contact inbox are unchanged.
+
+Focused adapter/backend/config tests and an isolated production-origin Chrome
+harness use only synthetic listings, addresses, tokens and provider responses.
+No binding, secret, edge rule, feature flag, mail or deployment is part of this
+increment.
+
+All 295 Gear tests and the 23 focused contact UI/posting/backend tests pass.
+Both the dedicated contact Chrome harness and the existing production browse and
+posting Chrome harness pass. Changed JavaScript syntax and diff checks pass.
+
+Claude's first review found 0 Blocker, 0 High, 1 Medium and 4 Low issues. The
+Medium duplicate-delivery edge case was fixed by locking the original payload
+and UUID across uncertain retries and Cancel/reopen. Re-review reports 0
+Blocker, 0 High, 0 Medium and 3 optional Low findings and approves local commit.
+Agreed copy, documentation and config/test follow-ups were also completed.
+
+Next after review and commit: complete launch-readiness checks and prepare the
+explicit provisioning/deployment runbook. Do not provision or deploy without
+explicit owner approval.
 
 ### Checks and local commands
 

@@ -57,7 +57,8 @@
             <p id="pi-contact-privacy" class="pi-contact-help">The seller will receive your name, email, and message. They can reply directly to your email.</p>
             <label><input id="pi-buyer-adult" type="checkbox" required> I am 18 or older.</label>
             <label><input id="pi-buyer-share" type="checkbox" required> I agree to share my name, email, and message with the seller.</label>
-            <p class="pi-form-note">Preview only. Use sample details; no email is sent.</p>
+            <div id="pi-contact-turnstile" hidden></div><p id="pi-contact-turnstile-status" class="pi-form-note" role="status"></p>
+            <p class="pi-form-note" id="pi-contact-note">Preview only. Use sample details; no email is sent.</p>
             <button type="button" class="pi-primary pi-wide" id="pi-preview-send">Preview send</button><button type="button" class="pi-text-button" id="pi-contact-cancel">Cancel</button>
           </form>
           <div id="pi-contact-success" role="status" hidden><span aria-hidden="true">◇</span><h2>Message preview complete</h2><p>On the live site, your message would be emailed to the seller, who could reply directly to you.</p><small>No email was sent.</small><button type="button" class="pi-text-button" id="pi-contact-again">Try another message</button></div>

@@ -1170,8 +1170,11 @@ current public eligibility and a browser-generated idempotency UUID. Its bounded
 Resend adapter sends plain text from `gear@postandin.com` to the current seller
 with the buyer email as Reply-To and records provider acceptance before success.
 The route also requires `GEAR_CONTACT_ENABLED=true`. The production contact
-button remains disabled; no binding, secret, feature flag, edge rule,
-mail or deployment exists.
+form is source-connected but remains disabled unless the no-store config route
+reports that the same flag is exactly enabled. It renders a dedicated
+`gear-contact` Turnstile widget and preserves one request UUID across uncertain
+retries while rotating the single-use Turnstile token. No binding, secret,
+feature flag, edge rule, mail or deployment exists.
 
 Local reports now use a bounded in-memory inspection queue; see
 [gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
@@ -1382,16 +1385,17 @@ Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 Under ordinary static hosting, sample listings, management access, verification
 and contact actions are simulated. Those inputs/photos reset on reload. The
 opt-in local server persists listings and management photos.
-The static public sample dataset is separate from seller drafts. Production
-uploads, authentication, delivery, automatic expiry cleanup and deletion
-retention remain unimplemented. The separate storage query already filters expiry on reads.
+The static public sample dataset is separate from seller drafts. Source-only
+production uploads, authentication, delivery, scheduled cleanup and deletion
+retention are implemented but remain unconfigured and undeployed. Public reads
+filter expiry at the storage boundary.
 
 
 ## Current Status
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | UI uses in-memory samples. Source-only public-list and owner-authentication handlers exist but are not connected, configured, bound or deployed; there is no production backend or email. |
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | Static hosting uses in-memory samples. The exact production-origin source connects browse, posting, seller management, photos and feature-gated buyer contact to source-only Pages/D1/Images/Resend boundaries. Nothing is configured, bound or deployed and no real email is sent. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |

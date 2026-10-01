@@ -49,11 +49,12 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
   async function createDraft(listing,turnstileToken){const result=await request('/drafts',{listing,turnstileToken});if(!UUID.test(result.id??'')||result.status!=='unverified')throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function confirmVerification(token){const result=await request('/verification/confirm',{token,confirm:true});if(result.verified!==true||!UUID.test(result.listingId??'')||(result.alreadyVerified!==undefined&&result.alreadyVerified!==true))throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function requestVerification(id){const result=await request('/verification/request',{id});if(typeof result.message!=='string'||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
+  async function contact(input){const result=await request('/contact',input);if(result.ok!==true||typeof result.message!=='string'||!result.message||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
   const session=()=>request('/management/session');
   async function config(){
     let response;try{response=await fetcher('/api/gear/config',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{Accept:'application/json'}});}
     catch{throw safeError('Gear posting is temporarily unavailable.');}
-    const result=await responseJson(response);if(typeof result.turnstileSiteKey!=='string'||!SITE_KEY.test(result.turnstileSiteKey)||/\s/.test(result.turnstileSiteKey))throw safeError('The server returned an unreadable response. Please try again.');return result;
+    const result=await responseJson(response);if(typeof result.turnstileSiteKey!=='string'||!SITE_KEY.test(result.turnstileSiteKey)||/\s/.test(result.turnstileSiteKey)||typeof result.contactEnabled!=='boolean')throw safeError('The server returned an unreadable response. Please try again.');return result;
   }
   async function listings(){
     let response;try{response=await fetcher('/api/gear/listings',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{Accept:'application/json'}});}
@@ -82,7 +83,7 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
   }
   return {
     request,session,config,listings,uploadPhoto,
-    createDraft,
+    createDraft,contact,
     requestVerification,
     confirmVerification,
     confirm:token=>request('/management/confirm',{token,confirm:true}),
