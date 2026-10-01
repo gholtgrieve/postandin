@@ -335,3 +335,6 @@ one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
 Production scheduling and external failure alerts now have source only;
 resource provisioning, staging verification and deployment remain launch gates.
+The consolidated source-only provisioning, staging, backup, deployment and
+rollback sequence is in
+[instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).

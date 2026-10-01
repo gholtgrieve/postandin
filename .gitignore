@@ -1,5 +1,7 @@
 .DS_Store
 .wrangler/
+gear-images/wrangler.toml
+gear-maintenance/wrangler.toml
 
 # Local environment files may contain credentials. Keep documented examples.
 .dev.vars*
@@ -39,5 +41,6 @@ instructions/*
 !instructions/gear-production-maintenance.md
 !instructions/gear-production-photos.md
 !instructions/gear-production-verification.md
+!instructions/gear-launch-runbook.md
 
 !instructions/gear-lifecycle.md

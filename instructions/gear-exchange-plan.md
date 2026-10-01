@@ -1058,6 +1058,26 @@ the increment ready for a local commit without another re-review. The remaining
 bounded Low test and accessibility gaps were then closed without changing the
 server contract.
 
+Next, the scattered launch gates were consolidated into
+`instructions/gear-launch-runbook.md`. It keeps Pages, Images, maintenance and
+external backup as four separate release boundaries; requires encrypted
+off-Cloudflare D1 plus original-image recovery before public writes; inventories
+all production bindings without values; and defines staging, deployment,
+rollback and final evidence gates. It is source-only and does not authorize any
+provider or production action.
+
+Claude's operational review found 0 Blocker, four High backup/sequencing hazards
+and several Medium documentation gaps. The runbook now isolates the whole staging
+and recovery stack in a separate Cloudflare account; keeps public writes disabled
+until encrypted backup/restore succeeds; excludes short-lived/private credentials,
+drafts, contact copies, quarantines and deletion work from the logical backup;
+retains only attached sanitized images; follows source retention deadlines; and
+adds dead-man monitoring, least-privilege/immutable storage, Access/Preview and
+mail-domain gates. Focused re-review found 0 Blocker and 0 High, with one required
+wording clarification that now explicitly places Pages, both Workers, D1, KV,
+Images and Access in the separate staging account. It marked the docs ready for a
+local commit after that edit without another full re-review.
+
 ### Checks and local commands
 
 Run from the canonical checkout:

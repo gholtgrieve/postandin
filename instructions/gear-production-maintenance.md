@@ -117,7 +117,8 @@ owner explicitly authorizes deployment. At that time, in a separately reviewed
 runbook:
 
 - create/identify the production Gear D1 database and apply all migrations in
-  order with a verified backup and rollback plan;
+  order with a verified backup and rollback plan; follow the consolidated
+  source-only sequence in [gear-launch-runbook.md](gear-launch-runbook.md);
 - bind that database as `GEAR_DB`, the existing paid Images account as `IMAGES`,
   and a dedicated KV namespace as `GEAR_MAINTENANCE_STATE`;
 - set `GEAR_RESEND_API_KEY` and `GEAR_ALERT_RECIPIENT` with `wrangler secret put`;
