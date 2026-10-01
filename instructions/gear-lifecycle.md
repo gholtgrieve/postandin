@@ -127,8 +127,8 @@ checks desktop/mobile focus, visible error, unchanged data and successful retry.
 
 ## Short retention policy and automation (baseline 87c1805)
 
-Owner-approved periods: unverified drafts 3 days from creation; in-memory
-contact copies 24 hours; reports and moderation history 30 days from creation;
+Owner-approved periods: unverified drafts 3 days from creation; contact copies
+become due after 24 hours; reports and moderation history 30 days from creation;
 invalid credentials at next cleanup; deletion ledger 30 days after first purge.
 The 30-day seller recovery window remains unchanged. Verified expired/closed
 listings are not automatically deleted by this increment.
@@ -148,7 +148,10 @@ with listing purges. Preview reports candidate counts, not a sum of cascaded row
 Contact and memory-report getters prune expired entries, and the scheduled run
 also clears them during idle periods. Queues can evict earlier at their existing
 20-entry bound or server shutdown. Custom delivery sinks own their retention;
-this policy covers the built-in sample inbox. No production mail is sent.
+this policy covers the built-in sample inbox. Source-only production contact
+copies are removed by the next daily maintenance pass after their exact due time,
+so physical deletion can occur up to one schedule interval later. No production
+mail is sent by the current undeployed configuration.
 
 New snapshots enforce the earliest retained-content deadline and contain no
 credentials. Restore applies cleanup again, preserves original purge timestamps,

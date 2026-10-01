@@ -13,6 +13,7 @@
 # git will not re-include a file whose parent directory is itself excluded,
 # so negating a path inside an excluded directory silently does nothing.
 instructions/*
+!instructions/gear-production-contact.md
 !instructions/postandin-technical-spec.md
 !instructions/gear-exchange-plan.md
 !instructions/gear-storage.md

@@ -150,6 +150,13 @@ after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
 actions through transactional D1 batches. Run the focused route and storage tests
 with `node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
 
+A source-only production buyer-contact boundary now adds durable request
+idempotency, hashed ten-minute abuse accounting, 24-hour private delivery copies,
+the dedicated `gear-contact` Turnstile action and a bounded plain-text Resend
+adapter. The production button remains disabled and no mail/service configuration
+exists; the route independently requires `GEAR_CONTACT_ENABLED=true`. See
+[production contact instructions](instructions/gear-production-contact.md).
+
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.

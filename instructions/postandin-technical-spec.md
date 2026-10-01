@@ -1162,6 +1162,17 @@ Local buyer contact uses a bounded in-memory test inbox, server visibility check
 sharing acknowledgement and temporary local limits; see [gear-contact.md](gear-contact.md).
 No real contact email is delivered.
 
+The source-only production buyer-contact backend is described in
+[gear-production-contact.md](gear-production-contact.md). Migration 15 adds
+hashed ten-minute attempt accounting and private 24-hour delivery copies. The
+same-origin Pages route requires the dedicated `gear-contact` Turnstile action,
+current public eligibility and a browser-generated idempotency UUID. Its bounded
+Resend adapter sends plain text from `gear@postandin.com` to the current seller
+with the buyer email as Reply-To and records provider acceptance before success.
+The route also requires `GEAR_CONTACT_ENABLED=true`. The production contact
+button remains disabled; no binding, secret, feature flag, edge rule,
+mail or deployment exists.
+
 Local reports now use a bounded in-memory inspection queue; see
 [gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
 Opt-in local owner authentication, report review, reversible removal and persistent

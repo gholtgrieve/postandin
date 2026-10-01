@@ -31,7 +31,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All fourteen migrations, the acknowledgement
+Local tests exercise real SQLite. All fifteen migrations, the acknowledgement
 write, photo metadata/quarantine adapters and private moderation projection pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 

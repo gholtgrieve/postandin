@@ -39,7 +39,10 @@ recipient before making any cleanup write. It then works within one shared
    both their upload TTL and five-minute lease have expired, and every retained
    sanitized-conflict row. Both provider IDs are
    durably queued before such a row is removed. The same retention batch removes
-   seller photo-upload counters due at their UTC-day boundary.
+   seller photo-upload counters due at their UTC-day boundary, hashed buyer-contact
+   attempts due after ten minutes and private contact delivery copies due after
+   24 hours. The scheduled pass means physical deletion can occur up to one cron
+   interval after a row becomes due.
 4. Lists private hosted objects by the exact `gear-photo-quarantine` and
    `gear-photo` metadata purposes. Objects at least 24 hours old are queued only
    when D1 has no matching quarantine, retained sanitized-conflict row, or attached

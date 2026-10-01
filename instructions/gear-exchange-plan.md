@@ -936,8 +936,38 @@ and the real route-to-adapter test covers a non-v4 ID. Final re-review reports
 commit. A public-read timeout remains a pre-launch improvement, not a deployment
 authorization.
 
-Next after review and commit: add the production buyer-contact backend boundary
-without yet enabling real delivery or changing the public contact button.
+### Production buyer-contact backend — implemented and reviewed
+
+Migration 15 and the source-only backend now provide durable request
+idempotency, hashed rolling contact limits, atomic current-listing/seller
+eligibility, 24-hour private message retention, a dedicated `gear-contact`
+Turnstile action and bounded plain-text Resend delivery with buyer Reply-To. An
+exact request UUID replay does not duplicate mail; changed content with the same
+UUID is rejected. Pending replays recheck listing visibility and the current
+seller address, and an expiring delivery claim serializes concurrent sends. The
+route additionally requires the exact `GEAR_CONTACT_ENABLED=true` flag. Provider
+and public responses are bounded and generic, and scheduled maintenance removes
+attempts due at ten minutes and private delivery copies due at 24 hours.
+
+The production contact button remains disabled. Tests use temporary databases,
+synthetic addresses and injected mail responses. No D1 binding, Turnstile
+configuration, feature flag, edge rate rule, Resend key, real message or deployment is part of
+this increment. See [gear-production-contact.md](gear-production-contact.md).
+
+All 292 Gear tests and the 46 focused contact/foundation/maintenance tests pass.
+The temporary Miniflare/workerd harness applies all 15 migrations and exercises
+contact reservation, exact replay and sent-receipt persistence through real D1.
+Changed JavaScript syntax and diff checks pass.
+
+Claude's first review found five Medium and five Low issues. All Mediums were
+fixed. Re-review reports 0 Blocker, 0 High and 0 Medium and approves local
+commit. Before commit, the recommended bounded retry hardening was also applied:
+an in-progress delivery now returns a retryable `503`, the claim atomically
+rechecks current eligibility and recipient, and the retry contract is documented.
+
+Next after review and commit: connect the production contact form and dedicated
+Turnstile widget to this boundary, then complete launch-readiness checks. Do not
+deploy without explicit owner approval.
 
 ### Checks and local commands
 
@@ -947,7 +977,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearProductionPostingUI.test.mjs tests/gearProductionBrowseUI.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesContact.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearProductionPostingUI.test.mjs tests/gearProductionBrowseUI.test.mjs
 git diff --check
 ```
 

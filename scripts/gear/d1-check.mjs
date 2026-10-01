@@ -15,6 +15,7 @@ import {submitReport} from '../../lib/gear-report-storage.mjs';
 import {moderateListing} from '../../lib/gear-moderation-actions.mjs';
 import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {cleanupGearRecords,reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
+import {claimContactDelivery,markContactSent,releaseContactDelivery,reserveContact} from '../../lib/gear-contact-storage.mjs';
 import {confirmProductionVerification,issueLocalVerification,issueVerification,releaseFailedVerificationIssue,confirmVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../../lib/gear-verification.mjs';
 import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
@@ -51,13 +52,13 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits','gear_contact_attempts','gear_contact_messages'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,14,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,15,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
- }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA','VERIFY'],d1Persist:temp,
+ }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA','VERIFY','CONTACT'],d1Persist:temp,
   outboundService:request=>new Response(JSON.stringify({url:request.url,id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})};
  mf=new Miniflare(runtimeOptions);
  const mailProbe=await mf.dispatchFetch('http://localhost/mail-runtime-probe');assert.equal(mailProbe.status,200);assert.equal((await mailProbe.json()).url,'https://api.resend.com/emails');
@@ -71,10 +72,27 @@ try{
  await db.prepare('INSERT INTO gear_photo_upload_limits VALUES(?,?,?,?)').bind(uploadCascadeSeller,0,1,86400000).run();
  await db.prepare('DELETE FROM gear_sellers WHERE id=?').bind(uploadCascadeSeller).run();
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_photo_upload_limits WHERE seller_id=?').bind(uploadCascadeSeller).first()).n,0);
+ const contactDb=await mf.getD1Database('CONTACT');await migrate(contactDb);const contactNow=500,contactListing=await publish(contactDb,{email:'contact@example.test',title:'D1 contact bag'},contactNow),contactRequest=crypto.randomUUID();
+ const contactReservation=await reserveContact(contactDb,{listingId:contactListing,requestId:contactRequest,name:'Buyer',email:'buyer@example.test',message:'D1 contact message'},contactNow+1);
+ assert.equal(contactReservation.contact.recipient,'contact@example.test');assert.equal(contactReservation.replay,false);
+ assert.equal((await reserveContact(contactDb,{listingId:contactListing,requestId:contactRequest,name:'Buyer',email:'buyer@example.test',message:'D1 contact message'},contactNow+2)).replay,true);
+ const contactClaim=await claimContactDelivery(contactDb,contactRequest,contactNow+3);assert.equal(contactClaim.claimed,true);
+ assert.deepEqual(await claimContactDelivery(contactDb,contactRequest,contactNow+60002),{busy:true});
+ const reclaimedContact=await claimContactDelivery(contactDb,contactRequest,contactNow+60003);assert.equal(reclaimedContact.claimed,true);
+ assert.equal(await markContactSent(contactDb,contactRequest,'00000000-0000-4000-8000-000000000099',contactNow+60003,contactClaim.token),false);
+ assert.equal(await releaseContactDelivery(contactDb,contactRequest,contactClaim.token),false);
+ assert.equal(await releaseContactDelivery(contactDb,contactRequest,reclaimedContact.token),true);
+ await contactDb.prepare("UPDATE gear_sellers SET email='changed@example.test' WHERE email='contact@example.test'").run();
+ assert.deepEqual(await claimContactDelivery(contactDb,contactRequest,contactNow+60004),{stale:true});
+ await contactDb.prepare("UPDATE gear_sellers SET email='contact@example.test' WHERE email='changed@example.test'").run();
+ const finalContactClaim=await claimContactDelivery(contactDb,contactRequest,contactNow+60005);assert.equal(finalContactClaim.claimed,true);
+ assert.equal(await markContactSent(contactDb,contactRequest,'00000000-0000-4000-8000-000000000099',contactNow+60005,finalContactClaim.token),true);
+ assert.equal((await contactDb.prepare('SELECT status FROM gear_contact_messages WHERE id=?').bind(contactRequest).first()).status,'sent');
+ console.log('PASS: production contact reservation, replay, claim lease/reclaim/release/stale recipient and delivery receipt execute through D1.');
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all fourteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload-limit and verification-delivery state; D1 RETURNING/meta.changes.');
+ console.log('PASS: all fifteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact limits and verification-delivery state; D1 RETURNING/meta.changes.');
  const verifyDb=await mf.getD1Database('VERIFY');await migrate(verifyDb);
  const verifyNow=10*86400000,verifyDraft=await createDraft(verifyDb,{...sample,email:'verify@example.test',title:'D1 verification delivery'},verifyNow);
  const firstVerification=await issueVerification(verifyDb,verifyDraft.id,verifyNow+1);assert.ok(firstVerification);
@@ -203,7 +221,7 @@ try{
  await db.prepare('DROP TRIGGER fail_quarantine_photo').run();
  const attached=await attachClaimedPhoto(db,access.session,access.csrf,quarantineProvider,quarantineClaim.claim,sanitizedProvider,202);
  assert.equal(attached.ok,true);assert.equal(attached.photo.position,1);assert.equal((await readHostedPhotos(db,id))[1].providerId,sanitizedProvider);
- assert.deepEqual((await readPublicListingsWithPhotoRefs(db,202))[0].photoRefs.map(row=>row.providerId),[photo.providerId,sanitizedProvider]);
+ assert.deepEqual((await readPublicListingsWithPhotoRefs(db,202)).find(row=>row.id===id).photoRefs.map(row=>row.providerId),[photo.providerId,sanitizedProvider]);
  assert.equal((await db.prepare('SELECT listing_id FROM gear_photo_deletions WHERE provider_id=?').bind(quarantineProvider).first()).listing_id,id);
  assert.equal(await reorderManagedPhotos(db,access.session,access.csrf,id,[attached.photo.id,photo.id],202),true);
  assert.deepEqual((await readHostedPhotos(db,id)).map(row=>row.id),[attached.photo.id,photo.id]);
@@ -304,7 +322,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 14 with legacy data and queued photo deletion state preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 15 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);
