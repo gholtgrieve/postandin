@@ -6,7 +6,7 @@ const empty=value=>value&&typeof value==='object'&&!Array.isArray(value)&&Object
 
 export function createManagementListingsHandler({read=readManagedSnapshotWithPhotoRefs,signer=createGearPhotoSigner,now=Date.now}={}){
   return async function managementListings(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);if(!session)return json(401,{error:'Access unavailable.'});
     const body=await managementRequestJson(context.request);
     if(body.tooLarge)return json(413,{error:'Request too large.'});if(body.invalid||!empty(body.value))return json(400,{error:'Invalid request.'});

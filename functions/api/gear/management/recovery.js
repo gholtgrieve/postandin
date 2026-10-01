@@ -6,7 +6,7 @@ const accepted=()=>managementJson(202,{message:'If verified listings match that 
 
 export function createManagementRecoveryHandler({issue=issueManagementLink,send=sendManagementLink,now=Date.now,log=console.error}={}){
   return async function managementRecovery(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const body=await managementRequestJson(context.request);
     if(body.tooLarge)return managementJson(413,{error:'Request too large.'});
     if(body.invalid)return managementJson(400,{error:'Invalid request.'});

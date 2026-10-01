@@ -3,7 +3,7 @@ import {managementCookie,managementJson,managementRequestError,managementRequest
 
 export function createManagementLogoutHandler({revoke=revokeManagement,now=Date.now}={}){
   return async function managementLogout(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);
     if(!session)return managementJson(401,{error:'Access unavailable.'});
     const csrf=context.request.headers.get('x-gear-csrf')??'';

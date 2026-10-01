@@ -1,8 +1,9 @@
 # Gear Exchange lean off-Cloudflare backup
 
-Status: source-only and inactive. No Backblaze bucket, application key,
-Cloudflare token, GitHub secret, workflow schedule or real backup has been
-created. Provider setup and activation require explicit owner approval.
+Status: source-only runner and inactive schedule. The owner created the private
+Backblaze bucket, restricted prefix key, 30-day lifecycle, offline `age` identity
+and read-only Cloudflare D1 token. The encryption/decryption canary passed. No
+GitHub secret, workflow activation or real Gear backup exists yet.
 
 ## Deliberate scope
 

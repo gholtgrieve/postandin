@@ -1,5 +1,7 @@
+import {isGearAdminOrigin} from '../lib/gear-origins.mjs';
+
 const $=id=>document.getElementById(id);
-const production=location.origin==='https://gear-admin.postandin.com';
+const production=isGearAdminOrigin(location.origin);
 const local=location.hostname==='127.0.0.1'&&location.protocol==='https:';
 let busy=false;
 function clear(){$('workspace').hidden=true;$('login').hidden=production;for(const id of ['reports','removed','history'])$(id).replaceChildren();}

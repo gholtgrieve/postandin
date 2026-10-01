@@ -334,12 +334,14 @@ Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
 Production scheduling and external failure alerts now have source only;
-resource provisioning, staging verification and deployment remain launch gates.
+production provisioning, staging verification and deployment remain launch gates.
 The consolidated source-only provisioning, staging, backup, deployment and
 rollback sequence is in
 [instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).
 The owner selected a lean records-only off-Cloudflare backup: encrypted nightly
 D1 projections to B2, with photos deliberately excluded and re-upload required
-after a total media loss. Its source remains inactive pending explicit provider
-setup approval; see
+after a total media loss. Its source remains inactive; the private B2 target,
+restricted key, lifecycle, offline recovery identity and read-only D1 token are
+prepared, but GitHub secrets, the workflow schedule and the first real restore
+rehearsal remain pending. See
 [instructions/gear-lean-backup.md](instructions/gear-lean-backup.md).

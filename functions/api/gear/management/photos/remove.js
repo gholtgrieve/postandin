@@ -8,7 +8,7 @@ function input(value){return value&&typeof value==='object'&&!Array.isArray(valu
 
 export function createGearPhotoRemoveHandler({access=hasPhotoManagementAccess,remove=removeManagedPhoto,now=Date.now}={}){
   return async function gearPhotoRemove(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);if(!session)return json(401,{error:'Access unavailable.'});
     const csrf=context.request.headers.get('x-gear-csrf')??'';if(!csrf)return json(403,{error:'Request not allowed.'});
     const body=await managementRequestJson(context.request);

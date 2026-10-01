@@ -54,3 +54,7 @@
 /lib/gear-image-provider-id.mjs
   Content-Type: application/javascript
   Cache-Control: no-cache
+
+/lib/gear-origins.mjs
+  Content-Type: application/javascript
+  Cache-Control: no-cache

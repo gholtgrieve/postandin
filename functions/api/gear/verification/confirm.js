@@ -3,7 +3,7 @@ import {confirmProductionVerification} from '../../../../lib/gear-verification.m
 
 export function createVerificationConfirmHandler({confirm=confirmProductionVerification,now=Date.now}={}){
   return async function verificationConfirm(context){
-    const invalidRequest=requestError(context.request);if(invalidRequest)return invalidRequest;
+    const invalidRequest=requestError(context.request,context.env);if(invalidRequest)return invalidRequest;
     const body=await requestJson(context.request);
     if(body.tooLarge)return json(413,{error:'Request too large.'});
     if(body.invalid)return json(400,{error:'Invalid request.'});

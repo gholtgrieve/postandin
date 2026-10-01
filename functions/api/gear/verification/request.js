@@ -6,7 +6,7 @@ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}
 
 export function createVerificationRequestHandler({issue=issueVerification,release=releaseFailedVerificationIssue,send=sendVerificationLink,configured=verificationMailConfigured,now=Date.now}={}){
   return async function verificationRequest(context){
-    const invalidRequest=requestError(context.request);if(invalidRequest)return invalidRequest;
+    const invalidRequest=requestError(context.request,context.env);if(invalidRequest)return invalidRequest;
     const body=await requestJson(context.request);
     if(body.tooLarge)return json(413,{error:'Request too large.'});
     if(body.invalid||!UUID.test(body.value?.id??''))return json(400,{error:'Invalid request.'});

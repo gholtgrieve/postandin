@@ -1,7 +1,7 @@
 import {GearAccessDeniedError,GearAccessUnavailableError,verifyGearOwnerAccess} from '../../../../lib/gear-access.mjs';
 import {moderateListing,validateModerationAction} from '../../../../lib/gear-moderation-actions.mjs';
+import {gearAdminOrigin} from '../../../../lib/gear-origins.mjs';
 
-const ADMIN_ORIGIN='https://gear-admin.postandin.com';
 const BODY_MAX_BYTES=4096;
 const HEADERS={
   'Content-Type':'application/json; charset=UTF-8',
@@ -34,7 +34,8 @@ export function createOwnerActionHandler({verify=verifyGearOwnerAccess,moderate=
   return async function ownerAction(context){
     let url;
     try{url=new URL(context.request.url);}catch{return json(403,{error:'Request not allowed.'});}
-    if(url.origin!==ADMIN_ORIGIN||context.request.headers.get('origin')!==ADMIN_ORIGIN||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
+    const origin=gearAdminOrigin(context.env);
+    if(!origin||url.origin!==origin||context.request.headers.get('origin')!==origin||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
     if(context.request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')return json(415,{error:'Use JSON.'});
     let identity;
     try{identity=await verify(context.request,context.env);}

@@ -1,12 +1,13 @@
 import { REPORT_REASONS, CATEGORIES, SIZES, CONDITIONS, CLUBS, LIMITS, matchesListing, clubNames, offerFields, formatPrice, normalize } from '../lib/gear-exchange.mjs';
 import {productionAPI,takeManagementToken,takeVerificationToken,safeError as productionSafeError,previewListing as productionPreviewListing,listingInput as productionListingInput,draftListingInput as productionDraftListingInput} from './production-api.mjs';
 import {loadProductionTurnstile} from './production-turnstile.mjs';
+import {isGearPublicOrigin} from '../lib/gear-origins.mjs';
 
 (async()=>{
 const root=document.getElementById('pi-gear-preview');
 const $=s=>root.querySelector(s);
 const localMode=root.dataset.localApi==='true';
-const productionMode=!localMode&&location.origin==='https://postandin.com';
+const productionMode=!localMode&&isGearPublicOrigin(location.origin);
 const connectedMode=localMode||productionMode;
 const recognizedVerificationLink=productionMode&&location.hash.startsWith('#verification=');
 const verificationToken=productionMode?takeVerificationToken():null;

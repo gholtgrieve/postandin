@@ -3,7 +3,7 @@ import {managementCookie,managementJson,managementRequestError,managementRequest
 
 export function createManagementConfirmHandler({redeem=redeemManagementLink,now=Date.now}={}){
   return async function managementConfirm(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const body=await managementRequestJson(context.request);
     if(body.tooLarge)return managementJson(413,{error:'Request too large.'});
     if(body.invalid)return managementJson(400,{error:'Invalid request.'});

@@ -3,7 +3,7 @@ import {managementJson as json,managementRequestError,managementRequestJson,mana
 
 export function createSellerDeletionHandler({change=changeSellerDeletion,now=Date.now}={}){
   return async function sellerDeletion(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);
     if(!session)return json(401,{error:'Access unavailable.'});
     const csrf=context.request.headers.get('x-gear-csrf')??'';

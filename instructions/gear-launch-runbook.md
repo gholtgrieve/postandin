@@ -1,9 +1,11 @@
 # Gear Exchange launch and rollback runbook
 
-Status: source-only launch plan. Nothing in this document authorizes a push,
-merge, migration, resource change, secret write, mail delivery, image upload or
-deployment. The owner must explicitly approve deployment after the decisions and
-staging gates below are complete.
+Status: active launch plan. The owner authorized isolated staging setup. A
+staging-only D1 database and maintenance-state KV namespace now exist; the empty
+D1 bookmark/export was captured, migrations `0001`–`0015` applied in order and
+the expected 18 empty Gear tables were verified. No Pages project, Access
+application, staging mail, image, Worker, backup schedule or production resource
+is deployed. Production still requires separate explicit approval.
 
 ## Release boundary
 
@@ -93,6 +95,21 @@ authorization:
 - staging-only Turnstile, Resend and Cloudflare Access settings;
 - an allowlisted mail recipient and synthetic records only.
 
+The D1 and maintenance KV bullets are complete. Pages deployment is paused while
+the fixed, fail-closed staging-origin configuration is reviewed. The staging
+public origin is `https://postandin-gear-staging.pages.dev`; the future Access-
+protected admin origin is `https://gear-admin-staging.postandin.com`. Server
+configuration must set `GEAR_PUBLIC_ORIGIN` and `GEAR_ADMIN_ORIGIN` to those exact
+allowlisted values; an unset value retains the production origin and any other
+value fails closed.
+
+Before the staging public host is deployed, protect that host with a temporary
+Cloudflare Access policy limited to the owner/testers. Do not bind the staging
+Resend key until that policy is verified. This keeps draft verification,
+management and buyer-contact mail under trusted tester control and satisfies the
+staging rule that no mail may leave the approved test group. Production remains
+public and does not use this temporary staging policy.
+
 The lean plan does not create a second Images account. Do not deploy a staging
 maintenance Worker against production Images: orphan reconciliation would treat
 production objects as absent from staging D1. Continue to test Images and
@@ -128,6 +145,8 @@ committed files:
 | Name | Kind | Purpose |
 |---|---|---|
 | `GEAR_DB` | D1 binding | all Gear records |
+| `GEAR_PUBLIC_ORIGIN` | value | exact public request/mail-link origin; unset means production |
+| `GEAR_ADMIN_ORIGIN` | value | exact Access-protected admin origin; unset means production |
 | `GEAR_IMAGES` | service binding | private quarantine/sanitize/delete Worker |
 | `GEAR_TURNSTILE_SITE_KEY` | public value | posting/report widget configuration |
 | `GEAR_TURNSTILE_SECRET` | secret | server verification |

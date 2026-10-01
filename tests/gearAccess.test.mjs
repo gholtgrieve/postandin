@@ -5,6 +5,7 @@ import {
   createGearAccessVerifier,
 } from '../lib/gear-access.mjs';
 import { createOwnerSessionHandler } from '../functions/api/gear/admin/session.js';
+import {GEAR_STAGING_ADMIN_ORIGIN} from '../lib/gear-origins.mjs';
 
 const NOW=1800000000000;
 const TEAM_DOMAIN='https://sample-team.cloudflareaccess.com';
@@ -44,6 +45,17 @@ test('Access verifier accepts an allowlisted signed identity and briefly caches 
   assert.deepEqual(await verify(request(jwt),ENV),{email:OWNER,subject:'owner-subject'});
   assert.deepEqual(await verify(request(jwt),ENV),{email:OWNER,subject:'owner-subject'});
   assert.equal(fetches,1);
+});
+
+test('Access verifier accepts only the configured exact staging admin origin',async()=>{
+  const [first]=await fixturesPromise;
+  const verify=createGearAccessVerifier({now:()=>NOW,fetchImpl:async()=>jwksResponse([first.jwk])});
+  const jwt=await token(first),env={...ENV,GEAR_ADMIN_ORIGIN:GEAR_STAGING_ADMIN_ORIGIN};
+  const staging=new Request(`${GEAR_STAGING_ADMIN_ORIGIN}/api/gear/admin/session`,{headers:{'Cf-Access-Jwt-Assertion':jwt}});
+  assert.deepEqual(await verify(staging,env),{email:OWNER,subject:'owner-subject'});
+  await assert.rejects(verify(request(jwt),env),GearAccessDeniedError);
+  await assert.rejects(verify(staging,ENV),GearAccessDeniedError);
+  await assert.rejects(verify(staging,{...env,GEAR_ADMIN_ORIGIN:'https://preview.pages.dev'}),GearAccessDeniedError);
 });
 
 test('Access verifier refreshes cached JWKS once when a rotated kid appears',async()=>{

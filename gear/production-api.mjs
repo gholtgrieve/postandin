@@ -1,5 +1,6 @@
 import {isGearImageProviderId} from '../lib/gear-image-provider-id.mjs';
 import {CATEGORIES,SIZES,CONDITIONS,CLUBS,LISTING_TYPES,LIMITS} from '../lib/gear-exchange.mjs';
+import {isGearPublicOrigin} from '../lib/gear-origins.mjs';
 
 const TOKEN=/^[a-f0-9]{64}$/;
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
@@ -39,7 +40,7 @@ async function responseJson(response,maxBytes=MAX_RESPONSE_BYTES){
 }
 
 export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
-  if(origin!=='https://postandin.com')throw safeError('Production listing management requires postandin.com.');
+  if(!isGearPublicOrigin(origin))throw safeError('Production listing management requires an approved Gear origin.');
   async function request(path,body={},csrf=''){
     let response;
     try{response=await fetcher('/api/gear'+path,{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json',...(csrf?{'X-Gear-CSRF':csrf}:{})},body:JSON.stringify(body)});}

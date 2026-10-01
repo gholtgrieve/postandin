@@ -3,7 +3,7 @@ import {managementJson,managementRequestError,managementRequestJson,managementSe
 
 export function createManagementSessionHandler({recover=recoverManagementSession,now=Date.now}={}){
   return async function managementSessionRecovery(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);
     if(!session)return managementJson(401,{error:'Access unavailable.'});
     const body=await managementRequestJson(context.request);

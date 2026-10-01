@@ -1087,8 +1087,10 @@ backup. The source-only runner exports D1, removes drafts/credentials/contact/
 reports/history/photos and seller-deleted content, reconciles fresh minimal
 deletion evidence, encrypts before upload and verifies the B2 bytes. Tested
 restore creates a new photo-free, credential-free SQLite database or data-only
-SQL for a freshly migrated D1 database. The workflow is only an inert example;
-no account, secret, schedule or real backup exists.
+SQL for a freshly migrated D1 database. The workflow remains an inert example.
+The owner has since created the private B2 bucket/restricted key/lifecycle,
+offline `age` identity and read-only D1 token; the local encryption canary passed,
+but no GitHub secret, active schedule or real backup exists.
 
 Claude's first implementation review found 0 Blocker, 1 High, 5 Medium and 8
 Low findings. The required fixes make both CLIs execute safely through paths with
@@ -1100,6 +1102,25 @@ Blocker, 0 High and one remaining Medium symlink-entrypoint gap; `import.meta.ma
 plus a synthetic symlink regression closed it, and the reviewer said no further
 full re-review was needed. The final package passes all 9 focused backup tests and
 all 308 Gear tests, plus changed-file syntax and diff checks.
+
+The owner then authorized isolated staging. A staging-only D1 database and
+maintenance-state KV namespace were provisioned; the empty D1 bookmark/export
+was captured, migrations `0001`–`0015` applied in order, and 18 empty Gear tables
+verified. Remote D1 rejected unsupported integrity PRAGMAs, while ordinary
+schema/emptiness queries passed. No Pages project or Worker was deployed. The
+next bounded source increment allowlists one exact staging public origin and one
+exact staging admin origin across browser activation, request checks, Turnstile
+hostname validation and recovery/verification links, while unset configuration
+keeps the production origins and every other configured value fails closed.
+Claude's review found 0 Blocker, 1 High, 2 Medium and 3 Low findings. The missed
+draft/verification environment forwarding, real staging Access coverage,
+Turnstile configuration classification and staging-public Access gate were
+fixed. Re-review found 0 Blocker, 0 High, 0 Medium and 2 optional Low findings;
+the remaining negative cases were added and the unused production-origin export
+removed. The final full Gear suite passes 315/315, with changed-file syntax and
+diff checks clean. Review reports are in the owner's Downloads folder as
+`postandin-gear-staging-origins-review.md` and
+`postandin-gear-staging-origins-rereview.md`.
 
 ### Checks and local commands
 

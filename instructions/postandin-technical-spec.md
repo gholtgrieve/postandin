@@ -1283,14 +1283,17 @@ listing/photo cascades, applies the approved draft/credential/history/deletion
 retention rules, deletes queued private Cloudflare Images objects idempotently,
 prioritizes bounded image work, shares a sub-limit D1/time budget across two
 attempts, retries once after one minute, and sends only first-failure and
-recovery alerts. Its Wrangler file is an unconfigured example; no D1, Images,
-KV, secret, cron or Worker is provisioned or deployed. The source-only lean
+recovery alerts. Its Wrangler file is an unconfigured example; an isolated
+staging D1 and maintenance KV now exist, but no production D1/KV, Images binding,
+secret, cron or Worker is provisioned or deployed. The source-only lean
 disaster-recovery package now creates a retention-safe records projection,
 encrypts it with an offline-held `age` identity, uploads it to a private
 Backblaze B2 prefix and verifies the stored ciphertext by read-back. It
 deliberately excludes photos and short-lived credentials/contact/report data; a
 total media loss requires sellers to upload photos again. The workflow template
-is inactive and no provider is configured. A successful manual backup and
+is inactive. The private B2 target, restricted key, lifecycle, offline `age`
+identity and read-only D1 token are prepared, but no GitHub secret, scheduled job
+or real backup exists. A successful manual backup and
 local/data-only-SQL restore rehearsal remain launch gates; see
 [gear-lean-backup.md](gear-lean-backup.md).
 
@@ -1391,7 +1394,8 @@ The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
 The first increment adds shared field options and public-listing search logic
 in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` development preview uses these definitions.
-There is no deployed API or D1/R2 resource, email delivery or homepage card yet.
+There is no deployed Gear API, production D1/R2 resource, email delivery or
+homepage card yet. An isolated, empty staging D1 and maintenance KV exist.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 Under ordinary static hosting, sample listings, management access, verification
@@ -1407,7 +1411,7 @@ filter expiry at the storage boundary.
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | Static hosting uses in-memory samples. The exact production-origin source connects browse, posting, seller management, photos and feature-gated buyer contact to source-only Pages/D1/Images/Resend boundaries. Nothing is configured, bound or deployed and no real email is sent. |
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | Static hosting uses in-memory samples. Source accepts only the fixed production origins or fixed staging public/admin origins selected by exact environment values; invalid values fail closed. Isolated staging D1/KV exist, but no Gear Pages/Worker deployment or real email exists. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |

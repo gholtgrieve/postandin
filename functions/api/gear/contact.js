@@ -1,8 +1,9 @@
 import {validateContactSubmission,reserveContact,claimContactDelivery,releaseContactDelivery,markContactSent} from '../../../lib/gear-contact-storage.mjs';
 import {contactDeliveryConfigured,GearContactMailUnavailableError,sendContactMessage} from '../../../lib/gear-contact-mail.mjs';
 import {GearTurnstileRejectedError,GearTurnstileUnavailableError,verifyGearContactTurnstile} from '../../../lib/gear-turnstile.mjs';
+import {gearPublicOrigin} from '../../../lib/gear-origins.mjs';
 
-const ORIGIN='https://postandin.com',BODY_MAX_BYTES=8192;
+const BODY_MAX_BYTES=8192;
 const HEADERS={'Content-Type':'application/json; charset=UTF-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
 const json=(status,body)=>new Response(JSON.stringify(body),{status,headers:HEADERS});
 async function requestJson(request){
@@ -16,7 +17,8 @@ async function requestJson(request){
 export function createContactHandler({verify=verifyGearContactTurnstile,reserve=reserveContact,claim=claimContactDelivery,release=releaseContactDelivery,deliver=sendContactMessage,mark=markContactSent,now=Date.now}={}){
   return async function contact(context){
     let url;try{url=new URL(context.request.url);}catch{return json(403,{error:'Request not allowed.'});}
-    if(url.origin!==ORIGIN||context.request.headers.get('origin')!==ORIGIN||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
+    const origin=gearPublicOrigin(context.env);
+    if(!origin||url.origin!==origin||context.request.headers.get('origin')!==origin||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
     if(context.request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')return json(415,{error:'Use JSON.'});
     const body=await requestJson(context.request);if(body.tooLarge)return json(413,{error:'Request too large.'});if(body.invalid)return json(400,{error:'Invalid request.'});
     const input=validateContactSubmission(body.value);if(!input)return json(400,{error:'Confirm you are 18 or older and check your contact details and sharing acknowledgement.'});

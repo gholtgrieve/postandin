@@ -17,7 +17,7 @@ test('management fragment is removed immediately and only a strict token is retu
 });
 
 test('production adapter refuses every noncanonical origin',()=>{
-  for(const origin of ['http://postandin.com','https://www.postandin.com','https://preview.pages.dev'])assert.throws(()=>productionAPI({origin,fetcher:async()=>json(200,{})}),/requires postandin\.com/);
+  for(const origin of ['http://postandin.com','https://www.postandin.com','https://preview.pages.dev'])assert.throws(()=>productionAPI({origin,fetcher:async()=>json(200,{})}),/approved Gear origin/);
 });
 
 test('management writes recover CSRF and use bounded same-origin POST requests',async()=>{

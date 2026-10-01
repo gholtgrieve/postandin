@@ -8,7 +8,7 @@ function input(value){return value&&typeof value==='object'&&!Array.isArray(valu
 
 export function createGearPhotoUploadHandler({access=hasPhotoManagementAccess,preflight=canRecordPhotoQuarantine,consume=consumeSellerPhotoUpload,create=createGearPhotoUpload,record=recordPhotoQuarantine,remove=deleteGearPhotoImmediately,queue=queuePhotoDeletions,now=Date.now}={}){
   return async function gearPhotoUpload(context){
-    const requestError=managementRequestError(context.request);if(requestError)return requestError;
+    const requestError=managementRequestError(context.request,context.env);if(requestError)return requestError;
     const session=managementSession(context.request);if(!session)return json(401,{error:'Access unavailable.'});
     const csrf=context.request.headers.get('x-gear-csrf')??'';if(!csrf)return json(403,{error:'Request not allowed.'});
     const body=await managementRequestJson(context.request);

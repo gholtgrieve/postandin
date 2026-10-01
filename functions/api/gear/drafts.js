@@ -7,7 +7,7 @@ const BODY_MAX_BYTES=24*1024;
 
 export function createDraftSubmissionHandler({verify=verifyGearPostTurnstile,create=createDraft,now=Date.now}={}){
   return async function draftSubmission(context){
-    const invalidRequest=requestError(context.request);if(invalidRequest)return invalidRequest;
+    const invalidRequest=requestError(context.request,context.env);if(invalidRequest)return invalidRequest;
     const body=await requestJson(context.request,BODY_MAX_BYTES);
     if(body.tooLarge)return json(413,{error:'Request too large.'});
     if(body.invalid)return json(400,{error:'Invalid request.'});
