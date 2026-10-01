@@ -1284,9 +1284,15 @@ retention rules, deletes queued private Cloudflare Images objects idempotently,
 prioritizes bounded image work, shares a sub-limit D1/time budget across two
 attempts, retries once after one minute, and sends only first-failure and
 recovery alerts. Its Wrangler file is an unconfigured example; no D1, Images,
-KV, secret, cron or Worker is provisioned or deployed. Remote encrypted backup
-and tested disaster recovery remain separate launch gates; see
-[gear-production-maintenance.md](gear-production-maintenance.md).
+KV, secret, cron or Worker is provisioned or deployed. The source-only lean
+disaster-recovery package now creates a retention-safe records projection,
+encrypts it with an offline-held `age` identity, uploads it to a private
+Backblaze B2 prefix and verifies the stored ciphertext by read-back. It
+deliberately excludes photos and short-lived credentials/contact/report data; a
+total media loss requires sellers to upload photos again. The workflow template
+is inactive and no provider is configured. A successful manual backup and
+local/data-only-SQL restore rehearsal remain launch gates; see
+[gear-lean-backup.md](gear-lean-backup.md).
 
 The source-only production photo adapter uses a ten-minute Direct Creator Upload
 as a private, unattached quarantine. Finalization downloads and bounds the actual

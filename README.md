@@ -338,3 +338,8 @@ resource provisioning, staging verification and deployment remain launch gates.
 The consolidated source-only provisioning, staging, backup, deployment and
 rollback sequence is in
 [instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).
+The owner selected a lean records-only off-Cloudflare backup: encrypted nightly
+D1 projections to B2, with photos deliberately excluded and re-upload required
+after a total media loss. Its source remains inactive pending explicit provider
+setup approval; see
+[instructions/gear-lean-backup.md](instructions/gear-lean-backup.md).

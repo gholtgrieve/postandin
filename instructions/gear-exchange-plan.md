@@ -1060,11 +1060,12 @@ server contract.
 
 Next, the scattered launch gates were consolidated into
 `instructions/gear-launch-runbook.md`. It keeps Pages, Images, maintenance and
-external backup as four separate release boundaries; requires encrypted
-off-Cloudflare D1 plus original-image recovery before public writes; inventories
-all production bindings without values; and defines staging, deployment,
-rollback and final evidence gates. It is source-only and does not authorize any
-provider or production action.
+external backup as four separate release boundaries. Its initial full-recovery
+design required encrypted D1 plus original-image recovery before public writes;
+the later owner-approved lean decision below supersedes that image requirement.
+It inventories production bindings without values and defines staging,
+deployment, rollback and final evidence gates. It is source-only and does not
+authorize any provider or production action.
 
 Claude's operational review found 0 Blocker, four High backup/sequencing hazards
 and several Medium documentation gaps. The runbook now isolates the whole staging
@@ -1074,9 +1075,31 @@ drafts, contact copies, quarantines and deletion work from the logical backup;
 retains only attached sanitized images; follows source retention deadlines; and
 adds dead-man monitoring, least-privilege/immutable storage, Access/Preview and
 mail-domain gates. Focused re-review found 0 Blocker and 0 High, with one required
-wording clarification that now explicitly places Pages, both Workers, D1, KV,
-Images and Access in the separate staging account. It marked the docs ready for a
-local commit after that edit without another full re-review.
+wording clarification for the then-proposed separate staging account. It marked
+that full-recovery document ready for a local commit. The owner subsequently
+replaced its staging-account, media-backup, Object Lock and dead-man requirements
+with the lean package below.
+
+The owner then chose the lean community-site backup variant: nightly GitHub
+Actions, private Backblaze B2 storage, `age` encryption and 30-day lifecycle,
+without Healthchecks, Object Lock, a second Cloudflare account or photo-byte
+backup. The source-only runner exports D1, removes drafts/credentials/contact/
+reports/history/photos and seller-deleted content, reconciles fresh minimal
+deletion evidence, encrypts before upload and verifies the B2 bytes. Tested
+restore creates a new photo-free, credential-free SQLite database or data-only
+SQL for a freshly migrated D1 database. The workflow is only an inert example;
+no account, secret, schedule or real backup exists.
+
+Claude's first implementation review found 0 Blocker, 1 High, 5 Medium and 8
+Low findings. The required fixes make both CLIs execute safely through paths with
+spaces/symlinks, preserve duplicate keys across D1 restore, enforce the exact B2
+key scope, document the real Cloudflare/B2 authority and recovery-point risks,
+tie backup lifetime to seller-deletion evidence, pre-create private restore files
+and cover polling, corruption and cleanup failures. Focused re-review found 0
+Blocker, 0 High and one remaining Medium symlink-entrypoint gap; `import.meta.main`
+plus a synthetic symlink regression closed it, and the reviewer said no further
+full re-review was needed. The final package passes all 9 focused backup tests and
+all 308 Gear tests, plus changed-file syntax and diff checks.
 
 ### Checks and local commands
 

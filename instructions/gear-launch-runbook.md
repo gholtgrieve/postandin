@@ -15,8 +15,9 @@ Gear has four independently released surfaces:
 4. an external, non-Cloudflare backup runner.
 
 A Git push can deploy Pages. It does not deploy either Worker and must never be
-treated as doing so. The backup runner must not share the Cloudflare account,
-storage account or encryption-key custody it is intended to protect.
+treated as doing so. The backup runner uses a dedicated account-scoped D1 API
+token for the production Cloudflare account, but must not share the B2 storage
+account or encryption-key custody it is intended to protect.
 
 ## Decisions required before provisioning
 
@@ -24,13 +25,10 @@ Record these in the private operator record, not in Git:
 
 - exact owner identities and identity provider for Cloudflare Access, with MFA;
 - maintenance failure/recovery alert recipient;
-- off-Cloudflare object-storage provider, external runner location and billing
-  owner;
+- Backblaze B2 billing owner and GitHub Actions repository owner;
 - encryption-key custodian and a second person/location holding a recovery copy;
 - the Cloudflare plan/rules available for the required per-IP edge limits;
-- a separate Cloudflare account for the entire staging/recovery stack (Pages,
-  both Workers, D1, KV, Images and Access), plus separate staging and production
-  names and backup prefixes.
+- separate staging and production names for D1, maintenance KV and Access.
 
 Do not put account IDs, database IDs, access audiences, owner emails, API tokens,
 signing keys or backup keys in this repository.
@@ -39,88 +37,67 @@ signing keys or backup keys in this repository.
 
 Do not enable public writes until a complete recovery rehearsal passes.
 
-The nightly external job must run away from the 11:00 UTC maintenance window and:
+The approved lean nightly job runs in GitHub Actions at 08:00 UTC, away from the
+11:00 UTC maintenance window, and:
 
-1. request a full D1 SQL export through the polling export API and retain its
-   time-travel bookmark on the external runner only;
+1. request a table-filtered D1 SQL export through the polling export API and
+   retain its time-travel bookmark on the external runner only;
 2. load that transient export into an isolated local SQLite process and create a
-   retention-safe logical snapshot. Include published/recoverable listings and
-   their sellers, clubs and attached `gear_photos`; reports, removals, moderation
-   history, seller-deletion markers and the deletion ledger only within their
-   existing deadlines. Exclude every unverified draft, contact attempt/message,
-   verification token, management link/session, pending email change, upload
-   counter, quarantine row and photo-deletion-outbox row. Delete the raw SQL and
-   temporary database immediately after packaging;
-3. enumerate only `gear_photos.provider_id` values attached to listings included
-   in that logical snapshot and download those already-sanitized private originals
-   through the Images export API. Never back up quarantine originals or objects
-   queued in `gear_photo_deletions`;
-4. export the current deletion ledger again after the image pass, so a restore
+   records-only snapshot containing non-draft, non-seller-deleted listings plus
+   their sellers/clubs, generic owner-removal state and active minimal deletion
+   evidence. Exclude photos/provider IDs, credentials, contact data,
+   reports/history, counters, quarantines and deletion work. Discard the raw SQL
+   and close the ephemeral database immediately after packaging;
+3. query the current active deletion ledger again after the snapshot, so a restore
    cannot resurrect a seller purge that completed after the database snapshot;
-5. create a versioned manifest containing a random backup ID, intended object key,
-   export bookmark, schema migration level, record/object counts, the earliest
-   source-retention deadline and a SHA-256 digest for every payload;
-6. package and encrypt the logical snapshot, image payloads, post-export deletion
-   evidence and manifest with the reviewed `age` v1 streaming format to an X25519
-   recovery recipient. The authenticated manifest binds the ciphertext to its
-   backup ID and intended object key. Plaintext and the private key never enter
-   the storage provider;
-7. upload only ciphertext to a separately controlled non-Cloudflare store with
-   object lock/versioning. Use a write-only upload identity that cannot delete or
-   shorten retention; an independent read-only verifier must fetch the object and
-   verify decryptability, its manifest identity, size and every digest;
-8. expire each recovery point at the earlier of 30 days after capture or the
-   earliest source-retention deadline in its manifest. Retain its post-export
-   deletion evidence for at least as long as every recovery point it protects;
-9. alert only on a recorded run failure and recovery. A separate non-Cloudflare,
-   non-Resend dead-man monitor must alert when no verified backup is newer than 36
-   hours. Alerts contain no seller, listing, token, provider ID or message content.
+4. encrypt the versioned JSON snapshot with `age` to an offline-held X25519
+   identity; only its public recipient is available to GitHub;
+5. upload only ciphertext to a private B2 bucket using a one-bucket, prefix-scoped
+   key with exactly `readFiles` and `writeFiles`. `writeFiles` can hide objects,
+   so the lean backup is not immutable and a stolen key can cause backup loss;
+6. download the ciphertext by file ID and verify it byte-for-byte;
+7. rely on a reviewed B2 lifecycle rule to permanently remove current and prior
+   object versions after 30 days. Object Lock is intentionally not enabled.
 
-Use separate least-privilege Cloudflare tokens for D1 export/query and Images
-blob reads, without resource-delete permission, and rotate them independently of
-the Pages/Worker credentials. The Cloudflare API may label D1 export permission
-as write/edit even though this workflow never authorizes restore or deletion.
+Use a dedicated account-scoped Cloudflare D1 token for export/query and rotate it
+independently of the Pages/Worker credentials. Try D1 Read during setup; if export
+requires D1 Edit, explicitly record that the GitHub secret can write any D1
+database in the account. The workflow itself never authorizes restore or deletion.
 The backup runner must not receive production Pages or Worker deployment rights.
 `GEAR_MAINTENANCE_STATE` is transient cursor/alert state and is deliberately not
 part of disaster recovery.
 
-If an attached image disappears during backup and the post-export deletion
-evidence shows it was deleted, omit it and record the race. Any other missing
-image fails the backup. The implementation must confirm the export's query-impact
-behavior against current Cloudflare documentation and staging before scheduling.
+Cloudflare's export API makes the D1 database unavailable to queries while an
+export runs. Keep the 08:00 UTC low-traffic schedule, measure the interruption
+in staging and do not activate the schedule if it is operationally unacceptable.
 
 Cloudflare D1 Time Travel is an additional short-term recovery layer, not the
 off-provider backup. Current Cloudflare documentation gives production D1 a
 plan-dependent 7- or 30-day Time Travel window. The external export exists for
 account/provider loss and independently retained deletion evidence.
 
-The rehearsal must restore into the isolated staging/recovery stack in its
-separate Cloudflare account. Never restore over production to test a backup.
-Rebuild a freshly migrated database from the logical snapshot, reconcile it against
-the newer external deletion evidence, restore images as private objects, replace
-provider IDs only through an audited mapping step, verify that excluded
-sessions/links/tokens are absent, and run public/private projection checks before
-allowing traffic. Record elapsed time and any manual steps. A database-only
-restore is a failed rehearsal.
+The rehearsal restores into a new temporary/local database. Never restore over
+production to test a backup. Rebuild a freshly migrated database from the logical
+snapshot, reconcile any newer backup's deletion evidence, verify excluded
+credentials/contact/reports/photos are absent, and run public/private projection
+checks. Record elapsed time and manual steps. See `gear-lean-backup.md`.
 
 ## Gate 2: isolated staging
 
-Provision the entire disposable staging/recovery stack in its separate Cloudflare
-account only after separate owner authorization:
+Provision disposable staging records/auth resources only after separate owner
+authorization:
 
 - a separate Pages project and Access application;
 - a new D1 database containing migrations `0001` through `0015` in order;
 - a dedicated maintenance-state KV namespace;
-- a private Images binding in a separate Cloudflare account from production,
-  with its own account hash, variants and signing key;
 - staging-only Turnstile, Resend and Cloudflare Access settings;
-- staging `gear-images` and `gear-maintenance` Workers with preview URLs and
-  public routes disabled;
-- an allowlisted mail recipient and synthetic listings/images only.
+- an allowlisted mail recipient and synthetic records only.
 
-No staging or recovery Worker with an `IMAGES` binding may exist in the production
-Cloudflare account. Confirm at provisioning time that every Images binding is
-scoped to the Worker account before enabling maintenance reconciliation.
+The lean plan does not create a second Images account. Do not deploy a staging
+maintenance Worker against production Images: orphan reconciliation would treat
+production objects as absent from staging D1. Continue to test Images and
+maintenance with workerd/mocked bindings, then use a few disposable private
+canary images during the owner-approved production release window.
 
 Before any migration, capture the D1 bookmark and export. Apply each migration
 once, verify the recorded migration level and run the D1/workerd contract checks.
@@ -136,7 +113,7 @@ Exercise this matrix in staging:
 - Access allow/deny, report dismissal, removal and eligible/ineligible restore;
 - due cleanup, outbox retry, orphan reconciliation, one-minute retry, one failure
   alert and one recovery alert;
-- nightly encrypted export, independent read-back and full isolated restore.
+- nightly encrypted records export, B2 read-back and isolated records restore.
 
 No staging mail may leave the allowlist. No staging artifact may use a production
 database, image ID, sender credential, signing key or backup prefix.
@@ -210,7 +187,8 @@ the private release record. A failed or skipped required check is a no-go.
 
 Only after an explicit deployment instruction:
 
-1. create and verify the encrypted off-provider target with a synthetic canary;
+1. create the private B2 bucket/lifecycle/key, offline `age` identity and inactive
+   GitHub workflow, then verify the target with a synthetic canary;
 2. provision production D1/KV/Images identities and capture the empty D1
    bookmark/export;
 3. apply migrations `0001`–`0015` in order and verify schema/contracts;
@@ -224,11 +202,14 @@ Only after an explicit deployment instruction:
    the Pages code is reachable;
 8. deploy the reviewed Pages commit, verify owner allow/deny plus the application
    JWT/allowlist check, and run private/public smoke checks;
-9. run and verify the first encrypted backup and isolated restore checkpoint;
-10. set the Turnstile values and explicitly enable contact, reports and photo
-    uploads, then repeat the public write smoke checks;
-11. wait for the first scheduled backup after step 10 and verify its independent
-    read-back, then add the homepage Gear card. Replace the broad `/gear/*`
+9. manually run and verify the first encrypted records backup and local restore
+   checkpoint, accepting that photos are not covered;
+10. confirm the public privacy copy discloses the encrypted off-provider B2/GitHub
+    backup and its approximate retention, set the Turnstile values and explicitly
+    enable contact, reports and photo uploads, then repeat the public write smoke
+    checks;
+11. enable the nightly schedule, wait for its first successful B2 read-back, then
+    add the homepage Gear card. Replace the broad `/gear/*`
     `noindex` rule and public-page meta directive while retaining `noindex` on the
     private owner page; update the sitemap/robots treatment, verify real 404s and
     purge only the affected Pages cache entries.
@@ -265,7 +246,8 @@ deletion evidence has been reconciled.
 The private release record must contain the exact commit, resource names/IDs,
 migration results, configuration checklist without secret values, Access policy
 screenshots, edge-rule verification, mail allowlist result, image metadata result,
-maintenance result, backup object/digest, restore-rehearsal result, smoke-test
+maintenance result, encrypted records object/read-back, photo-loss acceptance,
+restore-rehearsal result, smoke-test
 results, rollback targets and the owner's explicit go-live approval.
 
 No single source-only review or passing local suite constitutes deployment or
@@ -278,4 +260,4 @@ Last checked: 2026-09-30.
 - [D1 Time Travel and backups](https://developers.cloudflare.com/d1/reference/time-travel/)
 - [D1 SQL export API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/export/)
 - [D1 import and export](https://developers.cloudflare.com/d1/best-practices/import-export-data/)
-- [Cloudflare Images export](https://developers.cloudflare.com/images/storage/manage-images/export-images/)
+- [Backblaze B2 Native API](https://www.backblaze.com/docs/cloud-storage-apis)
