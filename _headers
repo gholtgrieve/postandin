@@ -42,6 +42,9 @@
 /gear/gear.mjs
   Content-Type: application/javascript
 
+/gear/owner.mjs
+  Content-Type: application/javascript
+
 /gear/production-api.mjs
   Content-Type: application/javascript
 

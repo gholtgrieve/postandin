@@ -68,8 +68,9 @@ native Web Crypto and an environment-provided exact allowlist. Nothing is
 provisioned or deployed; see [instructions/gear-access.md](instructions/gear-access.md).
 
 The source-only production moderation foundation adds constrained D1 tables,
-an Access-authenticated open-report queue and same-origin dismiss/remove/restore
-actions with transactional history. It is not configured or deployed; see
+an Access-authenticated private owner workspace for open reports and active
+removals, and same-origin dismiss/remove/restore actions with transactional
+history. It is not configured or deployed; see
 [instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
 
 The source-only public report route requires exact-origin JSON, an exact feature

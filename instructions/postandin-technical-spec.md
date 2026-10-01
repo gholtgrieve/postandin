@@ -1192,9 +1192,11 @@ separate source-only production schema and action route follow.
 Source-only migration 8 adds constrained production `gear_reports`,
 `gear_removals` and `gear_moderation_history` tables. The owner-only
 `GET /api/gear/admin/reports` Pages Function verifies the Access assertion before
-touching `GEAR_DB`, then returns at most 100 newest open reports plus a truncation
-flag, with current listing review fields but no seller email/ID, acknowledgement
-evidence or image provider IDs. The source-only
+touching `GEAR_DB`, then returns at most 100 newest open reports and 100 active
+owner removals with independent truncation flags, current listing review fields
+and seller-deletion restore blocking, but no seller email/ID, acknowledgement
+evidence or image provider IDs. The private owner page uses these APIs only on
+the exact admin origin while preserving its separate connected-local flow. The source-only
 `POST /api/gear/admin/actions` route reuses the same Access identity, requires
 exact admin Origin and bounded JSON, and transactionally dismisses a report,
 removes its listing, or restores a removed listing while recording bounded owner

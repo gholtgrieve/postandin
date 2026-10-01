@@ -33,7 +33,7 @@ test('unfinished gear preview stays unlinked and noindex without blocking crawle
   assert.ok(read('404.html').includes('<html'));
   assert.equal(existsSync(new URL('../_redirects', import.meta.url)), false);
   const headers=read('_headers');
-  for(const path of staticBrowserModules('gear/gear.mjs')){
+  for(const path of new Set([...staticBrowserModules('gear/gear.mjs'),...staticBrowserModules('gear/owner.mjs')])){
     const direct=headerBlock(headers,'/'+path),wildcard=headerBlock(headers,'/'+dirname(path)+'/*');
     assert.match(direct,/\n  Content-Type: application\/javascript(?:\n|$)/);
     assert.match(direct+'\n'+wildcard,/\n  Cache-Control: no-cache(?:\n|$)/);

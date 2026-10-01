@@ -136,7 +136,7 @@ test('owner action route uses verified actor and keeps conflicts and failures ge
     assert.equal(response.status,200);assert.deepEqual(await response.json(),{ok:true});assert.equal(response.headers.get('cache-control'),'no-store');
     assert.deepEqual(received,{db,input:action('dismiss',bodyId),now:200});
     let conflict=await createOwnerActionHandler({verify:async()=>({email:OWNER}),moderate:async()=>false})({request:request(),env:{GEAR_DB:{}}});
-    assert.equal(conflict.status,409);assert.deepEqual(await conflict.json(),{error:'The listing or report changed. Refresh and review it.'});
+    assert.equal(conflict.status,409);assert.deepEqual(await conflict.json(),{error:'The listing or report changed, or restoration is not eligible. Refresh and review it.'});
     const unavailable=createOwnerActionHandler({verify:async()=>{throw new GearAccessUnavailableError('private key detail');}});
     assert.equal((await unavailable({request:request(),env:{GEAR_DB:{}}})).status,503);
     const failed=createOwnerActionHandler({verify:async()=>({email:OWNER}),moderate:async()=>{throw new Error('private database detail');}});

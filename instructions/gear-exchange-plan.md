@@ -1027,6 +1027,37 @@ Next after review and commit: complete launch-readiness checks and prepare the
 explicit provisioning/deployment runbook. Do not provision or deploy without
 explicit owner approval.
 
+### Production owner moderation UI — implemented and reviewed
+
+The launch-readiness audit found that Access verification and moderation writes
+were implemented, but the owner page remained local-only and production exposed
+no active-removal read model. The bounded source fix connects `gear/owner.html`
+only on the exact admin origin, preserves the separate local key workflow, and
+uses the existing Access-authenticated session, report and action routes. The
+report response now includes independently capped open reports and active owner
+removals. Removal rows expose only the fields needed to review/restore and a
+seller-deletion blocking boolean; seller email/ID, credentials, acknowledgement
+evidence and provider IDs remain excluded. Production history stays private in
+D1 and is not projected.
+
+An isolated admin-origin Chrome harness uses synthetic API responses and proves
+report removal followed by owner restore, exact action IDs/origin, contextual
+control names, hidden local login/logout/history controls, exact-boundary expiry
+and seller-deletion restore blocking, acceptance of the maximum supported
+100-report plus 100-removal workspace, fail-closed oversized/incomplete responses
+and no page errors. No Access application, custom domain, D1 binding, identity,
+secret, production record or deployment is part of this increment.
+
+All 299 Gear tests passed, as did changed-file syntax, diff hygiene, the isolated
+production-owner Chrome harness and the connected local/static HTTPS Chrome
+harness. Claude's first review found 0 Blocker, 0 High, 2 Medium groups and low
+recommendations. The agreed response-size, restore-eligibility, conflict-copy,
+truncation, MIME, projection-test and accessibility fixes were applied. Re-review
+found 0 Blocker, 0 High and 0 Medium, left only optional Low follow-ups and marked
+the increment ready for a local commit without another re-review. The remaining
+bounded Low test and accessibility gaps were then closed without changing the
+server contract.
+
 ### Checks and local commands
 
 Run from the canonical checkout:

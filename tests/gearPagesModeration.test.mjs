@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDraft } from '../lib/gear-storage.mjs';
 import { GearAccessDeniedError, GearAccessUnavailableError } from '../lib/gear-access.mjs';
-import { readOpenModerationReports } from '../lib/gear-moderation-storage.mjs';
+import {readActiveModerationRemovals,readOpenModerationReports} from '../lib/gear-moderation-storage.mjs';
 import { createOwnerReportsHandler, onRequestGet } from '../functions/api/gear/admin/reports.js';
 import { openLocalDatabase } from '../scripts/gear/local-db.mjs';
 
 const sample={title:'Club bag',description:'Worn zipper, repaired seam.',city:'Seattle',fit:'Junior bag',sellerName:'Sample seller',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'One size',condition:'Used — good',type:'sale',priceCents:4050,clubs:['Kent Valley']};
 
-async function listing(db) {
-  const {id}=await createDraft(db,sample,100);
+async function listing(db,patch={}) {
+  const value={...sample,...patch}, {id}=await createDraft(db,value,100);
   db.sqlite.prepare("UPDATE gear_sellers SET verified_at=101 WHERE email=?").run(sample.email);
   db.sqlite.prepare("UPDATE gear_listings SET status='available',verified_at=101,expires_at=999999 WHERE id=?").run(id);
   return id;
@@ -60,6 +60,37 @@ test('moderation projection returns only 100 newest open reports without private
   }finally{db.close();}
 });
 
+test('owner removal projection exposes restore context without private seller or provider fields',async()=>{
+  const db=openLocalDatabase();
+  try{
+    const id=await listing(db);
+    db.sqlite.prepare("INSERT INTO gear_removals(listing_id,previous_status,removed_at,reason) VALUES(?, 'available', 200, 'Owner review')").run(id);
+    db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(id);
+    const providerId='private-provider-id';db.sqlite.prepare('INSERT INTO gear_photos(id,listing_id,provider_id,position,created_at) VALUES(?,?,?,?,?)').run(crypto.randomUUID(),id,providerId,0,199);
+    db.sqlite.prepare("INSERT INTO gear_deletions(listing_id,previous_status,deleted_at,purge_at) VALUES(?, 'removed', 201, 301)").run(id);
+    const result=await readActiveModerationRemovals(db);
+    assert.equal(result.removalsTruncated,false);assert.equal(result.removals.length,1);
+    assert.deepEqual(Object.keys(result.removals[0]).sort(),['listing','listingId','previousStatus','reason','removedAt','sellerDeleted']);
+    assert.deepEqual(Object.keys(result.removals[0].listing).sort(),['category','city','condition','description','expiresAt','fit','priceCents','sellerName','size','status','title','trade','type']);
+    assert.equal(result.removals[0].sellerDeleted,true);assert.equal(result.removals[0].listing.status,'removed');
+    const serialized=JSON.stringify(result);assert.equal(serialized.includes(sample.email),false);assert.equal(serialized.includes('seller_id'),false);assert.equal(serialized.includes(providerId),false);
+  }finally{db.close();}
+});
+
+test('owner removal projection caps and orders rows while preserving unblocked state',async()=>{
+  const db=openLocalDatabase();
+  try{
+    const rows=[];
+    for(let index=0;index<101;index++){
+      const id=await listing(db,{title:`Removal ${index}`}),removedAt=index===99||index===100?500:index;
+      db.sqlite.prepare("INSERT INTO gear_removals(listing_id,previous_status,removed_at,reason) VALUES(?,'available',?,'Review')").run(id,removedAt);
+      db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(id);rows.push({id,removedAt});
+    }
+    const result=await readActiveModerationRemovals(db),expected=rows.sort((a,b)=>b.removedAt-a.removedAt||(a.id<b.id?-1:1)).slice(0,100).map(row=>row.id);
+    assert.equal(result.removalsTruncated,true);assert.deepEqual(result.removals.map(row=>row.listingId),expected);assert.equal(result.removals.every(row=>row.sellerDeleted===false),true);
+  }finally{db.close();}
+});
+
 test('owner reports route authenticates before reading D1 and returns no-store JSON',async()=>{
   const db=openLocalDatabase();
   try{
@@ -78,17 +109,18 @@ test('owner reports route authenticates before reading D1 and returns no-store J
     const body=await response.json();
     assert.equal(body.reports.length,1);
     assert.equal(body.truncated,false);
+    assert.deepEqual(body.removals,[]);assert.equal(body.removalsTruncated,false);
   }finally{db.close();}
 });
 
 test('owner reports route fails closed before D1 and keeps failures generic',async()=>{
   const logged=console.error,errors=[];console.error=(...args)=>errors.push(args);
   try{
-    let reads=0;
+    let reads=0,removalReads=0;const readRemovals=async()=>{removalReads++;return {removals:[],removalsTruncated:false};};
     const readReports=async()=>{reads++;throw new Error('private database detail');};
-    const denied=createOwnerReportsHandler({verify:async()=>{throw new GearAccessDeniedError();},readReports});
+    const denied=createOwnerReportsHandler({verify:async()=>{throw new GearAccessDeniedError();},readReports,readRemovals});
     let response=await denied({request:request(),env:{}});
-    assert.equal(response.status,403);assert.deepEqual(await response.json(),{error:'Access denied.'});assert.equal(reads,0);
+    assert.equal(response.status,403);assert.deepEqual(await response.json(),{error:'Access denied.'});assert.equal(reads,0);assert.equal(removalReads,0);
     const unavailable=createOwnerReportsHandler({verify:async()=>{throw new GearAccessUnavailableError('private key detail');},readReports});
     response=await unavailable(context({}));
     assert.equal(response.status,503);assert.deepEqual(await response.json(),{error:'Owner access is temporarily unavailable.'});assert.equal(reads,0);
@@ -101,6 +133,8 @@ test('owner reports route fails closed before D1 and keeps failures generic',asy
     assert.equal(response.status,500);assert.deepEqual(failedBody,{error:'Unable to load moderation reports right now.'});assert.equal(reads,1);
     assert.equal(JSON.stringify(failedBody).includes('private'),false);
     assert.equal(errors.some(entry=>String(entry.at(-1)).includes('private database detail')),true);
+    const failedRemovals=createOwnerReportsHandler({verify:async()=>{},readReports:async()=>({reports:[],truncated:false}),readRemovals:async()=>{throw new Error('private removal detail');}});
+    response=await failedRemovals(context({}));assert.equal(response.status,500);assert.deepEqual(await response.json(),{error:'Unable to load moderation reports right now.'});assert.equal(errors.some(entry=>String(entry.at(-1)).includes('private removal detail')),true);
     let prepares=0;
     response=await onRequestGet({
       request:new Request('https://www.postandin.com/api/gear/admin/reports'),

@@ -2,7 +2,8 @@
 
 Status: source-only and not deployed. No migration was applied remotely, no D1
 binding or Access policy was configured, and no production data was read or
-changed. The public report route and owner routes remain disconnected from UI.
+changed. The private owner page is source-connected only on the exact admin
+origin; no admin domain, Access policy, environment value or route is deployed.
 
 ## Storage boundary
 
@@ -30,12 +31,17 @@ before launch.
 
 `GET /api/gear/admin/reports` performs the existing Cloudflare Access JWT
 verification before it checks for or reads the proposed `GEAR_DB` D1 binding.
-Successful responses contain `{reports,truncated}`. `reports` contains at most
+Successful responses contain
+`{reports,truncated,removals,removalsTruncated}`. `reports` contains at most
 100 open reports, newest first with report ID as the deterministic tie-breaker;
 `truncated` is true when older open reports remain outside that response. Each
 report includes its saved title snapshot and current listing review fields.
+`removals` contains at most 100 newest active owner removals with the bounded
+reason, previous status, removal time, current listing review fields and a
+boolean indicating that seller deletion currently blocks owner restore.
+`removalsTruncated` signals older active removals outside the response.
 
-The projection deliberately excludes seller email and internal seller ID,
+Both projections deliberately exclude seller email and internal seller ID,
 duplicate keys, adult-acknowledgement evidence, management credentials and
 Cloudflare Images provider IDs. The response is JSON with `no-store`,
 `no-referrer` and `nosniff`. Authentication/configuration failures, a missing
@@ -72,6 +78,21 @@ check is only a diagnostic alarm for a future broken invariant; D1 has already
 committed when it runs. Public responses never contain the actor, report reason,
 owner reason, SQL or exception details.
 
+## Private owner page
+
+`gear/owner.html` keeps its existing connected-local key flow on local HTTPS.
+Only on `https://gear-admin.postandin.com` it instead probes the Access-authenticated
+session route, reads the production workspace and sends actions to the admin
+action route. It shows open reports and active owner removals, suppresses local
+history/key/logout controls, blocks restore when seller deletion is active, and
+uses text nodes for all stored content. Responses are bounded at 4 MiB before JSON
+parsing; the synthetic worst-case 100-report plus 100-removal workspace is about
+1.63 MiB. The browser harness also verifies that oversized and incomplete
+responses fail closed.
+The page is unlinked and `noindex`; Cloudflare Access remains the external gate,
+and every API request independently verifies the assertion. Production history
+is retained in D1 but intentionally not projected into this minimal workspace.
+
 The source-only authenticated seller deletion/recovery transaction now writes the
 migration-9 marker, and owner restore checks it so seller deletion cannot be
 bypassed. Do not provision the admin hostname and Access values with `GEAR_DB`—
@@ -88,6 +109,7 @@ deployment work.
 ```bash
 node --test tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearAccess.test.mjs tests/gearProductionFoundation.test.mjs tests/gearPagesListings.test.mjs
 GEAR_WRANGLER_MODULE=/absolute/path/to/wrangler node scripts/gear/d1-check.mjs
+GEAR_PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/gear/browser-production-owner-check.mjs
 node --check lib/gear-moderation-storage.mjs
 node --check lib/gear-moderation-actions.mjs
 node --check functions/api/gear/admin/reports.js

@@ -52,7 +52,7 @@ export function createOwnerActionHandler({verify=verifyGearOwnerAccess,moderate=
     if(!db){console.error('Gear moderation database is not configured.');return json(503,{error:'Gear moderation is temporarily unavailable.'});}
     try{
       const accepted=await moderate(db,{...input,actor:identity?.email},now());
-      if(!accepted)return json(409,{error:'The listing or report changed. Refresh and review it.'});
+      if(!accepted)return json(409,{error:'The listing or report changed, or restoration is not eligible. Refresh and review it.'});
       return json(200,{ok:true});
     }catch(error){
       console.error('Gear moderation action failed:',error);
