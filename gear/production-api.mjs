@@ -1,9 +1,11 @@
 import {isGearImageProviderId} from '../lib/gear-image-provider-id.mjs';
+import {CATEGORIES,SIZES,CONDITIONS,CLUBS,LISTING_TYPES,LIMITS} from '../lib/gear-exchange.mjs';
 
 const TOKEN=/^[a-f0-9]{64}$/;
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SITE_KEY=/^[\x21-\x7e]{1,128}$/;
 const MAX_RESPONSE_BYTES=64*1024;
+const MAX_PUBLIC_RESPONSE_BYTES=2*1024*1024;
 const MAX_PHOTO_BYTES=5*1024*1024;
 const PHOTO_TYPES=new Set(['image/jpeg','image/png','image/webp']);
 
@@ -20,7 +22,7 @@ function takeLinkToken(kind,locationValue,historyValue){
 export function takeManagementToken(locationValue=location,historyValue=history){return takeLinkToken('management',locationValue,historyValue);}
 export function takeVerificationToken(locationValue=location,historyValue=history){return takeLinkToken('verification',locationValue,historyValue);}
 
-async function responseJson(response){
+async function responseJson(response,maxBytes=MAX_RESPONSE_BYTES){
   const retry=Number(response.headers.get('retry-after')),retryAfter=Number.isSafeInteger(retry)&&retry>0?retry:null;
   const failure=(result=null)=>{
     const fallback=response.status===401?'Your session has ended. Request a new management link.':response.status===429?'Too many requests. Wait before trying again.':response.status>=500?'This service is temporarily unavailable. Please try again later.':'Unable to complete this request.';
@@ -29,7 +31,7 @@ async function responseJson(response){
     return Object.assign(safeError(message,response.status,fields),{retryAfter});
   };
   let text;try{text=await response.text();}catch{if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
-  if(text.length>MAX_RESPONSE_BYTES){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
+  if(text.length>maxBytes){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
   let result;try{result=JSON.parse(text);}catch{if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
   if(!result||typeof result!=='object'||Array.isArray(result)){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
   if(!response.ok)throw failure(result);
@@ -53,6 +55,12 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     catch{throw safeError('Gear posting is temporarily unavailable.');}
     const result=await responseJson(response);if(typeof result.turnstileSiteKey!=='string'||!SITE_KEY.test(result.turnstileSiteKey)||/\s/.test(result.turnstileSiteKey))throw safeError('The server returned an unreadable response. Please try again.');return result;
   }
+  async function listings(){
+    let response;try{response=await fetcher('/api/gear/listings',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{Accept:'application/json'}});}
+    catch{throw safeError('Unable to load Gear listings right now.');}
+    const result=await responseJson(response,MAX_PUBLIC_RESPONSE_BYTES);if(!Array.isArray(result.listings)||result.listings.length>100)throw safeError('The server returned an unreadable response. Please try again.');
+    try{return {listings:result.listings.map(publicListing)};}catch{throw safeError('The server returned an unreadable response. Please try again.');}
+  }
   async function authenticated(path,body){const access=await session();return request(path,body,access.csrf);}
   async function uploadPhoto(listingId,file){
     if(!file||!PHOTO_TYPES.has(file.type)||!Number.isSafeInteger(file.size)||file.size<1||file.size>MAX_PHOTO_BYTES)throw safeError('Choose a JPG, PNG, or WebP image up to 5 MB.');
@@ -73,7 +81,7 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     }
   }
   return {
-    request,session,config,uploadPhoto,
+    request,session,config,listings,uploadPhoto,
     createDraft,
     requestVerification,
     confirmVerification,
@@ -85,6 +93,22 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     reorderPhotos:(listingId,photoIds)=>authenticated('/management/photos/reorder',{listingId,photoIds}),
     logout:()=>authenticated('/management/logout',{}),
   };
+}
+
+function bounded(value,max,{empty=false}={}){if(typeof value!=='string'||value.length>max||(!empty&&!value.trim()))throw new Error();return value;}
+function publicPhoto(photo){
+  if(!photo||typeof photo!=='object'||Array.isArray(photo)||!UUID.test(photo.id??''))throw new Error();
+  const name=bounded(photo.name,40),url=bounded(photo.url,2048);let parsed;try{parsed=new URL(url);}catch{throw new Error();}
+  const path=/^\/([A-Za-z0-9_-]{20,64})\/([^/]+)\/([A-Za-z0-9_-]{1,99})$/.exec(parsed.pathname);
+  if(parsed.origin!=='https://imagedelivery.net'||parsed.username||parsed.password||parsed.hash||!path||!isGearImageProviderId(path[2])||!/^\?exp=\d{1,12}&sig=[a-f0-9]{64}$/.test(parsed.search))throw new Error();
+  return {id:photo.id,name,url:parsed.href};
+}
+function publicListing(row){
+  if(!row||typeof row!=='object'||Array.isArray(row)||!UUID.test(row.id??'')||!CATEGORIES.includes(row.category)||!SIZES.includes(row.size)||!CONDITIONS.includes(row.condition)||!LISTING_TYPES.includes(row.type)||!['available','pending'].includes(row.status))throw new Error();
+  if(!Array.isArray(row.clubs)||row.clubs.length>CLUBS.length||new Set(row.clubs).size!==row.clubs.length||row.clubs.some(club=>!CLUBS.includes(club))||!Array.isArray(row.photos)||row.photos.length>LIMITS.photos)throw new Error();
+  const priceCents=row.type==='trade'?null:row.type==='free'?0:row.priceCents;if((row.type==='sale'&&(!Number.isSafeInteger(priceCents)||priceCents<LIMITS.minPriceCents||priceCents>LIMITS.maxPriceCents))||(row.type!=='sale'&&row.priceCents!==priceCents))throw new Error();
+  const trade=bounded(row.trade??'',LIMITS.trade,{empty:true}),otherClub=bounded(row.otherClub??'',LIMITS.otherClub,{empty:true});if((row.type==='trade')!==Boolean(trade.trim())||row.clubs.includes('Other')!==Boolean(otherClub.trim()))throw new Error();
+  return {id:row.id,title:bounded(row.title,LIMITS.title),description:bounded(row.description,LIMITS.description),category:row.category,size:row.size,fit:bounded(row.fit,LIMITS.fit),condition:row.condition,city:bounded(row.city,LIMITS.city),type:row.type,priceCents,trade,clubs:[...row.clubs],otherClub,sellerName:bounded(row.sellerName,LIMITS.name),status:row.status,photos:row.photos.map(publicPhoto)};
 }
 
 export function previewListing(row){return {...row,type:row.type==='sale'?'Sale':row.type==='free'?'Free':'Trade',seller:row.sellerName,place:row.city,photos:row.photos||[],age:'',pending:row.status==='pending',status:row.status[0].toUpperCase()+row.status.slice(1),expires:row.expiresAt};}

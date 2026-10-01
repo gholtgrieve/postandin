@@ -138,8 +138,13 @@ Local draft storage, validation, per-listing verification and duplicate checks
 are implemented separately from the preview;
 see [local storage instructions](instructions/gear-storage.md). A source-only
 `GET /api/gear/listings` Pages Function now exercises the public D1 projection,
-but the UI is not connected and no remote binding, database, API deployment or
-other cloud resource exists. The separate owner-only
+and the exact production-origin Gear browser source now uses that response for
+browse and detail instead of sample rows. Responses are size- and shape-checked,
+signed photos are restricted to Cloudflare Images delivery, and an initial
+failure leaves the public list empty with a generic notice and retry action.
+Later refresh failures retain the last validated listing snapshot. Expired image
+signatures refresh in the background without changing the selected photo. No
+remote binding, database, API deployment or other cloud resource exists. The separate owner-only
 `GET /api/gear/admin/reports` route reads the proposed moderation queue only
 after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
 actions through transactional D1 batches. Run the focused route and storage tests

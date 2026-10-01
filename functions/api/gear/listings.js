@@ -12,8 +12,8 @@ function json(status, body) {
   return new Response(JSON.stringify(body), { status, headers: HEADERS });
 }
 
-// Source-only production integration seam. The Gear UI is not connected and
-// no remote binding or database has been provisioned.
+// Source-only production integration seam. The exact-origin Gear UI consumes
+// this route, but no remote binding or database has been provisioned.
 export function createGearListingsHandler({read=readPublicListingsWithPhotoRefs,signer=createGearPhotoSigner,now=Date.now}={}){
  return async function gearListings(context) {
   const db=context.env?.GEAR_DB,config=gearPhotoDeliveryConfig(context.env);

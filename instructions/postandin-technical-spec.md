@@ -1137,9 +1137,18 @@ The opt-in connected local HTTPS flow is described in
 remains simulated; there are no deployed Gear APIs. A source-only
 `GET /api/gear/listings` Pages Function reads the public projection through a
 proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
-connected, and the route remains unavailable until D1 plus all three signed-photo
-delivery settings are configured. The source projection now replaces ordered
-hosted-image references with ten-minute signed photo URLs.
+deployed, and the route remains unavailable until D1 plus all three signed-photo
+delivery settings are configured. On the exact production origin, the Gear UI
+now replaces its sample rows with a bounded, strictly validated response from
+that route and renders browse/detail plus signed photos. Failed or malformed
+initial responses leave an empty list with a generic notice and retry action;
+later refresh failures retain the last validated snapshot. Concurrent refreshes
+are generation-guarded so an older response cannot replace a newer one. Local
+connected mode and the ordinary static demo keep their existing data sources.
+A failed public image whose signature is near expiry can refresh the listing
+projection in the background; the recovery is throttled, repeatable after the
+cooldown, and preserves the selected photo and picker focus. The source projection
+replaces ordered hosted-image references with ten-minute signed photo URLs.
 The approved production direction uses the existing Cloudflare Images account
 rather than R2 for Gear photos. Source-only migration 7 records immutable
 adult-acknowledgement evidence and hosted-image metadata (provider ID and order

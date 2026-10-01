@@ -897,9 +897,47 @@ then found five low harness/UX gaps followed by two low state residuals. All wer
 fixed; the final reviewer confirmed the earlier blocker/high/medium findings
 remain closed and approved the increment for local commit.
 
-Next after review and commit: connect production public browse/detail to the
-existing safe listing projection so a published listing can be discovered
-without relying on sample records.
+### Production public browse and detail UI — implemented and reviewed
+
+The exact production origin now loads `GET /api/gear/listings` and replaces all
+sample browse rows before first render. The client accepts at most 100 strictly
+validated public records, projects only the documented fields, restricts photo
+URLs to the expected HTTPS Cloudflare Images signed-delivery shape and applies a
+dedicated response-size ceiling. A failed, malformed or oversized initial
+response leaves the list empty and shows a generic notice plus retry action;
+later refresh failures retain the last validated snapshot. Generation guards
+prevent a slow older read from overwriting a newer publication or management
+refresh. Search, filtering, sorting, detail and ordered photo rendering reuse
+the existing vanilla UI. A failed public image with a near-expiry signature
+triggers a throttled background listing refresh. Recovery can run again after
+the cooldown and preserves the selected photo and picker focus without disabling
+unrelated controls.
+Local connected mode and the inert static demo
+retain their existing data sources and behavior.
+
+Focused route/adapter/UI checks and the isolated production-origin Chrome
+harness cover the real route-to-adapter contract, safe projection, malformed
+rows, unsafe photo URLs, response bounds, sample-row removal, browse-to-detail
+navigation, repeatable signed-photo refresh, preserved photo/focus, stale-read
+isolation, retry, and continued management refresh after public-read failure. No
+binding, provider request, production data, remote migration or deployment is
+included.
+
+All 279 Gear tests and the 18 focused public-route/adapter/posting tests pass,
+as do JavaScript syntax and diff checks. Both the isolated production-origin Chrome
+harness and the existing temporary local/static HTTPS harness pass.
+
+Claude's first review found three Medium race/recovery issues and eight Low
+follow-ups. The Mediums and the agreed bounded Lows were fixed. Re-review found
+one additional Medium contract mismatch between server and browser validation of
+Cloudflare-assigned image IDs; the client now uses the shared provider-ID rule
+and the real route-to-adapter test covers a non-v4 ID. Final re-review reports
+0 Blocker, 0 High, 0 Medium and 4 optional Low findings and approves local
+commit. A public-read timeout remains a pre-launch improvement, not a deployment
+authorization.
+
+Next after review and commit: add the production buyer-contact backend boundary
+without yet enabling real delivery or changing the public contact button.
 
 ### Checks and local commands
 
@@ -909,7 +947,7 @@ Run from the canonical checkout:
 git status --short
 git branch --show-current
 # Photo tests require macOS with /usr/bin/sips.
-node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearProductionPostingUI.test.mjs
+node --test tests/gearAccess.test.mjs tests/gearLifecycle.test.mjs tests/gearModeration.test.mjs tests/gearReports.test.mjs tests/gearContact.test.mjs tests/gearPhotos.test.mjs tests/gearConnectedPreview.test.mjs tests/gearEmailChange.test.mjs tests/gearExchange.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs tests/gearManagement.test.mjs tests/gearPreviewVisibility.test.mjs tests/gearMaintenance.test.mjs tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearPagesSellerDeletion.test.mjs tests/gearPagesManagementSession.test.mjs tests/gearPagesManagementListings.test.mjs tests/gearPagesVerification.test.mjs tests/gearProductionFoundation.test.mjs tests/gearProductionMaintenance.test.mjs tests/gearImageUpload.test.mjs tests/gearPhotoQuarantine.test.mjs tests/gearImagesWorker.test.mjs tests/gearPagesPhotos.test.mjs tests/gearPagesPhotoManagement.test.mjs tests/gearPhotoRateLimit.test.mjs tests/gearProductionManagementUI.test.mjs tests/gearProductionPostingUI.test.mjs tests/gearProductionBrowseUI.test.mjs
 git diff --check
 ```
 
