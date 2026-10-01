@@ -1134,6 +1134,22 @@ without an Images binding. No image was uploaded, no public write or mail featur
 was enabled, no maintenance/backup schedule was activated and no production
 resource was changed.
 
+Before binding a real staging Resend key, the mail adapters gained a fail-closed
+staging-only recipient boundary. Whenever the exact staging public origin is
+configured, verification, management recovery and buyer-contact delivery require
+the actual normalized recipient to appear in the secret
+`GEAR_STAGING_MAIL_RECIPIENTS` allowlist. Production behavior is unchanged.
+Claude's focused review found 0 Blocker, 0 High, 0 Medium and 3 optional Low
+findings and marked the increment ready to commit. The worthwhile test-coverage
+and secret-entry documentation suggestions were added; no re-review was required.
+The remaining Low is accepted for isolated staging: as with any provider failure,
+a recovery request can rotate a non-allowlisted staging seller's prior link before
+delivery is refused, while returning the same generic response. The exhaustive
+Gear suite passed 316/316 before the test-only additions; the final focused mail,
+verification, management, posting-config and staging suite passed 57/57, with
+syntax and diff checks clean. The report is in the owner's Downloads folder as
+`postandin-gear-staging-mail-allowlist-review.md`.
+
 ### Checks and local commands
 
 Run from the canonical checkout:

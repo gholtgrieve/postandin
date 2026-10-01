@@ -6,15 +6,17 @@ import {createDraftSubmissionHandler} from '../functions/api/gear/drafts.js';
 import {createVerificationConfirmHandler} from '../functions/api/gear/verification/confirm.js';
 import {createVerificationRequestHandler} from '../functions/api/gear/verification/request.js';
 import {productionAPI} from '../gear/production-api.mjs';
+import {contactDeliveryConfigured,sendContactMessage} from '../lib/gear-contact-mail.mjs';
 import {managementRequestError} from '../lib/gear-management-http.mjs';
 import {sendManagementLink} from '../lib/gear-management-mail.mjs';
+import {gearMailPolicyConfigured,gearMailRecipientAllowed} from '../lib/gear-mail-policy.mjs';
 import {
   GEAR_PRODUCTION_ADMIN_ORIGIN,GEAR_PRODUCTION_PUBLIC_ORIGIN,
   GEAR_STAGING_ADMIN_ORIGIN,GEAR_STAGING_PUBLIC_ORIGIN,
   gearAdminOrigin,gearPublicOrigin,isGearAdminOrigin,isGearPublicOrigin,
 } from '../lib/gear-origins.mjs';
 import {createTurnstileVerifier,GearTurnstileRejectedError,GearTurnstileUnavailableError} from '../lib/gear-turnstile.mjs';
-import {sendVerificationLink} from '../lib/gear-verification-mail.mjs';
+import {sendVerificationLink,verificationMailConfigured} from '../lib/gear-verification-mail.mjs';
 
 const TOKEN='a'.repeat(64),RECEIPT_ID='00000000-0000-4000-8000-000000000001';
 const DRAFT={title:'Club bag',description:'Worn zipper.',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'One size',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
@@ -40,6 +42,8 @@ test('staging public origin is accepted across browser, config and management bo
   assert.equal(managementRequestError(productionRequest,{GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN}).status,403);
   const response=await createGearConfigHandler()({request:new Request(GEAR_STAGING_PUBLIC_ORIGIN+'/api/gear/config'),env:{GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN,GEAR_TURNSTILE_SITE_KEY:'staging-site-key'}});
   assert.equal(response.status,200);
+  const mailConfig=await createGearConfigHandler()({request:new Request(GEAR_STAGING_PUBLIC_ORIGIN+'/api/gear/config'),env:{GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN,GEAR_TURNSTILE_SITE_KEY:'staging-site-key',GEAR_DB:{},GEAR_RESEND_API_KEY:'key',GEAR_CONTACT_ENABLED:'true'}});
+  assert.equal((await mailConfig.json()).contactEnabled,false);
 });
 
 test('staging posting and verification routes pass environment-aware origin checks',async()=>{
@@ -68,12 +72,44 @@ test('staging Turnstile verification derives the exact configured hostname',asyn
 
 test('staging mail links point only to the approved staging public origin',async()=>{
   const bodies=[];const fetcher=async(_url,options)=>{bodies.push(JSON.parse(options.body));return Response.json({id:RECEIPT_ID});};
-  const env={GEAR_RESEND_API_KEY:'key',GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN};
+  const env={GEAR_RESEND_API_KEY:'key',GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN,GEAR_STAGING_MAIL_RECIPIENTS:'seller@example.com'};
   await sendManagementLink({recipient:'seller@example.com',token:TOKEN},env,{fetcher});
   await sendVerificationLink({recipient:'seller@example.com',token:TOKEN},env,{fetcher});
+  await sendContactMessage({id:RECEIPT_ID,recipient:'seller@example.com',buyerEmail:'buyer@example.com',buyerName:'Buyer',listingTitle:'Skates',message:'Are these available?'},env,{fetcher});
   assert.match(bodies[0].text,new RegExp(GEAR_STAGING_PUBLIC_ORIGIN.replaceAll('.','\\.')+'/gear/#management='));
   assert.match(bodies[1].text,new RegExp(GEAR_STAGING_PUBLIC_ORIGIN.replaceAll('.','\\.')+'/gear/#verification='));
+  assert.deepEqual(bodies[2].to,['seller@example.com']);
   await assert.rejects(sendManagementLink({recipient:'seller@example.com',token:TOKEN},{...env,GEAR_PUBLIC_ORIGIN:'https://preview.pages.dev'},{fetcher}),error=>error.code==='config');
+});
+
+test('staging mail fails closed unless the recipient is explicitly allowlisted',async()=>{
+  const base={GEAR_RESEND_API_KEY:'key',GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN};
+  assert.equal(gearMailPolicyConfigured(base),false);
+  assert.equal(gearMailPolicyConfigured({...base,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'}),true);
+  assert.equal(gearMailRecipientAllowed('allowed@example.com',{...base,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'}),true);
+  assert.equal(gearMailRecipientAllowed('allowed@example.com',{...base,GEAR_STAGING_MAIL_RECIPIENTS:' Allowed@Example.com '}),true);
+  assert.equal(verificationMailConfigured(base),false);
+  assert.equal(contactDeliveryConfigured({...base,GEAR_CONTACT_ENABLED:'true'}),false);
+  for(const value of ['',null,42,'allowed@example.com,allowed@example.com','allowed@example.com,Allowed@Example.com','allowed@example.com,','allowed@example.com\n','allowed@example.com\t','not-an-email','a'.repeat(4097)])assert.equal(gearMailPolicyConfigured({...base,GEAR_STAGING_MAIL_RECIPIENTS:value}),false);
+  const fetcher=async()=>{throw new Error('mail provider must not be called');};
+  await assert.rejects(sendManagementLink({recipient:'blocked@example.com',token:TOKEN},{...base,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'},{fetcher}),error=>error.code==='config');
+  await assert.rejects(sendVerificationLink({recipient:'blocked@example.com',token:TOKEN},{...base,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'},{fetcher}),error=>error.code==='config'&&error.releasable);
+  await assert.rejects(sendContactMessage({id:RECEIPT_ID,recipient:'blocked@example.com',buyerEmail:'buyer@example.com',buyerName:'Buyer',listingTitle:'Skates',message:'Are these available?'},{...base,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'},{fetcher}),error=>error.code==='config');
+});
+
+test('blocked staging verification releases the pre-delivery token without provider work',async()=>{
+  let releases=0,fetches=0;
+  const handler=createVerificationRequestHandler({
+    configured:()=>true,
+    issue:async()=>({recipient:'blocked@example.com',token:TOKEN}),
+    release:async()=>{releases++;return true;},
+    send:(receipt,env)=>sendVerificationLink(receipt,env,{fetcher:async()=>{fetches++;return Response.json({id:RECEIPT_ID});}}),
+    now:()=>100,
+  });
+  const response=await handler({request:stagingRequest('/api/gear/verification/request',{id:RECEIPT_ID}),env:{GEAR_DB:{},GEAR_RESEND_API_KEY:'key',GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN,GEAR_STAGING_MAIL_RECIPIENTS:'allowed@example.com'}});
+  assert.equal(response.status,503);
+  assert.equal(releases,1);
+  assert.equal(fetches,0);
 });
 
 test('staging admin actions require the fixed staging admin origin',async()=>{

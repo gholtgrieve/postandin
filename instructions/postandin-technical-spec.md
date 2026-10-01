@@ -1235,6 +1235,12 @@ delivery, edge rate limit, production cleanup schedule or backup
 reconciliation is configured or deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
 
+When the exact staging public origin is configured, all verification, management
+recovery and buyer-contact adapters additionally require a valid
+`GEAR_STAGING_MAIL_RECIPIENTS` secret and refuse delivery unless the normalized
+recipient is in that exact comma-separated allowlist. Production delivery does
+not consult this staging-only value.
+
 The source-only browser production adapter activates only at the exact
 `https://postandin.com` origin. It erases a management token fragment immediately,
 then uses explicit same-origin POSTs for confirmation, session reload, recovery,

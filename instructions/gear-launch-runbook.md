@@ -160,6 +160,7 @@ committed files:
 | `GEAR_TURNSTILE_SITE_KEY` | public value | posting/report widget configuration |
 | `GEAR_TURNSTILE_SECRET` | secret | server verification |
 | `GEAR_RESEND_API_KEY` | secret | verification, recovery and buyer-contact mail |
+| `GEAR_STAGING_MAIL_RECIPIENTS` | staging-only secret | exact comma-separated staging delivery allowlist; required with the staging public origin |
 | `GEAR_CONTACT_ENABLED` | value `true` | explicit buyer-contact launch switch |
 | `GEAR_REPORTS_ENABLED` | value `true` | explicit report launch switch |
 | `GEAR_PHOTO_UPLOADS_ENABLED` | value `true` | explicit upload launch switch |
@@ -177,8 +178,14 @@ local/operator material until deployment is approved. Both Workers import shared
 `lib/` modules, so a change to an imported module requires the affected Worker to
 be reviewed and redeployed separately from Pages.
 
-Verify the Resend sender domain for `gear@postandin.com`, including the provider's
+The staging Pages project must set `GEAR_STAGING_MAIL_RECIPIENTS` before its
+Resend key is bound; every verification, recovery and buyer-contact delivery
+then fails closed unless its actual recipient is in that exact allowlist.
+Production does not set this staging-only value. Verify the Resend sender domain
+for `gear@postandin.com`, including the provider's
 required SPF/DKIM records, before testing any allowlisted staging delivery.
+Enter each staging allowlist address once, with no trailing comma, embedded
+spaces or trailing newline; a malformed secret safely disables staging mail.
 
 Create an Access application and policy covering all of
 `gear-admin.postandin.com` before attaching that custom domain to the Pages
