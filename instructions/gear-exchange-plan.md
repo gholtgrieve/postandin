@@ -1107,8 +1107,8 @@ The owner then authorized isolated staging. A staging-only D1 database and
 maintenance-state KV namespace were provisioned; the empty D1 bookmark/export
 was captured, migrations `0001`–`0015` applied in order, and 18 empty Gear tables
 verified. Remote D1 rejected unsupported integrity PRAGMAs, while ordinary
-schema/emptiness queries passed. No Pages project or Worker was deployed. The
-next bounded source increment allowlists one exact staging public origin and one
+schema/emptiness queries passed. The next bounded source increment allowlisted
+one exact staging public origin and one
 exact staging admin origin across browser activation, request checks, Turnstile
 hostname validation and recovery/verification links, while unset configuration
 keeps the production origins and every other configured value fails closed.
@@ -1121,6 +1121,18 @@ removed. The final full Gear suite passes 315/315, with changed-file syntax and
 diff checks clean. Review reports are in the owner's Downloads folder as
 `postandin-gear-staging-origins-review.md` and
 `postandin-gear-staging-origins-rereview.md`.
+
+The reviewed source was then deployed to an isolated staging Pages project with
+the staging D1 binding. One Cloudflare Access application protects the canonical
+Pages host, the admin custom hostname and wildcard deployment hostnames for the
+approved owner identity with independent MFA. Anonymous redirects were verified
+on the public page, public listings API and a deployment-specific URL; the owner
+completed MFA enrollment and verified authenticated empty public browse plus the
+private owner dashboard. A staging-only random photo-signing secret and invalid-
+for-delivery placeholder account/variant values permit empty listing projection
+without an Images binding. No image was uploaded, no public write or mail feature
+was enabled, no maintenance/backup schedule was activated and no production
+resource was changed.
 
 ### Checks and local commands
 

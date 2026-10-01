@@ -3,9 +3,13 @@
 Status: active launch plan. The owner authorized isolated staging setup. A
 staging-only D1 database and maintenance-state KV namespace now exist; the empty
 D1 bookmark/export was captured, migrations `0001`–`0015` applied in order and
-the expected 18 empty Gear tables were verified. No Pages project, Access
-application, staging mail, image, Worker, backup schedule or production resource
-is deployed. Production still requires separate explicit approval.
+the expected 18 empty Gear tables were verified. The isolated staging Pages
+project is deployed behind an owner-only Cloudflare Access application with
+independent MFA on the canonical, admin and wildcard deployment hostnames.
+Authenticated empty public browse and private owner-dashboard reads passed.
+Staging mail, image writes, maintenance Worker, backup schedule and every
+production resource remain undeployed. Production still requires separate
+explicit approval.
 
 ## Release boundary
 
@@ -95,20 +99,25 @@ authorization:
 - staging-only Turnstile, Resend and Cloudflare Access settings;
 - an allowlisted mail recipient and synthetic records only.
 
-The D1 and maintenance KV bullets are complete. Pages deployment is paused while
-the fixed, fail-closed staging-origin configuration is reviewed. The staging
-public origin is `https://postandin-gear-staging.pages.dev`; the future Access-
-protected admin origin is `https://gear-admin-staging.postandin.com`. Server
-configuration must set `GEAR_PUBLIC_ORIGIN` and `GEAR_ADMIN_ORIGIN` to those exact
-allowlisted values; an unset value retains the production origin and any other
-value fails closed.
+The D1, maintenance KV, Pages and Access bullets are complete. The staging public
+origin is `https://postandin-gear-staging.pages.dev`; the Access-protected admin
+origin is `https://gear-admin-staging.postandin.com`. Server configuration sets
+`GEAR_PUBLIC_ORIGIN` and `GEAR_ADMIN_ORIGIN` to those exact allowlisted values;
+an unset value retains the production origin and any other value fails closed.
+The Pages project also has a staging-only random photo-signing secret and
+syntactically valid placeholder delivery values so an empty public listing read
+can run without an Images binding. Those placeholders are not valid for photo
+testing and no image object has been uploaded.
 
-Before the staging public host is deployed, protect that host with a temporary
-Cloudflare Access policy limited to the owner/testers. Do not bind the staging
-Resend key until that policy is verified. This keeps draft verification,
-management and buyer-contact mail under trusted tester control and satisfies the
-staging rule that no mail may leave the approved test group. Production remains
-public and does not use this temporary staging policy.
+The staging public host, admin custom hostname and wildcard Pages deployment
+hostnames are protected by one temporary Cloudflare Access application limited
+to the approved owner identity. Independent MFA enrollment and authenticated
+access were verified, as were anonymous redirects on the public page, public API
+and one deployment-specific hostname. Do not bind the staging Resend key until
+its recipient allowlist is configured. This keeps draft verification, management
+and buyer-contact mail under trusted tester control and satisfies the staging
+rule that no mail may leave the approved test group. Production remains public
+and does not use this temporary staging policy.
 
 The lean plan does not create a second Images account. Do not deploy a staging
 maintenance Worker against production Images: orphan reconciliation would treat
