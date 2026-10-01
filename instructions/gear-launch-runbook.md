@@ -141,6 +141,20 @@ Exercise this matrix in staging:
   alert and one recovery alert;
 - nightly encrypted records export, B2 read-back and isolated records restore.
 
+Observed October 1, 2026: the protected staging site completed synthetic post,
+email verification, management-link login, seller deletion and seller recovery.
+The first recovery attempt exposed a browser action-name mismatch (`restore`
+versus the production route's `recover`); the corrected client was covered by a
+regression test, redeployed to isolated staging and then completed recovery. The
+disposable listing was deleted again, and a read-only D1 query confirmed its
+`removed` status and active recovery marker. A later live pass recovered that
+same disposable listing, saved a title edit through the full three-step form,
+closed it, relisted it for 30 days, and deleted it again. The staging UI
+confirmed each write and ended with zero active listings plus a fresh 30-day
+recovery deadline. Independent Access MFA was also recovered after deleting an
+inaccessible authenticator and enrolling a replacement TOTP device; the test
+Mac/browser did not offer a usable platform biometric authenticator.
+
 No staging mail may leave the allowlist. No staging artifact may use a production
 database, image ID, sender credential, signing key or backup prefix.
 Pages Preview deployments must have no Gear bindings, values or secrets unless

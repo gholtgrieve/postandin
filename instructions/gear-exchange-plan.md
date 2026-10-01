@@ -1150,6 +1150,20 @@ verification, management, posting-config and staging suite passed 57/57, with
 syntax and diff checks clean. The report is in the owner's Downloads folder as
 `postandin-gear-staging-mail-allowlist-review.md`.
 
+Live isolated-staging validation on October 1 completed synthetic posting, email
+verification, management-link login, seller deletion and recovery. The first
+recovery attempt found that the production browser sent the local action name
+`restore` while the production endpoint requires `recover`; the corrected client
+and regression test passed focused checks, were redeployed, and completed the
+recovery flow. The listing was deleted again, and a read-only remote D1 query
+confirmed it is `removed` with an active 30-day recovery marker. Access MFA
+lockout recovery was also exercised by deleting an inaccessible authenticator
+and enrolling a replacement TOTP device. A later live pass recovered the same
+disposable listing, changed its title through the three-step edit flow, closed
+it, relisted it for 30 days, and deleted it again; each management response and
+resulting status was confirmed in the staging UI. Images, buyer contact,
+reports, maintenance and backup checks remain open staging work.
+
 ### Checks and local commands
 
 Run from the canonical checkout:
@@ -1297,6 +1311,12 @@ Functions, Resend transactional mail, Cloudflare Access for owner moderation, a
 dedicated scheduled maintenance Worker, and encrypted off-Cloudflare backup.
 No Gear bindings, routes, credentials or resources have been provisioned.
 
+- Run a dedicated visual-polish and accessibility pass across Gear browse,
+  detail, posting, verification, seller-management and owner-review screens at
+  desktop and mobile widths. Fix weak hierarchy, excessive empty space,
+  inconsistent spacing/control sizing, oversized focus treatment and stale
+  development copy; require rendered-browser review rather than source review
+  alone before launch.
 - Validate/re-encode photos and remove metadata in a trusted pipeline before
   publication; client processing alone is insufficient. Draft images stay private.
 - Enforce public-field allowlists and visibility on the server. Check expiry on

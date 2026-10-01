@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {listingInput,previewListing,productionAPI,takeManagementToken} from '../gear/production-api.mjs';
 
 const TOKEN='a'.repeat(64),CSRF='b'.repeat(64),ID='00000000-0000-4000-8000-000000000001';
@@ -41,6 +42,11 @@ test('management writes recover CSRF and use bounded same-origin POST requests',
   assert.deepEqual(calls.filter(call=>!call.url.endsWith('/session')).map(call=>call.url),[
     '/api/gear/management/listing','/api/gear/management/deletion','/api/gear/management/photos/remove','/api/gear/management/photos/reorder','/api/gear/management/logout',
   ]);
+});
+
+test('production seller recovery uses the deletion route recovery action',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/api\.deletion\(\{id:b\.dataset\.recover,action:'recover'\}\)/);
 });
 
 test('confirmation and recovery keep credentials in POST bodies and expose safe errors',async()=>{
