@@ -54,7 +54,8 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDir
         const path=url.pathname==='/gear/'?'/gear/index.html':url.pathname==='/owner/'&&owner?'/gear/owner.html':url.pathname;
         if(assets.has(path)){
           let content=assets.get(path);
-          if(path==='/gear/index.html')content=content.replace('id="pi-gear-preview"','id="pi-gear-preview" data-local-api="true"').replace(/<link href="https:\/\/fonts.googleapis.com[^>]+>/,'');
+          if(path==='/gear/index.html')content=content.replace('id="pi-gear-preview"','id="pi-gear-preview" data-local-api="true"');
+          if(path.endsWith('.html'))content=content.replace(/<link[^>]+href="https:\/\/fonts\.(?:googleapis|gstatic)\.com[^>]*>\s*/g,'');
           res.writeHead(200,{'Content-Type':path.endsWith('.html')?'text/html; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow'});return res.end(content);
         }
       }

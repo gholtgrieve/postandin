@@ -27,7 +27,8 @@ try{
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')consoleErrors.push({text:m.text(),url:m.location().url});});
  const idle=()=>page.waitForFunction(()=>!document.querySelector('#refresh').disabled);
  await page.goto(base+'/owner/');await idle();assert.equal(await page.locator('#workspace').isVisible(),false);
- await page.locator('#key').fill(ownerKey);await page.locator('#login button').click();await idle();assert.equal(await page.locator('#key').inputValue(),'');assert.equal(await page.locator('#reports article').count(),2);assert.equal(await page.locator('#reports h3 b').count(),0);
+ assert.match(await page.locator('body').evaluate(element=>getComputedStyle(element).fontFamily),/IBM Plex Mono/);assert.match(await page.locator('h1').evaluate(element=>getComputedStyle(element).fontFamily),/Bebas Neue/);
+ await page.locator('#key').fill(ownerKey);await page.locator('#login button').click();await idle();assert.equal(await page.locator('#key').inputValue(),'');assert.equal(await page.locator('#reports article').count(),2,await page.locator('#notice').textContent());assert.equal(await page.locator('#reports h3 b').count(),0);
  assert.equal((await context.request.get(base+'/local/reports')).status(),404);
  const guest=await browser.newContext({ignoreHTTPSErrors:true});assert.equal((await guest.request.get(base+'/owner/data')).status(),401);assert.equal((await guest.request.get(base+'/owner/photos/'+photoId)).status(),401);await guest.close();
  const bag=()=>page.locator('#reports article').filter({has:page.locator('h3',{hasText:'<b>Bag one</b>'})});
@@ -39,6 +40,7 @@ try{
  assert.equal((await(await context.request.get(base+'/listings')).json()).listings.length,1);
  for(const width of [1040,390,320]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'owner overflow at '+width);if(process.env.GEAR_PREVIEW_SCREENSHOT)await page.screenshot({path:process.env.GEAR_PREVIEW_SCREENSHOT+'-owner-'+width+'.png',fullPage:true});}
  await page.reload();await idle();assert.equal(await page.locator('#removed article').count(),1);
+ await page.locator('#removed-section > summary').click();
  await page.locator('#removed input').fill('Restoration checked');await page.locator('[data-action="restore"]').click();await idle();assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(ids[0]).status,'available');
  const second=page.locator('#reports article').filter({has:page.locator('h3',{hasText:'Bag two'})});await second.locator('input').fill('No issue found');await second.locator('[data-action="dismiss"]').click();await idle();assert.equal(await page.locator('#history p').count(),3);
  // A committed action whose response is lost is recovered by refresh, not retried automatically.

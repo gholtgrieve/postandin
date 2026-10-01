@@ -85,8 +85,10 @@
 #pi-gear-preview .pi-upload-tile img{display:block}
 #pi-gear-preview .pi-upload-tile small{display:block;font-size:11px;overflow-wrap:anywhere;margin:7px 0}
 #pi-gear-preview .pi-photo-tools{display:flex;gap:12px;flex-wrap:wrap}
+#pi-gear-preview .pi-photo-cover{display:inline-flex;align-items:center;min-height:36px;color:var(--pi-muted);font-size:11px;font-weight:700;text-transform:uppercase}
 #pi-gear-preview .pi-photo-tools button{background:none;border:0;text-decoration:underline;color:var(--pi-accent);font-size:11px;padding:7px 0;min-height:36px}
 #pi-gear-preview .pi-photo-tools button[aria-pressed=true]{text-decoration:none;font-weight:700}
+#pi-gear-preview .pi-managed-actions [data-manage=delete]{color:#8E2921}
 #pi-gear-preview .pi-upload-actions{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 #pi-gear-preview .pi-upload-label{margin:0!important}
 #pi-gear-preview .pi-upload-label input{display:block;margin-top:8px;width:100%;max-width:280px;font-size:12px}
@@ -146,6 +148,15 @@ body{margin:0;background:#E8E3D8}#pi-gear-preview{max-width:1200px;margin:auto}#
 
 #pi-gear-preview .pi-thumb img{width:100%;height:100%;object-fit:cover}
 #pi-gear-preview #pi-photo-manager h2{overflow-wrap:anywhere}
+#pi-gear-preview #pi-photo-manager{margin-top:28px;border-top:2px solid var(--pi-mustard);padding-top:22px}
+#pi-gear-preview .pi-photo-manager-heading{display:flex;align-items:end;justify-content:space-between;gap:20px}
+#pi-gear-preview .pi-photo-manager-heading h2{margin:0;font-size:38px}
+#pi-gear-preview #pi-photo-listing-name{margin:5px 0 0;color:var(--pi-muted);font-size:13px;font-weight:700}
+#pi-gear-preview #pi-stored-count{margin:0;color:var(--pi-muted);font-size:12px;white-space:nowrap}
+#pi-gear-preview .pi-photo-manager-help{max-width:58ch;color:var(--pi-muted);font-size:13px}
+#pi-gear-preview .pi-upload-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:16px;background:var(--pi-ink);color:white;padding:10px 16px;cursor:pointer;font-weight:700}
+#pi-gear-preview .pi-upload-button input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+@media(max-width:600px){#pi-gear-preview .pi-photo-manager-heading{align-items:start;flex-direction:column;gap:8px}#pi-gear-preview #pi-stored-count{white-space:normal}}
 
 #pi-gear-preview .pi-thumb:has(img)>span{display:none}
 #pi-gear-preview #pi-gear-rules{margin:0;padding:16px 24px;border-bottom:1px solid var(--pi-rule)}

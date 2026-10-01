@@ -1164,6 +1164,24 @@ it, relisted it for 30 days, and deleted it again; each management response and
 resulting status was confirmed in the staging UI. Images, buyer contact,
 reports, maintenance and backup checks remain open staging work.
 
+### Visual simplification pass — complete locally
+
+The owner-directed visual pass makes current listings the primary seller content,
+collapses Recently deleted and account-recovery tools, removes redundant buyer
+consent controls and success-state retry copy, and simplifies buyer contact and
+report language. The follow-up changes the temporary seller-session exit label
+from `Sign out` to `Quit`, makes Delete the final and visually distinct listing
+action, reduces photo-management copy, and uses `Cover`/`Remove` labels.
+
+The private owner dashboard now matches the public Gear typography and palette,
+shows only open reports in the primary queue, shortens listing metadata, and
+collapses removed listings and local action history. Claude reviewed exported
+desktop/mobile PNGs only, without repository access. Its hierarchy findings were
+addressed in this follow-up. Both local and isolated production-origin owner
+browser harnesses pass, the connected preview harness passes at desktop/mobile
+widths without browser errors or horizontal overflow, and the full Gear suite
+passes 318/318. These follow-up changes are not committed or deployed.
+
 ### Checks and local commands
 
 Run from the canonical checkout:

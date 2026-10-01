@@ -43,6 +43,10 @@ continuation source; prior chat history is not required.
 - Keep the architecture deliberately simple: vanilla HTML, CSS, and JavaScript.
 - Do not add a framework, build step, bundler, package manager, npm dependency,
   or CSS framework without explicit approval.
+- Use the documented Post & In typography on every user-facing page: Bebas Neue
+  for display text and IBM Plex Mono for body and UI text. Load the same font
+  families and weights already used by the site; do not substitute lookalike or
+  system fonts unless the owner explicitly approves an exception.
 - Keep changes narrowly scoped. Do not perform opportunistic redesigns or
   refactors.
 - Never put credentials, tokens, Airtable identifiers, or private personal
