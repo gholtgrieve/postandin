@@ -72,9 +72,12 @@ an Access-authenticated open-report queue and same-origin dismiss/remove/restore
 actions with transactional history. It is not configured or deployed; see
 [instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
 
-The source-only public report route requires exact-origin JSON, server-validated
-Turnstile and a currently public listing before atomically inserting the bounded
-report fields. Its widget, secret and edge rate-limit rule are not configured;
+The source-only public report route requires exact-origin JSON, an exact feature
+flag, server-validated Turnstile and a currently public listing before
+atomically inserting the bounded report fields. The production-origin UI is
+source-connected behind the same fail-closed config gate and a dedicated
+`gear-report` widget. Its site key, secret, feature flag and edge rate-limit rule
+are not configured;
 see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
 
 The source-only production seller-deletion path adds an active recovery marker,

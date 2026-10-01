@@ -993,6 +993,36 @@ and UUID across uncertain retries and Cancel/reopen. Re-review reports 0
 Blocker, 0 High, 0 Medium and 3 optional Low findings and approves local commit.
 Agreed copy, documentation and config/test follow-ups were also completed.
 
+### Production report UI — implemented and reviewed
+
+The exact production-origin report form now reads the no-store report feature
+flag, stays disabled unless D1, a valid Turnstile secret and exact
+`GEAR_REPORTS_ENABLED=true` configuration are present, renders a dedicated
+explicit `gear-report` widget and sends the listing ID, shared reason and
+single-use token through the bounded production adapter. The route independently
+requires the exact flag before Turnstile or D1. Successful submission confirms
+owner review and explicitly says no automatic action was taken. The static demo
+and connected local report queue are unchanged.
+An unconfirmed response preserves the reason, rotates the single-use token and
+warns that retrying may create a duplicate owner-queue report; reports never
+change listing state automatically.
+
+Focused adapter/backend/config tests and an isolated production-origin Chrome
+harness use only synthetic listings and tokens. No binding, secret, edge rule,
+feature flag, production data or deployment is part of this increment.
+
+All 297 Gear tests pass. The isolated production report/contact Chrome harness,
+the existing production posting Chrome harness and the connected local/static
+HTTPS Chrome harness pass. Changed JavaScript syntax and diff checks pass.
+
+Claude's first review found 0 Blocker, 0 High, 1 Medium and 4 Low issues. The
+Medium local-mode selector regression was fixed and asserted in the local
+browser harness. Agreed bounded hardening added uncertain-retry copy, fail-closed
+reset behavior, strict config variants, adapter failure coverage and a
+production 503-to-success retry with distinct Turnstile tokens. Re-review found
+0 Blocker, 0 High and 0 Medium, left three optional Low polish items, and marked
+the source-only increment ready to merge.
+
 Next after review and commit: complete launch-readiness checks and prepare the
 explicit provisioning/deployment runbook. Do not provision or deploy without
 explicit owner approval.

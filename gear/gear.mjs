@@ -17,6 +17,7 @@ let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceip
 let publicGeneration=0,publicLoading=productionMode,publicFailed=false,publicFetchedAt=0,publicPhotoRefreshAt=0,publicPhotoRefreshing=false;
 let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
 let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null,contactRetryLocked=false;
+let reportAvailable=false,reportWidget=null,reportToken='',reportRetryWarning='';
 let deleted=[];
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){delete localNotice.dataset.source;localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
@@ -44,7 +45,7 @@ async function localAction(task){
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
   else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
-  if(productionMode){syncProductionSubmit();syncProductionContactRetryLock();syncProductionContactSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
+  if(productionMode){syncProductionSubmit();syncProductionContactRetryLock();syncProductionContactSubmit();syncProductionReportSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
  }
 }
 function freezeFields(){root.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);}
@@ -119,7 +120,7 @@ show(photos[active],active);photos.forEach((p,i)=>{const b=document.createElemen
 }
 function resetContact(){
 for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).setCustomValidity('');
-if(productionMode){contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();resetProductionContactTurnstile();}
+if(productionMode){contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();resetProductionContactTurnstile();resetProductionReportTurnstile();}
 $('#pi-contact-form').reset();$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;
 $('#pi-report-form').reset();$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=true;$('#pi-report-open').hidden=false;
 }
@@ -194,7 +195,7 @@ for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).
 options('#pi-report-reason',REPORT_REASONS,'Choose a reason');
 if(localMode){
  $('#pi-preview-report').textContent='Save to local review queue';
- $('#pi-report-form .pi-form-note').textContent='Local preview only. No moderation action is taken when you submit a report.';
+ $('#pi-report-note').textContent='Local preview only. No moderation action is taken when you submit a report.';
  $('#pi-report-result').textContent='Report saved to the local review queue. No moderation action was taken.';
 }
 async function submitLocalReport(){
@@ -203,10 +204,25 @@ async function submitLocalReport(){
  freezeFields();await api.request('/reports',input);
  form.reset();form.hidden=true;$('#pi-report-result').hidden=false;return '#pi-report-result';
 }
-$('#pi-report-open').addEventListener('click',()=>{if(productionMode)return;$('#pi-report-form').hidden=false;$('#pi-report-open').hidden=true;$('#pi-report-reason').focus({preventScroll:true});});
-$('#pi-report-cancel').addEventListener('click',()=>{$('#pi-report-form').hidden=true;$('#pi-report-form').reset();$('#pi-report-open').hidden=false;$('#pi-report-open').focus({preventScroll:true});});
+function syncProductionReportSubmit(){if(productionMode)$('#pi-preview-report').disabled=!reportAvailable||!reportToken;}
+function resetProductionReportTurnstile(message='Complete the privacy check to submit your report.'){
+ if(!productionMode)return;reportToken='';reportRetryWarning=message==='Complete the privacy check to submit your report.'?'':message;if(turnstileClient&&reportWidget!==null){try{turnstileClient.reset(reportWidget);}catch{reportAvailable=false;$('#pi-report-open').disabled=true;$('#pi-report-open').textContent='Reporting is temporarily unavailable';}}
+ $('#pi-report-turnstile-status').textContent=reportAvailable?message:'Reporting is temporarily unavailable.';syncProductionReportSubmit();
+}
+function ensureProductionReportTurnstile(){
+ if(!productionMode||!reportAvailable||!turnstileClient)return;const container=$('#pi-report-turnstile');container.hidden=false;if(reportWidget!==null)return;
+ try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-report',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{reportToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-report-turnstile-status').textContent=reportToken?(reportRetryWarning||'Privacy check complete.'):'Complete the privacy check to submit your report.';syncProductionReportSubmit();},'expired-callback':()=>{reportToken='';$('#pi-report-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionReportSubmit();},'error-callback':()=>{reportToken='';$('#pi-report-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionReportSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();reportWidget=widget;}
+ catch{reportAvailable=false;container.hidden=true;$('#pi-report-open').disabled=true;$('#pi-report-open').textContent='Reporting is temporarily unavailable';resetProductionReportTurnstile();}
+}
+async function submitProductionReport(){
+ const form=$('#pi-report-form');if(!form.reportValidity())return;if(!reportAvailable||!reportToken)throw adapter.safeError('Complete the privacy check and try again.');
+ freezeFields();let resetMessage;try{await api.report({id:state.selected,reason:$('#pi-report-reason').value,turnstileToken:reportToken});}catch(error){if(error.status===0||error.status>=500)resetMessage='Submission could not be confirmed. Retrying may send a duplicate report.';throw error;}finally{resetProductionReportTurnstile(resetMessage);}
+ form.reset();form.hidden=true;$('#pi-report-open').hidden=true;$('#pi-report-result').hidden=false;return '#pi-report-result';
+}
+$('#pi-report-open').addEventListener('click',()=>{if(productionMode&&!reportAvailable)return;$('#pi-report-form').hidden=false;$('#pi-report-open').hidden=true;if(productionMode)ensureProductionReportTurnstile();$('#pi-report-reason').focus({preventScroll:true});});
+$('#pi-report-cancel').addEventListener('click',()=>{if(productionMode)resetProductionReportTurnstile();$('#pi-report-form').hidden=true;$('#pi-report-form').reset();$('#pi-report-open').hidden=false;$('#pi-report-open').focus({preventScroll:true});});
 $('#pi-report-form').addEventListener('submit',e=>e.preventDefault());
-$('#pi-preview-report').addEventListener('click',()=>{if(productionMode)return;if(localMode){localAction(submitLocalReport);return;}if(!$('#pi-report-form').reportValidity())return;$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=false;});
+$('#pi-preview-report').addEventListener('click',()=>{if(productionMode){localAction(submitProductionReport);return;}if(localMode){localAction(submitLocalReport);return;}if(!$('#pi-report-form').reportValidity())return;$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=false;});
 root.querySelectorAll('[data-type]').forEach(b=>b.addEventListener('click',()=>{state.type=b.dataset.type;render();}));
 for(const [id,key]of [['pi-search','q'],['pi-category','category'],['pi-size','size'],['pi-area','area'],['pi-club','club'],['pi-price','price'],['pi-sort','sort']])$('#'+id).addEventListener('input',e=>{state[key]=e.target.value;render();});
 $('.pi-clear').addEventListener('click',clear);$('[data-clear]').addEventListener('click',()=>{if(productionMode&&publicFailed&&!data.length)retryPublicListings();else clear();});
@@ -235,8 +251,8 @@ function ensureProductionTurnstile(){
 }
 async function configureProductionPosting(){
  if(!productionMode)return;
-  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;contactAvailable=config.contactEnabled;if(contactAvailable){$('#pi-contact-open').textContent='Contact seller';$('#pi-contact-open').disabled=false;$('#pi-preview-send').textContent='Send message';$('#pi-contact-note').textContent='Messages are emailed to the seller. Keep sensitive information out of your message.';$('#pi-contact-success h2').textContent='Message accepted';$('#pi-contact-success p').textContent='Your message was accepted for delivery to the seller.';$('#pi-contact-success small').textContent='The seller can reply directly to your email.';}resetProductionContactTurnstile();}
- catch{turnstileSiteKey='';turnstileClient=null;contactAvailable=false;disableProductionPosting();resetProductionContactTurnstile();}
+  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;contactAvailable=config.contactEnabled;if(contactAvailable){$('#pi-contact-open').textContent='Contact seller';$('#pi-contact-open').disabled=false;$('#pi-preview-send').textContent='Send message';$('#pi-contact-note').textContent='Messages are emailed to the seller. Keep sensitive information out of your message.';$('#pi-contact-success h2').textContent='Message accepted';$('#pi-contact-success p').textContent='Your message was accepted for delivery to the seller.';$('#pi-contact-success small').textContent='The seller can reply directly to your email.';}reportAvailable=config.reportEnabled;if(reportAvailable){$('#pi-report-open').textContent='Report this listing';$('#pi-report-open').disabled=false;$('#pi-preview-report').textContent='Submit report';$('#pi-report-note').textContent='Reports go to the Post & In owner for review. No automatic action is taken.';$('#pi-report-result').textContent='Report received for owner review. No automatic action was taken.';}resetProductionContactTurnstile();resetProductionReportTurnstile();}
+ catch{turnstileSiteKey='';turnstileClient=null;contactAvailable=false;reportAvailable=false;disableProductionPosting();resetProductionContactTurnstile();resetProductionReportTurnstile();}
  finally{postingLoading=false;}
 }
 function showPostStep(step){postStep=step;verifyMode=null;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});if(productionMode&&step===3){if(editingId){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}else ensureProductionTurnstile();}syncProductionSubmit();}
@@ -423,7 +439,7 @@ if(connectedMode){
   $('#pi-new-listing').hidden=true;
   $('.pi-photo-heading').hidden=true;$('#pi-upload-grid').hidden=true;$('.pi-upload-actions').hidden=true;
   $('#pi-contact-open').textContent='Buyer contact is temporarily unavailable';$('#pi-contact-open').disabled=true;
-  $('#pi-report-open').textContent='Reporting is not available yet';$('#pi-report-open').disabled=true;
+  $('#pi-report-open').textContent='Reporting is temporarily unavailable';$('#pi-report-open').disabled=true;
  }
  $('#pi-recovery-send').textContent=localMode?'Request local management link':'Email me a management link';
  $('#pi-recovery-result').textContent=localMode?'If verified listings match, a link is available in the simulated local inbox. No email was sent.':'If verified listings match that address, a management link will be sent.';

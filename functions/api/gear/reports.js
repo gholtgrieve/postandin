@@ -42,7 +42,7 @@ export function createReportSubmissionHandler({verify=verifyGearReportTurnstile,
     const input=validateReportSubmission(body.value);
     if(!input)return json(400,{error:'Choose a supported report reason and listing.'});
     const db=context.env?.GEAR_DB;
-    if(!db){console.error('Gear reports database is not configured.');return json(503,{error:'Reports are temporarily unavailable.'});}
+    if(!db||context.env?.GEAR_REPORTS_ENABLED!=='true'){console.error('Gear reports are not configured.');return json(503,{error:'Reports are temporarily unavailable.'});}
     try{
       await verify(input.turnstileToken,context.env);
     }catch(error){

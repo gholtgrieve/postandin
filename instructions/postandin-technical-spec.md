@@ -1210,9 +1210,13 @@ single-use Turnstile token server-side for hostname `postandin.com` and action
 `gear-report`, then uses one `INSERT ... SELECT` statement to recheck current
 listing/seller verification, public status and strict future expiry while
 inserting the report. It sends no reporter IP to Siteverify and stores no
-reporter identity. The static form is not connected, the site key and secret do
-not exist in the repo, and the required Cloudflare edge rate-limit rule is not
-provisioned.
+reporter identity. Both the no-store public config and the route require the
+exact `GEAR_REPORTS_ENABLED=true` feature flag, with the config additionally
+requiring `GEAR_DB` and a valid Turnstile secret. The exact-production-origin
+form is source-connected through a bounded adapter and a dedicated
+`gear-report` widget; the static demo and connected local workflow are
+unchanged. The site key, secret and feature flag do not exist in the repo, and
+the required Cloudflare edge rate-limit rule is not provisioned.
 
 Source-only migration 9 adds production `gear_deletions` recovery markers and a
 minimal `gear_deletion_ledger`. An exact-origin, cookie/CSRF-authenticated Pages

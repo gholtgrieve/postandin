@@ -94,7 +94,7 @@ try{
  await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');assert.equal(await page.locator('#pi-buyer-share').isChecked(),false);
  await page.locator('#pi-contact-cancel').click();await page.setViewportSize({width:1040,height:900});
  // Local reports: real validation/unavailable responses, retry, single pending write, and queue inspection.
- await page.locator('#pi-report-open').click();await page.locator('#pi-preview-report').click();await idle();
+ await page.locator('#pi-report-open').click();assert.match(await page.locator('#pi-report-note').textContent(),/Local preview only/);assert.equal(await page.locator('#pi-report-turnstile-status').textContent(),'');await page.locator('#pi-preview-report').click();await idle();
  assert.equal((await(await context.request.get(base+'/local/reports')).json()).reports.length,0);
  await page.locator('#pi-report-reason').selectOption('Misleading listing');
  db.sqlite.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").run(photoListing);

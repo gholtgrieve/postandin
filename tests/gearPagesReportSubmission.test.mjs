@@ -43,7 +43,7 @@ test('public report route accepts verified JSON and stores only report fields',a
   try{
     const id=await publish(db),tokens=[];
     const handler=createReportSubmissionHandler({verify:async token=>tokens.push(token),now:()=>200,randomUUID:()=>reportId});
-    const response=await handler({request:request(body(id,{email:'ignore@example.test',status:'removed'})),env:{GEAR_DB:db}});
+    const response=await handler({request:request(body(id,{email:'ignore@example.test',status:'removed'})),env:{GEAR_DB:db,GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,201);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('referrer-policy'),'no-referrer');assert.equal(response.headers.get('x-content-type-options'),'nosniff');
     assert.deepEqual(await response.json(),{ok:true,message:'Report received for owner review. No automatic action was taken.'});
     assert.deepEqual(tokens,['sample-token']);
@@ -103,21 +103,25 @@ test('Turnstile verifier requires configured secret, exact hostname/action and b
 test('public report route maps verification, binding, eligibility and D1 failures safely',async()=>{
   const logged=console.error,warned=console.warn,errors=[],warnings=[];console.error=(...args)=>errors.push(args);console.warn=(...args)=>warnings.push(args);const id=crypto.randomUUID();
   try{
-    let response=await createReportSubmissionHandler({verify:async()=>{}})({request:request(body(id)),env:{}});
-    assert.equal(response.status,503);assert.deepEqual(await response.json(),{error:'Reports are temporarily unavailable.'});
-    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileRejectedError();}})({request:request(body(id)),env:{GEAR_DB:{}}});
+    let verifies=0,submits=0,response;
+    for(const env of [{},{GEAR_DB:{}},{GEAR_DB:{},GEAR_REPORTS_ENABLED:'TRUE'}]){
+      response=await createReportSubmissionHandler({verify:async()=>{verifies++;},submit:async()=>{submits++;return true;}})({request:request(body(id)),env});
+      assert.equal(response.status,503);assert.deepEqual(await response.json(),{error:'Reports are temporarily unavailable.'});
+    }
+    assert.equal(verifies,0);assert.equal(submits,0);
+    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileRejectedError();}})({request:request(body(id)),env:{GEAR_DB:{},GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,400);assert.deepEqual(await response.json(),{error:'Complete the verification and try again.'});
-    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileRejectedError({diagnostic:true});}})({request:request(body(id)),env:{GEAR_DB:{}}});
+    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileRejectedError({diagnostic:true});}})({request:request(body(id)),env:{GEAR_DB:{},GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,400);assert.equal(warnings.length,1);assert.equal(JSON.stringify(warnings).includes('sample-token'),false);
-    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileUnavailableError('private');}})({request:request(body(id)),env:{GEAR_DB:{}}});
+    response=await createReportSubmissionHandler({verify:async()=>{throw new GearTurnstileUnavailableError('private');}})({request:request(body(id)),env:{GEAR_DB:{},GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,503);assert.deepEqual(await response.json(),{error:'Reports are temporarily unavailable.'});
-    response=await createReportSubmissionHandler({verify:async()=>{},submit:async()=>false})({request:request(body(id)),env:{GEAR_DB:{}}});
+    response=await createReportSubmissionHandler({verify:async()=>{},submit:async()=>false})({request:request(body(id)),env:{GEAR_DB:{},GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,404);assert.deepEqual(await response.json(),{error:'This listing is no longer available to report.'});
-    response=await createReportSubmissionHandler({verify:async()=>{},submit:async()=>{throw new Error('private database detail');}})({request:request(body(id)),env:{GEAR_DB:{}}});
+    response=await createReportSubmissionHandler({verify:async()=>{},submit:async()=>{throw new Error('private database detail');}})({request:request(body(id)),env:{GEAR_DB:{},GEAR_REPORTS_ENABLED:'true'}});
     const failed=await response.json();assert.equal(response.status,500);assert.deepEqual(failed,{error:'Unable to submit this report right now.'});assert.equal(JSON.stringify(failed).includes('private'),false);
     assert.equal(errors.some(entry=>String(entry.at(-1)).includes('private database detail')),true);
     let prepared=false;
-    response=await onRequestPost({request:request(body(id)),env:{GEAR_DB:{prepare(){prepared=true;throw new Error('D1 should not run');}}}});
+    response=await onRequestPost({request:request(body(id)),env:{GEAR_DB:{prepare(){prepared=true;throw new Error('D1 should not run');}},GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,503);assert.equal(prepared,false);
   }finally{console.error=logged;console.warn=warned;}
 });
