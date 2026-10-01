@@ -57,7 +57,7 @@ export function createReportSubmissionHandler({verify=verifyGearReportTurnstile,
     try{
       const accepted=await submit(db,{listingId:input.listingId,reason:input.reason},now(),randomUUID());
       if(!accepted)return json(404,{error:'This listing is no longer available to report.'});
-      return json(201,{ok:true,message:'Report received for owner review. No automatic action was taken.'});
+      return json(201,{ok:true,message:'Report submitted for review.'});
     }catch(error){
       console.error('Gear report submission failed:',error);
       return json(500,{error:'Unable to submit this report right now.'});

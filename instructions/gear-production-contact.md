@@ -19,8 +19,6 @@ cannot enable contact by accident.
   "name": "Buyer",
   "email": "buyer@example.test",
   "message": "Plain-text message",
-  "shareEmail": true,
-  "adult": true,
   "turnstileToken": "gear-contact token"
 }
 ```
@@ -28,8 +26,7 @@ cannot enable contact by accident.
 The bounded request parser rejects cross-origin, non-JSON, malformed and
 oversized bodies before Turnstile or D1. Name is 1–60 characters, message is
 1–2000 characters with normal line breaks allowed, email uses the shared
-normalizer, and both email-sharing and 18-or-older acknowledgements must be the
-literal boolean `true`. The Turnstile result must be for `postandin.com` and the
+normalizer. The Turnstile result must be for `postandin.com` and the
 dedicated `gear-contact` action.
 
 One D1 batch records a hashed-buyer attempt and, only for a currently public

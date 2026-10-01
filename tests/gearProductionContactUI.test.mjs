@@ -5,7 +5,7 @@ import {productionAPI} from '../gear/production-api.mjs';
 
 const ORIGIN='https://postandin.com',ID='00000000-0000-4000-8000-000000000010',REQUEST_ID='00000000-0000-4000-8000-000000000011';
 const json=(status,value,headers={})=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json',...headers}});
-const input=token=>({id:ID,requestId:REQUEST_ID,name:'Buyer',email:'buyer@example.test',message:'Is this available?',shareEmail:true,adult:true,turnstileToken:token});
+const input=token=>({id:ID,requestId:REQUEST_ID,name:'Buyer',email:'buyer@example.test',message:'Is this available?',turnstileToken:token});
 
 test('production contact adapter posts the exact private payload and validates success',async()=>{
   const calls=[],api=productionAPI({origin:ORIGIN,fetcher:async(url,options)=>{calls.push({url,options});return json(202,{ok:true,message:'Message accepted for delivery.'});}});
@@ -23,6 +23,6 @@ test('production contact adapter preserves retry instructions and a caller-owned
 
 test('production contact UI is config-gated and uses its dedicated Turnstile action',()=>{
   const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8'),html=readFileSync(new URL('../gear/index.html',import.meta.url),'utf8');
-  assert.match(source,/contactAvailable=config\.contactEnabled/);assert.match(source,/action:'gear-contact'/);assert.match(source,/contactRequestId=contactRequestId\|\|crypto\.randomUUID\(\)/);assert.match(source,/error\.status===404\|\|error\.status===409/);assert.match(source,/contactRetryLocked=true/);assert.match(source,/Retry unchanged message/);
-  assert.match(html,/id="pi-contact-turnstile" hidden/);assert.match(html,/id="pi-contact-turnstile-status"/);assert.match(html,/id="pi-buyer-adult"[^>]+required/);assert.match(html,/id="pi-buyer-share"[^>]+required/);
+  assert.match(source,/contactAvailable=config\.contactEnabled/);assert.match(source,/action:'gear-contact'/);assert.match(source,/contactRequestId=contactRequestId\|\|crypto\.randomUUID\(\)/);assert.match(source,/error\.status===404\|\|error\.status===409/);assert.match(source,/contactRetryLocked=true/);assert.match(source,/Send same message again/);
+  assert.match(html,/id="pi-contact-turnstile" hidden/);assert.match(html,/id="pi-contact-turnstile-status"/);assert.doesNotMatch(html,/id="pi-buyer-adult"/);assert.doesNotMatch(html,/id="pi-buyer-share"/);
 });

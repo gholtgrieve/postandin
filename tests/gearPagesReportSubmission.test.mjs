@@ -45,7 +45,7 @@ test('public report route accepts verified JSON and stores only report fields',a
     const handler=createReportSubmissionHandler({verify:async token=>tokens.push(token),now:()=>200,randomUUID:()=>reportId});
     const response=await handler({request:request(body(id,{email:'ignore@example.test',status:'removed'})),env:{GEAR_DB:db,GEAR_REPORTS_ENABLED:'true'}});
     assert.equal(response.status,201);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('referrer-policy'),'no-referrer');assert.equal(response.headers.get('x-content-type-options'),'nosniff');
-    assert.deepEqual(await response.json(),{ok:true,message:'Report received for owner review. No automatic action was taken.'});
+    assert.deepEqual(await response.json(),{ok:true,message:'Report submitted for review.'});
     assert.deepEqual(tokens,['sample-token']);
     const stored=JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_reports').all());
     assert.equal(stored.includes('@'),false);assert.equal(stored.includes('removed'),false);assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_reports').get().n,1);

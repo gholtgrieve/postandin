@@ -68,7 +68,7 @@ try{
  await page.locator('[data-manage="edit"]').click();assert.equal(await page.locator('#pi-post-email').isDisabled(),true);await page.locator('#pi-post-name').fill('Updated club bag');await page.locator('#pi-next-photos').click();await page.locator('#pi-next-review').click();await page.route('**/management/listing',route=>route.abort());await page.locator('#pi-post-submit').click();await idle();assert.equal(await page.locator('#pi-local-notice').isVisible(),true);assert.equal(await page.locator('#pi-post-name').inputValue(),'Updated club bag');
  await page.unroute('**/management/listing');await page.locator('#pi-post-submit').click();await idle();assert.equal(db.sqlite.prepare("SELECT title FROM gear_listings WHERE status='available'").get().title,'Updated club bag');
  const port=server.address().port;await new Promise(r=>{server.close(r);server.closeAllConnections();});db.close();db=null;db=openLocalDatabase(join(temp,'sample.sqlite'));server=localServer(db,{tls,preview:true});await listen(server,port);
- await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item h2').textContent(),'Updated club bag');assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_photos').get().n,1);assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),200);
+ await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item h3').textContent(),'Updated club bag');assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_photos').get().n,1);assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="pending"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
  await page.locator('[data-manage="close"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'closed');assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="renew"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'available');
@@ -76,13 +76,9 @@ try{
  // Buyer contact: validation, failed-request recovery, local sink, and responsive form.
  await page.locator('#pi-contact-open').click();
  await page.locator('#pi-buyer-name').fill('Buyer');await page.locator('#pi-buyer-email').fill('buyer@example.test');await page.locator('#pi-buyer-message').fill('<b>Sample inquiry</b>');
- await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
  assert.equal((await(await context.request.get(base+'/local/contact-mail')).json()).receipts.length,0);
- await page.locator('#pi-buyer-share').check();
- await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
- await page.locator('#pi-buyer-adult').check();
  await page.route('**/contact',r=>r.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Unable to process the request.'})}));
- await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'<b>Sample inquiry</b>');assert.equal(await page.locator('#pi-buyer-share').isChecked(),true);assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
+ await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'<b>Sample inquiry</b>');assert.equal(await page.locator('#pi-contact-success').isVisible(),false);
  await page.unroute('**/contact');
  for(const width of [1040,390,320]){
   await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'contact overflow at '+width);
@@ -91,7 +87,7 @@ try{
  await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),true);assert.equal(await page.locator('#pi-contact-success h2').textContent(),'Message saved locally');assert.equal(await page.locator('#pi-contact-again').evaluate(el=>el===document.activeElement),true);
  const contactMail=(await(await context.request.get(base+'/local/contact-mail')).json()).receipts;
  assert.equal(contactMail.length,1);assert.equal(contactMail[0].message,'<b>Sample inquiry</b>');assert.equal(contactMail[0].listingId,photoListing);
- await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');assert.equal(await page.locator('#pi-buyer-share').isChecked(),false);
+ await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');
  await page.locator('#pi-contact-cancel').click();await page.setViewportSize({width:1040,height:900});
  // Local reports: real validation/unavailable responses, retry, single pending write, and queue inspection.
  await page.locator('#pi-report-open').click();assert.match(await page.locator('#pi-report-note').textContent(),/Local preview only/);assert.equal(await page.locator('#pi-report-turnstile-status').textContent(),'');await page.locator('#pi-preview-report').click();await idle();
@@ -161,10 +157,10 @@ try{
  await page.locator('#pi-local-reissue').click();await idle();assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listings WHERE title=?').get('<b>Free gear</b>').n,1);
  await page.route('**/listings',r=>r.abort());await page.locator('#pi-simulate-verify').click();await idle();
  assert.equal(await page.locator('#pi-verify-screen').isVisible(),false);assert.match(await page.locator('#pi-manage-feedback').textContent(),/Listing published locally/);assert.match(await page.locator('#pi-local-notice').textContent(),/Listing published locally/);
- await page.unroute('**/listings');await page.locator('#pi-local-refresh').click();await idle();
+ await page.unroute('**/listings');await page.locator('[data-screen="manage"]').click();await idle();
  await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-recovery-email').fill('changed@example.test');assert.equal(await page.locator('#pi-local-login').isVisible(),false);
  await page.locator('#pi-recovery-email').fill('edge@example.test');await page.locator('#pi-recovery-send').click();await idle();assert.match(await page.locator('#pi-local-login').textContent(),/edge@example.test/);await page.locator('#pi-local-login').click();await idle();
- assert.equal(await page.locator('.pi-managed-item h2').textContent(),'<b>Free gear</b>');assert.equal(await page.locator('.pi-managed-item h2 b').count(),0);
+ assert.equal(await page.locator('.pi-managed-item h3').textContent(),'<b>Free gear</b>');assert.equal(await page.locator('.pi-managed-item h3 b').count(),0);
  assert.deepEqual(db.sqlite.prepare('SELECT type,price_cents FROM gear_listings WHERE id=?').get(freeId),Object.assign(Object.create(null),{type:'free',price_cents:0}));
  await prepare('Trade gear','Trade');await page.locator('#pi-post-submit').click();await idle();
  await page.route('**/verification/confirm',async route=>{await route.fetch();await route.abort();});await page.locator('#pi-simulate-verify').click();await idle();await page.unroute('**/verification/confirm');
@@ -174,7 +170,7 @@ try{
  db.sqlite.prepare('UPDATE gear_management_sessions SET expires_at=? WHERE revoked_at IS NULL').run(Date.now());await page.locator('#pi-post-submit').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/session has ended/);assert.equal(await page.locator('.pi-managed-item').count(),0);
  await page.locator('[data-screen="manage"]').click();await idle();await page.locator('#pi-recovery-send').click();await idle();await page.locator('#pi-local-login').click();await idle();
  // Connected email transfer: field errors, receipt invalidation, expiry, conflicts and revocation.
- assert.equal(await page.locator('#pi-email-change').isVisible(),true);
+ await page.locator('#pi-email-change-panel summary').click();assert.equal(await page.locator('#pi-email-change').isVisible(),true);
  await page.locator('#pi-change-email').fill('bad@local');await page.locator('#pi-change-request').click();await idle();
  assert.ok(await page.locator('#pi-change-email').evaluate(el=>el.validationMessage));assert.equal(await page.locator('.pi-manage').isVisible(),true);
  await page.locator('#pi-change-email').fill('edge@example.test');await page.locator('#pi-change-request').click();await idle();assert.match(await page.locator('#pi-local-notice').textContent(),/different email/);
@@ -207,7 +203,7 @@ try{
  await demo.route(base+'/gear/',route=>route.fulfill({contentType:'text/html',body:readFileSync(new URL('../../gear/index.html',import.meta.url),'utf8')}));
  await demo.goto(base+'/gear/');await demo.waitForFunction(()=>document.querySelector('#pi-count')?.textContent==='8 listings');
  await demo.locator('[data-screen="gear"]').click();await demo.locator('[data-listing]').first().click();await demo.locator('#pi-contact-open').click();
- await demo.locator('#pi-buyer-name').fill('Sample');await demo.locator('#pi-buyer-email').fill('sample@example.test');await demo.locator('#pi-buyer-message').fill('Sample inquiry');await demo.locator('#pi-buyer-share').check();await demo.locator('#pi-buyer-adult').check();await demo.locator('#pi-preview-send').click();assert.equal(await demo.locator('#pi-contact-success h2').textContent(),'Message preview complete');
+ await demo.locator('#pi-buyer-name').fill('Sample');await demo.locator('#pi-buyer-email').fill('sample@example.test');await demo.locator('#pi-buyer-message').fill('Sample inquiry');await demo.locator('#pi-preview-send').click();assert.equal(await demo.locator('#pi-contact-success h2').textContent(),'Message preview complete');
  await demo.locator('#pi-report-open').click();await demo.locator('#pi-report-reason').selectOption('Other concern');await demo.locator('#pi-preview-report').click();assert.equal(await demo.locator('#pi-report-result').textContent(),'Report preview complete. No report was sent.');
  await demo.locator('[data-screen="post"]').click();await demo.locator('#pi-fill-demo').click();await demo.locator('#pi-next-photos').click();await demo.locator('#pi-next-review').click();await demo.locator('#pi-post-submit').click();await demo.locator('#pi-simulate-verify').click();
  assert.equal(await demo.locator('#pi-email-change').count(),0);assert.equal(await demo.locator('.pi-managed-item').count(),2);assert.deepEqual(apiCalls,[]);

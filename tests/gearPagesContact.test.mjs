@@ -12,7 +12,7 @@ import {cleanupGearRecords} from '../lib/gear-maintenance.mjs';
 const sample={title:'Sample bag',description:'Worn zipper',city:'Seattle',fit:'Junior',sellerName:'Seller',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
 const providerId='00000000-0000-4000-8000-000000000099';
 async function publish(db,now=100,patch={}){const {id}=await createDraft(db,{...sample,...patch},now);const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;}
-const raw=(id,patch={})=>({id,requestId:crypto.randomUUID(),name:' Buyer ',email:'BUYER@example.test ',message:' Is this still available? ',shareEmail:true,adult:true,turnstileToken:'sample-token',...patch});
+const raw=(id,patch={})=>({id,requestId:crypto.randomUUID(),name:' Buyer ',email:'BUYER@example.test ',message:' Is this still available? ',turnstileToken:'sample-token',...patch});
 const valid=value=>{const result=validateContactSubmission(value);assert.ok(result);return result;};
 const request=(value,options={})=>new Request(options.url??'https://postandin.com/api/gear/contact',{method:'POST',headers:{Origin:'https://postandin.com','Content-Type':'application/json',...options.headers},body:typeof value==='string'?value:JSON.stringify(value)});
 
@@ -33,9 +33,9 @@ test('production contact reservation is idempotent, private, eligible and durabl
   }finally{db.close();}
 });
 
-test('contact validation rejects malformed, unacknowledged and unsafe fields',()=>{
+test('contact validation rejects malformed and unsafe fields',()=>{
   const id=crypto.randomUUID(),base=raw(id);
-  for(const patch of [{id:'bad'},{requestId:'bad'},{name:''},{name:'x'.repeat(61)},{name:'bad\nname'},{email:'bad'},{message:''},{message:'x'.repeat(2001)},{message:'bad\u0000message'},{shareEmail:false},{adult:false},{turnstileToken:null}])assert.equal(validateContactSubmission({...base,...patch}),null);
+  for(const patch of [{id:'bad'},{requestId:'bad'},{name:''},{name:'x'.repeat(61)},{name:'bad\nname'},{email:'bad'},{message:''},{message:'x'.repeat(2001)},{message:'bad\u0000message'},{turnstileToken:null}])assert.equal(validateContactSubmission({...base,...patch}),null);
   assert.deepEqual(valid(base),{listingId:id,requestId:base.requestId,name:'Buyer',email:'buyer@example.test',message:'Is this still available?',turnstileToken:'sample-token'});
 });
 
@@ -137,8 +137,8 @@ test('simultaneous identical requests create one provider delivery claim',async(
 test('public contact route rejects unsafe boundaries and maps failures generically',async()=>{
   const id=crypto.randomUUID(),value=raw(id);let verifies=0,reserves=0;
   const handler=createContactHandler({verify:async()=>{verifies++;},reserve:async()=>{reserves++;return {limited:true};}}),env={GEAR_DB:{},GEAR_RESEND_API_KEY:'test_key',GEAR_CONTACT_ENABLED:'true'};
-  const cases=[request(value,{url:'https://www.postandin.com/api/gear/contact'}),request(value,{headers:{Origin:'https://example.test'}}),new Request('https://postandin.com/api/gear/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)}),request(value,{headers:{'Content-Type':'text/plain'}}),request('{'),request({...value,extra:'x'.repeat(9000)}),request({...value,adult:false})];
-  for(const [index,status] of [403,403,403,415,400,413,400].entries())assert.equal((await handler({request:cases[index],env})).status,status);
+  const cases=[request(value,{url:'https://www.postandin.com/api/gear/contact'}),request(value,{headers:{Origin:'https://example.test'}}),new Request('https://postandin.com/api/gear/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)}),request(value,{headers:{'Content-Type':'text/plain'}}),request('{'),request({...value,extra:'x'.repeat(9000)})];
+  for(const [index,status] of [403,403,403,415,400,413].entries())assert.equal((await handler({request:cases[index],env})).status,status);
   assert.equal(verifies,0);assert.equal(reserves,0);
   assert.equal((await handler({request:request(value),env:{GEAR_DB:{},GEAR_RESEND_API_KEY:'test_key'}})).status,503);assert.equal(verifies,0);
   assert.equal((await createContactHandler({verify:async()=>{throw new GearTurnstileRejectedError();}})({request:request(value),env})).status,400);

@@ -42,7 +42,7 @@ test('dismiss preserves listing; remove blocks public listing/contact/photos and
   await changeListingState(db,access.session,access.csrf,id,'pending');const before=db.sqlite.prepare('SELECT * FROM gear_listings WHERE id=?').get(id);
   rid=report(s.reports,id);assert.throws(()=>s.moderation.act(access.session,access.csrf,{action:'remove',id:rid,reason:'Not owner'}),status(401));
   act(s,'remove',rid);assert.equal((await readPublicListings(db)).length,0);assert.equal(photoContent(db,photoId,'',false),null);
-  assert.throws(()=>localContact(db).send({id,name:'Buyer',email:'buyer@example.test',message:'Hi',shareEmail:true,adult:true}),status(404));
+  assert.throws(()=>localContact(db).send({id,name:'Buyer',email:'buyer@example.test',message:'Hi'}),status(404));
   assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist'),false);
   assert.equal(await editManagedListing(db,access.session,access.csrf,id,sample),false);
   assert.throws(()=>act(s,'remove',rid),status(409));act(s,'restore',id);

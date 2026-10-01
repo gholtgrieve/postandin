@@ -22,7 +22,7 @@ test('contact and memory reports expire at their exact retention boundaries',asy
  const db=openLocalDatabase();try{
   const {id}=await createDraft(db,sample),token=await issueLocalVerification(db,id);await confirmVerification(db,token.token);
   const now=Date.now(),contact=localContact(db),reports=localReports(db);
-  contact.send({id,name:'Buyer',email:'buyer@example.test',message:'Sample',shareEmail:true,adult:true},now);reports.submit({id,reason:'Other concern'},now);
+  contact.send({id,name:'Buyer',email:'buyer@example.test',message:'Sample'},now);reports.submit({id,reason:'Other concern'},now);
   contact.prune(now+86400000-1);assert.equal(contact.receipts.length,1);contact.prune(now+86400000);assert.equal(contact.receipts.length,0);
   reports.prune(now+30*86400000-1);assert.equal(reports.reports.length,1);reports.prune(now+30*86400000);assert.equal(reports.reports.length,0);
  }finally{db.close();}

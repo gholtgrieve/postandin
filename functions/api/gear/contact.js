@@ -21,7 +21,7 @@ export function createContactHandler({verify=verifyGearContactTurnstile,reserve=
     if(!origin||url.origin!==origin||context.request.headers.get('origin')!==origin||context.request.headers.get('sec-fetch-site')==='cross-site')return json(403,{error:'Request not allowed.'});
     if(context.request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')return json(415,{error:'Use JSON.'});
     const body=await requestJson(context.request);if(body.tooLarge)return json(413,{error:'Request too large.'});if(body.invalid)return json(400,{error:'Invalid request.'});
-    const input=validateContactSubmission(body.value);if(!input)return json(400,{error:'Confirm you are 18 or older and check your contact details and sharing acknowledgement.'});
+    const input=validateContactSubmission(body.value);if(!input)return json(400,{error:'Check your contact details and message.'});
     const db=context.env?.GEAR_DB;if(!db||!contactDeliveryConfigured(context.env)){console.error('Gear contact delivery is not configured.');return json(503,{error:'Buyer contact is temporarily unavailable.'});}
     try{await verify(input.turnstileToken,context.env);}catch(error){if(error instanceof GearTurnstileRejectedError)return json(400,{error:'Complete the verification and try again.'});if(error instanceof GearTurnstileUnavailableError)console.error('Gear contact verification is unavailable.');else console.error('Gear contact verification failed.');return json(503,{error:'Buyer contact is temporarily unavailable.'});}
     let reservation;try{reservation=await reserve(db,input,now());}catch(error){console.error('Gear contact reservation failed.');return json(500,{error:'Unable to contact this seller right now.'});}

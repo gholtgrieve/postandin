@@ -1317,6 +1317,17 @@ No Gear bindings, routes, credentials or resources have been provisioned.
   inconsistent spacing/control sizing, oversized focus treatment and stale
   development copy; require rendered-browser review rather than source review
   alone before launch.
+- Remove the buyer-contact form's separate “I am 18 or older” and sharing-consent
+  checkboxes. Update the client, server validation, tests and disclosure copy
+  together; do not replace them with hidden or implied consent fields.
+- Simplify buyer-contact delivery states. A confirmed success must never show a
+  retry action. If delivery cannot be confirmed, say plainly that the message may
+  already have been sent, tell the buyer to check before trying again, and make
+  “Send the same message again” a secondary explicit action that preserves the
+  existing request ID. Do not label this ambiguous state as either success or a
+  generic failure.
+- Simplify report confirmation copy by removing “No automatic action was taken.”
+  Confirm only that the report was submitted for review.
 - Validate/re-encode photos and remove metadata in a trusted pipeline before
   publication; client processing alone is insufficient. Draft images stay private.
 - Enforce public-field allowlists and visibility on the server. Check expiry on

@@ -8,7 +8,7 @@ import {issueLocalVerification,confirmVerification} from '../lib/gear-verificati
 import {issueLocalManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../lib/gear-email-change.mjs';
 const listing={title:'Sample bag',description:'Worn zipper',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
-const message=id=>({id,name:' Buyer ',email:' BUYER@Example.test ',message:'<script>alert(1)</script>\nIs this available?',shareEmail:true,adult:true});
+const message=id=>({id,name:' Buyer ',email:' BUYER@Example.test ',message:'<script>alert(1)</script>\nIs this available?'});
 async function publish(db){const {id}=await createDraft(db,listing);const receipt=await issueLocalVerification(db,id);assert.equal((await confirmVerification(db,receipt.token)).verified,true);return id;}
 const status=(code)=>e=>e.status===code;
 test('local contact normalizes buyer data, stores plain text privately, and uses current seller address',async()=>{
@@ -29,14 +29,13 @@ test('local contact normalizes buyer data, stores plain text privately, and uses
   assert.equal(JSON.stringify(await readPublicListings(db)).includes('@'),false);
  }finally{db.close();}
 });
-test('malformed, overlong, control-character and unacknowledged contact never reaches sink',async()=>{
+test('malformed, overlong and control-character contact never reaches sink',async()=>{
  const db=openLocalDatabase();try{
   const id=await publish(db),contact=localContact(db);
   for(const input of [null,[],{},...[
    {id:'bad'},{name:' '},{name:'x'.repeat(61)},{name:'a\r\nb'},
    {email:'bad'},{email:'a@b.test\r\nBcc:x@y.test'},{email:'x'.repeat(255)+'@a.test'},
-   {message:' '},{message:'x'.repeat(2001)},{message:'hello\0world'},
-   {shareEmail:false},{shareEmail:'true'},{adult:false},{adult:'true'},{adult:undefined}
+   {message:' '},{message:'x'.repeat(2001)},{message:'hello\0world'}
   ].map(p=>({...message(id),...p}))])assert.throws(()=>contact.send(input),status(400));
   assert.equal(contact.receipts.length,0);
   // Malformed attempts must not consume this same buyer/listing budget.
@@ -95,7 +94,6 @@ test('HTTP requires same Origin and JSON; private receipt stays out of public re
   assert.equal((await post(message(id),{'Sec-Fetch-Site':'cross-site'})).status,403);
   assert.equal((await post(message(id),{'Content-Type':'text/plain'})).status,415);
   assert.equal((await fetch(base+'/contact')).status,404);
-  assert.equal((await post({...message(id),shareEmail:false})).status,400);
   const sent=await post();assert.equal(sent.status,200);assert.equal(sent.headers.get('cache-control'),'no-store');assert.equal(JSON.stringify(await sent.json()).includes('@'),false);
   const inbox=await(await fetch(base+'/local/contact-mail')).json();assert.equal(inbox.receipts.length,1);assert.equal(inbox.receipts[0].recipient,listing.email);
   assert.equal((await fetch(base+'/local/contact-mail',{headers:{Origin:'https://example.test'}})).status,403);

@@ -155,6 +155,16 @@ recovery deadline. Independent Access MFA was also recovered after deleting an
 inaccessible authenticator and enrolling a replacement TOTP device; the test
 Mac/browser did not offer a usable platform biometric authenticator.
 
+A subsequent allowlisted staging pass enabled buyer contact and reports. The
+buyer-contact message reached the approved recipient, although the browser
+received an indeterminate delivery response and exposed the preserved-request
+retry state after delivery; simplifying that ambiguous state is recorded as a
+pre-launch UI requirement. A synthetic “Spam or suspicious activity” report
+appeared in the Access-protected owner queue, and the owner dismissed it with a
+recorded reason. The disposable listing was then seller-deleted again, leaving
+zero active test listings and the normal 30-day recovery record. No staging mail
+was sent outside the configured allowlist, and no production resource was used.
+
 No staging mail may leave the allowlist. No staging artifact may use a production
 database, image ID, sender credential, signing key or backup prefix.
 Pages Preview deployments must have no Gear bindings, values or secrets unless

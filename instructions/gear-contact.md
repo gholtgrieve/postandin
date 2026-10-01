@@ -12,8 +12,8 @@ node scripts/gear/local-preview.mjs /tmp/postandin-gear-contact.sqlite
 ```
 
 Open `https://127.0.0.1:8773/gear/`, create and explicitly verify sample gear,
-then open its detail and Contact seller. Complete the form and sharing
-acknowledgement. “Save to local test inbox” submits to the local server;
+then open its detail and Contact seller. Complete the form. “Save to local test
+inbox” submits to the local server;
 success explicitly says no email was sent. Inspect receipts at
 `https://127.0.0.1:8773/local/contact-mail` in the same browser.
 Only use sample names, addresses and messages. Startup and certificate details
@@ -21,11 +21,11 @@ are in [gear-connected-preview.md](gear-connected-preview.md).
 
 ## Contract and boundaries
 
-- `POST /contact`: JSON `{id,name,email,message,shareEmail:true}` and exact
+- `POST /contact`: JSON `{id,name,email,message}` and exact
   same-origin `Origin` required. No seller login is needed. Existing host,
   cross-site, body-size (32 KiB), JSON and no-store guards apply.
-- Server validates name (1–60 characters), normalized email (up to 254), message
-  (1–2000, allowing normal line breaks), and explicit boolean sharing consent.
+- Server validates name (1–60 characters), normalized email (up to 254), and
+  message (1–2000, allowing normal line breaks).
   Unknown recipient/ownership fields are ignored. Unsupported control characters
   are rejected after text normalization.
 - At submission, a bound SQLite query requires available/pending status,
@@ -96,4 +96,4 @@ No push, merge, deployment or real-mail approval.
 Policy increment (baseline `87c1805`): buyers must explicitly acknowledge being
 18 or older, independently of email-sharing consent. Both the local server and
 form enforce this; the acknowledgement is not age verification and no birthdate
-is collected. Posting already checks an adult acknowledgement.
+is collected. Posting separately checks an adult acknowledgement.
