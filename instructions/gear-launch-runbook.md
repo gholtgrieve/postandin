@@ -170,6 +170,9 @@ No staging mail may leave the allowlist. No staging artifact may use a productio
 database, image ID, sender credential, signing key or backup prefix.
 Pages Preview deployments must have no Gear bindings, values or secrets unless
 they are explicitly connected only to these isolated staging resources.
+All example, synthetic and canary listings are disposable: purge them from
+staging after final verification, and verify production has no example listings
+before launch.
 
 ## Gate 3: production configuration inventory
 

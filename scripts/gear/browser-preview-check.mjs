@@ -71,7 +71,7 @@ try{
  await page.reload();await idle();await page.locator('[data-screen="manage"]').click();await idle();assert.equal(await page.locator('.pi-managed-item h3').textContent(),'Updated club bag');assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_photos').get().n,1);assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),200);
  await page.locator('[data-manage="pending"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
  await page.locator('[data-manage="remove"]').click();await page.locator('#pi-delete-confirm').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'removed');assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),404);
- await page.locator('#pi-deleted-panel summary').click();await page.locator('[data-recover]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
+ const deletedPanel=page.locator('#pi-deleted-panel');if(!await deletedPanel.evaluate(element=>element.open))await deletedPanel.locator('summary').click();await page.locator('[data-recover]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
  await page.locator('[data-manage="pending"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'available');
  await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');assert.equal(await page.locator('.pi-photo-stage img').count(),1);assert.equal(await page.locator('.pi-photo-stage img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
  // Buyer contact: validation, failed-request recovery, local sink, and responsive form.
@@ -88,8 +88,8 @@ try{
  await page.locator('#pi-preview-send').click();await idle();assert.equal(await page.locator('#pi-contact-success').isVisible(),true);assert.equal(await page.locator('#pi-contact-success h2').textContent(),'Message saved locally');assert.equal(await page.locator('#pi-contact-again').evaluate(el=>el===document.activeElement),true);
  const contactMail=(await(await context.request.get(base+'/local/contact-mail')).json()).receipts;
  assert.equal(contactMail.length,1);assert.equal(contactMail[0].message,'<b>Sample inquiry</b>');assert.equal(contactMail[0].listingId,photoListing);
- await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');
- await page.locator('#pi-contact-cancel').click();await page.setViewportSize({width:1040,height:900});
+ await page.locator('#pi-contact-again').click();assert.equal(await page.locator('#pi-buyer-message').inputValue(),'');assert.equal(await page.locator('#pi-contact-form').isVisible(),false);
+ await page.setViewportSize({width:1040,height:900});
  // Local reports: real validation/unavailable responses, retry, single pending write, and queue inspection.
  await page.locator('#pi-report-open').click();assert.match(await page.locator('#pi-report-note').textContent(),/Local preview only/);assert.equal(await page.locator('#pi-report-turnstile-status').textContent(),'');await page.locator('#pi-preview-report').click();await idle();
  assert.equal((await(await context.request.get(base+'/local/reports')).json()).reports.length,0);
@@ -146,11 +146,11 @@ try{
  async function prepare(title,type='Free',email='edge@example.test'){
   await page.locator('[data-screen="post"]').click();await page.locator('#pi-fill-demo').click();await page.locator('#pi-post-name').fill(title);await page.locator('input[name="offer"][value="'+type+'"]').check();
   if(type==='Trade')await page.locator('#pi-post-trade').fill('Larger gear');
-  await page.locator('#pi-other-club').fill('Custom Club');await page.locator('#pi-next-photos').click();await page.locator('#pi-post-email').fill(email);await page.locator('#pi-next-review').click();
+  await page.locator('#pi-other-club').fill('Custom Club');await page.locator('#pi-post-email').fill(email);await page.locator('#pi-next-photos').click();if(await page.locator('[data-post-step="2"]').isVisible())await page.locator('#pi-next-review').click();
  }
  await prepare('<b>Free gear</b>','Free','parent@gmail');await page.locator('#pi-post-submit').click();await idle();
- assert.equal(await page.locator('[data-post-step="2"]').isVisible(),true);assert.ok(await page.locator('#pi-post-email').evaluate(el=>el.validationMessage));
- await page.locator('#pi-post-email').fill('edge@example.test');await page.locator('#pi-next-review').click();await page.locator('#pi-post-submit').click();await idle();
+ assert.equal(await page.locator('[data-post-step="1"]').isVisible(),true);assert.ok(await page.locator('#pi-post-email').evaluate(el=>el.validationMessage));
+ await page.locator('#pi-post-email').fill('edge@example.test');await page.locator('#pi-next-photos').click();await page.locator('#pi-next-review').click();await page.locator('#pi-post-submit').click();await idle();
  const freeId=db.sqlite.prepare('SELECT id FROM gear_listings WHERE title=?').get('<b>Free gear</b>').id;
  db.sqlite.prepare('UPDATE gear_verification_tokens SET expires_at=? WHERE listing_id=?').run(Date.now()-1,freeId);
  await page.locator('#pi-simulate-verify').click();await idle();

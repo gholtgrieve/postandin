@@ -1237,6 +1237,10 @@ Deferred follow-ups from that review:
   after verification or expiry, and verification requests for an already
   published listing.
 
+Release hygiene: every example, synthetic and canary listing is disposable.
+Purge all of them from staging after the final live verification, and verify the
+production database contains no example listings before launch.
+
 ### Photo canary preflight — in progress
 
 The next bounded increment is readiness for a real private photo-upload canary.
