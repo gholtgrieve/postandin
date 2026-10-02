@@ -186,3 +186,61 @@ body{margin:0;background:#E8E3D8}#pi-gear-preview{max-width:1200px;margin:auto}#
 #pi-gear-preview #pi-gear-rules{margin:0;padding:16px 24px;border-bottom:1px solid var(--pi-rule)}
 #pi-gear-preview #pi-gear-rules summary{cursor:pointer;min-height:28px}
 #pi-gear-preview #pi-gear-rules p{max-width:75ch;margin:12px 0}
+
+/* Shared Post & In shell and Gear hierarchy. Keep these dimensions aligned
+   with the homepage, Coaches, and schedule pages. */
+html{scroll-padding-top:64px}
+body{min-height:100vh}
+#pi-gear-preview{max-width:none;margin:0;background:var(--pi-paper);min-height:100vh}
+#pi-gear-preview .pi-site{min-height:100vh;display:flex;flex-direction:column}
+#pi-gear-preview #pi-local-notice{width:100%;max-width:calc(1100px + clamp(2rem,8vw,4rem));margin:12px auto;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem)}
+#pi-gear-preview .pi-preview-bar{max-width:calc(1100px + clamp(2rem,8vw,4rem));margin:0 auto;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem)}
+#pi-gear-preview .pi-header{min-height:52px;padding-left:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));padding-right:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(184,178,164,.12)}
+#pi-gear-preview .pi-logo{font-size:24px}
+#pi-gear-preview .pi-section{font:400 24px/1 'Bebas Neue',sans-serif;letter-spacing:.08em;color:#D6BC58}
+#pi-gear-preview .pi-slash{color:var(--pi-rule);opacity:.45}
+#pi-gear-preview #pi-gear-rules{width:100%;max-width:calc(1100px + clamp(2rem,8vw,4rem));margin:0 auto;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem)}
+#pi-gear-preview .pi-home-hero{max-width:calc(1100px + clamp(2rem,8vw,4rem));margin-left:auto;margin-right:auto}
+#pi-gear-preview .pi-bridge,#pi-gear-preview .pi-tools{max-width:1100px;margin-left:auto;margin-right:auto}
+#pi-gear-preview .pi-home-hero{padding:clamp(2rem,4vw,3rem) clamp(1rem,4vw,2rem)}
+#pi-gear-preview .pi-bridge,#pi-gear-preview .pi-tools{width:calc(100% - 2 * clamp(1rem,4vw,2rem))}
+#pi-gear-preview .pi-gear-hero{padding:clamp(2rem,4vw,3rem) max(clamp(1rem,4vw,2rem),calc((100% - 1100px)/2));align-items:flex-end}
+#pi-gear-preview .pi-gear-hero h1{font-size:clamp(52px,9vw,80px);letter-spacing:.04em}
+#pi-gear-preview .pi-gear-hero .pi-eyebrow{font-size:16px;line-height:1.4;margin-bottom:14px}
+#pi-gear-preview .pi-gear-hero p{font-size:14px;letter-spacing:.02em}
+#pi-gear-preview .pi-search-panel{padding-left:max(clamp(1rem,4vw,2rem),calc((100% - 1100px)/2));padding-right:max(clamp(1rem,4vw,2rem),calc((100% - 1100px)/2))}
+#pi-gear-preview .pi-type-row,#pi-gear-preview .pi-listings-heading,#pi-gear-preview .pi-results,#pi-gear-preview .pi-bottom,#pi-gear-preview .pi-notice{max-width:1100px;margin-left:auto;margin-right:auto;width:calc(100% - 2 * clamp(1rem,4vw,2rem))}
+#pi-gear-preview .pi-listings-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:26px 0 14px;border-bottom:1px solid var(--pi-rule)}
+#pi-gear-preview .pi-listings-heading h2{font:400 34px/1 'Bebas Neue',sans-serif;letter-spacing:.04em}
+#pi-gear-preview .pi-results-bar{margin:0;padding:0;border:0;justify-content:flex-end}
+#pi-gear-preview .pi-results{border-top:0}
+#pi-gear-preview .pi-row{grid-template-columns:108px minmax(0,1fr) 120px;gap:22px;padding:18px 0}
+#pi-gear-preview .pi-thumb{height:88px}
+#pi-gear-preview .pi-row h3{font:400 23px/1.2 'Bebas Neue',sans-serif;letter-spacing:.035em;margin:0 0 6px;overflow-wrap:anywhere}
+#pi-gear-preview .pi-status{font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:0}
+#pi-gear-preview .pi-price{font-size:34px}
+#pi-gear-preview .pi-detail,#pi-gear-preview .pi-seller-page{width:100%;max-width:calc(1100px + clamp(2rem,8vw,4rem));margin-left:auto;margin-right:auto;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem)}
+#pi-gear-preview #pi-photo-manager{scroll-margin-top:64px}
+#pi-gear-preview .pi-detail-heading h1{font-size:clamp(48px,7vw,72px);letter-spacing:.04em}
+#pi-gear-preview .pi-seller-heading h1{font-size:clamp(52px,8vw,72px);letter-spacing:.04em}
+#pi-gear-preview .pi-footer{padding-left:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));padding-right:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));margin-top:auto}
+
+@media(max-width:720px){
+  #pi-gear-preview .pi-gear-hero{align-items:flex-start}
+  #pi-gear-preview .pi-listings-heading{align-items:flex-start;flex-direction:column;gap:10px}
+  #pi-gear-preview .pi-results-bar{width:100%;justify-content:space-between}
+}
+@media(max-width:450px){
+  #pi-gear-preview .pi-header{padding-left:16px;padding-right:16px}
+  #pi-gear-preview .pi-section{font-size:22px}
+  #pi-gear-preview .pi-home-hero,#pi-gear-preview .pi-gear-hero{padding-left:16px;padding-right:16px}
+  #pi-gear-preview .pi-bridge,#pi-gear-preview .pi-tools{margin-left:16px;margin-right:16px}
+  #pi-gear-preview .pi-search-panel{padding-left:16px;padding-right:16px}
+  #pi-gear-preview .pi-type-row,#pi-gear-preview .pi-listings-heading,#pi-gear-preview .pi-results,#pi-gear-preview .pi-bottom,#pi-gear-preview .pi-notice{width:calc(100% - 32px)}
+  #pi-gear-preview .pi-detail,#pi-gear-preview .pi-seller-page{padding-left:16px;padding-right:16px}
+  #pi-gear-preview .pi-row{grid-template-columns:72px minmax(0,1fr) 65px;gap:12px}
+  #pi-gear-preview .pi-thumb{height:68px}
+  #pi-gear-preview .pi-row h3{font-size:20px}
+  #pi-gear-preview .pi-price{font-size:25px}
+  #pi-gear-preview .pi-money{overflow-wrap:anywhere}
+}

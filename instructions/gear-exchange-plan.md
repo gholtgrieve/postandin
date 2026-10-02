@@ -1241,6 +1241,38 @@ Release hygiene: every example, synthetic and canary listing is disposable.
 Purge all of them from staging after the final live verification, and verify the
 production database contains no example listings before launch.
 
+### Pre-launch visual consistency pass — complete locally
+
+Launch remains paused for a rendered visual pass across Gear Exchange, Stick &
+Puck and Coaches. The shared shell now uses the same 52px dark navigation,
+1100px content column, warm paper background, mustard page rule, display/body
+type system and dark footer. Gear no longer sits inside a narrower framed page;
+its browse hero and controls align with the other primary tools, “Seattle &
+Puget Sound” is more legible, and a prominent “Latest gear” heading restores
+the listings as the page's visual focus. Gear listing names now use the same
+display hierarchy as schedule and coach rows. The schedule's formerly light
+navigation is corrected to the documented dark site chrome, including a compact
+mobile lockup that does not wrap awkwardly.
+
+This is a presentation-only increment: tested posting, photo, verification,
+management, contact, report and retention behavior is unchanged. Desktop and
+mobile rendered review is complete at 1200px and 390px widths. Normal schedule
+data was also rendered without a modal or overflow for all three activities at
+320px, 360px and 1200px. The connected Gear browser workflow passes, including
+photo management and mobile overflow checks, and the full suite passes 496 of
+496 tests.
+Claude's first final read-only review found no blocker, high or medium issues.
+Its one optional low-severity finding—the local notice sitting outside the
+shared content gutter—was corrected with a focused regression check. A follow-up
+review then caught one mobile price cascade regression and three low-severity
+consistency/documentation gaps. The phone price size and maximum-price overflow
+check, schedule Coaches tap target, coach-profile chrome colors and this review
+record were corrected. Claude's final read-only re-review found no blocker, high
+or medium issues and concluded that the increment is ready to commit. Its one
+remaining low-severity observation—that a source assertion could match an older
+mobile rule—was corrected by scoping the assertion to the final phone override
+block. No staging deployment is authorized by this work.
+
 ### Photo canary preflight — in progress
 
 The next bounded increment is readiness for a real private photo-upload canary.

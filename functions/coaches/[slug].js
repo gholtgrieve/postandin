@@ -203,7 +203,7 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
 .logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.08em; color: var(--paper); display: flex; align-items: center; gap: 10px; }
 .logo a { color: inherit; text-decoration: none; }
 .logo .slash { color: rgba(184,178,164,0.35); font-size: 18px; }
-.logo .section { color: #D4A800; }
+.logo .section { color: #D6BC58; }
 
 /* ── Breadcrumb ── */
 .breadcrumb-bar { background: var(--panel); border-bottom: 1px solid var(--rule); padding: 10px clamp(1rem,4vw,2rem); }
@@ -476,7 +476,7 @@ function render404(slug) {
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --paper:#E8E3D8; --panel:#EFEBE2; --rule:#B8B2A4; --ink:#141210; --ink3:#6E6A61; --mustard:#9A7B00; }
+:root { --paper:#E8E3D8; --panel:#EFEBE2; --rule:#B8B2A4; --ink:#2E2A26; --ink3:#6E6A61; --mustard:#9A7B00; }
 body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
 .site-header { background: var(--ink); border-bottom: 1px solid rgba(184,178,164,0.12); }
 .header-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; height: 52px; display: flex; align-items: center; }

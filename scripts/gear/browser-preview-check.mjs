@@ -32,6 +32,15 @@ try{
  }
  await page.locator('#pi-gear-rules summary').click();await page.setViewportSize({width:1040,height:900});
 
+ await page.setViewportSize({width:1200,height:900});
+ for(const [screen,selector] of [['post','.pi-post'],['manage','.pi-manage']]){
+  await page.locator('[data-screen="'+screen+'"]').click();await idle();
+  const box=await page.locator(selector).boundingBox();assert.ok(box.width>=1100,screen+' screen shrank inside the flex shell');
+ }
+ await page.locator('[data-screen="gear"]').click();await idle();
+ const rulesBox=await page.locator('#pi-gear-rules').boundingBox();assert.ok(rulesBox.width>=1100,'rules disclosure shrank inside the flex shell');
+ await page.setViewportSize({width:1040,height:900});
+
  for(const path of ['/scripts/gear/local-server.mjs','/instructions/gear-management.md','/.git/config','/sample.sqlite'])assert.equal((await context.request.get(base+path)).status(),404);
  assert.equal(await page.locator('link[href*="googleapis"]').count(),0);
  await page.locator('[data-screen="post"]').click();await page.locator('#pi-fill-demo').click();
@@ -73,7 +82,13 @@ try{
  await page.locator('[data-manage="remove"]').click();await page.locator('#pi-delete-confirm').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'removed');assert.equal((await context.request.get(base+'/photos/'+storedPhoto)).status(),404);assert.equal((await context.request.get(base+'/management/photos/'+storedPhoto)).status(),404);
  const deletedPanel=page.locator('#pi-deleted-panel');if(!await deletedPanel.evaluate(element=>element.open))await deletedPanel.locator('summary').click();await page.locator('[data-recover]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'pending');
  await page.locator('[data-manage="pending"]').click();await idle();assert.equal(db.sqlite.prepare("SELECT status FROM gear_listings WHERE title='Updated club bag'").get().status,'available');
- await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');assert.equal(await page.locator('.pi-photo-stage img').count(),1);assert.equal(await page.locator('.pi-photo-stage img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
+ await page.locator('[data-screen="gear"]').click();await idle();assert.equal(await page.locator('#pi-count').textContent(),'1 listing');
+ const originalTitle=await page.locator('.pi-listing-link').textContent();await page.locator('.pi-listing-link').evaluate(el=>{el.textContent='W'.repeat(100);});await page.setViewportSize({width:320,height:900});
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'100-character listing title overflow');assert.equal(await page.locator('.pi-row h3').evaluate(el=>getComputedStyle(el).marginTop),'0px');
+ const originalPrice=await page.locator('.pi-price').textContent();await page.locator('.pi-price').evaluate(el=>{el.textContent='$5,000.00';});
+ assert.equal(await page.locator('.pi-price').evaluate(el=>getComputedStyle(el).fontSize),'25px');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'maximum-price listing overflow');
+ await page.locator('.pi-price').evaluate((el,price)=>{el.textContent=price;},originalPrice);
+ await page.locator('.pi-listing-link').evaluate((el,title)=>{el.textContent=title;},originalTitle);await page.setViewportSize({width:1040,height:900});await page.locator('[data-listing]').click();assert.equal(await page.locator('#pi-detail-title').textContent(),'Updated club bag');assert.equal(await page.locator('.pi-photo-stage img').count(),1);assert.equal(await page.locator('.pi-photo-stage img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
  // Buyer contact: validation, failed-request recovery, local sink, and responsive form.
  await page.locator('#pi-contact-open').click();
  await page.locator('#pi-buyer-name').fill('Buyer');await page.locator('#pi-buyer-email').fill('buyer@example.test');await page.locator('#pi-buyer-message').fill('<b>Sample inquiry</b>');

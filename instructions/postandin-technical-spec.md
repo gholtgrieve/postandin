@@ -570,15 +570,22 @@ profiles without a headshot currently emit no social image.
 --panel:  #EFEBE2   /* secondary surfaces, sidebars, filter bars */
 --card:   #DED9CD   /* card backgrounds, photo placeholders */
 --mustard:#9A7B00   /* primary accent — borders, links, highlights */
---ink:    #141210   /* primary text, nav background */
+--ink:    #2E2A26   /* dark navigation and footer surfaces */
 --rule:   #B8B2A4   /* borders, dividers, secondary text */
 ```
 
 ### Aesthetic
 Flyer/cream-paper. Warm, editorial, tactile. Not a sports tech product — closer to a community bulletin board that takes itself seriously.
 
+Body copy may use the slightly darker `#141210` where an existing feature page
+needs the additional contrast; this is a text color, not a competing shell color.
+
 ### Layout Conventions
 - **Nav:** always --ink background, white/muted text. Site chrome, not page content.
+- **Shared shell:** navigation is 52px high and page content is centered at a
+  maximum width of 1100px with responsive side padding. Feature pages may use
+  full-width background bands, but their text and controls align to that same
+  content column.
 - **Page headers:** --paper background. Name/title in --ink. Mustard rule (`border-bottom: 2px solid var(--mustard)`) separates header from content.
 - **Content areas:** --paper background for main, --panel for sidebars and secondary surfaces.
 - **Tags/pills:** specialty tags use --mustard border and color; metadata tags use --rule border and muted color.
