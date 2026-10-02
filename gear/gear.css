@@ -199,7 +199,7 @@ body{min-height:100vh}
 #pi-gear-preview .pi-logo{font-size:24px}
 #pi-gear-preview .pi-section{font:400 24px/1 'Bebas Neue',sans-serif;letter-spacing:.08em;color:#D6BC58}
 #pi-gear-preview .pi-slash{color:var(--pi-rule);opacity:.45}
-#pi-gear-preview #pi-gear-rules{width:100%;max-width:calc(1100px + clamp(2rem,8vw,4rem));margin:0 auto;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem)}
+#pi-gear-preview #pi-gear-rules{width:100%;max-width:calc(1100px + clamp(2rem,8vw,4rem));margin:auto auto 0;padding-left:clamp(1rem,4vw,2rem);padding-right:clamp(1rem,4vw,2rem);border-top:1px solid var(--pi-rule);border-bottom:0}
 #pi-gear-preview .pi-home-hero{max-width:calc(1100px + clamp(2rem,8vw,4rem));margin-left:auto;margin-right:auto}
 #pi-gear-preview .pi-bridge,#pi-gear-preview .pi-tools{max-width:1100px;margin-left:auto;margin-right:auto}
 #pi-gear-preview .pi-home-hero{padding:clamp(2rem,4vw,3rem) clamp(1rem,4vw,2rem)}
@@ -223,7 +223,7 @@ body{min-height:100vh}
 #pi-gear-preview #pi-photo-manager{scroll-margin-top:64px}
 #pi-gear-preview .pi-detail-heading h1{font-size:clamp(48px,7vw,72px);letter-spacing:.04em}
 #pi-gear-preview .pi-seller-heading h1{font-size:clamp(52px,8vw,72px);letter-spacing:.04em}
-#pi-gear-preview .pi-footer{padding-left:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));padding-right:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));margin-top:auto}
+#pi-gear-preview .pi-footer{padding-left:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));padding-right:calc(max(0px,(100% - 1100px)/2) + clamp(1rem,4vw,2rem));margin-top:0}
 
 @media(max-width:720px){
   #pi-gear-preview .pi-gear-hero{align-items:flex-start}

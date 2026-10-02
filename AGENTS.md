@@ -47,6 +47,7 @@ continuation source; prior chat history is not required.
   for display text and IBM Plex Mono for body and UI text. Load the same font
   families and weights already used by the site; do not substitute lookalike or
   system fonts unless the owner explicitly approves an exception.
+- Use the Oxford comma in Post & In copy and documentation.
 - Keep the shared site shell visually consistent: a 52px dark navigation bar,
   warm paper background, centered content no wider than 1100px, mustard page
   rules, and the standard dark footer. Feature controls may differ, but they

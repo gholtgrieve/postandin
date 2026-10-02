@@ -32,6 +32,9 @@ test('Gear browse hierarchy and sticky scroll targets remain accessible',()=>{
   assert.match(gearStyles,/\.pi-status\{font:500 10px\/1\.4 'IBM Plex Mono'/);
   assert.match(gearStyles,/\.pi-row h3\{[^}]*margin:0 0 6px;overflow-wrap:anywhere/);
   assert.match(gearStyles,/#pi-gear-preview #pi-gear-rules\{width:100%/);
+  assert.ok(gearHtml.indexOf('id="pi-gear-rules"')>gearHtml.indexOf('id="pi-delete-dialog"'));
+  assert.ok(gearHtml.indexOf('id="pi-gear-rules"')<gearHtml.indexOf('<footer class="pi-footer">'));
+  assert.match(gearStyles,/#pi-gear-preview #pi-gear-rules\{[^}]*margin:auto auto 0;[^}]*border-top:1px solid var\(--pi-rule\);border-bottom:0/);
   assert.match(gearStyles,/\.pi-detail,#pi-gear-preview \.pi-seller-page\{width:100%/);
   assert.match(gearStyles,/#pi-gear-preview #pi-local-notice\{width:100%;max-width:calc\(1100px \+ clamp\(2rem,8vw,4rem\)\);margin:12px auto;padding-left:clamp\(1rem,4vw,2rem\);padding-right:clamp\(1rem,4vw,2rem\)\}/);
   assert.match(gearPhoneOverrides,/@media\(max-width:450px\)\{[\s\S]*?#pi-gear-preview \.pi-price\{font-size:25px\}\s*#pi-gear-preview \.pi-money\{overflow-wrap:anywhere\}/);
