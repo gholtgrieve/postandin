@@ -120,8 +120,8 @@ test('failed receipt persistence retries one idempotent delivery after the claim
   const db=openLocalDatabase();try{
     const id=await publish(db),value=raw(id),env={GEAR_DB:db,GEAR_RESEND_API_KEY:'test_key',GEAR_CONTACT_ENABLED:'true'};let clock=200,deliveries=0,marks=0;
     const handler=createContactHandler({verify:async()=>{},deliver:async()=>{deliveries++;return {id:providerId};},mark:async(...args)=>{if(marks++===0)throw new Error('lost D1 response');return markContactSent(...args);},now:()=>clock});
-    assert.equal((await handler({request:request(value),env})).status,503);assert.equal(db.sqlite.prepare('SELECT status FROM gear_contact_messages').get().status,'sending');
-    const busy=await handler({request:request(value),env});assert.equal(busy.status,503);assert.equal(busy.headers.get('retry-after'),'60');assert.equal(deliveries,1);
+    const unrecorded=await handler({request:request(value),env});assert.equal(unrecorded.status,503);assert.equal((await unrecorded.json()).uncertain,true);assert.equal(db.sqlite.prepare('SELECT status FROM gear_contact_messages').get().status,'sending');
+    const busy=await handler({request:request(value),env});assert.equal(busy.status,503);assert.equal(busy.headers.get('retry-after'),'60');assert.equal((await busy.json()).uncertain,true);assert.equal(deliveries,1);
     clock+=60001;assert.equal((await handler({request:request(value),env})).status,202);assert.equal(deliveries,2);assert.equal(db.sqlite.prepare('SELECT status FROM gear_contact_messages').get().status,'sent');
   }finally{db.close();}
 });
@@ -146,5 +146,5 @@ test('public contact route rejects unsafe boundaries and maps failures generical
   const limited=await handler({request:request(value),env});assert.equal(limited.status,429);assert.equal(limited.headers.get('retry-after'),'600');
   assert.equal((await createContactHandler({verify:async()=>{},reserve:async()=>({unavailable:true})})({request:request(value),env})).status,404);
   assert.equal((await createContactHandler({verify:async()=>{},reserve:async()=>({conflict:true})})({request:request(value),env})).status,409);
-  assert.equal((await createContactHandler({verify:async()=>{},reserve:async()=>({contact:{id:value.requestId,status:'pending'}}),claim:async()=>({claimed:true,token:crypto.randomUUID()}),release:async()=>true,deliver:async()=>{throw new GearContactMailUnavailableError('private');}})({request:request(value),env})).status,503);
+  const failedDelivery=await createContactHandler({verify:async()=>{},reserve:async()=>({contact:{id:value.requestId,status:'pending'}}),claim:async()=>({claimed:true,token:crypto.randomUUID()}),release:async()=>true,deliver:async()=>{throw new GearContactMailUnavailableError('private');}})({request:request(value),env});assert.equal(failedDelivery.status,503);assert.equal(Object.hasOwn(await failedDelivery.json(),'uncertain'),false);
 });

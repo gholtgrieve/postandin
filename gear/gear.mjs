@@ -17,9 +17,9 @@ const api=localMode?adapter.localAPI():productionMode?adapter.productionAPI():nu
 let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,localDraftPhotoToken=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
 let publicGeneration=0,publicLoading=productionMode,publicFailed=false,publicFetchedAt=0,publicPhotoRefreshAt=0,publicPhotoRefreshing=false;
 let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
-let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null,contactRetryLocked=false;
+let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null;
 let reportAvailable=false,reportWidget=null,reportToken='',reportRetryWarning='';
-let deleted=[];
+let deleted=[],openDeletedAfterRefresh=false;
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){delete localNotice.dataset.source;localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
 function showPassiveError(message,source=''){localNotice.dataset.source=source;localNotice.textContent=message;localNotice.hidden=false;}
@@ -46,7 +46,7 @@ async function localAction(task){
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
   else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
-  if(productionMode){syncProductionSubmit();syncProductionContactRetryLock();syncProductionContactSubmit();syncProductionReportSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
+  if(productionMode){syncProductionSubmit();syncProductionContactSubmit();syncProductionReportSubmit();if(verificationScreenPending){verificationScreenPending=false;if(productionVerificationToken)showProductionConfirmation();}}
  }
 }
 function freezeFields(){root.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);}
@@ -119,11 +119,11 @@ const stage=$('.pi-photo-stage'), picker=$('.pi-photo-picker');stage.replaceChil
 const photos=d.photos||[];picker.hidden=photos.length<2;
 const active=Number.isSafeInteger(state.photo)&&state.photo>=0&&state.photo<photos.length?state.photo:0;state.photo=active;
 function show(p,index){state.photo=index;stage.replaceChildren();if(p?.url){const img=document.createElement('img');img.src=p.url;img.alt=d.title+' — photo '+(index+1)+' of '+photos.length;img.decoding='async';stage.append(img);}else stage.textContent=p?'Sample photo':'No photos provided';}
-show(photos[active],active);photos.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.dataset.photoIndex=String(i);b.textContent='Photo '+(i+1);b.setAttribute('aria-pressed',String(i===active));b.onclick=()=>{show(p,i);picker.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};picker.append(b);});
+show(photos[active],active);photos.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.dataset.photoIndex=String(i);b.setAttribute('aria-label','Show photo '+(i+1));if(p.url){const img=document.createElement('img');img.src=p.url;img.alt='';img.decoding='async';b.append(img);}else b.textContent='Photo '+(i+1);b.setAttribute('aria-pressed',String(i===active));b.onclick=()=>{show(p,i);picker.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};picker.append(b);});
 }
 function resetContact(){
 for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).setCustomValidity('');
-if(productionMode){contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();resetProductionContactTurnstile();resetProductionReportTurnstile();}
+if(productionMode){contactRequestId=null;resetProductionContactTurnstile();resetProductionReportTurnstile();}
 $('#pi-contact-form').reset();$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;
 $('#pi-report-form').reset();$('#pi-report-form').hidden=true;$('#pi-report-result').hidden=true;$('#pi-report-open').hidden=false;
 }
@@ -167,9 +167,6 @@ async function sendLocalContact(){
  form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
 }
 function syncProductionContactSubmit(){if(productionMode)$('#pi-preview-send').disabled=!contactAvailable||!contactToken;}
-function syncProductionContactRetryLock(){
- if(!productionMode)return;for(const id of ['pi-buyer-name','pi-buyer-email','pi-buyer-message'])$('#'+id).readOnly=contactRetryLocked;$('#pi-preview-send').textContent=contactRetryLocked?'Send same message again':'Send message';
-}
 function resetProductionContactTurnstile(message='Complete the privacy check to send your message.'){
  if(!productionMode)return;contactToken='';if(turnstileClient&&contactWidget!==null){try{turnstileClient.reset(contactWidget);}catch{contactAvailable=false;}}
  $('#pi-contact-turnstile-status').textContent=contactAvailable?message:'Buyer contact is temporarily unavailable.';syncProductionContactSubmit();
@@ -177,15 +174,15 @@ function resetProductionContactTurnstile(message='Complete the privacy check to 
 function ensureProductionContactTurnstile(){
  if(!productionMode||!contactAvailable||!turnstileClient)return;
  const container=$('#pi-contact-turnstile');container.hidden=false;if(contactWidget!==null)return;
- try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-contact',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{contactToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-contact-turnstile-status').textContent=contactToken?(contactRetryLocked?'Ready to send the same message again. Check your inbox first—it may already have been sent.':'Privacy check complete.'):'Complete the privacy check to send your message.';syncProductionContactSubmit();},'expired-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionContactSubmit();},'error-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionContactSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();contactWidget=widget;}
+ try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-contact',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{contactToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-contact-turnstile-status').textContent=contactToken?'Privacy check complete.':'Complete the privacy check to send your message.';syncProductionContactSubmit();},'expired-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionContactSubmit();},'error-callback':()=>{contactToken='';$('#pi-contact-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionContactSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();contactWidget=widget;}
  catch{contactAvailable=false;container.hidden=true;$('#pi-contact-open').disabled=true;$('#pi-contact-open').textContent='Buyer contact is temporarily unavailable';resetProductionContactTurnstile();}
 }
 async function sendProductionContact(){
  const form=$('#pi-contact-form');for(const id of ['pi-buyer-name','pi-buyer-message'])$('#'+id).setCustomValidity($('#'+id).value.trim()?'':'Please complete this field.');
  if(!form.reportValidity())return;if(!contactAvailable||!contactToken)throw adapter.safeError('Complete the privacy check and try again.');
  contactRequestId=contactRequestId||crypto.randomUUID();const input={id:state.selected,requestId:contactRequestId,name:$('#pi-buyer-name').value,email:$('#pi-buyer-email').value,message:$('#pi-buyer-message').value,turnstileToken:contactToken};
- freezeFields();let resetMessage;try{await api.contact(input);}catch(error){if(error.status===404||error.status===409){contactRequestId=null;contactRetryLocked=false;}else if(error.status===0||error.status>=500){contactRetryLocked=true;resetMessage='We could not confirm delivery. Check your inbox first—the message may already have been sent.';}throw error;}finally{syncProductionContactRetryLock();resetProductionContactTurnstile(resetMessage);}
- contactRequestId=null;contactRetryLocked=false;syncProductionContactRetryLock();form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;return '#pi-contact-again';
+ freezeFields();let uncertain=false;try{await api.contact(input);contactRequestId=null;}catch(error){if(error.status===0||error.uncertain===true)uncertain=true;else{if(error.status<500)contactRequestId=null;throw error;}}finally{resetProductionContactTurnstile();}
+ form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-success h2').textContent=uncertain?'Delivery not confirmed':'Message sent';$('#pi-contact-success p').textContent=uncertain?'Your message may have been sent. To avoid a duplicate, don\'t send it again.':'The seller can reply directly to your email.';return '#pi-contact-again';
 }
 if(localMode){
  $('#pi-preview-send').textContent='Save to local test inbox';
@@ -194,8 +191,8 @@ if(localMode){
 }
 function openContact(){if(productionMode&&!contactAvailable)return;$('#pi-contact-intro').hidden=true;$('#pi-contact-form').hidden=false;$('#pi-contact-success').hidden=true;if(productionMode)ensureProductionContactTurnstile();$('#pi-buyer-name').focus({preventScroll:true});}
 $('#pi-contact-open').addEventListener('click',openContact);
-$('#pi-contact-cancel').addEventListener('click',()=>{if(productionMode&&contactRetryLocked){resetProductionContactTurnstile('Check your inbox first—the message may already have been sent.');$('#pi-contact-form').hidden=true;$('#pi-contact-intro').hidden=false;$('#pi-contact-success').hidden=true;}else resetContact();$('#pi-contact-open').focus({preventScroll:true});});
-$('#pi-contact-again').addEventListener('click',openContact);
+$('#pi-contact-cancel').addEventListener('click',()=>{resetContact();$('#pi-contact-open').focus({preventScroll:true});});
+$('#pi-contact-again').addEventListener('click',()=>{resetContact();$('#pi-contact-open').focus({preventScroll:true});});
 $('#pi-contact-form').addEventListener('submit',e=>e.preventDefault());
 $('#pi-contact-form').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#pi-preview-send').click();}});
 $('#pi-preview-send').addEventListener('click',()=>{if(productionMode){localAction(sendProductionContact);return;}if(localMode){localAction(sendLocalContact);return;}const form=$('#pi-contact-form');for(const el of [$('#pi-buyer-name'),$('#pi-buyer-message')])el.setCustomValidity(el.value.trim()?'':'Please enter '+(el.id==='pi-buyer-name'?'your first name.':'a message.'));if(!form.reportValidity())return;form.reset();form.hidden=true;$('#pi-contact-success').hidden=false;$('#pi-contact-again').focus({preventScroll:true});});
@@ -252,8 +249,9 @@ function go(screen,{historyMode='push'}={}){
  if((localMode&&['gear','manage'].includes(screen))||(productionMode&&screen==='manage'))localAction(refreshLocal);
  const heading=$('.pi-'+state.screen+' h1');heading.tabIndex=-1;heading.focus();root.scrollIntoView({block:'start',behavior:'instant'});
 }
-function reusesProductionDraft(){return productionMode&&!editingId&&localDraftId&&pendingDraft&&JSON.stringify(pendingDraft)===JSON.stringify(draft());}
-function syncProductionSubmit(){if(productionMode)$('#pi-post-submit').disabled=!editingId&&postStep===3&&!turnstileToken&&!reusesProductionDraft();}
+function draftDetails(value){const details={...value};delete details.photos;return details;}
+function reusesProductionDraft(){return productionMode&&!editingId&&localDraftId&&pendingDraft&&JSON.stringify(draftDetails(pendingDraft))===JSON.stringify(draftDetails(draft()));}
+function syncProductionSubmit(){if(!productionMode)return;$('#pi-next-photos').disabled=!editingId&&postStep===1&&!localDraftId&&!turnstileToken;$('#pi-next-review').disabled=!editingId&&postStep===2&&!localDraftId;$('#pi-post-submit').disabled=!editingId&&postStep===3&&!reusesProductionDraft();}
 function disableProductionPosting(message='Listing is temporarily unavailable.'){
  postingAvailable=false;turnstileToken='';$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent=message;$('#pi-new-listing').hidden=true;syncProductionSubmit();
 }
@@ -263,8 +261,8 @@ function resetProductionTurnstile(message='Complete the privacy check to continu
 }
 function ensureProductionTurnstile(){
  if(!productionMode||editingId||!postingAvailable||!turnstileClient)return;
- const container=$('#pi-post-turnstile');if(reusesProductionDraft()){container.hidden=true;$('#pi-turnstile-status').textContent='';syncProductionSubmit();return;}container.hidden=false;if(turnstileWidget!==null)return;
- try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-post',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{turnstileToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-turnstile-status').textContent=turnstileToken?'Privacy check complete.':'Complete the privacy check to continue.';syncProductionSubmit();},'expired-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionSubmit();},'error-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();turnstileWidget=widget;}
+ const container=$('#pi-post-turnstile');if(localDraftId){container.hidden=true;$('#pi-turnstile-status').textContent='';syncProductionSubmit();return;}container.hidden=false;if(turnstileWidget!==null)return;
+ try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-post',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{turnstileToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-turnstile-status').textContent=turnstileToken?'':'Complete the privacy check to continue.';syncProductionSubmit();},'expired-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionSubmit();},'error-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();turnstileWidget=widget;}
  catch{disableProductionPosting();}
 }
 async function configureProductionPosting(){
@@ -273,23 +271,32 @@ async function configureProductionPosting(){
  catch{turnstileSiteKey='';turnstileClient=null;contactAvailable=false;reportAvailable=false;disableProductionPosting();resetProductionContactTurnstile();resetProductionReportTurnstile();}
  finally{postingLoading=false;}
 }
-function showPostStep(step){postStep=step;verifyMode=null;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});if(productionMode&&step===3){if(editingId){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}else ensureProductionTurnstile();}syncProductionSubmit();}
+function showPostStep(step){postStep=step;verifyMode=null;$('#pi-post-title').tabIndex=-1;$('#pi-post-title').focus();$('#pi-post-form').hidden=false;$('#pi-verify-screen').hidden=true;root.querySelectorAll('[data-post-step]').forEach(el=>el.hidden=Number(el.dataset.postStep)!==step);root.querySelectorAll('[data-step-label]').forEach(el=>{if(Number(el.dataset.stepLabel)===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});if(productionMode&&step===1){if(editingId){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}else ensureProductionTurnstile();}syncProductionSubmit();}
 function offerChanged(){const type=$('input[name=offer]:checked').value;$('#pi-asking-label').hidden=type!=='Sale';$('#pi-post-price').disabled=type!=='Sale';$('#pi-trade-label').hidden=type!=='Trade';$('#pi-post-trade').disabled=type!=='Trade';$('#pi-post-trade').required=type==='Trade';}
 function clubsChanged(){const other=$('input[name=club][value=Other]').checked;$('#pi-other-club').required=other;if(!other){$('#pi-other-club').value='';$('#pi-other-club').setCustomValidity('');}}
 $('#pi-other-club').addEventListener('input',()=>{const filled=$('#pi-other-club').value.trim().length>0;$('input[name=club][value=Other]').checked=filled;$('#pi-other-club').required=filled;});
 function validStep(n){let valid=true;const fields=root.querySelectorAll('[data-post-step="'+n+'"] input,[data-post-step="'+n+'"] select,[data-post-step="'+n+'"] textarea');for(const el of fields){if(el.disabled||el.type==='file')continue;if(el.required&&['text','textarea'].includes(el.type))el.setCustomValidity(el.value.trim()?'':'Please complete this field.');if(!el.checkValidity()){el.reportValidity();valid=false;break;}}return valid;}
 function draft(){const d={};for(const [key,id]of Object.entries(postMap))d[key]=$('#'+id).value.trim();d.type=$('input[name=offer]:checked').value;Object.assign(d,offerFields(d.type.toLowerCase(),d.price,d.trade));delete d.price;d.clubs=[...root.querySelectorAll('input[name=club]:checked')].map(e=>e.value);d.otherClub=$('#pi-other-club').value.trim();d.photos=postPhotos.map(({name,url})=>({name,url}));return d;}
-function renderPhotos(){const list=$('#pi-upload-grid');list.replaceChildren();postPhotos.forEach((p,i)=>{const tile=document.createElement('div');tile.className='pi-upload-tile';if(p.url){const image=document.createElement('img');image.className='pi-upload-image';image.src=p.url;image.alt='Selected photo '+(i+1);image.addEventListener('error',()=>{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Photo '+(i+1);image.replaceWith(placeholder);},{once:true});tile.append(image);}else{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Sample photo '+(i+1);tile.append(placeholder);}const actions=document.createElement('div');actions.className='pi-photo-tools';if(i===0){const cover=document.createElement('span');cover.className='pi-photo-cover';cover.textContent='Cover';actions.append(cover);}else{const main=document.createElement('button');main.type='button';main.textContent='Make cover';main.addEventListener('click',()=>{postPhotos.unshift(postPhotos.splice(i,1)[0]);renderPhotos();});actions.append(main);}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove photo '+(i+1));remove.addEventListener('click',()=>{postPhotos.splice(i,1);$('#pi-photo-error').hidden=true;renderPhotos();});actions.append(remove);if(!localMode)tile.append(actions);list.append(tile);});$('#pi-photo-count').textContent=postPhotos.length+' of 6';}
+function expireProductionDraft(){
+ localDraftId=null;localDraftPhotoToken=null;pendingDraft=null;verificationReceipt=null;
+ postPhotos.forEach(photo=>{if(photo.file){photo.uploaded=false;delete photo.id;}});
+ const upload=$('#pi-draft-upload-status');upload.hidden=true;upload.classList.remove('is-busy','is-error');upload.removeAttribute('aria-busy');
+ resetProductionTurnstile();showPostStep(1);ensureProductionTurnstile();
+}
+async function productionDraftRequest(task,{conflictExpires=false,notFoundExpires=false}={}){
+ try{return await task();}catch(error){if(error.status===401||(conflictExpires&&error.status===409)||(notFoundExpires&&error.status===404)){expireProductionDraft();throw Object.assign(adapter.safeError('This draft expired. Your details and selected photos are still here. Complete the privacy check to save a new draft.'),{draftExpired:true});}throw error;}
+}
+function renderPhotos(){const list=$('#pi-upload-grid');list.replaceChildren();postPhotos.forEach((p,i)=>{const tile=document.createElement('div');tile.className='pi-upload-tile';if(p.url){const image=document.createElement('img');image.className='pi-upload-image';image.src=p.url;image.alt='Selected photo '+(i+1);image.addEventListener('error',()=>{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Photo '+(i+1);image.replaceWith(placeholder);},{once:true});tile.append(image);}else{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Sample photo '+(i+1);tile.append(placeholder);}const actions=document.createElement('div');actions.className='pi-photo-tools';if(i===0){const cover=document.createElement('span');cover.className='pi-photo-cover';cover.textContent='Cover';actions.append(cover);}else{const main=document.createElement('button');main.type='button';main.textContent='Make cover';main.addEventListener('click',()=>{postPhotos.unshift(postPhotos.splice(i,1)[0]);renderPhotos();});actions.append(main);}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove photo '+(i+1));remove.addEventListener('click',()=>localAction(async()=>{if(productionMode&&p.uploaded)await productionDraftRequest(()=>api.removeDraftPhoto(localDraftId,localDraftPhotoToken,p.id));const current=postPhotos.indexOf(p);if(current>=0)postPhotos.splice(current,1);$('#pi-photo-error').hidden=true;renderPhotos();}));actions.append(remove);if(!localMode)tile.append(actions);list.append(tile);});$('#pi-photo-count').textContent=postPhotos.length+' of 6';syncProductionSubmit();}
 function photoError(message){$('#pi-photo-error').textContent=message;$('#pi-photo-error').hidden=false;}
 $('#pi-photo-files').addEventListener('change',e=>{const files=[...e.target.files];e.target.value='';if(files.length+postPhotos.length>LIMITS.photos){photoError('Choose up to six photos. Remove a photo before adding another.');return;}const types=productionMode?['image/jpeg','image/png','image/webp','image/heic','image/heif']:['image/jpeg','image/png','image/webp'],names=productionMode?/\.(?:jpe?g|png|webp|heic|heif)$/i:/\.(?:jpe?g|png|webp)$/i;if(files.some(f=>!types.includes(f.type)&&!names.test(f.name))){photoError(productionMode?'Choose JPG, PNG, WebP, or HEIC photos.':'Choose JPG, PNG, or WebP images for this preview.');return;}for(const file of files){const url=URL.createObjectURL(file);objectUrls.add(url);postPhotos.push({name:file.name,url,file,uploaded:false});}$('#pi-photo-error').hidden=true;renderPhotos();});
 $('#pi-add-sample').addEventListener('click',()=>{if(postPhotos.length>=LIMITS.photos){photoError('Six photos is the limit. Remove a photo before adding another.');return;}postPhotos.push({name:'Sample gear photo',url:null});$('#pi-photo-error').hidden=true;renderPhotos();});
 window.addEventListener('pagehide',()=>objectUrls.forEach(url=>URL.revokeObjectURL(url)));
-function renderReview(){const d=draft();const price=formatPrice(d.type.toLowerCase(),d.priceCents),record=managed.find(r=>r.id===editingId),photoCount=productionMode&&record?record.photos.length:d.photos.length;const details=[['City',d.city],['Gear',d.category+' · '+d.size],['Size & fit',d.fit],['Club branding',clubNames(d).join(', ')||'None'],['Condition',d.condition],['Photos',photoCount+' of 6'],['Listed by',d.seller]];if(d.type==='Trade')details.push(['Looking for',d.trade]);$('#pi-listing-review').innerHTML='<div class="pi-eyebrow">Listing preview</div><h2>'+esc(d.title)+'</h2><div class="pi-detail-price">'+esc(price)+'</div><p>'+esc(d.description)+'</p><dl>'+details.map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl>';const reverify=connectedMode?!editingId:!record||d.email!==record.email;$('#pi-post-submit').textContent=reverify?'Send verification email':'Save changes';$('#pi-publish-explanation').textContent=reverify?'Your listing appears after you verify your email. It expires after 30 days.':'Changes will update your listing. Its status and expiration date stay the same.';}
+function renderReview(){const d=draft();const price=formatPrice(d.type.toLowerCase(),d.priceCents),record=managed.find(r=>r.id===editingId),photos=productionMode&&record?record.photos:d.photos,visiblePhotos=photos.filter(photo=>photo.url),details=[['Size & fit',d.fit],['Condition',d.condition],['Club branding',clubNames(d).join(', ')||'None']];if(d.type==='Trade')details.push(['Looking for',d.trade]);const gallery=visiblePhotos.length?`<div class="pi-review-photo"><img src="${esc(visiblePhotos[0].url)}" alt="${esc(d.title)} photo 1"></div>${visiblePhotos.length>1?`<div class="pi-review-thumbs">${visiblePhotos.slice(0,6).map((photo,index)=>`<button type="button" data-review-photo="${index}" aria-label="Show photo ${index+1}" aria-pressed="${index===0}"><img src="${esc(photo.url)}" alt=""></button>`).join('')}</div>`:''}`:`<div class="pi-review-photo pi-review-photo-empty">${photos.length?'Photos selected':'No photos'}</div>`;$('#pi-listing-review').innerHTML=`<div class="pi-eyebrow">Listing preview</div><div class="pi-review-heading"><div><h2>${esc(d.title)}</h2><span>${esc(d.city)}</span></div><div><small>${esc(d.type==='Sale'?'For sale':d.type)}</small><div class="pi-detail-price">${esc(price)}</div></div></div><div class="pi-review-layout"><div>${gallery}</div><div class="pi-review-copy"><p>${esc(d.description)}</p><dl>${details.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><strong>Listed by ${esc(d.seller)}</strong></div></div>`;const main=$('#pi-listing-review .pi-review-photo img'),thumbs=[...root.querySelectorAll('[data-review-photo]')];thumbs.forEach(button=>button.addEventListener('click',()=>{const index=Number(button.dataset.reviewPhoto);main.src=visiblePhotos[index].url;main.alt=`${d.title} photo ${index+1}`;thumbs.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));}));const reverify=connectedMode?!editingId:!record||d.email!==record.email;$('#pi-post-submit').textContent=reverify?'Send verification email':'Save changes';$('#pi-publish-explanation').textContent=reverify?`Verify ${d.email} to publish for 30 days.`:'Save these changes.';}
 root.querySelectorAll('input[name=offer]').forEach(el=>el.addEventListener('change',offerChanged));root.querySelectorAll('input[name=club]').forEach(el=>el.addEventListener('change',clubsChanged));
-$('#pi-post-form').addEventListener('submit',e=>e.preventDefault());$('#pi-post-form').addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');});
+$('#pi-post-form').addEventListener('submit',e=>e.preventDefault());$('#pi-post-form').addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');if(productionMode&&postStep===1&&!editingId){ensureProductionTurnstile();syncProductionSubmit();}});
 root.querySelectorAll('#pi-post-cancel,[data-post-cancel]').forEach(button=>button.addEventListener('click',()=>go(editingId?'manage':'gear')));
-$('#pi-next-photos').addEventListener('click',()=>{if(validStep(1)){showPostStep(2);$(localMode?'#pi-post-seller':'#pi-add-sample').focus({preventScroll:true});}});
-$('#pi-next-review').addEventListener('click',()=>{if(validStep(2)){renderReview();showPostStep(3);}});
+$('#pi-next-photos').addEventListener('click',()=>{if(!validStep(1))return;if(productionMode&&!editingId){localAction(prepareProductionDraftForPhotos);return;}showPostStep(2);$('#pi-photo-files').focus({preventScroll:true});});
+$('#pi-next-review').addEventListener('click',()=>{if(!validStep(2))return;if(productionMode&&!editingId){localAction(prepareProductionDraftForReview);return;}renderReview();showPostStep(3);});
 root.querySelectorAll('[data-post-back]').forEach(el=>el.addEventListener('click',()=>showPostStep(Number(el.dataset.postBack))));
 function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;verificationReceipt=null;localDraftId=null;localDraftPhotoToken=null;}editingId=null;pendingDraft=null;verifyMode=null;postPhotos=[];$('#pi-post-photos').hidden=false;if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;$('#pi-draft-upload-status').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
 function fillPost(d){for(const [key,id]of Object.entries(postMap))$('#'+id).value=key==='price'?(d.type==='Sale'?(d.priceCents/100).toFixed(2):''):(d[key]??'');$('input[name=offer][value="'+d.type+'"]').checked=true;root.querySelectorAll('input[name=club]').forEach(el=>el.checked=d.clubs.includes(el.value));$('#pi-other-club').value=d.otherClub||'';postPhotos=connectedMode?[]:d.photos.map(p=>({...p}));$('#pi-post-photos').hidden=Boolean(connectedMode&&editingId);offerChanged();clubsChanged();renderPhotos();}
@@ -307,7 +314,7 @@ $('#pi-managed-list').addEventListener('click',e=>{if(connectedMode){manageLocal
 $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidden=!$('#pi-recovery-form').hidden;});$('#pi-recovery-form').addEventListener('submit',e=>e.preventDefault());$('#pi-recovery-send').addEventListener('click',()=>{if(connectedMode){localAction(requestLocalLogin);return;}if($('#pi-recovery-form').reportValidity())$('#pi-recovery-result').hidden=false;});
 
 function renderLocalManaged(){
- const deletedPanel=$('#pi-deleted-panel');if(deletedPanel){deletedPanel.hidden=!deleted.length;deletedPanel.querySelector('summary').textContent=`Recently deleted (${deleted.length})`;$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-deleted-item"><strong>${esc(r.title)}</strong><span>${r.purgeAt>Date.now()?`Recover by ${esc(new Date(r.purgeAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}`:'Recovery period ended'}</span>${r.purgeAt>Date.now()?`<button type="button" class="pi-text-button" data-recover="${esc(r.id)}">Recover listing</button>`:''}</article>`).join('');}
+ const deletedPanel=$('#pi-deleted-panel');if(deletedPanel){deletedPanel.hidden=!deleted.length;deletedPanel.querySelector('summary').textContent=`Recently removed (${deleted.length})`;if(openDeletedAfterRefresh&&deleted.length){deletedPanel.open=true;openDeletedAfterRefresh=false;}$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-deleted-item"><strong>${esc(r.title)}</strong><span>${r.purgeAt>Date.now()?`Recover by ${esc(new Date(r.purgeAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}`:'Recovery period ended'}</span>${r.purgeAt>Date.now()?`<button type="button" class="pi-text-button" data-recover="${esc(r.id)}">Recover listing</button>`:''}</article>`).join('');}
  renderPhotoManager();
  if($('#pi-email-change-panel'))$('#pi-email-change-panel').hidden=!signedIn;
  $('#pi-management-link').hidden=signedIn;
@@ -316,7 +323,7 @@ function renderLocalManaged(){
  const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';
  $('#pi-managed-list').innerHTML=managed.map(r=>{
   const button=(action,label)=>`<button type="button" data-manage="${action}" data-id="${esc(r.id)}">${label}</button>`;
-  const actions=r.status==='Removed'?'':button('edit','Edit')+button('photos','Add photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending'):button('renew','Relist for 30 days'))+button('remove','Remove listing');
+  const actions=r.status==='Removed'?'':button('edit','Edit')+button('photos','Manage photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending'):button('renew','Relist for 30 days'))+button('remove','Remove listing');
   return `<article class="pi-managed-item"><h3>${esc(r.title)}</h3><div class="pi-managed-meta">${esc(formatPrice(r.type.toLowerCase(),r.priceCents))} · ${esc(r.city)} · ${esc(r.status)}</div><div class="pi-managed-actions">${actions}</div></article>`;
  }).join('')||(signedIn?'<div class="pi-empty-state"><strong>You have no current listings.</strong></div>':localMode?'<div class="pi-empty-state"><strong>Sign in to see your listings.</strong><span>Use a local management link below.</span></div>':'<div class="pi-empty-state"><strong>Sign in to see your listings.</strong><span>Open your emailed management link or request a new one below.</span></div>');
 }
@@ -324,24 +331,42 @@ async function saveLocal(){
  if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}
  const d=draft(),input=localMode?adapter.listingInput(d,true,Boolean(editingId)):productionMode&&!editingId?adapter.draftListingInput(d,true):adapter.listingInput(d);freezeFields();
  if(editingId){await api.write({id:editingId,action:'edit',listing:input});await afterSuccess(localMode?'Changes saved to the local database.':'Changes saved.','manage');return;}
+ if(productionMode){if(!localDraftId||!reusesProductionDraft())throw adapter.safeError('Return to photos and review this draft again.');await requestVerification();return;}
  // Reuse an already-created draft when only receipt delivery failed and content is unchanged.
  if(!localDraftId||JSON.stringify(pendingDraft)!==JSON.stringify(d)){
   let created;
-  if(productionMode){if(!postingAvailable||!turnstileToken)throw adapter.safeError('Complete the privacy check and try again.');const token=turnstileToken;try{created=await api.createDraft(input,token);}finally{resetProductionTurnstile();}}
-  else created=await api.request('/drafts',input);
+  created=await api.request('/drafts',input);
   localDraftId=created.id;localDraftPhotoToken=created.photoToken??null;pendingDraft=d;verificationReceipt=null;postPhotos.forEach(photo=>{if(photo.file)photo.uploaded=false;});
-  if(productionMode){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}
- }
- if(productionMode){
-  const photos=postPhotos.filter(photo=>photo.file&&!photo.uploaded),status=$('#pi-draft-upload-status');
-  try{for(let index=0;index<photos.length;index++){
-   const photo=photos[index];status.hidden=false;status.classList.remove('is-error');status.classList.add('is-busy');status.setAttribute('aria-busy','true');status.textContent=`Uploading photo ${index+1} of ${photos.length}…`;
-   const upload=photo.file.size>10_000_000?await adapter.preparePhoto(photo.file):photo.file;
-   await api.uploadDraftPhoto(localDraftId,localDraftPhotoToken,upload);photo.uploaded=true;
-  }}catch(error){status.classList.remove('is-busy');status.classList.add('is-error');status.setAttribute('aria-busy','false');status.textContent=error.safe?error.message:'A photo could not be uploaded. Please try again.';return '#pi-draft-upload-status';}
-  if(photos.length){status.classList.remove('is-busy');status.setAttribute('aria-busy','false');status.textContent=photos.length===1?'Photo saved.':'Photos saved.';}
  }
  await requestVerification();
+}
+async function persistProductionDraftDetails(){
+ const d=draft(),input=adapter.draftListingInput(d,true);freezeFields();
+ if(!localDraftId){
+  if(!postingAvailable||!turnstileToken)throw adapter.safeError('Complete the privacy check and try again.');
+  const token=turnstileToken;let created;try{created=await api.createDraft(input,token);}finally{resetProductionTurnstile();}
+  localDraftId=created.id;localDraftPhotoToken=created.photoToken??null;verificationReceipt=null;postPhotos.forEach(photo=>{if(photo.file)photo.uploaded=false;});
+ }else if(!reusesProductionDraft())await productionDraftRequest(()=>api.updateDraft(localDraftId,localDraftPhotoToken,input),{conflictExpires:true});
+ pendingDraft=d;$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';return d;
+}
+async function prepareProductionDraftForPhotos(){
+ await persistProductionDraftDetails();showPostStep(2);$('#pi-photo-files').focus({preventScroll:true});return '#pi-photo-files';
+}
+async function prepareProductionDraftForReview(){
+ await persistProductionDraftDetails();
+ const photos=postPhotos.filter(photo=>photo.file&&!photo.uploaded),status=$('#pi-draft-upload-status');
+ // First make the browser's known attached IDs authoritative. This clears an
+ // attachment whose finalize response was lost, including when the seller
+ // removed every selected photo, and frees a slot before retrying at six.
+ await productionDraftRequest(()=>api.reorderDraftPhotos(localDraftId,localDraftPhotoToken,postPhotos.filter(photo=>photo.uploaded&&photo.id).map(photo=>photo.id)));
+ try{for(let index=0;index<photos.length;index++){
+  const photo=photos[index];status.hidden=false;status.classList.remove('is-error');status.classList.add('is-busy');status.setAttribute('aria-busy','true');status.textContent=`Uploading photo ${index+1} of ${photos.length}…`;
+  const upload=photo.file.size>10_000_000?await adapter.preparePhoto(photo.file):photo.file;
+  const saved=await productionDraftRequest(()=>api.uploadDraftPhoto(localDraftId,localDraftPhotoToken,upload));photo.id=saved.photoId;photo.uploaded=true;
+ }}catch(error){if(error.draftExpired)throw error;status.classList.remove('is-busy');status.classList.add('is-error');status.setAttribute('aria-busy','false');status.textContent=error.safe?error.message:'A photo could not be uploaded. Please try again.';return '#pi-draft-upload-status';}
+ await productionDraftRequest(()=>api.reorderDraftPhotos(localDraftId,localDraftPhotoToken,postPhotos.map(photo=>photo.id)));
+ status.classList.remove('is-busy','is-error');status.removeAttribute('aria-busy');status.textContent='';status.hidden=true;
+ $('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';renderReview();showPostStep(3);return '#pi-post-submit';
 }
 function showProductionDelivery(){
  verifyMode='deliver';
@@ -363,7 +388,7 @@ function takeChangedVerificationLink(){
 if(productionMode)window.addEventListener('hashchange',takeChangedVerificationLink);
 async function requestVerification(){
  if(!localDraftId)throw adapter.safeError('Submit the listing form first.');
- if(productionMode){showProductionDelivery();await api.requestVerification(localDraftId);return '#pi-verify-title';}
+ if(productionMode){await productionDraftRequest(()=>api.requestVerification(localDraftId),{notFoundExpires:true});showProductionDelivery();return '#pi-verify-title';}
  verificationReceipt=(await api.request('/drafts/'+localDraftId+'/verification',{})).receipt;
  $('#pi-verify-email').textContent=pendingDraft.email;$('#pi-email-item').textContent=pendingDraft.title;
  $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;
@@ -398,7 +423,7 @@ function renderPhotoManager(){
  const panel=$('#pi-photo-manager');if(!panel)return;
  const row=managed.find(r=>r.id===photoListingId&&r.status!=='Removed');panel.hidden=!signedIn||!row;
  if(panel.hidden){$('.pi-manage').classList.remove('pi-photo-mode');return;}
- $('#pi-photo-manager h2').textContent='Add photos';
+ $('#pi-photo-manager h2').textContent='Manage photos';
  $('#pi-photo-listing-name').textContent=row.title;
  $('#pi-stored-photos').innerHTML=row.photos.map((p,i)=>`<div class="pi-upload-tile"><img class="pi-upload-image" src="${esc(p.url)}" alt="Photo ${i+1}"><div class="pi-photo-tools">${i===0?'<span class="pi-photo-cover">Cover</span>':`<button type="button" data-photo-action="main" data-photo-id="${esc(p.id)}">Make cover</button>`}<button type="button" data-photo-action="remove" data-photo-id="${esc(p.id)}">Remove</button></div></div>`).join('');
  $('#pi-stored-count').textContent=row.photos.length+' of 6 photos';
@@ -484,12 +509,12 @@ if(connectedMode){
  if(localMode)confirm.onclick=()=>localAction(async()=>{if(!loginReceipt||loginReceipt.recipient!==$('#pi-recovery-email').value.trim().toLowerCase())throw adapter.safeError('Request a new link for the current email address.');freezeFields();clearLocalAccess();await api.request('/management/confirm',{token:loginReceipt.token,confirm:true});loginReceipt=null;confirm.hidden=true;signedIn=true;await afterSuccess('Signed in locally.');});
  const browse=document.createElement('button');browse.type='button';browse.id='pi-browse-listings';browse.textContent='← All listings';browse.className='pi-text-button';$('.pi-manage-account').append(browse);browse.onclick=()=>go('gear');
  const logout=document.createElement('button');logout.type='button';logout.id='pi-local-logout';logout.textContent='Sign out';logout.className='pi-text-button';$('.pi-manage-account').append(logout);logout.onclick=()=>localAction(async()=>{try{await api.logout();}catch(error){if(error.status!==401)throw error;}clearLocalAccess();loginReceipt=null;confirm.hidden=true;go('gear');location.replace(new URL('/gear/',location.origin).href);});
- const trash=document.createElement('details');trash.id='pi-deleted-panel';trash.className='pi-deleted-panel';trash.hidden=true;trash.innerHTML='<summary>Recently deleted (0)</summary><div id="pi-deleted-list"></div>';$('.pi-manage').insertBefore(trash,$('#pi-management-link'));
+ const trash=document.createElement('details');trash.id='pi-deleted-panel';trash.className='pi-deleted-panel';trash.hidden=true;trash.innerHTML='<summary>Recently removed (0)</summary><p class="pi-deleted-help">Recover listings for 30 days.</p><div id="pi-deleted-list"></div>';$('.pi-manage').insertBefore(trash,$('#pi-management-link'));
  trash.addEventListener('click',e=>{const b=e.target.closest('[data-recover]');if(b)localAction(async()=>{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:b.dataset.recover,action:'restore'},access.csrf);}else await api.deletion({id:b.dataset.recover,action:'recover'});await afterSuccess(localMode?'Listing recovered locally.':'Listing recovered.');});});
  $('#pi-delete-dialog p').textContent='This hides the listing now. You can recover it for 30 days.';
  const photoPanel=document.createElement('section');photoPanel.id='pi-photo-manager';photoPanel.hidden=true;
  const photoAccept=productionMode?'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif':'image/jpeg,image/png,image/webp';
- photoPanel.innerHTML=`<button type="button" class="pi-text-button pi-photo-back">← My listings</button><div class="pi-photo-manager-heading"><div><h2 tabindex="-1">Add photos</h2><p id="pi-photo-listing-name"></p></div><p id="pi-stored-count" role="status"></p></div><label class="pi-upload-label pi-upload-button">Choose photos<input id="pi-stored-upload" type="file" accept="${photoAccept}" multiple></label><p class="pi-photo-manager-help">${productionMode?'JPG, PNG, WebP or HEIC':'JPG, PNG or WebP'} · up to 6</p><p id="pi-photo-upload-status" class="pi-photo-upload-status" role="status" hidden></p><div id="pi-stored-photos" class="pi-upload-grid"></div><div class="pi-photo-manager-done"><button type="button" class="pi-primary" id="pi-photo-done">Done</button></div>`;
+ photoPanel.innerHTML=`<button type="button" class="pi-text-button pi-photo-back">← My listings</button><div class="pi-photo-manager-heading"><div><h2 tabindex="-1">Manage photos</h2><p id="pi-photo-listing-name"></p></div><p id="pi-stored-count" role="status"></p></div><label class="pi-upload-label pi-upload-button">Choose photos<input id="pi-stored-upload" type="file" accept="${photoAccept}" multiple></label><p class="pi-photo-manager-help">${productionMode?'JPG, PNG, WebP or HEIC':'JPG, PNG or WebP'} · up to 6</p><p id="pi-photo-upload-status" class="pi-photo-upload-status" role="status" hidden></p><div id="pi-stored-photos" class="pi-upload-grid"></div><div class="pi-photo-manager-done"><button type="button" class="pi-primary" id="pi-photo-done">Done</button></div>`;
  $('.pi-manage').insertBefore(photoPanel,$('.pi-current-listings'));
  const leavePhotos=()=>{photoListingId=null;photoPanel.hidden=true;$('.pi-manage').classList.remove('pi-photo-mode');const heading=$('#pi-current-title');heading.tabIndex=-1;heading.focus();};
  $('.pi-photo-back').addEventListener('click',leavePhotos);
@@ -542,7 +567,7 @@ function openRemoveDialog(row){
  $('#pi-delete-dialog').showModal();$('#pi-delete-confirm').focus();
 }
 $('#pi-delete-cancel').onclick=()=>$('#pi-delete-dialog').close();
-$('#pi-delete-confirm').onclick=()=>{if(connectedMode){localAction(async()=>{try{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}else await api.deletion({id:deleteId,action:'delete'});}finally{$('#pi-delete-dialog').close();}photoListingId=null;await afterSuccess(localMode?'Listing deleted locally.':'Listing deleted.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
+$('#pi-delete-confirm').onclick=()=>{if(connectedMode){localAction(async()=>{try{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}else await api.deletion({id:deleteId,action:'delete'});}finally{$('#pi-delete-dialog').close();}photoListingId=null;openDeletedAfterRefresh=true;await afterSuccess(localMode?'Listing removed locally. You can recover it below for 30 days.':'Listing removed. You can recover it below for 30 days.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing removed from this preview.');$('#pi-new-listing').focus();};
 render();rememberNavigation('replace');
 postingSetup=productionMode?configureProductionPosting():null;
 const publicSetup=productionMode?refreshPublicListings().then(()=>null,error=>error):null;

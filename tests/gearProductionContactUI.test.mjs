@@ -14,15 +14,16 @@ test('production contact adapter posts the exact private payload and validates s
   const malformed=productionAPI({origin:ORIGIN,fetcher:async()=>json(202,{ok:true})});await assert.rejects(malformed.contact(input('token')),/unreadable response/);
 });
 
-test('production contact adapter preserves retry instructions and a caller-owned request id',async()=>{
-  const bodies=[];let attempt=0;const api=productionAPI({origin:ORIGIN,fetcher:async(_url,options)=>{bodies.push(JSON.parse(options.body));return ++attempt===1?json(503,{error:'This contact request is already being processed. Wait and try again.'},{'Retry-After':'60'}):json(202,{ok:true,message:'Message accepted for delivery.'});}});
-  await assert.rejects(api.contact(input('first-token')),error=>error.safe&&error.status===503&&error.retryAfter===60);
+test('production contact adapter preserves retry and uncertainty instructions with a caller-owned request id',async()=>{
+  const bodies=[];let attempt=0;const api=productionAPI({origin:ORIGIN,fetcher:async(_url,options)=>{bodies.push(JSON.parse(options.body));return ++attempt===1?json(503,{error:'This contact request is already being processed. Wait and try again.',uncertain:true},{'Retry-After':'60'}):json(202,{ok:true,message:'Message accepted for delivery.'});}});
+  await assert.rejects(api.contact(input('first-token')),error=>error.safe&&error.status===503&&error.retryAfter===60&&error.uncertain===true);
   await api.contact(input('fresh-token'));
   assert.equal(bodies[0].requestId,REQUEST_ID);assert.equal(bodies[1].requestId,REQUEST_ID);assert.notEqual(bodies[0].turnstileToken,bodies[1].turnstileToken);
 });
 
 test('production contact UI is config-gated and uses its dedicated Turnstile action',()=>{
   const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8'),html=readFileSync(new URL('../gear/index.html',import.meta.url),'utf8');
-  assert.match(source,/contactAvailable=config\.contactEnabled/);assert.match(source,/action:'gear-contact'/);assert.match(source,/contactRequestId=contactRequestId\|\|crypto\.randomUUID\(\)/);assert.match(source,/error\.status===404\|\|error\.status===409/);assert.match(source,/contactRetryLocked=true/);assert.match(source,/Send same message again/);
+  assert.match(source,/contactAvailable=config\.contactEnabled/);assert.match(source,/action:'gear-contact'/);assert.match(source,/contactRequestId=contactRequestId\|\|crypto\.randomUUID\(\)/);assert.match(source,/error\.status===0\|\|error\.uncertain===true/);assert.match(source,/if\(error\.status<500\)contactRequestId=null/);assert.match(source,/Delivery not confirmed/);assert.match(source,/To avoid a duplicate/);assert.doesNotMatch(source,/Send same message again/);
+  assert.match(html,/id="pi-contact-again">Done</);
   assert.match(html,/id="pi-contact-turnstile" hidden/);assert.match(html,/id="pi-contact-turnstile-status"/);assert.doesNotMatch(html,/id="pi-buyer-adult"/);assert.doesNotMatch(html,/id="pi-buyer-share"/);
 });

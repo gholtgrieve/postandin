@@ -3,8 +3,9 @@ import {issueVerification,releaseFailedVerificationIssue} from '../../../../lib/
 import {GearVerificationMailUnavailableError,sendVerificationLink,verificationMailConfigured} from '../../../../lib/gear-verification-mail.mjs';
 
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const verificationState=async(db,id)=>db.prepare('SELECT verified_at AS verifiedAt FROM gear_listings WHERE id=?').bind(id).first();
 
-export function createVerificationRequestHandler({issue=issueVerification,release=releaseFailedVerificationIssue,send=sendVerificationLink,configured=verificationMailConfigured,now=Date.now}={}){
+export function createVerificationRequestHandler({issue=issueVerification,release=releaseFailedVerificationIssue,send=sendVerificationLink,configured=verificationMailConfigured,state=verificationState,now=Date.now}={}){
   return async function verificationRequest(context){
     const invalidRequest=requestError(context.request,context.env);if(invalidRequest)return invalidRequest;
     const body=await requestJson(context.request);
@@ -16,10 +17,14 @@ export function createVerificationRequestHandler({issue=issueVerification,releas
     let receipt;
     try{
       receipt=await issue(db,body.value.id,now());
-      if(!receipt)return json(404,{error:'This draft is no longer available for verification.'});
+      if(!receipt){
+        const current=await state(db,body.value.id);
+        if(current?.verifiedAt!=null)return json(409,{error:'This listing is already published.'});
+        return json(404,{error:'This draft is no longer available for verification.'});
+      }
       if(receipt.limited){
         const headers=receipt.retryAfterSeconds?{'Retry-After':String(receipt.retryAfterSeconds)}:{};
-        return json(429,{error:receipt.reason==='cap'?'Verification email limit reached for this draft. Check your inbox.':'Check your inbox or try again in a minute.'},headers);
+        return json(429,{error:receipt.reason==='cap'?'Verification email limit reached. Start a new listing.':'Wait a minute, then send a new verification email.'},headers);
       }
       await send(receipt,context.env);
       return json(202,{message:'Verification email accepted for delivery.'});

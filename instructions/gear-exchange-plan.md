@@ -1197,6 +1197,46 @@ widths without browser errors or horizontal overflow, and the full Gear suite
 passes 319/319. The completed visual and typography increment is committed as
 `1b60ea9`; it has not been deployed.
 
+### Listing-flow usability cleanup — complete locally
+
+This pass keeps the working storage and verification model
+but makes its browser flow match the labels. Step 1 now collects listing and
+private contact details, then creates one hidden, three-day draft before the
+seller reaches Photos. A scoped draft credential can revise that same unverified
+record when the seller goes back, without exposing it publicly or creating a
+replacement draft. Photos attach to the saved draft while moving from Photos to
+Review; the final `Send verification email` button only requests that email.
+The review screen uses the listing's photo-led layout, public detail galleries
+use real thumbnail buttons, seller management says `Manage photos`, and a
+removal opens the clearer `Recently removed` recovery section with the 30-day
+action visible.
+
+Buyer contact no longer offers to send an unchanged message after either
+confirmed or uncertain delivery. Confirmed delivery ends with `Done`; an
+ambiguous network or server response says that delivery was not confirmed and
+warns against creating a duplicate. Retryable contact failures retain the same
+request UUID and provider idempotency key. The full repository suite passes 494/494,
+and the isolated production posting harness verifies private draft creation
+before Photos, draft-photo attachment before Review, mobile layout and email
+verification. The contact/report browser harness also passes. This work is
+complete locally and remains undeployed. Final independent Claude re-review
+approved the increment with no blocker, high or medium findings.
+
+Deferred follow-ups from that review:
+
+- Distinguish a draft that another tab or device already published from a truly
+  expired draft. Direct the seller to management instead of inviting creation of
+  a duplicate listing.
+- Improve contact's offline-only message when the browser can prove a request
+  never left the device. Until then, retain the conservative no-duplicate state
+  for all uncertain network failures.
+- After removing a photo, move keyboard focus to the next photo control or the
+  photo picker. Give each `Make cover` control a photo-specific accessible name.
+- Add regression coverage for concurrent photo-change rollback, invalid or
+  expired credentials on repeated removal, unknown reorder IDs, photo mutations
+  after verification or expiry, and verification requests for an already
+  published listing.
+
 ### Photo canary preflight — in progress
 
 The next bounded increment is readiness for a real private photo-upload canary.
@@ -1381,10 +1421,8 @@ No Gear bindings, routes, credentials or resources have been provisioned.
   together; do not replace them with hidden or implied consent fields.
 - Simplify buyer-contact delivery states. A confirmed success must never show a
   retry action. If delivery cannot be confirmed, say plainly that the message may
-  already have been sent, tell the buyer to check before trying again, and make
-  “Send the same message again” a secondary explicit action that preserves the
-  existing request ID. Do not label this ambiguous state as either success or a
-  generic failure.
+  already have been sent and end that submission without offering a duplicate
+  retry. Do not label this ambiguous state as either success or a generic failure.
 - Simplify report confirmation copy by removing “No automatic action was taken.”
   Confirm only that the report was submitted for review.
 - Validate/re-encode photos and remove metadata in a trusted pipeline before

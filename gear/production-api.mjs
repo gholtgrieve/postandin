@@ -47,7 +47,7 @@ async function responseJson(response,maxBytes=MAX_RESPONSE_BYTES){
     const fallback=response.status===401?'Your session has ended. Request a new management link.':response.status===429?'Too many requests. Wait before trying again.':response.status>=500?'This service is temporarily unavailable. Please try again later.':'Unable to complete this request.';
     const message=typeof result?.error==='string'&&result.error.length<=300?result.error:fallback;
     const fields=result?.fields&&typeof result.fields==='object'&&!Array.isArray(result.fields)?Object.fromEntries(Object.entries(result.fields).filter(([,value])=>typeof value==='string'&&value.length<=300)):null;
-    return Object.assign(safeError(message,response.status,fields),{retryAfter});
+    return Object.assign(safeError(message,response.status,fields),{retryAfter,uncertain:result?.uncertain===true});
   };
   let text;try{text=await response.text();}catch{if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
   if(text.length>maxBytes){if(!response.ok)throw failure();throw safeError('The server returned an unreadable response. Please try again.');}
@@ -66,6 +66,7 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     return responseJson(response);
   }
   async function createDraft(listing,turnstileToken){const result=await request('/drafts',{listing,turnstileToken});if(!UUID.test(result.id??'')||result.status!=='unverified'||!TOKEN.test(result.photoToken??''))throw safeError('The server returned an unreadable response. Please try again.');return result;}
+  async function updateDraft(listingId,draftToken,listing){const result=await request('/drafts/update',{listingId,draftToken,listing});if(result.ok!==true)throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function confirmVerification(token){const result=await request('/verification/confirm',{token,confirm:true});if(result.verified!==true||!UUID.test(result.listingId??'')||(result.alreadyVerified!==undefined&&result.alreadyVerified!==true))throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function requestVerification(id){const result=await request('/verification/request',{id});if(typeof result.message!=='string'||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function contact(input){const result=await request('/contact',input);if(result.ok!==true||typeof result.message!=='string'||!result.message||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
@@ -113,13 +114,21 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     let uploaded;try{uploaded=await fetcher(uploadURL.href,{method:'POST',body:form,credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'});}catch{throw safeError('The photo could not be uploaded. Please try again.');}
     if(!uploaded.ok)throw safeError('The photo could not be uploaded. Please try again.');
     for(let attempt=0;attempt<4;attempt++){
-      try{return await request('/drafts/photos/finalize',{quarantineProviderId:created.quarantineProviderId,draftToken});}
+      try{const result=await request('/drafts/photos/finalize',{quarantineProviderId:created.quarantineProviderId,draftToken});if(result.ok!==true||!UUID.test(result.photoId??''))throw safeError('The server returned an unreadable response. Please try again.');return result;}
       catch(error){if(error.status!==409||error.message!=='Photo upload is still in progress.')throw error;if(attempt===3)throw safeError('The photo is still processing and was not attached. Wait a minute, then upload it again.',409);await wait(1000);}
     }
   }
+  async function removeDraftPhoto(listingId,draftToken,photoId){
+    if(!UUID.test(listingId??'')||!TOKEN.test(draftToken??'')||!UUID.test(photoId??''))throw safeError('Choose a draft photo.');
+    const result=await request('/drafts/photos/remove',{listingId,draftToken,photoId});if(result.ok!==true)throw safeError('The server returned an unreadable response. Please try again.');return result;
+  }
+  async function reorderDraftPhotos(listingId,draftToken,photoIds){
+    if(!UUID.test(listingId??'')||!TOKEN.test(draftToken??'')||!Array.isArray(photoIds)||photoIds.length>6||new Set(photoIds).size!==photoIds.length||photoIds.some(photoId=>!UUID.test(photoId)))throw safeError('Choose a valid draft photo order.');
+    const result=await request('/drafts/photos/reorder',{listingId,draftToken,photoIds});if(result.ok!==true)throw safeError('The server returned an unreadable response. Please try again.');return result;
+  }
   return {
-    request,session,config,listings,uploadPhoto,uploadDraftPhoto,
-    createDraft,contact,report,
+    request,session,config,listings,uploadPhoto,uploadDraftPhoto,removeDraftPhoto,reorderDraftPhotos,
+    createDraft,updateDraft,contact,report,
     requestVerification,
     confirmVerification,
     confirm:token=>request('/management/confirm',{token,confirm:true}),

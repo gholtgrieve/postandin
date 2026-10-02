@@ -32,12 +32,12 @@ export function createContactHandler({verify=verifyGearContactTurnstile,reserve=
     if(reservation.contact.status==='sent')return json(202,{ok:true,message:'Message accepted for delivery.'});
     let deliveryClaim;try{deliveryClaim=await claim(db,reservation.contact.id,now());}catch{console.error('Gear contact delivery claim failed.');return json(503,{error:'Unable to send this message right now. Please try again.'});}
     if(deliveryClaim.sent)return json(202,{ok:true,message:'Message accepted for delivery.'});
-    if(deliveryClaim.busy){const response=json(503,{error:'This contact request is already being processed. Wait and try again.'});response.headers.set('Retry-After','60');return response;}
+    if(deliveryClaim.busy){const response=json(503,{error:'This contact request is already being processed. Wait and try again.',uncertain:true});response.headers.set('Retry-After','60');return response;}
     if(deliveryClaim.expired||deliveryClaim.stale)return json(409,{error:'Start a new contact request and try again.'});
     if(deliveryClaim.unavailable)return json(404,{error:'This listing is no longer available for contact.'});
     if(!deliveryClaim.claimed)return json(409,{error:'Start a new contact request and try again.'});
     let receipt;try{receipt=await deliver(reservation.contact,context.env);}catch(error){try{await release(db,reservation.contact.id,deliveryClaim.token);}catch{}console.error('Gear contact email delivery failed.',error instanceof GearContactMailUnavailableError?'provider':'unexpected');return json(503,{error:'Unable to send this message right now. Please try again.'});}
-    try{if(!await mark(db,reservation.contact.id,receipt.id,now(),deliveryClaim.token))throw new Error();}catch{console.error('Gear contact delivery receipt could not be recorded.');return json(503,{error:'Unable to confirm this message right now. Please try again.'});}
+    try{if(!await mark(db,reservation.contact.id,receipt.id,now(),deliveryClaim.token))throw new Error();}catch{console.error('Gear contact delivery receipt could not be recorded.');return json(503,{error:'Unable to confirm this message right now.',uncertain:true});}
     return json(202,{ok:true,message:'Message accepted for delivery.'});
   };
 }

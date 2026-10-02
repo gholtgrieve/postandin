@@ -158,7 +158,7 @@ test('oversized phone photos are prepared automatically without changing the ori
 test('photo management is focused, supports multi-select and reports progress',()=>{
   const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
   const styles=readFileSync(new URL('../gear/gear.css',import.meta.url),'utf8');
-  assert.match(source,/button\('photos','Add photos'\)/);
+  assert.match(source,/button\('photos','Manage photos'\)/);
   assert.match(source,/id="pi-stored-upload"[^>]+multiple/);
   assert.match(source,/Uploading \$\{i\+1\} of \$\{files\.length\}/);
   assert.match(source,/status\.classList\.toggle\('is-busy',busy\)/);

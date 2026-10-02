@@ -6,7 +6,7 @@ real mail was created or used.
 
 ## Request flow
 
-All three endpoints accept bounded JSON only from the exact
+All posting endpoints accept bounded JSON only from the exact
 `https://postandin.com` origin and return `Cache-Control: no-store` plus a
 no-referrer policy.
 
@@ -14,17 +14,30 @@ no-referrer policy.
    full listing, verifies the single-use Turnstile token server-side for hostname
    `postandin.com` and action `gear-post`, and only then creates an unverified D1
    draft. It returns the random draft UUID, never a verification credential.
-2. `POST /api/gear/verification/request` accepts that UUID. The UUID is a
+2. `POST /api/gear/drafts/update` accepts the draft UUID, its separate
+   listing-scoped draft token and a complete validated listing. It preserves the
+   private draft ID, invalidates any previously issued verification link and
+   allows the Details screen to be corrected during the three-day draft lifetime.
+3. `POST /api/gear/drafts/photos/upload` and
+   `POST /api/gear/drafts/photos/finalize` accept that same scoped draft token,
+   attach sanitized private photos and return the attached photo ID. The scoped
+   `POST /api/gear/drafts/photos/remove` and
+   `POST /api/gear/drafts/photos/reorder` routes persist what the Photos and
+   Review screens show before publication. Removal is idempotent, and reorder
+   treats the browser's ordered photo-ID subset (including an empty list) as the
+   authoritative state, removing server photos omitted from that list.
+4. `POST /api/gear/verification/request` accepts that UUID. The UUID is a
    temporary capability to replace the draft's 30-minute verification token and
    send it only to the email already stored for that draft. It cannot choose or
    reveal the recipient. Source enforces a one-minute cooldown and five-message
-   cap per draft. A provider/configuration failure returns 503 and says the
+   cap per draft, even if the seller corrects the draft email address; editing
+   invalidates an issued link without resetting that cap. A provider/configuration failure returns 503 and says the
    three-day draft remains saved for retry; it never claims delivery. Missing
    configuration does not rotate a prior token. A definite pre-delivery rejection
    invalidates its unsent token and releases that attempt's count and cooldown;
    ambiguous network, 5xx or post-acceptance failures keep the token, count and
    cooldown reserved. A token-hash guard cannot roll back a newer issuance.
-3. The email link is
+5. The email link is
    `https://postandin.com/gear/#verification=<64-hex-token>`. A browser increment
    must read and erase the fragment synchronously. Opening the link is inert.
    `POST /api/gear/verification/confirm` requires `{token, confirm:true}` and is
@@ -60,9 +73,11 @@ JSON draft request and the widget is reset after every draft attempt. Error and
 expiry callbacks clear the token while Turnstile owns its automatic retry and
 refresh. An already-created unchanged draft ID is kept in memory when email
 delivery fails, so the verification-screen resend button requests another
-message without another draft or Turnstile solve. Editing the form creates a new
-draft and requires a fresh token. The delivery screen warns that older messages
-publish their earlier saved draft content.
+message without another draft or Turnstile solve. Editing the form updates that
+same private draft through its scoped token, invalidates any older verification
+link and requires a newly delivered link for the revised content. If the draft
+expires, the browser keeps the entered details and selected local photos, returns
+to Details and requests a new privacy check.
 
 The browser reads a strict `#verification=<64-hex-token>` fragment and erases it
 synchronously before any awaited import or network work. It never auto-publishes:
@@ -115,6 +130,9 @@ node --check lib/gear-verification.mjs
 node --check lib/gear-verification-mail.mjs
 node --check lib/gear-turnstile.mjs
 node --check functions/api/gear/drafts.js
+node --check functions/api/gear/drafts/update.js
+node --check functions/api/gear/drafts/photos/remove.js
+node --check functions/api/gear/drafts/photos/reorder.js
 node --check functions/api/gear/verification/request.js
 node --check functions/api/gear/verification/confirm.js
 ```

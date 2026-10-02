@@ -1172,8 +1172,10 @@ with the buyer email as Reply-To and records provider acceptance before success.
 The route also requires `GEAR_CONTACT_ENABLED=true`. The production contact
 form is source-connected but remains disabled unless the no-store config route
 reports that the same flag is exactly enabled. It renders a dedicated
-`gear-contact` Turnstile widget and preserves one request UUID across uncertain
-retries while rotating the single-use Turnstile token. No binding, secret,
+`gear-contact` Turnstile widget and uses one request UUID per submission. An
+uncertain network or server response ends that browser submission with a neutral
+delivery-not-confirmed result and no duplicate-send action. A retryable server
+failure keeps the same request UUID and provider idempotency key. No binding, secret,
 feature flag, edge rule, mail or deployment exists.
 
 Local reports now use a bounded in-memory inspection queue; see
@@ -1256,12 +1258,19 @@ The source-only production posting boundary exposes exact-origin POST routes for
 draft creation, verification-email delivery and explicit confirmation. Draft
 creation validates the complete listing before server-side Turnstile validation
 for hostname `postandin.com` and action `gear-post`, then writes only an
-unverified D1 record. Its random UUID is a temporary capability for resending a
+unverified D1 record. The browser creates this private record when the seller
+leaves the Details step, before photo selection. A separate random, hashed,
+listing-scoped draft credential authorizes validated detail revisions and private
+photo attachment, idempotent removal and authoritative ordered-subset replacement
+during the three-day draft lifetime; revisions preserve the
+listing ID and never make the record public. Its random UUID is a temporary capability for resending a
 verification message to the address already stored with that draft; it never
 selects a new recipient. Resend receives a 30-minute, one-listing bearer token in
 the URL fragment, and opening the link cannot publish because confirmation is a
 separate POST. Tokens are stored only as SHA-256 hashes. Production delivery is
-limited to five messages per draft with a one-minute cooldown; reissue revokes
+limited to five messages per draft with a one-minute cooldown, including across
+draft email corrections; editing invalidates an issued link without resetting
+that cap, and reissue revokes
 the old token. Confirmation is single-use at the mutation boundary, safely
 acknowledges a committed response retry within token expiry, and publication
 rechecks draft state, seller/email consistency, the active-listing quota and

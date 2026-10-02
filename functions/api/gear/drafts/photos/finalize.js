@@ -30,7 +30,7 @@ export function createDraftPhotoFinalizeHandler({access=hasDraftPhotoAccess,clai
           try{await queueIfUnattached(db,claimed.listingId,processed.providerId,timestamp);}catch{}return json(500,{error:'Unable to attach this photo right now.'});
         }
       }
-      if(attached?.ok||attached?.reason==='attached'){if(processed.cleanupProviderIds.length)try{await queue(db,claimed.listingId,processed.cleanupProviderIds,timestamp);}catch{}return json(200,{ok:true});}
+      if((attached?.ok||attached?.reason==='attached')&&isGearImageProviderId(attached.photoId)){if(processed.cleanupProviderIds.length)try{await queue(db,claimed.listingId,processed.cleanupProviderIds,timestamp);}catch{}return json(200,{ok:true,photoId:attached.photoId});}
       await discardOrQueue([processed.providerId,...(attached?.cleanupProviderIds??[])]);return json(409,{error:'This photo can no longer be attached.'});
     }catch(error){console.error('Gear draft photo finalize failed.',error);if(claimed)try{await release(db,values.quarantineProviderId,claimed.claim,timestamp);}catch{}return json(500,{error:'Unable to process this photo right now.'});}
   };
