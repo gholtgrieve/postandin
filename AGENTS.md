@@ -27,11 +27,31 @@ separate second opinion.
 Do not overwrite or discard pre-existing uncommitted work. Ask before touching
 files that contain unrelated changes.
 
+## Feature handoffs
+
+For Gear Exchange work, start with the **Resume here** section in
+[instructions/gear-exchange-plan.md](instructions/gear-exchange-plan.md).
+It records the completed commits, implemented versus simulated behavior,
+next bounded task, acceptance criteria, review history and deployment limits.
+Use [instructions/gear-storage.md](instructions/gear-storage.md) for local
+storage commands and data/privacy boundaries. Recheck Git and code, and update
+the handoff when an increment changes the state. These repo documents are the
+continuation source; prior chat history is not required.
+
 ## Implementation rules
 
 - Keep the architecture deliberately simple: vanilla HTML, CSS, and JavaScript.
 - Do not add a framework, build step, bundler, package manager, npm dependency,
   or CSS framework without explicit approval.
+- Use the documented Post & In typography on every user-facing page: Bebas Neue
+  for display text and IBM Plex Mono for body and UI text. Load the same font
+  families and weights already used by the site; do not substitute lookalike or
+  system fonts unless the owner explicitly approves an exception.
+- Use the Oxford comma in Post & In copy and documentation.
+- Keep the shared site shell visually consistent: a 52px dark navigation bar,
+  warm paper background, centered content no wider than 1100px, mustard page
+  rules, and the standard dark footer. Feature controls may differ, but they
+  must not redefine the site chrome, palette, type scale, or content width.
 - Keep changes narrowly scoped. Do not perform opportunistic redesigns or
   refactors.
 - Never put credentials, tokens, Airtable identifiers, or private personal
@@ -56,9 +76,9 @@ files that contain unrelated changes.
   run destructive/admin scripts unless the owner explicitly asks for that
   action.
 - A push to `main` deploys the Pages site automatically.
-- Changes under `group-do/` or `scheduler/`, and changes to shared runtime files
-  imported by either Worker (for example `lib/activities.js`, `lib/scrapeAll.js`,
-  or `lib/scrapers/*.js` for the scheduler), also require a separate
+- Changes under `group-do/`, `scheduler/`, `gear-maintenance/` or `gear-images/`, and changes to shared runtime files
+  imported by those Workers (for example `lib/activities.js`, `lib/scrapeAll.js`,
+  or `lib/scrapers/*.js` for the scheduler and `lib/gear-image-*.mjs` for Gear Images), also require a separate
   `wrangler deploy` from the affected Worker's directory. Never imply that
   `git push` deployed those Workers.
 - Do not use real secrets for testing. If live credentials or production writes

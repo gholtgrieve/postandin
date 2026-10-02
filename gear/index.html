@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Gear Exchange — Post &amp; In</title><link rel="stylesheet" href="./gear.css?v=20261002-3"></head><body>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<div id="pi-gear-preview">
+  <div class="pi-preview-bar">
+    <span>DEVELOPMENT PREVIEW · Nothing is saved or sent <span class="pi-preview-note">· Sample listings</span></span>
+    <div class="pi-screen-buttons"><button type="button" data-screen="home" aria-pressed="false">Homepage</button><button type="button" data-screen="gear" aria-pressed="false">Gear Exchange</button><button type="button" data-screen="detail" aria-pressed="true">Listing Detail</button><button type="button" data-screen="post" aria-pressed="false">Post Gear</button><button type="button" data-screen="manage" aria-pressed="false">Manage</button></div>
+  </div>
+  <div class="pi-site">
+    <header class="pi-header"><button class="pi-logo" type="button" data-go="home">Post &amp; In</button><span class="pi-section" hidden><span class="pi-slash">/</span> Gear Exchange</span><button class="pi-back" type="button" data-go="home" hidden>← Home</button></header>
+    <section class="pi-home">
+      <div class="pi-home-hero"><h1>Seattle is a<br>Hockey City!</h1><div class="pi-mission"><p>Since the Kraken arrived, the game here has transformed. The rinks are full. The programs are serious. A generation of Seattle kids are growing up with NHL hockey in their backyard, and it shows in how they play.</p><p>Post &amp; In is a community project — tools built by hockey parents for players and coaches who love this game.</p></div></div>
+      <div class="pi-bridge">Here's how we can help.</div>
+      <div class="pi-tools" aria-label="Homepage tool cards">
+        <button class="pi-tool" type="button" data-go="gear"><h2><span class="pi-diamond"></span>Find Some Gear</h2><p>Buy, sell, trade, and pass along hockey gear with Seattle-area families.</p><span class="pi-cta">Browse Gear →</span></button>
+        <a class="pi-tool" href="https://postandin.com/stick-and-puck/" target="_blank" rel="noopener"><h2><span class="pi-diamond"></span>Find Ice Time</h2><p>Stick &amp; Puck, Drop-In Hockey, and Public Skate sessions across local rinks.</p><span class="pi-cta">View Ice Time Calendar →</span></a>
+        <a class="pi-tool" href="https://postandin.com/coaches/" target="_blank" rel="noopener"><h2><span class="pi-diamond"></span>Find A Coach</h2><p>Seattle-area coaches for private lessons and player development.</p><span class="pi-cta">Browse Coach Profiles →</span></a>
+      </div>
+    </section>
+    <section class="pi-gear" hidden>
+      <div class="pi-gear-hero"><div><div class="pi-eyebrow">Seattle &amp; Puget Sound</div><h1>Gear Exchange</h1><p>Keep good gear in the game.</p></div><div class="pi-post-actions"><button class="pi-primary" type="button" data-go="post">List Your Gear <span aria-hidden="true">＋</span></button><button class="pi-text-button" type="button" data-go="manage">Manage my listings</button></div></div>
+      <div class="pi-search-panel">
+        <label class="pi-search"><span class="pi-sr">Search gear</span><span aria-hidden="true">◇</span><input type="search" id="pi-search" placeholder="Search skates, sticks, brands…" autocomplete="off"></label>
+        <details class="pi-filter-disclosure"><summary>Filters</summary><div class="pi-filters">
+          <label>Category<select id="pi-category"><option value="">All gear</option><option>Skates</option><option>Sticks</option><option>Protective gear</option><option>Goalie gear</option><option>Apparel</option><option>Bags &amp; accessories</option><option>Bundles</option></select></label>
+          <label>Size group<select id="pi-size"><option value="">All sizes</option><option>Youth</option><option>Junior</option><option>Intermediate</option><option>Senior</option></select></label>
+          <label>City<select id="pi-area"><option value="">All areas</option><option>Seattle</option><option>Eastside</option><option>North Sound</option><option>South Sound</option></select></label>
+          <label>Club<select id="pi-club"><option value="">All clubs</option><option value="none">No club branding</option><option>Seattle Junior</option><option>Sno-King</option><option>Jr. Kraken</option><option>Everett</option><option>Star Academy</option><option>Kent Valley</option><option>Tacoma Rockets</option><option>Redhawks</option></select></label><label>Max price ($)<input id="pi-price" type="number" min="0" step="5" placeholder="Any"></label>
+        </div>
+      </details></div>
+      <div class="pi-type-row"><div class="pi-types" role="group" aria-label="Listing type"><button type="button" data-type="All" aria-pressed="true">All</button><button type="button" data-type="Sale" aria-pressed="false">For Sale</button><button type="button" data-type="Trade" aria-pressed="false">Trade</button><button type="button" data-type="Free" aria-pressed="false">Free</button></div><span class="pi-local">Local pickup · Community listings</span></div>
+      <div class="pi-listings-heading"><h2>Latest gear</h2><div class="pi-results-bar"><span id="pi-count" aria-live="polite"></span><button class="pi-clear" type="button" hidden>Clear filters</button><label class="pi-sort">Sort<select id="pi-sort"><option value="new">Newest first</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label></div></div>
+      <div class="pi-results"></div>
+      <div class="pi-empty" hidden><h2>No gear matches yet.</h2><p>Try another size or widen your location filter.</p><button class="pi-primary" type="button" data-clear>Clear filters</button></div>
+      <div class="pi-bottom"><span>Have gear ready for its next player?</span><button class="pi-text-button" type="button" data-go="post">List Your Gear →</button></div>
+    </section>
+    <section class="pi-detail" aria-label="Listing detail" hidden>
+      <button type="button" class="pi-text-button pi-return" data-go="gear">← Back to gear</button>
+      <div class="pi-detail-heading"><div class="pi-eyebrow" id="pi-detail-category"></div><h1 id="pi-detail-title"></h1><div class="pi-detail-meta"><span id="pi-detail-location"></span><span id="pi-detail-age"></span></div></div>
+      <div class="pi-detail-grid">
+        <aside class="pi-contact-panel" aria-label="Price and seller contact">
+          <div class="pi-offer-type" id="pi-offer-type"></div><div class="pi-detail-price" id="pi-detail-price"></div><div class="pi-availability" id="pi-availability"></div>
+          <div class="pi-seller"><span>Listed by <strong id="pi-seller-name"></strong></span></div>
+          <div id="pi-contact-intro"><button type="button" class="pi-primary pi-wide" id="pi-contact-open">Contact seller</button></div>
+          <form id="pi-contact-form" hidden>
+            <h2>Contact seller</h2>
+            <label for="pi-buyer-name">Your first name</label><input id="pi-buyer-name" name="name" autocomplete="given-name" required maxlength="60" placeholder="First name">
+            <label for="pi-buyer-email">Your email</label><input id="pi-buyer-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com" aria-describedby="pi-contact-privacy">
+            <label for="pi-buyer-message">Message</label><textarea id="pi-buyer-message" name="message" rows="5" required maxlength="2000" placeholder="Ask about the gear or suggest a pickup time."></textarea>
+            <p id="pi-contact-privacy" class="pi-contact-help">The seller will receive your name, email, and message. They can reply directly to your email.</p>
+            <div id="pi-contact-turnstile" hidden></div><p id="pi-contact-turnstile-status" class="pi-form-note" role="status"></p>
+            <p class="pi-form-note" id="pi-contact-note">Preview only. Use sample details; no email is sent.</p>
+            <button type="button" class="pi-primary pi-wide" id="pi-preview-send">Preview send</button><button type="button" class="pi-text-button" id="pi-contact-cancel">Cancel</button>
+          </form>
+          <div id="pi-contact-success" role="status" hidden><span aria-hidden="true">◇</span><h2>Message preview complete</h2><p>On the live site, your message would be emailed to the seller, who could reply directly to you.</p><small>No email was sent.</small><button type="button" class="pi-text-button" id="pi-contact-again">Done</button></div>
+          
+          <button type="button" class="pi-text-button" id="pi-report-open">Report this listing</button>
+          <form id="pi-report-form" hidden><label for="pi-report-reason">Reason</label><select id="pi-report-reason" required><option value="">Choose a reason</option></select><div id="pi-report-turnstile" hidden></div><p id="pi-report-turnstile-status" class="pi-form-note" role="status"></p><p class="pi-form-note" id="pi-report-note">Preview only. No report is sent.</p><button type="button" class="pi-primary" id="pi-preview-report">Preview report</button><button type="button" class="pi-text-button" id="pi-report-cancel">Cancel</button></form><p id="pi-report-result" tabindex="-1" role="status" hidden>Report preview complete. No report was sent.</p>
+        </aside>
+        <div class="pi-item-content">
+          <div class="pi-photo-stage"></div>
+          <div class="pi-photo-picker" role="group" aria-label="Listing photos"></div>
+          <div class="pi-item-description"><h2>About this gear</h2><p id="pi-description"></p><dl class="pi-facts"><div><dt>Size &amp; fit</dt><dd id="pi-fit"></dd></div><div><dt>Condition</dt><dd id="pi-condition"></dd></div><div id="pi-trade-fact" hidden><dt>Looking for</dt><dd id="pi-trade-detail"></dd></div></dl></div>
+        </div>
+
+      </div>
+    </section>
+    <section class="pi-post pi-seller-page" hidden>
+      <div class="pi-seller-heading"><div class="pi-eyebrow">Gear Exchange</div><h1 id="pi-post-title">List Your Gear</h1><div class="pi-steps" aria-label="Posting progress"><span data-step-label="1">1 · Details</span><span data-step-label="2">2 · Photos</span><span data-step-label="3">3 · Review</span></div></div>
+      <div class="pi-demo-note">Prototype only · Nothing is uploaded, published, or emailed. <button type="button" id="pi-fill-demo">Fill with sample details</button></div>
+      <form id="pi-post-form" class="pi-seller-form">
+        <div data-post-step="1">
+          <fieldset class="pi-offer-choice"><legend>I'm offering</legend><label><input type="radio" name="offer" value="Sale" checked>For Sale</label><label><input type="radio" name="offer" value="Trade">Trade</label><label><input type="radio" name="offer" value="Free">Free</label></fieldset>
+          <div class="pi-form-grid"><label class="pi-span">Listing title<input id="pi-post-name" required maxlength="100" placeholder="e.g. Seattle Junior hockey bag"></label><label>Gear type<select id="pi-post-category" required><option value="">Choose a category</option><option>Skates</option><option>Sticks</option><option>Protective gear</option><option>Goalie gear</option><option>Apparel</option><option>Bags &amp; accessories</option><option>Bundles</option></select></label><label id="pi-asking-label">Price ($)<input id="pi-post-price" type="number" min="1" step="0.01" required placeholder="40"></label><label>Size group<select id="pi-post-size" required><option value="">Choose a size group</option><option>Youth</option><option>Junior</option><option>Intermediate</option><option>Senior</option><option>One size</option><option>Mixed sizes</option></select></label><label>Size &amp; fit<input id="pi-post-fit" required maxlength="160" placeholder="e.g. Junior bag, 30 × 18 × 15 in"></label><label>Condition<select id="pi-post-condition" required><option value="">Choose condition</option><option>New / unused</option><option>Used — excellent</option><option>Used — good</option><option>Used — fair</option></select></label><label>City<input id="pi-post-city" required maxlength="60" placeholder="e.g. Seattle"></label></div>
+          <fieldset class="pi-club-fields"><legend>Club branding <span>Optional</span></legend><p class="pi-field-help">Which club appears on the gear?</p><div class="pi-club-checks"><label><input type="checkbox" name="club" value="Seattle Junior">Seattle Junior</label><label><input type="checkbox" name="club" value="Sno-King">Sno-King</label><label><input type="checkbox" name="club" value="Jr. Kraken">Jr. Kraken</label><label><input type="checkbox" name="club" value="Everett">Everett</label><label><input type="checkbox" name="club" value="Star Academy">Star Academy</label><label><input type="checkbox" name="club" value="Kent Valley">Kent Valley</label><label><input type="checkbox" name="club" value="Tacoma Rockets">Tacoma Rockets</label><label><input type="checkbox" name="club" value="Redhawks">Redhawks</label><label><input type="checkbox" name="club" value="Other">Other club</label></div><label id="pi-other-club-label">Other club name<input id="pi-other-club" maxlength="80" placeholder="Enter your club name"></label><p class="pi-field-help">Leave unchecked for gear without club branding.</p></fieldset>
+          <label id="pi-trade-label" hidden>What would you trade for?<input id="pi-post-trade" maxlength="180" placeholder="Describe the gear or size you need."></label>
+          <label>Description<textarea id="pi-post-description" rows="5" maxlength="3000" required placeholder="Describe the gear, including its condition, wear, repairs, damage, and any unknown history."></textarea></label>
+          <div class="pi-contact-fields"><h2>Your contact details</h2><div class="pi-form-grid"><label>First name<input id="pi-post-seller" required maxlength="60" autocomplete="given-name" placeholder="Shown on your listing"></label><label>Email<input id="pi-post-email" required type="email" maxlength="254" autocomplete="email" placeholder="you@example.com"></label></div><p class="pi-field-help">Your email stays private. Buyers contact you through Post &amp; In.</p></div>
+          <div id="pi-post-turnstile" hidden></div><p id="pi-turnstile-status" class="pi-field-help" role="status"></p>
+          <div class="pi-form-actions"><button type="button" class="pi-text-button" id="pi-post-cancel">Cancel</button><button class="pi-primary" type="button" id="pi-next-photos">Continue →</button></div>
+        </div>
+        <div data-post-step="2" hidden>
+          <div id="pi-post-photos"><div class="pi-photo-heading"><h2>Photos</h2><span id="pi-photo-count" aria-live="polite">0 of 6</span></div><p class="pi-field-help">Choose up to six. The first is the cover.</p><div id="pi-upload-grid" class="pi-upload-grid"></div><div class="pi-upload-actions"><label class="pi-upload-label pi-upload-button">Choose photos<input id="pi-photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple></label><button type="button" class="pi-text-button" id="pi-add-sample">Add sample photo</button></div><p id="pi-photo-error" class="pi-error" role="alert" hidden></p></div>
+          <p id="pi-draft-upload-status" class="pi-photo-upload-status" role="status" hidden tabindex="-1"></p>
+          <div class="pi-form-actions"><button type="button" class="pi-text-button" data-post-back="1">← Back</button><button type="button" class="pi-text-button" data-post-cancel>Cancel</button><button class="pi-primary" type="button" id="pi-next-review">Review listing →</button></div>
+        </div>
+        <div data-post-step="3" hidden><div id="pi-listing-review" class="pi-review"></div><p class="pi-field-help" id="pi-publish-explanation">Your listing appears after you verify your email. It expires after 30 days.</p><div class="pi-form-actions"><button type="button" class="pi-text-button" data-post-back="2">← Back</button><button type="button" class="pi-text-button" data-post-cancel>Cancel</button><button class="pi-primary" type="button" id="pi-post-submit">Send verification email</button></div></div>
+      </form>
+      <div id="pi-verify-screen" class="pi-verify" hidden><div class="pi-eyebrow">One more step</div><h2 id="pi-verify-title" tabindex="-1">Check your email</h2><p id="pi-verify-intro"><span id="pi-verify-intro-text">A verification link would be sent to </span><strong id="pi-verify-email"></strong>.</p><p id="pi-verify-detail">Open it to publish your listing and access your private management page.</p><div class="pi-email-example"><span id="pi-email-label">EMAIL PREVIEW · POST &amp; IN</span><h3>Verify your listing</h3><p id="pi-email-item"></p></div><p class="pi-field-help" id="pi-verify-note">Preview only. No email has been sent.</p><div class="pi-verify-actions"><button type="button" class="pi-text-button" id="pi-verify-back" data-post-back="1">Change email</button><button class="pi-primary" type="button" id="pi-simulate-verify">Simulate verification link →</button></div></div>
+    </section>
+    <section class="pi-manage pi-seller-page" hidden>
+      <div class="pi-seller-heading"><h1>My Listings</h1><div class="pi-manage-account" aria-label="Account actions"></div></div>
+      <div class="pi-demo-note">Demo access</div><p id="pi-manage-feedback" role="status" hidden></p>
+      <section class="pi-current-listings" aria-labelledby="pi-current-title"><div class="pi-current-heading"><div><h2 id="pi-current-title">Current listings</h2><span id="pi-active-count"></span></div><button type="button" class="pi-primary" id="pi-new-listing">List gear ＋</button></div><div id="pi-managed-list"></div></section>
+      <div class="pi-recovery" id="pi-management-link"><button class="pi-text-button" type="button" id="pi-recovery-open">Need a new management link?</button><form id="pi-recovery-form" class="pi-seller-form" hidden><label>Email<input id="pi-recovery-email" type="email" required autocomplete="email" placeholder="you@example.com"></label><button type="button" class="pi-primary" id="pi-recovery-send">Preview request</button><p id="pi-recovery-result" role="status" hidden>If listings match that address, a new management link would be emailed. No email was sent.</p></form></div>
+    </section>
+    <dialog id="pi-delete-dialog" aria-labelledby="pi-delete-title"><h2 id="pi-delete-title">Remove listing?</h2><p>This hides the listing now. You can recover it for 30 days.</p><button type="button" class="pi-primary" id="pi-delete-confirm">Remove listing</button> <button type="button" class="pi-text-button" id="pi-delete-cancel">Cancel</button></dialog>
+    <details class="pi-recovery" id="pi-gear-rules"><summary>Gear Exchange rules and privacy</summary>
+      <p>For adults 18 and older arranging local exchanges of hockey gear.</p>
+      <p>Describe wear, repairs, damage and unknown history. Prohibited listings include stolen or counterfeit goods, recalled items, weapons, unrelated goods, and dealer inventory.</p>
+      <p>Protective gear is allowed. Post &amp; In does not inspect or certify equipment. Check fit, condition, recall status and manufacturer guidance before use; photos and seller descriptions cannot establish safety.</p>
+      <p>Your listing name, city, description and photos are public when published. Keep private contact details and children's personal information out of listings and photos. Seller email stays off listings. Buyer contact shares the buyer's name, email and message with the seller; a direct reply reveals the seller's email.</p>
+      <p>Use sample details in this preview. Connected local mode stores sample listings and sanitized photos on this computer. Local contact messages are inspection copies; no email is sent. Deletion hides listings and photos with 30-day recovery. Authorized moderators may review associated text during recovery; permanent cleanup removes it. Local cleanup runs automatically while the preview server is running. Unverified drafts last 3 days, contact copies 24 hours, and reports and moderation history 30 days; cleanup can take up to another day.</p>
+    </details>
+    <footer class="pi-footer"><span>POSTANDIN.COM</span><button type="button" data-go="home">Home</button><a href="https://postandin.com/stick-and-puck/" target="_blank" rel="noopener">Ice Time</a><a href="https://postandin.com/coaches/" target="_blank" rel="noopener">Coaches</a><button type="button" data-go="gear">Gear Exchange</button></footer>
+  </div>
+</div>
+<script type="module" src="./gear.mjs?v=20261002-2"></script></body></html>

@@ -1,5 +1,7 @@
 .DS_Store
 .wrangler/
+gear-images/wrangler.toml
+gear-maintenance/wrangler.toml
 
 # Local environment files may contain credentials. Keep documented examples.
 .dev.vars*
@@ -8,10 +10,38 @@
 !.env.example
 
 # instructions/ holds working material that stays out of the repo (drafts,
-# audit reports, backlog notes, .docx files). The technical spec is the one
-# exception — it's tracked so it can be updated alongside the code it
-# describes. Note the pattern must be `instructions/*`, not `instructions/`:
+# audit reports, backlog notes, .docx files). The technical spec and active
+# Gear Exchange plan are tracked alongside the code they describe. Note the pattern must be `instructions/*`, not `instructions/`:
 # git will not re-include a file whose parent directory is itself excluded,
 # so negating a path inside an excluded directory silently does nothing.
 instructions/*
+!instructions/gear-production-contact.md
 !instructions/postandin-technical-spec.md
+!instructions/gear-exchange-plan.md
+!instructions/gear-storage.md
+
+# Never track local databases or their journals.
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+!instructions/gear-management.md
+!instructions/gear-email-change.md
+!instructions/gear-d1-validation.md
+!instructions/gear-connected-preview.md
+!instructions/gear-photos.md
+!instructions/gear-contact.md
+!instructions/gear-reports.md
+!instructions/gear-owner-moderation.md
+!instructions/gear-access.md
+!instructions/gear-production-moderation.md
+!instructions/gear-production-reports.md
+!instructions/gear-production-deletions.md
+!instructions/gear-production-management.md
+!instructions/gear-production-maintenance.md
+!instructions/gear-production-photos.md
+!instructions/gear-production-verification.md
+!instructions/gear-launch-runbook.md
+!instructions/gear-lean-backup.md
+
+!instructions/gear-lifecycle.md

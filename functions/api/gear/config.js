@@ -1,0 +1,21 @@
+import {contactDeliveryConfigured} from '../../../lib/gear-contact-mail.mjs';
+import {gearTurnstileConfigured} from '../../../lib/gear-turnstile.mjs';
+import {gearPublicOrigin} from '../../../lib/gear-origins.mjs';
+
+const SITE_KEY=/^[\x21-\x7e]{1,128}$/;
+const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
+const json=(status,value)=>new Response(JSON.stringify(value),{status,headers});
+
+export function createGearConfigHandler(){
+  return async function gearConfig(context){
+    const request=context.request,url=new URL(request.url);
+    const origin=gearPublicOrigin(context.env);
+    if(!origin||url.origin!==origin||request.headers.get('Sec-Fetch-Site')==='cross-site')return json(403,{error:'Request unavailable.'});
+    const key=typeof context.env?.GEAR_TURNSTILE_SITE_KEY==='string'?context.env.GEAR_TURNSTILE_SITE_KEY.trim():'';
+    if(!SITE_KEY.test(key)||/\s/.test(key))return json(503,{error:'Gear posting is temporarily unavailable.'});
+    const db=Boolean(context.env?.GEAR_DB);
+    return json(200,{turnstileSiteKey:key,contactEnabled:db&&contactDeliveryConfigured(context.env),reportEnabled:db&&context.env?.GEAR_REPORTS_ENABLED==='true'&&gearTurnstileConfigured(context.env)});
+  };
+}
+
+export const onRequestGet=createGearConfigHandler();
