@@ -42,10 +42,11 @@ test('production management listing route edits and changes state through the li
     let response=await handler(context(request('/api/gear/management/listing',{id,action:'edit',listing:{...sample,title:'Updated production bag',description}},access),db));
     assert.equal(response.status,200);assert.deepEqual({...db.sqlite.prepare('SELECT title,description FROM gear_listings WHERE id=?').get(id)},{title:'Updated production bag',description});
     response=await handler(context(request('/api/gear/management/listing',{id,action:'pending'},access),db));assert.equal(response.status,200);assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'pending');
-    response=await handler(context(request('/api/gear/management/listing',{id:foreign,action:'close'},access),db));assert.equal(response.status,409);
+    response=await handler(context(request('/api/gear/management/listing',{id:foreign,action:'pending'},access),db));assert.equal(response.status,409);
     response=await handler(context(request('/api/gear/management/listing',{id,action:'edit',listing:{...sample,title:''}},access),db));assert.equal(response.status,400);assert.ok((await response.json()).fields.title);
-    response=await handler(context(request('/api/gear/management/listing',{id,action:'close'},access,{'X-Gear-CSRF':'0'.repeat(64)}),db));assert.equal(response.status,403);assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'pending');
-    response=await handler(context(request('/api/gear/management/listing',{id,action:'close'},access),db));assert.equal(response.status,200);
+    response=await handler(context(request('/api/gear/management/listing',{id,action:'available'},access,{'X-Gear-CSRF':'0'.repeat(64)}),db));assert.equal(response.status,403);assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'pending');
+    response=await handler(context(request('/api/gear/management/listing',{id,action:'close'},access),db));assert.equal(response.status,400);
+    db.sqlite.prepare("UPDATE gear_listings SET status='expired',expires_at=? WHERE id=?").run(199,id);
     for(let index=0;index<10;index++)await publish(db,{title:`Quota listing ${index}`},210+index);
     response=await handler(context(request('/api/gear/management/listing',{id,action:'relist'},access),db));assert.equal(response.status,409);
   }finally{db.close();}
@@ -64,12 +65,12 @@ test('management listing routes reject malformed transport, stale access, missin
   assert.equal((await write(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'edit',listing:{description:'x'.repeat(25000)}}),db))).status,413);
   assert.equal(calls,0);
   let response=await createManagementListingsHandler({read:async()=>null})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,401);
-  response=await createManagementListingHandler({recover:async()=>null})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'close'}),db));assert.equal(response.status,401);
+  response=await createManagementListingHandler({recover:async()=>null})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,401);
   response=await createManagementListingsHandler({read:async()=>{throw new Error('private read');}})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);
   response=await createManagementListingsHandler({read:async()=>({listings:[{id:'00000000-0000-4000-8000-000000000001',photoRefs:[{id:'bad',providerId:'bad'}]}],deleted:[]})})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,500);
-  response=await createManagementListingHandler({recover:async()=>({csrf:CSRF}),change:async()=>{throw new Error('private write');}})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'close'}),db));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);
+  response=await createManagementListingHandler({recover:async()=>({csrf:CSRF}),change:async()=>{throw new Error('private write');}})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);
   let recovers=0;
-  response=await createManagementListingHandler({recover:async()=>++recovers===1?{csrf:CSRF}:null,change:async()=>false})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'close'}),db));assert.equal(response.status,401);
+  response=await createManagementListingHandler({recover:async()=>++recovers===1?{csrf:CSRF}:null,change:async()=>false})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,401);
 });
 
 test('management listing Pages modules expose only POST handlers',()=>{

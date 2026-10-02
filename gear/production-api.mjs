@@ -7,10 +7,28 @@ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}
 const SITE_KEY=/^[\x21-\x7e]{1,128}$/;
 const MAX_RESPONSE_BYTES=64*1024;
 const MAX_PUBLIC_RESPONSE_BYTES=2*1024*1024;
-const MAX_PHOTO_BYTES=5*1024*1024;
-const PHOTO_TYPES=new Set(['image/jpeg','image/png','image/webp']);
+const MAX_PHOTO_BYTES=10_000_000;
+const PHOTO_TYPES=new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif']);
+const PHOTO_NAME=/\.(?:jpe?g|png|webp|heic|heif)$/i;
 
 export function safeError(message,status=0,fields=null){return Object.assign(new Error(message),{safe:true,status,fields});}
+
+export async function preparePhoto(file,{createBitmap=globalThis.createImageBitmap,createCanvas=()=>globalThis.document?.createElement('canvas')}={}){
+  if(!file||file.size<=MAX_PHOTO_BYTES)return file;
+  if(typeof createBitmap!=='function')throw safeError(`${file.name} is too large to prepare in this browser.`);
+  let bitmap;
+  try{bitmap=await createBitmap(file,{imageOrientation:'from-image'});}catch{throw safeError(`${file.name} could not be prepared. Try a different photo.`);}
+  try{
+    const scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height));
+    const canvas=createCanvas();if(!canvas?.getContext||!canvas?.toBlob)throw new Error();
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const context=canvas.getContext('2d');if(!context)throw new Error();context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.86));
+    if(!blob||blob.size<1||blob.size>MAX_PHOTO_BYTES)throw new Error();
+    const name=file.name.replace(/\.[^.]+$/, '')+'.jpg';return new File([blob],name,{type:'image/jpeg',lastModified:file.lastModified});
+  }catch{throw safeError(`${file.name} could not be prepared. Try a different photo.`);}
+  finally{bitmap?.close?.();}
+}
 
 // Read once and erase before any network work so credentials never remain in
 // copied URLs, browser history entries or later same-document navigation.
@@ -47,7 +65,7 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
     catch{throw safeError('The request could not be confirmed. Check the connection and try again.');}
     return responseJson(response);
   }
-  async function createDraft(listing,turnstileToken){const result=await request('/drafts',{listing,turnstileToken});if(!UUID.test(result.id??'')||result.status!=='unverified')throw safeError('The server returned an unreadable response. Please try again.');return result;}
+  async function createDraft(listing,turnstileToken){const result=await request('/drafts',{listing,turnstileToken});if(!UUID.test(result.id??'')||result.status!=='unverified'||!TOKEN.test(result.photoToken??''))throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function confirmVerification(token){const result=await request('/verification/confirm',{token,confirm:true});if(result.verified!==true||!UUID.test(result.listingId??'')||(result.alreadyVerified!==undefined&&result.alreadyVerified!==true))throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function requestVerification(id){const result=await request('/verification/request',{id});if(typeof result.message!=='string'||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
   async function contact(input){const result=await request('/contact',input);if(result.ok!==true||typeof result.message!=='string'||!result.message||result.message.length>300)throw safeError('The server returned an unreadable response. Please try again.');return result;}
@@ -66,7 +84,8 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
   }
   async function authenticated(path,body){const access=await session();return request(path,body,access.csrf);}
   async function uploadPhoto(listingId,file){
-    if(!file||!PHOTO_TYPES.has(file.type)||!Number.isSafeInteger(file.size)||file.size<1||file.size>MAX_PHOTO_BYTES)throw safeError('Choose a JPG, PNG, or WebP image up to 5 MB.');
+    const supported=file&&(PHOTO_TYPES.has(file.type)||PHOTO_NAME.test(file.name));
+    if(!supported||!Number.isSafeInteger(file.size)||file.size<1||file.size>MAX_PHOTO_BYTES)throw safeError('Choose a supported photo up to 10 MB.');
     const created=await authenticated('/management/photos/upload',{listingId});
     if(!isGearImageProviderId(created.quarantineProviderId)||typeof created.uploadURL!=='string')throw safeError('The server returned an unreadable response. Please try again.');
     let uploadURL;try{uploadURL=new URL(created.uploadURL);}catch{throw safeError('The server returned an unreadable response. Please try again.');}
@@ -83,8 +102,23 @@ export function productionAPI({fetcher=fetch,origin=location.origin,wait=ms=>new
       }
     }
   }
+  async function uploadDraftPhoto(listingId,draftToken,file){
+    const supported=file&&(PHOTO_TYPES.has(file.type)||PHOTO_NAME.test(file.name));
+    if(!UUID.test(listingId??'')||!TOKEN.test(draftToken??'')||!supported||!Number.isSafeInteger(file.size)||file.size<1||file.size>MAX_PHOTO_BYTES)throw safeError('Choose a supported photo up to 10 MB.');
+    const created=await request('/drafts/photos/upload',{listingId,draftToken});
+    if(!isGearImageProviderId(created.quarantineProviderId)||typeof created.uploadURL!=='string')throw safeError('The server returned an unreadable response. Please try again.');
+    let uploadURL;try{uploadURL=new URL(created.uploadURL);}catch{throw safeError('The server returned an unreadable response. Please try again.');}
+    if(uploadURL.protocol!=='https:'||uploadURL.hostname!=='upload.imagedelivery.net')throw safeError('The server returned an unreadable response. Please try again.');
+    const form=new FormData();form.append('file',file,'gear-photo');
+    let uploaded;try{uploaded=await fetcher(uploadURL.href,{method:'POST',body:form,credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'});}catch{throw safeError('The photo could not be uploaded. Please try again.');}
+    if(!uploaded.ok)throw safeError('The photo could not be uploaded. Please try again.');
+    for(let attempt=0;attempt<4;attempt++){
+      try{return await request('/drafts/photos/finalize',{quarantineProviderId:created.quarantineProviderId,draftToken});}
+      catch(error){if(error.status!==409||error.message!=='Photo upload is still in progress.')throw error;if(attempt===3)throw safeError('The photo is still processing and was not attached. Wait a minute, then upload it again.',409);await wait(1000);}
+    }
+  }
   return {
-    request,session,config,listings,uploadPhoto,
+    request,session,config,listings,uploadPhoto,uploadDraftPhoto,
     createDraft,contact,report,
     requestVerification,
     confirmVerification,

@@ -71,7 +71,8 @@ test('draft route validates, verifies and creates one unverified draft',async()=
   const db=openLocalDatabase();try{
     const tokens=[],handler=createDraftSubmissionHandler({verify:async token=>tokens.push(token),now:()=>100});
     const response=await handler(context(request('/api/gear/drafts',{listing:sample,turnstileToken:'sample-token'}),{GEAR_DB:db}));
-    assert.equal(response.status,201);const result=await response.json();assert.match(result.id,/^[a-f0-9-]{36}$/);assert.equal(result.status,'unverified');assert.deepEqual(tokens,['sample-token']);
+    assert.equal(response.status,201);const result=await response.json();assert.match(result.id,/^[a-f0-9-]{36}$/);assert.equal(result.status,'unverified');assert.match(result.photoToken,/^[a-f0-9]{64}$/);assert.deepEqual(tokens,['sample-token']);
+    assert.equal(db.sqlite.prepare('SELECT token_hash FROM gear_draft_photo_access WHERE listing_id=?').get(result.id).token_hash.includes(result.photoToken),false);
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listings').get().n,1);assert.equal((await readPublicListings(db,100)).length,0);
     assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('referrer-policy'),'no-referrer');
   }finally{db.close();}

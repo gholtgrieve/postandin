@@ -14,7 +14,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 
 const sample={title:'Backup bag',description:'Used for backup testing.',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
-const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery'];
+const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery','unified_removal','draft_photo_access','management_session_retention'];
 const migrationsSql=()=>migrationNames.map((name,index)=>readFileSync(new URL(`../migrations/gear/${String(index+1).padStart(4,'0')}_${name}.sql`,import.meta.url),'utf8')).join('\n');
 
 async function published(db,patch={},now=Date.now()){

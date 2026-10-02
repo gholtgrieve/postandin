@@ -152,7 +152,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDir
       if(url.pathname==='/management/listing'){
         const ok=input?.action==='edit'
           ?await editManagedListing(db,session(req),req.headers['x-gear-csrf']||'',input.id,input.listing)
-          :await changeListingState(db,session(req),req.headers['x-gear-csrf']||'',input?.id,input?.action);
+          :['pending','available','relist'].includes(input?.action)&&await changeListingState(db,session(req),req.headers['x-gear-csrf']||'',input?.id,input?.action);
         return reply(ok?200:403,ok?{ok:true}:{error:'Unable to change this listing.'});
       }
       if(issue){const receipt=await issueLocalVerification(db,issue[1]);return reply(receipt?200:404,receipt?{receipt}:{error:'Not found.'});}

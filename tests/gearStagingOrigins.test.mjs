@@ -48,7 +48,7 @@ test('staging public origin is accepted across browser, config and management bo
 
 test('staging posting and verification routes pass environment-aware origin checks',async()=>{
   const env={GEAR_DB:{},GEAR_PUBLIC_ORIGIN:GEAR_STAGING_PUBLIC_ORIGIN};let calls=0;
-  const draft=createDraftSubmissionHandler({verify:async()=>{},create:async()=>{calls++;return {id:'draft'};}});
+  const draft=createDraftSubmissionHandler({verify:async()=>{},create:async()=>{calls++;return {id:'draft'};},issuePhotoAccess:async()=>({token:TOKEN})});
   assert.equal((await draft({request:stagingRequest('/api/gear/drafts',{listing:DRAFT,turnstileToken:'token'}),env})).status,201);
   const request=createVerificationRequestHandler({configured:()=>true,issue:async()=>{calls++;return null;}});
   assert.equal((await request({request:stagingRequest('/api/gear/verification/request',{id:'00000000-0000-4000-8000-000000000001'}),env})).status,404);

@@ -10,7 +10,7 @@ Pages routes, real mail or cloud resources. Read the Resume here section in
   A verified mailbox can receive a simulated recovery link. Link tokens are
   256 random bits, hash-only in storage, expire after 30 minutes and are single
   use. Reissue invalidates older links without terminating current sessions.
-- Explicit confirmation redeems the link, creates a fresh 24-hour session and
+- Explicit confirmation redeems the link, creates a fresh 30-day session and
   revokes all previous sessions for that seller in one SQL statement/trigger.
   A failed session insert rolls back both revocation and token consumption.
 - Sessions use 256 random bits. CSRF is a SHA-256 derivation of a domain label
@@ -53,7 +53,7 @@ Origin header (`http://127.0.0.1:8772` for the default server).
 | GET `/management/confirm` | Instructions only; no state changes |
 | POST `/management/confirm` | `{ "token": "<local receipt>", "confirm": true }`; sets session cookie and returns CSRF token/expiry |
 | GET `/management/listings` | Requires cookie; returns up to 100 owner records, excludes unverified drafts and private credentials |
-| POST `/management/listing` | `{ "id": "...", "action": "pending|available|close|relist" }`, or action `edit` plus full `listing` content |
+| POST `/management/listing` | `{ "id": "...", "action": "pending|available|relist" }`, or action `edit` plus full `listing` content. Seller removal uses the deletion route so its 30-day clock is always recorded. |
 | POST `/management/logout` | Revokes current session and clears cookie |
 | POST `/management/session` | JSON `{}` with Content-Type application/json, cookie plus exact Origin; returns CSRF/expiry after reload; never creates or renews a session |
 

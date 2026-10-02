@@ -1,5 +1,5 @@
 import { REPORT_REASONS, CATEGORIES, SIZES, CONDITIONS, CLUBS, LIMITS, matchesListing, clubNames, offerFields, formatPrice, normalize } from '../lib/gear-exchange.mjs';
-import {productionAPI,takeManagementToken,takeVerificationToken,safeError as productionSafeError,previewListing as productionPreviewListing,listingInput as productionListingInput,draftListingInput as productionDraftListingInput} from './production-api.mjs';
+import {productionAPI,takeManagementToken,takeVerificationToken,safeError as productionSafeError,preparePhoto as prepareProductionPhoto,previewListing as productionPreviewListing,listingInput as productionListingInput,draftListingInput as productionDraftListingInput} from './production-api.mjs';
 import {loadProductionTurnstile} from './production-turnstile.mjs';
 import {isGearPublicOrigin} from '../lib/gear-origins.mjs';
 
@@ -12,22 +12,21 @@ const connectedMode=localMode||productionMode;
 const recognizedVerificationLink=productionMode&&location.hash.startsWith('#verification=');
 const verificationToken=productionMode?takeVerificationToken():null;
 const managementToken=productionMode?takeManagementToken():null;
-const adapter=localMode?await import('./local-api.mjs'):productionMode?{productionAPI,safeError:productionSafeError,previewListing:productionPreviewListing,listingInput:productionListingInput,draftListingInput:productionDraftListingInput}:null;
+const adapter=localMode?await import('./local-api.mjs'):productionMode?{productionAPI,safeError:productionSafeError,preparePhoto:prepareProductionPhoto,previewListing:productionPreviewListing,listingInput:productionListingInput,draftListingInput:productionDraftListingInput}:null;
 const api=localMode?adapter.localAPI():productionMode?adapter.productionAPI():null;
-let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
+let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,localDraftPhotoToken=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
 let publicGeneration=0,publicLoading=productionMode,publicFailed=false,publicFetchedAt=0,publicPhotoRefreshAt=0,publicPhotoRefreshing=false;
 let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
 let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null,contactRetryLocked=false;
 let reportAvailable=false,reportWidget=null,reportToken='',reportRetryWarning='';
 let deleted=[];
-let revealDeleted=false;
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){delete localNotice.dataset.source;localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
 function showPassiveError(message,source=''){localNotice.dataset.source=source;localNotice.textContent=message;localNotice.hidden=false;}
-function clearLocalAccess(){deleted=[];if($('#pi-deleted-list'))$('#pi-deleted-list').replaceChildren();photoListingId=null;resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
+function clearLocalAccess(){deleted=[];if($('#pi-deleted-list'))$('#pi-deleted-list').replaceChildren();photoListingId=null;if(editingId)resetPost();resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
 function serverField(error){
  if(error.emailChange&&error.fields?.email){const input=$('#pi-change-email');input.setCustomValidity(error.fields.email);return input;}
- const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',adult:'pi-adult',otherClub:'pi-other-club'};
+ const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',otherClub:'pi-other-club'};
  for(const [key,message] of Object.entries(error.fields||{})){
   if(!Object.hasOwn(fields,key))continue;const input=$('#'+fields[key]);if(!input)continue;
   input.setCustomValidity(message);showPostStep(Number(input.closest('[data-post-step]').dataset.postStep));return input;
@@ -40,10 +39,10 @@ async function localAction(task){
  const controls=[...root.querySelectorAll('button,input,select,textarea')].map(el=>[el,el.disabled]);
  // Keep fields frozen during requests; validation itself runs before disabling fields.
  controls.filter(([el])=>el.tagName==='BUTTON').forEach(([el])=>el.disabled=true);
- let invalid=null,focusTarget=null;
- try{focusTarget=await task();}catch(error){if(error.status===401){clearLocalAccess();feedback('Your session has ended. Request a new management link.');}invalid=serverField(error);if(!invalid){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to complete this request. Please try again.');}}
+ let invalid=null,focusTarget=null,expiredEdit=false;
+ try{focusTarget=await task();}catch(error){if(error.status===401){expiredEdit=state.screen==='post'&&Boolean(editingId);clearLocalAccess();$('#pi-manage-feedback').hidden=true;if(expiredEdit)go('manage',{historyMode:'replace'});}invalid=serverField(error);if(!invalid){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to complete this request. Please try again.');}}
  finally{
-  controls.forEach(([el,disabled])=>el.disabled=disabled);localBusy=false;root.removeAttribute('aria-busy');
+  controls.forEach(([el,disabled])=>el.disabled=disabled);if(expiredEdit)$('#pi-post-email').disabled=false;localBusy=false;root.removeAttribute('aria-busy');
   if(invalid){invalid.focus();invalid.scrollIntoView({block:'center'});invalid.reportValidity();}
   else if(focusTarget){$(focusTarget)?.focus();}
   else if(document.activeElement===document.body){const target=action?[...root.querySelectorAll('[data-manage]')].find(b=>b.dataset.id===id&&b.dataset.manage===action):active;if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus();else if(!$('.pi-manage').hidden){const heading=$('.pi-manage h1');heading.tabIndex=-1;heading.focus();}}
@@ -62,7 +61,7 @@ async function refreshPublicListings(){
 }
 async function refreshLocal(){
  let publicError=null;try{await refreshPublicListings();}catch(error){if(localMode)throw error;publicError=error;}
- try{await api.session();const result=await api.request('/management/listings',productionMode?{}:undefined);signedIn=true;managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));deleted=productionMode?result.deleted:(await api.request('/management/deleted')).listings;}catch(error){clearLocalAccess();if(error.status!==401)throw error;}
+ try{await api.session();const result=await api.request('/management/listings',productionMode?{}:undefined);signedIn=true;managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));deleted=productionMode?result.deleted:(await api.request('/management/deleted')).listings;}catch(error){if(error.status===401)clearLocalAccess();else throw error;}
  renderManaged();render();
  if(publicError){if(state.screen==='gear')throw publicError;if(!publicError.safe)console.error(publicError);showPassiveError(publicError.safe?publicError.message:'Unable to load Gear listings right now.','public');}
 }
@@ -93,7 +92,9 @@ const descriptions=[
 ];
 data.forEach((d,i)=>Object.assign(d,descriptions[i],{id:String(i),club:i===6?'Seattle Junior':i===7?'Sno-King':''}));
 data[6].title='Seattle Junior Bauer carry bag';data[6].description='Club-branded carry bag with room for a full set of gear. All zippers work. Located in Kent. Scuffs on the bottom and a small snag in the outer fabric.';
-const state={screen:'gear',q:'',category:'',size:'',area:'',club:'',price:'',type:'All',sort:'new',selected:'0',photo:0};
+const navigationScreens=new Set(['gear','detail','post','manage']);
+const restoredScreen=connectedMode&&navigationScreens.has(history.state?.gearScreen)?history.state.gearScreen:'gear';
+const state={screen:restoredScreen,q:'',category:'',size:'',area:'',club:'',price:'',type:'All',sort:'new',selected:connectedMode&&typeof history.state?.gearSelected==='string'?history.state.gearSelected:'0',photo:0};
 function options(id, values, placeholder){const select=$(id);select.replaceChildren(new Option(placeholder,''),...values.map(v=>new Option(v,v)));}
 for(const [id,values,label] of [['#pi-category',CATEGORIES,'All gear'],['#pi-post-category',CATEGORIES,'Choose a category'],['#pi-size',SIZES,'All sizes'],['#pi-post-size',SIZES,'Choose a size group'],['#pi-post-condition',CONDITIONS,'Choose condition'],['#pi-club',CLUBS,'All clubs'],['#pi-area',[...new Set(data.map(d=>d.place))].sort(),'All cities']])options(id,values,label);
 $('.pi-club-checks').replaceChildren(...CLUBS.map(club=>{const label=document.createElement('label');const input=document.createElement('input');input.type='checkbox';input.name='club';input.value=club;label.append(input,club==='Other'?'Other club':club);return label;}));
@@ -128,7 +129,7 @@ $('#pi-report-form').reset();$('#pi-report-form').hidden=true;$('#pi-report-resu
 }
 function render(){
 if(state.screen==='detail'&&!data.some(row=>row.id===state.selected))state.screen='gear';
-$('.pi-home').hidden=state.screen!=='home';$('.pi-gear').hidden=state.screen!=='gear';$('.pi-detail').hidden=state.screen!=='detail';$('.pi-post').hidden=state.screen!=='post';$('.pi-manage').hidden=state.screen!=='manage';$('.pi-section').hidden=state.screen==='home';$('.pi-back').hidden=state.screen==='home';renderDetail();
+$('.pi-home').hidden=state.screen!=='home';$('.pi-gear').hidden=state.screen!=='gear';$('.pi-detail').hidden=state.screen!=='detail';$('.pi-post').hidden=state.screen!=='post';$('.pi-manage').hidden=state.screen!=='manage';$('.pi-section').hidden=state.screen==='home';$('.pi-back').hidden=connectedMode||state.screen==='home';renderDetail();
 root.querySelectorAll('[data-screen]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.screen===state.screen)));
 root.querySelectorAll('[data-type]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.type===state.type)));
 let rows=data.filter(d=>matchesListing({...d,type:d.type.toLowerCase()},{q:state.q,category:state.category,size:state.size,city:state.area,club:state.club,maxPrice:state.price,type:state.type==='All'?'':state.type.toLowerCase()}));
@@ -141,8 +142,13 @@ $('.pi-clear').hidden=!(state.q||state.category||state.size||state.area||state.c
 function syncInputs(){for(const [id,key]of [['pi-search','q'],['pi-category','category'],['pi-size','size'],['pi-area','area'],['pi-club','club'],['pi-price','price'],['pi-sort','sort']])$('#'+id).value=state[key];}
 function clear(){Object.assign(state,{q:'',category:'',size:'',area:'',club:'',price:'',type:'All'});syncInputs();render();}
 async function retryPublicListings(){if(!productionMode||publicLoading)return;publicLoading=true;publicFailed=false;localNotice.hidden=true;render();try{const applied=await refreshPublicListings();render();if(applied){const heading=$('.pi-gear h1');heading.tabIndex=-1;heading.focus();}}catch(error){render();if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to load Gear listings right now.');}}
-root.querySelectorAll('[data-screen],[data-go]').forEach(b=>b.addEventListener('click',()=>{const target=b.dataset.screen||b.dataset.go;if(target==='post'&&state.screen!=='post'){startNew();return;}resetContact();go(target);}));
-$('.pi-results').addEventListener('click',e=>{const link=e.target.closest('[data-listing]');if(!link)return;e.preventDefault();state.selected=link.dataset.listing;state.photo=0;state.screen='detail';resetContact();render();$('.pi-return').focus({preventScroll:true});root.scrollIntoView({block:'start',behavior:'instant'});});
+root.querySelectorAll('[data-screen],[data-go]').forEach(b=>b.addEventListener('click',()=>{const target=b.dataset.screen||b.dataset.go;if(connectedMode&&target==='home'){location.assign(new URL('/',location.origin).href);return;}if(target==='post'&&state.screen!=='post'){startNew();return;}resetContact();go(target);}));
+$('.pi-results').addEventListener('click',e=>{const link=e.target.closest('[data-listing]');if(!link)return;e.preventDefault();state.selected=link.dataset.listing;state.photo=0;resetContact();go('detail');});
+if(connectedMode)window.addEventListener('popstate',event=>{
+ const screen=navigationScreens.has(event.state?.gearScreen)?event.state.gearScreen:'gear';
+ if(typeof event.state?.gearSelected==='string')state.selected=event.state.gearSelected;
+ resetContact();go(screen,{historyMode:'none'});
+});
 async function refreshPublicPhoto(e){
  if(!productionMode||!['gear','detail'].includes(state.screen)||!e.target.matches('img')||publicPhotoRefreshing)return;
  let expiry;try{const url=new URL(e.target.src);expiry=Number(url.searchParams.get('exp'));}catch{return;}const now=Date.now(),snapshotNearExpiry=publicFetchedAt&&now-publicFetchedAt>=570000;if(!Number.isSafeInteger(expiry)||(expiry*1000>now+30000&&!snapshotNearExpiry)||now-publicPhotoRefreshAt<30000)return;
@@ -235,7 +241,17 @@ const managed=[{id:'sample-expired',title:'Sno-King practice jersey',type:'Free'
 const postMap={title:'pi-post-name',price:'pi-post-price',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',description:'pi-post-description',seller:'pi-post-seller',email:'pi-post-email',trade:'pi-post-trade'};
 for(const [id,key] of Object.entries({...Object.fromEntries(Object.entries(postMap).filter(([k])=>k!=='price').map(([k,v])=>[v,k==='seller'?'name':k])), 'pi-other-club':'otherClub','pi-buyer-name':'name','pi-buyer-email':'email','pi-buyer-message':'message','pi-recovery-email':'email'})){if(LIMITS[key])$('#'+id).maxLength=LIMITS[key];}
 $('#pi-post-price').min=String(LIMITS.minPriceCents/100);$('#pi-post-price').max=String(LIMITS.maxPriceCents/100);
-function go(screen){state.screen=screen;render();if((localMode&&['gear','manage'].includes(screen))||(productionMode&&screen==='manage'))localAction(refreshLocal);const heading=$('.pi-'+state.screen+' h1');heading.tabIndex=-1;heading.focus();root.scrollIntoView({block:'start',behavior:'instant'});}
+function rememberNavigation(mode='push'){
+ if(!connectedMode||!navigationScreens.has(state.screen))return;
+ const snapshot={...history.state,gearScreen:state.screen,gearSelected:state.selected};
+ history[mode==='replace'?'replaceState':'pushState'](snapshot,'',location.href);
+}
+function go(screen,{historyMode='push'}={}){
+ const previous=state.screen;state.screen=screen;render();
+ if(historyMode!=='none')rememberNavigation(previous===state.screen?'replace':historyMode);
+ if((localMode&&['gear','manage'].includes(screen))||(productionMode&&screen==='manage'))localAction(refreshLocal);
+ const heading=$('.pi-'+state.screen+' h1');heading.tabIndex=-1;heading.focus();root.scrollIntoView({block:'start',behavior:'instant'});
+}
 function reusesProductionDraft(){return productionMode&&!editingId&&localDraftId&&pendingDraft&&JSON.stringify(pendingDraft)===JSON.stringify(draft());}
 function syncProductionSubmit(){if(productionMode)$('#pi-post-submit').disabled=!editingId&&postStep===3&&!turnstileToken&&!reusesProductionDraft();}
 function disableProductionPosting(message='Listing is temporarily unavailable.'){
@@ -247,13 +263,13 @@ function resetProductionTurnstile(message='Complete the privacy check to continu
 }
 function ensureProductionTurnstile(){
  if(!productionMode||editingId||!postingAvailable||!turnstileClient)return;
- const container=$('#pi-post-turnstile');if(reusesProductionDraft()){container.hidden=true;$('#pi-turnstile-status').textContent='This saved draft can request another email without a new privacy check.';syncProductionSubmit();return;}container.hidden=false;if(turnstileWidget!==null)return;
+ const container=$('#pi-post-turnstile');if(reusesProductionDraft()){container.hidden=true;$('#pi-turnstile-status').textContent='';syncProductionSubmit();return;}container.hidden=false;if(turnstileWidget!==null)return;
  try{const widget=turnstileClient.render(container,{sitekey:turnstileSiteKey,action:'gear-post',theme:'auto',size:'flexible',retry:'auto','refresh-expired':'auto',callback:token=>{turnstileToken=typeof token==='string'&&token.length<=2048?token:'';$('#pi-turnstile-status').textContent=turnstileToken?'Privacy check complete.':'Complete the privacy check to continue.';syncProductionSubmit();},'expired-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check expired. Complete it again.';syncProductionSubmit();},'error-callback':()=>{turnstileToken='';$('#pi-turnstile-status').textContent='The privacy check could not finish. It will retry automatically.';syncProductionSubmit();}});if(typeof widget!=='string'||!widget)throw new Error();turnstileWidget=widget;}
  catch{disableProductionPosting();}
 }
 async function configureProductionPosting(){
  if(!productionMode)return;
-  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;$('#pi-new-listing').hidden=false;contactAvailable=config.contactEnabled;if(contactAvailable){$('#pi-contact-open').textContent='Contact seller';$('#pi-contact-open').disabled=false;$('#pi-preview-send').textContent='Send message';$('#pi-contact-note').textContent='Keep sensitive information out of your message.';$('#pi-contact-success h2').textContent='Message sent';$('#pi-contact-success p').textContent='The seller can reply directly to your email.';$('#pi-contact-success small').textContent='';}reportAvailable=config.reportEnabled;if(reportAvailable){$('#pi-report-open').textContent='Report this listing';$('#pi-report-open').disabled=false;$('#pi-preview-report').textContent='Submit report';$('#pi-report-note').textContent='Reports go to the Post & In owner for review.';$('#pi-report-result').textContent='Report submitted for review.';}resetProductionContactTurnstile();resetProductionReportTurnstile();}
+  try{const config=await api.config();turnstileSiteKey=config.turnstileSiteKey;turnstileClient=await loadProductionTurnstile({siteKey:turnstileSiteKey});postingAvailable=true;renderManaged();contactAvailable=config.contactEnabled;if(contactAvailable){$('#pi-contact-open').textContent='Contact seller';$('#pi-contact-open').disabled=false;$('#pi-preview-send').textContent='Send message';$('#pi-contact-note').textContent='Keep sensitive information out of your message.';$('#pi-contact-success h2').textContent='Message sent';$('#pi-contact-success p').textContent='The seller can reply directly to your email.';$('#pi-contact-success small').textContent='';}reportAvailable=config.reportEnabled;if(reportAvailable){$('#pi-report-open').textContent='Report this listing';$('#pi-report-open').disabled=false;$('#pi-preview-report').textContent='Submit report';$('#pi-report-note').textContent='Reports go to the Post & In owner for review.';$('#pi-report-result').textContent='Report submitted for review.';}resetProductionContactTurnstile();resetProductionReportTurnstile();}
  catch{turnstileSiteKey='';turnstileClient=null;contactAvailable=false;reportAvailable=false;disableProductionPosting();resetProductionContactTurnstile();resetProductionReportTurnstile();}
  finally{postingLoading=false;}
 }
@@ -262,68 +278,81 @@ function offerChanged(){const type=$('input[name=offer]:checked').value;$('#pi-a
 function clubsChanged(){const other=$('input[name=club][value=Other]').checked;$('#pi-other-club').required=other;if(!other){$('#pi-other-club').value='';$('#pi-other-club').setCustomValidity('');}}
 $('#pi-other-club').addEventListener('input',()=>{const filled=$('#pi-other-club').value.trim().length>0;$('input[name=club][value=Other]').checked=filled;$('#pi-other-club').required=filled;});
 function validStep(n){let valid=true;const fields=root.querySelectorAll('[data-post-step="'+n+'"] input,[data-post-step="'+n+'"] select,[data-post-step="'+n+'"] textarea');for(const el of fields){if(el.disabled||el.type==='file')continue;if(el.required&&['text','textarea'].includes(el.type))el.setCustomValidity(el.value.trim()?'':'Please complete this field.');if(!el.checkValidity()){el.reportValidity();valid=false;break;}}return valid;}
-function draft(){const d={};for(const [key,id]of Object.entries(postMap))d[key]=$('#'+id).value.trim();d.type=$('input[name=offer]:checked').value;Object.assign(d,offerFields(d.type.toLowerCase(),d.price,d.trade));delete d.price;d.clubs=[...root.querySelectorAll('input[name=club]:checked')].map(e=>e.value);d.otherClub=$('#pi-other-club').value.trim();d.photos=postPhotos.map(p=>({...p}));return d;}
-function renderPhotos(){const list=$('#pi-upload-grid');list.replaceChildren();postPhotos.forEach((p,i)=>{const tile=document.createElement('div');tile.className='pi-upload-tile';if(p.url){const image=document.createElement('img');image.className='pi-upload-image';image.src=p.url;image.alt='Selected photo '+(i+1);tile.append(image);}else{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Sample photo '+(i+1);tile.append(placeholder);}const label=document.createElement('small');label.textContent=p.name;tile.append(label);const actions=document.createElement('div');actions.className='pi-photo-tools';if(i===0){const cover=document.createElement('span');cover.className='pi-photo-cover';cover.textContent='Cover';actions.append(cover);}else{const main=document.createElement('button');main.type='button';main.textContent='Make cover';main.addEventListener('click',()=>{postPhotos.unshift(postPhotos.splice(i,1)[0]);renderPhotos();});actions.append(main);}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove photo '+(i+1));remove.addEventListener('click',()=>{postPhotos.splice(i,1);$('#pi-photo-error').hidden=true;renderPhotos();});actions.append(remove);if(!localMode)tile.append(actions);list.append(tile);});$('#pi-photo-count').textContent=postPhotos.length+' of 6';}
+function draft(){const d={};for(const [key,id]of Object.entries(postMap))d[key]=$('#'+id).value.trim();d.type=$('input[name=offer]:checked').value;Object.assign(d,offerFields(d.type.toLowerCase(),d.price,d.trade));delete d.price;d.clubs=[...root.querySelectorAll('input[name=club]:checked')].map(e=>e.value);d.otherClub=$('#pi-other-club').value.trim();d.photos=postPhotos.map(({name,url})=>({name,url}));return d;}
+function renderPhotos(){const list=$('#pi-upload-grid');list.replaceChildren();postPhotos.forEach((p,i)=>{const tile=document.createElement('div');tile.className='pi-upload-tile';if(p.url){const image=document.createElement('img');image.className='pi-upload-image';image.src=p.url;image.alt='Selected photo '+(i+1);image.addEventListener('error',()=>{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Photo '+(i+1);image.replaceWith(placeholder);},{once:true});tile.append(image);}else{const placeholder=document.createElement('div');placeholder.className='pi-upload-image';placeholder.textContent='Sample photo '+(i+1);tile.append(placeholder);}const actions=document.createElement('div');actions.className='pi-photo-tools';if(i===0){const cover=document.createElement('span');cover.className='pi-photo-cover';cover.textContent='Cover';actions.append(cover);}else{const main=document.createElement('button');main.type='button';main.textContent='Make cover';main.addEventListener('click',()=>{postPhotos.unshift(postPhotos.splice(i,1)[0]);renderPhotos();});actions.append(main);}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove photo '+(i+1));remove.addEventListener('click',()=>{postPhotos.splice(i,1);$('#pi-photo-error').hidden=true;renderPhotos();});actions.append(remove);if(!localMode)tile.append(actions);list.append(tile);});$('#pi-photo-count').textContent=postPhotos.length+' of 6';}
 function photoError(message){$('#pi-photo-error').textContent=message;$('#pi-photo-error').hidden=false;}
-$('#pi-photo-files').addEventListener('change',e=>{const files=[...e.target.files];e.target.value='';if(files.length+postPhotos.length>LIMITS.photos){photoError('Choose up to six photos. Remove a photo before adding another.');return;}if(files.some(f=>!['image/jpeg','image/png','image/webp'].includes(f.type))){photoError('Choose JPG, PNG, or WebP images for this preview.');return;}for(const file of files){const url=URL.createObjectURL(file);objectUrls.add(url);postPhotos.push({name:file.name,url});}$('#pi-photo-error').hidden=true;renderPhotos();});
+$('#pi-photo-files').addEventListener('change',e=>{const files=[...e.target.files];e.target.value='';if(files.length+postPhotos.length>LIMITS.photos){photoError('Choose up to six photos. Remove a photo before adding another.');return;}const types=productionMode?['image/jpeg','image/png','image/webp','image/heic','image/heif']:['image/jpeg','image/png','image/webp'],names=productionMode?/\.(?:jpe?g|png|webp|heic|heif)$/i:/\.(?:jpe?g|png|webp)$/i;if(files.some(f=>!types.includes(f.type)&&!names.test(f.name))){photoError(productionMode?'Choose JPG, PNG, WebP, or HEIC photos.':'Choose JPG, PNG, or WebP images for this preview.');return;}for(const file of files){const url=URL.createObjectURL(file);objectUrls.add(url);postPhotos.push({name:file.name,url,file,uploaded:false});}$('#pi-photo-error').hidden=true;renderPhotos();});
 $('#pi-add-sample').addEventListener('click',()=>{if(postPhotos.length>=LIMITS.photos){photoError('Six photos is the limit. Remove a photo before adding another.');return;}postPhotos.push({name:'Sample gear photo',url:null});$('#pi-photo-error').hidden=true;renderPhotos();});
 window.addEventListener('pagehide',()=>objectUrls.forEach(url=>URL.revokeObjectURL(url)));
-function renderReview(){const d=draft();const price=formatPrice(d.type.toLowerCase(),d.priceCents),record=managed.find(r=>r.id===editingId),photoCount=productionMode&&record?record.photos.length:d.photos.length;const details=[['City',d.city],['Gear',d.category+' · '+d.size],['Size & fit',d.fit],['Club branding',clubNames(d).join(', ')||'None'],['Condition',d.condition],['Photos',photoCount+' of 6'],['Listed by',d.seller]];if(d.type==='Trade')details.push(['Looking for',d.trade]);$('#pi-listing-review').innerHTML='<div class="pi-eyebrow">Listing preview</div><h2>'+esc(d.title)+'</h2><div class="pi-detail-price">'+esc(price)+'</div><p>'+esc(d.description)+'</p><dl>'+details.map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl>';const reverify=connectedMode?!editingId:!record||d.email!==record.email;$('#pi-post-submit').textContent=reverify?'Continue to verification →':'Save changes';$('#pi-publish-explanation').textContent=reverify?'Your listing appears after you verify your email. It expires after 30 days.':'Changes will update your listing. Its status and expiration date stay the same.';}
+function renderReview(){const d=draft();const price=formatPrice(d.type.toLowerCase(),d.priceCents),record=managed.find(r=>r.id===editingId),photoCount=productionMode&&record?record.photos.length:d.photos.length;const details=[['City',d.city],['Gear',d.category+' · '+d.size],['Size & fit',d.fit],['Club branding',clubNames(d).join(', ')||'None'],['Condition',d.condition],['Photos',photoCount+' of 6'],['Listed by',d.seller]];if(d.type==='Trade')details.push(['Looking for',d.trade]);$('#pi-listing-review').innerHTML='<div class="pi-eyebrow">Listing preview</div><h2>'+esc(d.title)+'</h2><div class="pi-detail-price">'+esc(price)+'</div><p>'+esc(d.description)+'</p><dl>'+details.map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl>';const reverify=connectedMode?!editingId:!record||d.email!==record.email;$('#pi-post-submit').textContent=reverify?'Send verification email':'Save changes';$('#pi-publish-explanation').textContent=reverify?'Your listing appears after you verify your email. It expires after 30 days.':'Changes will update your listing. Its status and expiration date stay the same.';}
 root.querySelectorAll('input[name=offer]').forEach(el=>el.addEventListener('change',offerChanged));root.querySelectorAll('input[name=club]').forEach(el=>el.addEventListener('change',clubsChanged));
 $('#pi-post-form').addEventListener('submit',e=>e.preventDefault());$('#pi-post-form').addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');});
+root.querySelectorAll('#pi-post-cancel,[data-post-cancel]').forEach(button=>button.addEventListener('click',()=>go(editingId?'manage':'gear')));
 $('#pi-next-photos').addEventListener('click',()=>{if(validStep(1)){showPostStep(2);$(localMode?'#pi-post-seller':'#pi-add-sample').focus({preventScroll:true});}});
 $('#pi-next-review').addEventListener('click',()=>{if(validStep(2)){renderReview();showPostStep(3);}});
 root.querySelectorAll('[data-post-back]').forEach(el=>el.addEventListener('click',()=>showPostStep(Number(el.dataset.postBack))));
-function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;$('.pi-age-check').hidden=false;$('#pi-adult').disabled=false;verificationReceipt=null;localDraftId=null;}editingId=null;pendingDraft=null;verifyMode=null;postPhotos=[];if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
-function fillPost(d){for(const [key,id]of Object.entries(postMap))$('#'+id).value=key==='price'?(d.type==='Sale'?(d.priceCents/100).toFixed(2):''):(d[key]??'');$('input[name=offer][value="'+d.type+'"]').checked=true;root.querySelectorAll('input[name=club]').forEach(el=>el.checked=d.clubs.includes(el.value));$('#pi-other-club').value=d.otherClub||'';$('#pi-adult').checked=true;postPhotos=connectedMode?[]:d.photos.map(p=>({...p}));offerChanged();clubsChanged();renderPhotos();}
+function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;verificationReceipt=null;localDraftId=null;localDraftPhotoToken=null;}editingId=null;pendingDraft=null;verifyMode=null;postPhotos=[];$('#pi-post-photos').hidden=false;if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;$('#pi-draft-upload-status').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
+function fillPost(d){for(const [key,id]of Object.entries(postMap))$('#'+id).value=key==='price'?(d.type==='Sale'?(d.priceCents/100).toFixed(2):''):(d[key]??'');$('input[name=offer][value="'+d.type+'"]').checked=true;root.querySelectorAll('input[name=club]').forEach(el=>el.checked=d.clubs.includes(el.value));$('#pi-other-club').value=d.otherClub||'';postPhotos=connectedMode?[]:d.photos.map(p=>({...p}));$('#pi-post-photos').hidden=Boolean(connectedMode&&editingId);offerChanged();clubsChanged();renderPhotos();}
 $('#pi-fill-demo').addEventListener('click',()=>{resetPost();fillPost({title:'Seattle Junior hockey bag',type:'Sale',priceCents:4000,category:'Bags & accessories',size:'Junior',fit:'Junior bag, 30 × 18 × 15 in',condition:'Used — good',city:'Seattle',clubs:['Seattle Junior'],description:'Seattle Junior branded bag. Our player has changed clubs, so this is ready for another family. Scuffs on the bottom. All zippers work.',seller:'Alex',email:'seller@example.com',photos:[{name:'Front view — sample',url:null},{name:'Club logo — sample',url:null},{name:'Wear detail — sample',url:null}]});});
 function activeCount(){return managed.filter(r=>['Available','Pending'].includes(r.status)).length;}
 function feedback(message){$('#pi-manage-feedback').textContent=message;$('#pi-manage-feedback').hidden=false;}
 function expiry(){return Date.now()+LIMITS.durationDays*24*60*60*1000;}
-function renderManaged(){if(connectedMode){renderLocalManaged();return;}const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';$('#pi-managed-list').innerHTML=managed.map(r=>'<article class="pi-managed-item"><h3>'+esc(r.title)+'</h3><div class="pi-managed-meta">'+esc(formatPrice(r.type.toLowerCase(),r.priceCents))+' · '+esc(r.city)+' · '+esc(r.status)+(r.expires&&['Available','Pending'].includes(r.status)?' · Expires '+new Date(r.expires).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div><div class="pi-managed-actions"><button type="button" data-manage="edit" data-id="'+esc(r.id)+'">Edit</button>'+(['Available','Pending'].includes(r.status)?'<button type="button" data-manage="pending" data-id="'+esc(r.id)+'">'+(r.status==='Pending'?'Mark available':'Mark pending')+'</button><button type="button" data-manage="close" data-id="'+esc(r.id)+'">Close listing</button>':'<button type="button" data-manage="renew" data-id="'+esc(r.id)+'">'+(r.status==='Closed'?'Relist for 30 days':'Renew for 30 days')+'</button>')+'<button type="button" data-manage="delete" data-id="'+esc(r.id)+'">Delete listing</button></div></article>').join('')||'<div class="pi-empty-state"><strong>You have no current listings.</strong></div>';}
+function renderManaged(){if(connectedMode){renderLocalManaged();return;}const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';$('#pi-managed-list').innerHTML=managed.map(r=>'<article class="pi-managed-item"><h3>'+esc(r.title)+'</h3><div class="pi-managed-meta">'+esc(formatPrice(r.type.toLowerCase(),r.priceCents))+' · '+esc(r.city)+' · '+esc(r.status)+(r.expires&&['Available','Pending'].includes(r.status)?' · Expires '+new Date(r.expires).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div><div class="pi-managed-actions"><button type="button" data-manage="edit" data-id="'+esc(r.id)+'">Edit</button>'+(['Available','Pending'].includes(r.status)?'<button type="button" data-manage="pending" data-id="'+esc(r.id)+'">'+(r.status==='Pending'?'Mark available':'Mark pending')+'</button>':'<button type="button" data-manage="renew" data-id="'+esc(r.id)+'">'+(r.status==='Closed'?'Relist for 30 days':'Renew for 30 days')+'</button>')+'<button type="button" data-manage="remove" data-id="'+esc(r.id)+'">Remove listing</button></div></article>').join('')||'<div class="pi-empty-state"><strong>You have no current listings.</strong></div>';}
 $('#pi-post-submit').addEventListener('click',()=>{if(connectedMode){localAction(saveLocal);return;}if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}const d=draft();const existing=managed.find(r=>r.id===editingId);if(existing&&existing.email===d.email){Object.assign(existing,d);renderManaged();feedback('Changes saved in this preview.');go('manage');return;}if(!existing&&activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close a listing before adding another.');go('manage');return;}pendingDraft=d;$('#pi-verify-email').textContent=d.email;$('#pi-email-item').textContent=d.title;$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;});
 $('#pi-simulate-verify').addEventListener('click',()=>{if(productionMode){if(verifyMode==='confirm')localAction(confirmProductionLink);else if(verifyMode==='deliver')localAction(requestVerification);return;}if(localMode){localAction(verifyLocal);return;}if(!pendingDraft)return;const existing=managed.find(r=>r.id===editingId);if(existing){Object.assign(existing,pendingDraft);}else{if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before publishing another.');go('manage');return;}managed.unshift({...pendingDraft,id:'demo-'+Date.now(),status:'Available',expires:expiry()});}pendingDraft=null;renderManaged();feedback('Verification simulated. Your sample listing is ready to manage; nothing was published.');go('manage');});
 function openNew(){if(productionMode&&!postingAvailable){feedback('New listing publication is temporarily unavailable.');go('manage');return;}if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before adding another.');go('manage');return;}resetPost();go('post');}
 async function startNew(){if(productionMode&&postingLoading){if(localBusy)return;await localAction(()=>postingSetup);if(state.screen==='post'&&verifyMode==='confirm'&&productionVerificationToken)return;}openNew();}
 $('#pi-new-listing').addEventListener('click',startNew);
-$('#pi-managed-list').addEventListener('click',e=>{if(connectedMode){manageLocal(e);return;}const b=e.target.closest('[data-manage]');if(!b)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;switch(b.dataset.manage){case'delete':deleteId=r.id;$('#pi-delete-dialog').showModal();$('#pi-delete-cancel').focus();return;case'edit':resetPost();editingId=r.id;fillPost(r);$('#pi-post-title').textContent='Edit Your Listing';go('post');return;case'pending':r.status=r.status==='Pending'?'Available':'Pending';break;case'close':r.status='Closed';break;case'renew':if(activeCount()>=LIMITS.activeListings){feedback('Close another listing before renewing this one.');return;}r.status='Available';r.expires=expiry();break;}renderManaged();feedback(r.title+' — '+r.status.toLowerCase()+' in this preview.');});
+$('#pi-managed-list').addEventListener('click',e=>{if(connectedMode){manageLocal(e);return;}const b=e.target.closest('[data-manage]');if(!b)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;switch(b.dataset.manage){case'remove':openRemoveDialog(r);return;case'edit':resetPost();editingId=r.id;fillPost(r);$('#pi-post-title').textContent='Edit Your Listing';go('post');return;case'pending':r.status=r.status==='Pending'?'Available':'Pending';break;case'renew':if(activeCount()>=LIMITS.activeListings){feedback('Close another listing before renewing this one.');return;}r.status='Available';r.expires=expiry();break;}renderManaged();feedback(r.title+' — '+r.status.toLowerCase()+' in this preview.');});
 $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidden=!$('#pi-recovery-form').hidden;});$('#pi-recovery-form').addEventListener('submit',e=>e.preventDefault());$('#pi-recovery-send').addEventListener('click',()=>{if(connectedMode){localAction(requestLocalLogin);return;}if($('#pi-recovery-form').reportValidity())$('#pi-recovery-result').hidden=false;});
 
 function renderLocalManaged(){
- const deletedPanel=$('#pi-deleted-panel');if(deletedPanel){deletedPanel.hidden=!deleted.length;deletedPanel.querySelector('summary').textContent=`Recently deleted (${deleted.length})`;if(revealDeleted&&deleted.length)deletedPanel.open=true;revealDeleted=false;$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-deleted-item"><strong>${esc(r.title)}</strong><span>${r.purgeAt>Date.now()?`Recover by ${esc(new Date(r.purgeAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}`:'Recovery period ended'}</span>${r.purgeAt>Date.now()?`<button type="button" class="pi-text-button" data-recover="${esc(r.id)}">Recover listing</button>`:''}</article>`).join('');}
+ const deletedPanel=$('#pi-deleted-panel');if(deletedPanel){deletedPanel.hidden=!deleted.length;deletedPanel.querySelector('summary').textContent=`Recently deleted (${deleted.length})`;$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-deleted-item"><strong>${esc(r.title)}</strong><span>${r.purgeAt>Date.now()?`Recover by ${esc(new Date(r.purgeAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}`:'Recovery period ended'}</span>${r.purgeAt>Date.now()?`<button type="button" class="pi-text-button" data-recover="${esc(r.id)}">Recover listing</button>`:''}</article>`).join('');}
  renderPhotoManager();
  if($('#pi-email-change-panel'))$('#pi-email-change-panel').hidden=!signedIn;
  $('#pi-management-link').hidden=signedIn;
+ if($('#pi-local-logout'))$('#pi-local-logout').hidden=!signedIn;
+ $('#pi-active-count').hidden=!signedIn;$('#pi-new-listing').hidden=!signedIn||(productionMode&&!postingAvailable);
  const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';
  $('#pi-managed-list').innerHTML=managed.map(r=>{
   const button=(action,label)=>`<button type="button" data-manage="${action}" data-id="${esc(r.id)}">${label}</button>`;
-  const actions=(r.status==='Removed'?'':button('edit','Edit')+button('photos','Photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending')+button('close','Close listing'):button('renew','Relist for 30 days')))+button('delete','Delete');
+  const actions=r.status==='Removed'?'':button('edit','Edit')+button('photos','Add photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending'):button('renew','Relist for 30 days'))+button('remove','Remove listing');
   return `<article class="pi-managed-item"><h3>${esc(r.title)}</h3><div class="pi-managed-meta">${esc(formatPrice(r.type.toLowerCase(),r.priceCents))} · ${esc(r.city)} · ${esc(r.status)}</div><div class="pi-managed-actions">${actions}</div></article>`;
  }).join('')||(signedIn?'<div class="pi-empty-state"><strong>You have no current listings.</strong></div>':localMode?'<div class="pi-empty-state"><strong>Sign in to see your listings.</strong><span>Use a local management link below.</span></div>':'<div class="pi-empty-state"><strong>Sign in to see your listings.</strong><span>Open your emailed management link or request a new one below.</span></div>');
 }
 async function saveLocal(){
  if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}
- const d=draft(),input=localMode?adapter.listingInput(d,$('#pi-adult').checked,Boolean(editingId)):productionMode&&!editingId?adapter.draftListingInput(d,$('#pi-adult').checked):adapter.listingInput(d);freezeFields();
+ const d=draft(),input=localMode?adapter.listingInput(d,true,Boolean(editingId)):productionMode&&!editingId?adapter.draftListingInput(d,true):adapter.listingInput(d);freezeFields();
  if(editingId){await api.write({id:editingId,action:'edit',listing:input});await afterSuccess(localMode?'Changes saved to the local database.':'Changes saved.','manage');return;}
  // Reuse an already-created draft when only receipt delivery failed and content is unchanged.
  if(!localDraftId||JSON.stringify(pendingDraft)!==JSON.stringify(d)){
   let created;
   if(productionMode){if(!postingAvailable||!turnstileToken)throw adapter.safeError('Complete the privacy check and try again.');const token=turnstileToken;try{created=await api.createDraft(input,token);}finally{resetProductionTurnstile();}}
   else created=await api.request('/drafts',input);
-  localDraftId=created.id;pendingDraft=d;verificationReceipt=null;
+  localDraftId=created.id;localDraftPhotoToken=created.photoToken??null;pendingDraft=d;verificationReceipt=null;postPhotos.forEach(photo=>{if(photo.file)photo.uploaded=false;});
+  if(productionMode){$('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';}
+ }
+ if(productionMode){
+  const photos=postPhotos.filter(photo=>photo.file&&!photo.uploaded),status=$('#pi-draft-upload-status');
+  try{for(let index=0;index<photos.length;index++){
+   const photo=photos[index];status.hidden=false;status.classList.remove('is-error');status.classList.add('is-busy');status.setAttribute('aria-busy','true');status.textContent=`Uploading photo ${index+1} of ${photos.length}…`;
+   const upload=photo.file.size>10_000_000?await adapter.preparePhoto(photo.file):photo.file;
+   await api.uploadDraftPhoto(localDraftId,localDraftPhotoToken,upload);photo.uploaded=true;
+  }}catch(error){status.classList.remove('is-busy');status.classList.add('is-error');status.setAttribute('aria-busy','false');status.textContent=error.safe?error.message:'A photo could not be uploaded. Please try again.';return '#pi-draft-upload-status';}
+  if(photos.length){status.classList.remove('is-busy');status.setAttribute('aria-busy','false');status.textContent=photos.length===1?'Photo saved.':'Photos saved.';}
  }
  await requestVerification();
 }
 function showProductionDelivery(){
  verifyMode='deliver';
- $('#pi-verify-title').textContent='Check your email';$('#pi-verify-intro-text').textContent='A verification link was requested for ';$('#pi-verify-email').hidden=false;$('#pi-verify-email').textContent=pendingDraft.email;$('#pi-verify-detail').textContent='Open the email link, then explicitly confirm publication here. The link expires in 30 minutes.';
- $('#pi-email-label').textContent='EMAIL DELIVERY · POST & IN';$('#pi-email-item').textContent=pendingDraft.title;$('#pi-simulate-verify').textContent='Send another verification email';$('#pi-verify-note').textContent='If delivery is uncertain, check your inbox before retrying. This draft is saved for three days. Earlier verification emails publish the earlier saved version.';$('#pi-verify-back').hidden=false;
+ $('#pi-verify-title').textContent='Check your email';$('#pi-verify-intro').hidden=false;$('#pi-verify-intro-text').textContent='Open the link we sent to ';$('#pi-verify-email').hidden=false;$('#pi-verify-email').textContent=pendingDraft.email;$('#pi-verify-detail').hidden=false;$('#pi-verify-detail').textContent='It expires in 30 minutes.';
+ $('.pi-email-example').hidden=true;$('#pi-simulate-verify').textContent='Resend email';$('#pi-simulate-verify').className='pi-text-button';$('#pi-verify-note').hidden=true;$('#pi-verify-back').hidden=false;
  $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;
 }
 function showProductionConfirmation(){
  verifyMode='confirm';
- state.screen='post';render();$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Publish this listing?';$('#pi-verify-intro-text').textContent='Your email link is ready to confirm';$('#pi-verify-email').hidden=true;$('#pi-verify-email').textContent='';$('#pi-verify-detail').textContent='Choose Publish listing to verify the email and publish this one draft. This does not sign you in.';
- $('#pi-email-label').textContent='EMAIL LINK CONFIRMATION';$('#pi-email-item').textContent='The verification credential was removed from the address bar.';$('#pi-simulate-verify').textContent='Publish listing';$('#pi-verify-note').textContent='If the confirmation already succeeded but its response was lost, retrying safely confirms that result.';$('#pi-verify-back').hidden=true;
+ state.screen='post';render();$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Publish this listing?';$('#pi-verify-intro').hidden=true;$('#pi-verify-detail').hidden=true;$('.pi-email-example').hidden=true;
+ $('#pi-simulate-verify').textContent='Publish listing';$('#pi-simulate-verify').className='pi-primary';$('#pi-verify-note').hidden=true;$('#pi-verify-back').hidden=true;
  const heading=$('.pi-post h1');heading.tabIndex=-1;heading.focus();
 }
 function takeChangedVerificationLink(){
@@ -359,16 +388,17 @@ async function verifyLocal(){
 }
 function manageLocal(e){
  const b=e.target.closest('[data-manage]');if(!b||localBusy)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;
- if(b.dataset.manage==='delete'){deleteId=r.id;$('#pi-delete-dialog').showModal();return;}
- if(b.dataset.manage==='photos'){photoListingId=r.id;photoRefreshAttempted=false;renderPhotoManager();$('#pi-photo-manager h2').focus();$('#pi-photo-manager').scrollIntoView({block:'start'});return;}
- if(b.dataset.manage==='edit'){resetPost();editingId=r.id;fillPost(r);$('#pi-post-email').disabled=true;$('#pi-post-email').closest('label').hidden=true;$('.pi-contact-fields > .pi-field-help').hidden=true;$('.pi-age-check').hidden=true;$('#pi-adult').disabled=true;$('#pi-post-title').textContent='Edit Your Listing';go('post');return;}
- localAction(async()=>{try{await api.write({id:r.id,action:b.dataset.manage==='pending'?(r.status==='Pending'?'available':'pending'):b.dataset.manage==='renew'?'relist':'close'});}catch(error){try{await refreshLocal();}catch{}throw error;}await afterSuccess(localMode?'Listing updated in the local database.':'Listing updated.');});
+ if(b.dataset.manage==='remove'){openRemoveDialog(r);return;}
+ if(b.dataset.manage==='photos'){photoListingId=r.id;photoRefreshAttempted=false;$('.pi-manage').classList.add('pi-photo-mode');renderPhotoManager();$('#pi-photo-manager h2').focus();$('#pi-photo-manager').scrollIntoView({block:'start'});return;}
+ if(b.dataset.manage==='edit'){resetPost();editingId=r.id;fillPost(r);$('#pi-post-email').disabled=true;$('#pi-post-email').closest('label').hidden=true;$('.pi-contact-fields > .pi-field-help').hidden=true;$('#pi-post-title').textContent='Edit Your Listing';go('post');return;}
+ const action=b.dataset.manage==='pending'?(r.status==='Pending'?'available':'pending'):b.dataset.manage==='renew'?'relist':null;if(!action)return;
+ localAction(async()=>{try{await api.write({id:r.id,action});}catch(error){try{await refreshLocal();}catch{}throw error;}await afterSuccess(localMode?'Listing updated in the local database.':'Listing updated.');});
 }
 function renderPhotoManager(){
  const panel=$('#pi-photo-manager');if(!panel)return;
  const row=managed.find(r=>r.id===photoListingId&&r.status!=='Removed');panel.hidden=!signedIn||!row;
- if(panel.hidden)return;
- $('#pi-photo-manager h2').textContent='Photos';
+ if(panel.hidden){$('.pi-manage').classList.remove('pi-photo-mode');return;}
+ $('#pi-photo-manager h2').textContent='Add photos';
  $('#pi-photo-listing-name').textContent=row.title;
  $('#pi-stored-photos').innerHTML=row.photos.map((p,i)=>`<div class="pi-upload-tile"><img class="pi-upload-image" src="${esc(p.url)}" alt="Photo ${i+1}"><div class="pi-photo-tools">${i===0?'<span class="pi-photo-cover">Cover</span>':`<button type="button" data-photo-action="main" data-photo-id="${esc(p.id)}">Make cover</button>`}<button type="button" data-photo-action="remove" data-photo-id="${esc(p.id)}">Remove</button></div></div>`).join('');
  $('#pi-stored-count').textContent=row.photos.length+' of 6 photos';
@@ -436,12 +466,14 @@ if(connectedMode){
   $('#pi-verify-intro-text').textContent='A simulated verification link is ready for ';$('#pi-verify-detail').textContent='Confirm below to publish locally. Sign in separately to manage listings.';
  }
  else{
-  data.length=0;options('#pi-area',[],'All cities');$('.pi-preview-bar > span').firstChild.textContent='GEAR EXCHANGE DEVELOPMENT · Production listing connection ';$('.pi-preview-note').textContent='· No deployment';
+  data.length=0;options('#pi-area',[],'All cities');$('.pi-preview-bar').hidden=true;
   $('.pi-manage .pi-demo-note').hidden=true;
-  $('.pi-post .pi-demo-note').firstChild.textContent='New listings require email verification. Photos are added after publication. ';
+  $('.pi-post .pi-demo-note').firstChild.textContent='Verify by email to publish. ';
+  $('#pi-gear-rules p:last-child').hidden=true;
+  $('[data-step-label="2"]').textContent='2 · Photos & contact';
   $('#pi-fill-demo').hidden=true;
   $('#pi-new-listing').hidden=true;
-  $('.pi-photo-heading').hidden=true;$('#pi-upload-grid').hidden=true;$('.pi-upload-actions').hidden=true;
+  $('#pi-add-sample').hidden=true;
   $('#pi-contact-open').textContent='Buyer contact is temporarily unavailable';$('#pi-contact-open').disabled=true;
   $('#pi-report-open').textContent='Reporting is temporarily unavailable';$('#pi-report-open').disabled=true;
  }
@@ -450,14 +482,45 @@ if(connectedMode){
  const confirm=document.createElement('button');confirm.type='button';confirm.id='pi-local-login';confirm.textContent='Confirm local management link';confirm.hidden=true;confirm.className='pi-primary';$('#pi-recovery-form').append(confirm);
  $('#pi-recovery-email').addEventListener('input',()=>{loginReceipt=null;confirm.hidden=true;});
  if(localMode)confirm.onclick=()=>localAction(async()=>{if(!loginReceipt||loginReceipt.recipient!==$('#pi-recovery-email').value.trim().toLowerCase())throw adapter.safeError('Request a new link for the current email address.');freezeFields();clearLocalAccess();await api.request('/management/confirm',{token:loginReceipt.token,confirm:true});loginReceipt=null;confirm.hidden=true;signedIn=true;await afterSuccess('Signed in locally.');});
- const logout=document.createElement('button');logout.type='button';logout.id='pi-local-logout';logout.textContent='Quit';logout.className='pi-text-button';$('.pi-manage-account').append(logout);logout.onclick=()=>localAction(async()=>{try{await api.logout();}catch(error){if(error.status!==401)throw error;}clearLocalAccess();loginReceipt=null;confirm.hidden=true;await afterSuccess('Management session ended.');});
+ const browse=document.createElement('button');browse.type='button';browse.id='pi-browse-listings';browse.textContent='← All listings';browse.className='pi-text-button';$('.pi-manage-account').append(browse);browse.onclick=()=>go('gear');
+ const logout=document.createElement('button');logout.type='button';logout.id='pi-local-logout';logout.textContent='Sign out';logout.className='pi-text-button';$('.pi-manage-account').append(logout);logout.onclick=()=>localAction(async()=>{try{await api.logout();}catch(error){if(error.status!==401)throw error;}clearLocalAccess();loginReceipt=null;confirm.hidden=true;go('gear');location.replace(new URL('/gear/',location.origin).href);});
  const trash=document.createElement('details');trash.id='pi-deleted-panel';trash.className='pi-deleted-panel';trash.hidden=true;trash.innerHTML='<summary>Recently deleted (0)</summary><div id="pi-deleted-list"></div>';$('.pi-manage').insertBefore(trash,$('#pi-management-link'));
  trash.addEventListener('click',e=>{const b=e.target.closest('[data-recover]');if(b)localAction(async()=>{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:b.dataset.recover,action:'restore'},access.csrf);}else await api.deletion({id:b.dataset.recover,action:'recover'});await afterSuccess(localMode?'Listing recovered locally.':'Listing recovered.');});});
- $('#pi-delete-dialog p').textContent='Hide this listing and its photos now. You can recover it for 30 days. During recovery, authorized moderators can still review listing text associated with reports or removals; photos stay hidden. After 30 days, the listing and retained moderation text are eligible for permanent cleanup.';
- const photoPanel=document.createElement('section');photoPanel.id='pi-photo-manager';photoPanel.className='pi-recovery';photoPanel.hidden=true;
- photoPanel.innerHTML='<div class="pi-photo-manager-heading"><div><h2 tabindex="-1">Photos</h2><p id="pi-photo-listing-name"></p></div><p id="pi-stored-count" role="status"></p></div><p class="pi-photo-manager-help">Add up to 6 JPG, PNG, or WebP photos. The first is the cover.</p><div id="pi-stored-photos" class="pi-upload-grid"></div><label class="pi-upload-label pi-upload-button">Add a photo<input id="pi-stored-upload" type="file" accept="image/jpeg,image/png,image/webp"></label>';
- $('.pi-manage').append(photoPanel);
- $('#pi-stored-upload').addEventListener('change',e=>{const file=e.target.files[0];e.target.value='';if(!file)return;localAction(async()=>{if(file.size>5*1024*1024)throw adapter.safeError('Choose an image up to 5 MB.');freezeFields();if(productionMode){try{await api.uploadPhoto(photoListingId,file);}catch(error){try{await refreshLocal();}catch{}throw error;}await afterSuccess('Photo uploaded.');return '#pi-photo-manager h2';}const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(adapter.safeError('Unable to read this image.'));reader.readAsDataURL(file);});return savePhoto({action:'upload',data});});});
+ $('#pi-delete-dialog p').textContent='This hides the listing now. You can recover it for 30 days.';
+ const photoPanel=document.createElement('section');photoPanel.id='pi-photo-manager';photoPanel.hidden=true;
+ const photoAccept=productionMode?'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif':'image/jpeg,image/png,image/webp';
+ photoPanel.innerHTML=`<button type="button" class="pi-text-button pi-photo-back">← My listings</button><div class="pi-photo-manager-heading"><div><h2 tabindex="-1">Add photos</h2><p id="pi-photo-listing-name"></p></div><p id="pi-stored-count" role="status"></p></div><label class="pi-upload-label pi-upload-button">Choose photos<input id="pi-stored-upload" type="file" accept="${photoAccept}" multiple></label><p class="pi-photo-manager-help">${productionMode?'JPG, PNG, WebP or HEIC':'JPG, PNG or WebP'} · up to 6</p><p id="pi-photo-upload-status" class="pi-photo-upload-status" role="status" hidden></p><div id="pi-stored-photos" class="pi-upload-grid"></div><div class="pi-photo-manager-done"><button type="button" class="pi-primary" id="pi-photo-done">Done</button></div>`;
+ $('.pi-manage').insertBefore(photoPanel,$('.pi-current-listings'));
+ const leavePhotos=()=>{photoListingId=null;photoPanel.hidden=true;$('.pi-manage').classList.remove('pi-photo-mode');const heading=$('#pi-current-title');heading.tabIndex=-1;heading.focus();};
+ $('.pi-photo-back').addEventListener('click',leavePhotos);
+ $('#pi-photo-done').addEventListener('click',leavePhotos);
+ $('#pi-stored-upload').addEventListener('change',e=>{const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  const status=$('#pi-photo-upload-status'),input=$('#pi-stored-upload'),uploadLabel=input.closest('.pi-upload-button');
+  const setBusy=busy=>{input.disabled=busy;uploadLabel.classList.toggle('is-busy',busy);uploadLabel.setAttribute('aria-disabled',String(busy));};
+  const showStatus=(message,error=false,busy=false)=>{status.textContent=message;status.hidden=false;status.classList.toggle('is-error',error);status.classList.toggle('is-busy',busy);status.setAttribute('aria-busy',String(busy));};
+  const row=managed.find(r=>r.id===photoListingId),remaining=6-(row?.photos.length||0),types=productionMode?['image/jpeg','image/png','image/webp','image/heic','image/heif']:['image/jpeg','image/png','image/webp'];
+  status.hidden=true;status.textContent='';status.classList.remove('is-error');
+  if(files.length>remaining){showStatus(`Choose ${remaining} or fewer photos.`,true);return;}
+  const oversized=!productionMode&&files.find(file=>file.size>5*1024*1024);if(oversized){showStatus(`${oversized.name} is larger than 5 MB.`,true);return;}
+  const supportedName=productionMode?/\.(?:jpe?g|png|webp|heic|heif)$/i:/\.(?:jpe?g|png|webp)$/i;
+  const unsupported=files.find(file=>!types.includes(file.type)&&!supportedName.test(file.name));if(unsupported){showStatus(`${unsupported.name} is not a supported photo.`,true);return;}
+  localAction(async()=>{freezeFields();setBusy(true);
+   try{
+    for(let i=0;i<files.length;i++){
+     const file=files[i];let upload=file;
+     if(productionMode&&file.size>10_000_000){showStatus(`Preparing ${i+1} of ${files.length}…`,false,true);upload=await adapter.preparePhoto(file);}
+     showStatus(`Uploading ${i+1} of ${files.length}…`,false,true);
+     if(productionMode)await api.uploadPhoto(photoListingId,upload);
+     else{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(adapter.safeError('Unable to read this image.'));reader.readAsDataURL(file);});await api.photos({id:photoListingId,action:'upload',data});}
+     showStatus(`${i+1} of ${files.length} uploaded`,false,true);
+    }
+    showStatus('Updating photos…',false,true);await refreshLocal();
+    showStatus(files.length===1?'Photo added and saved.':`${files.length} photos added and saved.`);
+   }catch(error){try{await refreshLocal();}catch{}if(error.status===401)throw error;showStatus(error.safe?error.message:'Upload failed. Try again.',true);}
+   finally{setBusy(false);}
+   return '#pi-photo-upload-status';
+  });
+ });
  $('#pi-stored-photos').addEventListener('click',e=>{const b=e.target.closest('[data-photo-action]');if(b)localAction(()=>savePhoto({action:b.dataset.photoAction,photoId:b.dataset.photoId}));});
  $('#pi-stored-photos').addEventListener('error',e=>{if(productionMode&&e.target.matches('img')&&!photoRefreshAttempted&&!localBusy){photoRefreshAttempted=true;localAction(refreshLocal);}},true);
  if(localMode){
@@ -469,19 +532,24 @@ if(connectedMode){
   $('#pi-change-confirm').onclick=()=>localAction(confirmEmailChange);
  }
  if(localMode){const reissue=document.createElement('button');reissue.type='button';reissue.id='pi-local-reissue';reissue.className='pi-text-button';reissue.textContent='Request a new local verification link';$('#pi-verify-screen').append(reissue);reissue.onclick=()=>localAction(requestVerification);}
- $('#pi-photo-files').disabled=true;$('#pi-add-sample').disabled=true;$('.pi-photo-heading + p').textContent=localMode?'Publish and sign in first, then use Photos on your managed listing to upload and save images.':'Photos are managed separately. Use Photos on the listing after saving.';
+ if(localMode){$('#pi-photo-files').disabled=true;$('#pi-add-sample').disabled=true;$('.pi-photo-heading + p').textContent='Publish first, then add photos.';}
 }
 resetPost();renderManaged();
 let deleteId=null;
+function openRemoveDialog(row){
+ deleteId=row.id;$('#pi-delete-title').textContent='Remove listing?';
+ $('#pi-delete-dialog p').textContent='This hides the listing now. You can recover it for 30 days.';
+ $('#pi-delete-dialog').showModal();$('#pi-delete-confirm').focus();
+}
 $('#pi-delete-cancel').onclick=()=>$('#pi-delete-dialog').close();
-$('#pi-delete-confirm').onclick=()=>{if(connectedMode){localAction(async()=>{try{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}else await api.deletion({id:deleteId,action:'delete'});}finally{$('#pi-delete-dialog').close();}photoListingId=null;revealDeleted=true;await afterSuccess(localMode?'Listing deleted locally.':'Listing deleted.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
-render();
+$('#pi-delete-confirm').onclick=()=>{if(connectedMode){localAction(async()=>{try{if(localMode){const access=await api.session();await api.request('/management/deletion',{id:deleteId,action:'delete'},access.csrf);}else await api.deletion({id:deleteId,action:'delete'});}finally{$('#pi-delete-dialog').close();}photoListingId=null;await afterSuccess(localMode?'Listing deleted locally.':'Listing deleted.');});return;}const index=managed.findIndex(r=>r.id===deleteId);if(index>=0)managed.splice(index,1);$('#pi-delete-dialog').close();renderManaged();feedback('Listing deleted from this preview.');$('#pi-new-listing').focus();};
+render();rememberNavigation('replace');
 postingSetup=productionMode?configureProductionPosting():null;
 const publicSetup=productionMode?refreshPublicListings().then(()=>null,error=>error):null;
 if(productionMode&&productionVerificationToken)showProductionConfirmation();
 else if(recognizedVerificationLink)showLocalError('This verification link is invalid or incomplete. Request a new email.');
 else if(productionMode&&managementToken)await localAction(async()=>{clearLocalAccess();await api.confirm(managementToken);signedIn=true;await afterSuccess('Signed in.','manage');});
-else if(localMode)await localAction(refreshLocal);
+else if(localMode||state.screen==='manage')await localAction(refreshLocal);
 if(publicSetup){const error=await publicSetup;render();if(error&&publicFailed){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to load Gear listings right now.');}}
 if(postingSetup)await postingSetup;
 })();

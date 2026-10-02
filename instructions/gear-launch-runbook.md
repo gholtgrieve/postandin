@@ -3,7 +3,8 @@
 Status: active launch plan. The owner authorized isolated staging setup. A
 staging-only D1 database and maintenance-state KV namespace now exist; the empty
 D1 bookmark/export was captured, migrations `0001`–`0015` applied in order and
-the expected 18 empty Gear tables were verified. The isolated staging Pages
+the expected 18 empty Gear tables were verified. Migrations `0016`–`0018` are
+pending and must be applied before the matching Pages code. The isolated staging Pages
 project is deployed behind an owner-only Cloudflare Access application with
 independent MFA on the canonical, admin and wildcard deployment hostnames.
 Authenticated empty public browse and private owner-dashboard reads passed.
@@ -94,7 +95,7 @@ Provision disposable staging records/auth resources only after separate owner
 authorization:
 
 - a separate Pages project and Access application;
-- a new D1 database containing migrations `0001` through `0015` in order;
+- a new D1 database containing migrations `0001` through `0018` in order;
 - a dedicated maintenance-state KV namespace;
 - staging-only Turnstile, Resend and Cloudflare Access settings;
 - an allowlisted mail recipient and synthetic records only.
@@ -250,7 +251,7 @@ Only after an explicit deployment instruction:
    GitHub workflow, then verify the target with a synthetic canary;
 2. provision production D1/KV/Images identities and capture the empty D1
    bookmark/export;
-3. apply migrations `0001`–`0015` in order and verify schema/contracts;
+3. apply migrations `0001`–`0018` in order and verify schema/contracts;
 4. deploy `gear-images` with no public route and verify it by service binding;
 5. deploy `gear-maintenance`, verify its cron and execute one controlled run on
    synthetic production smoke data without sending an alert;

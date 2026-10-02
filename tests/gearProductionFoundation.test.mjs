@@ -52,7 +52,7 @@ test('production migrations preserve legacy listings without inventing acknowled
   try{
     const db=openLocalDatabase(path);
     try{
-      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,15);
+      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,18);
       const acknowledgement=db.sqlite.prepare("SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id='legacy'").get();
       assert.equal(acknowledgement.adult_acknowledged_at,null);
       assert.equal(acknowledgement.disclosure_version,null);
@@ -77,6 +77,23 @@ test('production seller deletion marker is constrained and its purge ledger surv
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_deletions').get().n,0);
     assert.deepEqual({...db.sqlite.prepare('SELECT * FROM gear_deletion_ledger').get()},{listing_id:id,deleted_at:200,purge_at:300,purged_at:null});
   }finally{db.close();}
+});
+
+test('migration 16 puts legacy closed listings on the 30-day removal clock',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'gear-v16-')),path=join(dir,'db.sqlite');
+  try{
+    let db=openLocalDatabase(path);
+    const {id}=await createDraft(db,input,100);
+    db.sqlite.prepare("UPDATE gear_listings SET status='closed',verified_at=100,expires_at=200 WHERE id=?").run(id);
+    db.sqlite.prepare('DELETE FROM gear_local_migrations WHERE version=16').run();db.close();
+    db=openLocalDatabase(path);
+    try{
+      assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'removed');
+      const deletion=db.sqlite.prepare('SELECT previous_status,deleted_at,purge_at FROM gear_deletions WHERE listing_id=?').get(id);
+      assert.equal(deletion.previous_status,'closed');assert.equal(deletion.purge_at-deletion.deleted_at,30*86400000);
+      assert.deepEqual({...db.sqlite.prepare('SELECT deleted_at,purge_at,purged_at FROM gear_deletion_ledger WHERE listing_id=?').get(id)},{deleted_at:deletion.deleted_at,purge_at:deletion.purge_at,purged_at:null});
+    }finally{db.close();}
+  }finally{rmSync(dir,{recursive:true,force:true});}
 });
 
 test('hosted photo metadata is ordered, capped, private and cascade-deleted',async()=>{

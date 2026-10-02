@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {listingInput,previewListing,productionAPI,takeManagementToken} from '../gear/production-api.mjs';
+import {listingInput,preparePhoto,previewListing,productionAPI,takeManagementToken} from '../gear/production-api.mjs';
 
 const TOKEN='a'.repeat(64),CSRF='b'.repeat(64),ID='00000000-0000-4000-8000-000000000001';
 const json=(status,value)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
@@ -28,7 +28,7 @@ test('management writes recover CSRF and use bounded same-origin POST requests',
     return json(200,{ok:true});
   };
   const api=productionAPI({origin:'https://postandin.com',fetcher});
-  await api.write({id:ID,action:'close'});
+  await api.write({id:ID,action:'pending'});
   await api.deletion({id:ID,action:'delete'});
   await api.removePhoto(ID,ID);
   await api.reorderPhotos(ID,[ID]);
@@ -47,6 +47,47 @@ test('management writes recover CSRF and use bounded same-origin POST requests',
 test('production seller recovery uses the deletion route recovery action',()=>{
   const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
   assert.match(source,/api\.deletion\(\{id:b\.dataset\.recover,action:'recover'\}\)/);
+});
+
+test('management separates browsing from explicit sign out',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/browse\.textContent='← All listings'/);
+  assert.match(source,/browse\.onclick=\(\)=>go\('gear'\)/);
+  assert.match(source,/logout\.textContent='Sign out'/);
+  assert.match(source,/go\('gear'\);location\.replace\(new URL\('\/gear\/',location\.origin\)\.href\)/);
+});
+
+test('connected navigation has explicit site, browse, manage and cancel destinations',()=>{
+  const html=readFileSync(new URL('../gear/index.html',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/connectedMode&&target==='home'/);
+  assert.match(source,/location\.assign\(new URL\('\/',location\.origin\)\.href\)/);
+  assert.match(html,/id="pi-post-cancel">Cancel/);
+  assert.equal((html.match(/data-post-cancel/g)||[]).length,2);
+  assert.match(source,/querySelectorAll\('#pi-post-cancel,\[data-post-cancel\]'\)/);
+});
+
+test('connected navigation participates in browser history',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/const navigationScreens=new Set\(\['gear','detail','post','manage'\]\)/);
+  assert.match(source,/history\[mode==='replace'\?'replaceState':'pushState'\]\(snapshot,'',location\.href\)/);
+  assert.match(source,/window\.addEventListener\('popstate'/);
+  assert.match(source,/navigationScreens\.has\(event\.state\?\.gearScreen\)\?event\.state\.gearScreen:'gear'/);
+  assert.match(source,/go\(screen,\{historyMode:'none'\}\)/);
+  assert.match(source,/resetContact\(\);go\('detail'\)/);
+});
+
+test('session refresh distinguishes authentication loss from a temporary failure',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/catch\(error\)\{if\(error\.status===401\)clearLocalAccess\(\);else throw error;\}/);
+  assert.match(source,/\$\('#pi-local-logout'\)\.hidden=!signedIn/);
+  assert.match(source,/if\(editingId\)resetPost\(\)/);
+  assert.match(source,/expiredEdit=state\.screen==='post'&&Boolean\(editingId\)/);
+  assert.match(source,/if\(expiredEdit\)go\('manage',\{historyMode:'replace'\}\)/);
+  assert.match(source,/if\(expiredEdit\)\$\('#pi-post-email'\)\.disabled=false/);
+  assert.match(source,/if\(error\.status===401\)throw error;showStatus/);
+  assert.match(source,/\$\('#pi-active-count'\)\.hidden=!signedIn;\$\('#pi-new-listing'\)\.hidden=!signedIn\|\|\(productionMode&&!postingAvailable\)/);
+  assert.match(source,/postingAvailable=true;renderManaged\(\)/);
 });
 
 test('confirmation and recovery keep credentials in POST bodies and expose safe errors',async()=>{
@@ -88,9 +129,55 @@ test('photo finalize exhaustion is bounded and gives an honest recovery instruct
 
 test('photo upload validates local files and provider response before cross-origin delivery',async()=>{
   let calls=0;const api=productionAPI({origin:'https://postandin.com',fetcher:async(url)=>{calls++;if(String(url).endsWith('/session'))return json(200,{csrf:CSRF});return json(201,{quarantineProviderId:ID,uploadURL:'http://upload.imagedelivery.net/direct'});}});
-  await assert.rejects(api.uploadPhoto(ID,new File([], 'empty.jpg',{type:'image/jpeg'})),/Choose a JPG/);assert.equal(calls,0);
-  await assert.rejects(api.uploadPhoto(ID,new File(['x'],'gear.gif',{type:'image/gif'})),/Choose a JPG/);assert.equal(calls,0);
+  await assert.rejects(api.uploadPhoto(ID,new File([], 'empty.jpg',{type:'image/jpeg'})),/supported photo/);assert.equal(calls,0);
+  await assert.rejects(api.uploadPhoto(ID,new File(['x'],'gear.gif',{type:'image/gif'})),/supported photo/);assert.equal(calls,0);
   await assert.rejects(api.uploadPhoto(ID,new File(['x'],'gear.jpg',{type:'image/jpeg'})),/unreadable response/);assert.equal(calls,2);
+});
+
+test('photo upload accepts phone HEIC metadata and extension fallback',async()=>{
+  for(const file of [new File(['x'],'phone.heic',{type:'image/heic'}),new File(['x'],'PHONE.HEIF'),new File(['x'],'camera.JPG',{type:'image/jpg'})]){
+    let direct=false;const api=productionAPI({origin:'https://postandin.com',fetcher:async(url)=>{
+      if(String(url).endsWith('/session'))return json(200,{csrf:CSRF});
+      if(String(url).endsWith('/photos/upload'))return json(201,{quarantineProviderId:ID,uploadURL:'https://upload.imagedelivery.net/direct'});
+      if(String(url)==='https://upload.imagedelivery.net/direct'){direct=true;return new Response('',{status:200});}
+      if(String(url).endsWith('/photos/finalize'))return json(200,{ok:true});
+    }});
+    await api.uploadPhoto(ID,file);assert.equal(direct,true);
+  }
+});
+
+test('oversized phone photos are prepared automatically without changing the original',async()=>{
+  const original=new File([new Uint8Array(10_000_001)],'2026-10-01 14.43.32.jpg',{type:'image/jpeg',lastModified:123});
+  let closed=false,drawn=null;const canvas={width:0,height:0,getContext:()=>({drawImage(...args){drawn=args;}}),toBlob(callback,type,quality){assert.equal(type,'image/jpeg');assert.equal(quality,0.86);callback(new Blob(['prepared'],{type}));}};
+  const prepared=await preparePhoto(original,{createBitmap:async()=>({width:6000,height:4000,close(){closed=true;}}),createCanvas:()=>canvas});
+  assert.notEqual(prepared,original);assert.equal(original.size,10_000_001);assert.equal(prepared.name,'2026-10-01 14.43.32.jpg');assert.equal(prepared.type,'image/jpeg');assert.equal(prepared.lastModified,123);
+  assert.equal(canvas.width,2400);assert.equal(canvas.height,1600);assert.deepEqual(drawn.slice(1),[0,0,2400,1600]);assert.equal(closed,true);
+  const small=new File(['small'],'small.jpg',{type:'image/jpeg'});assert.equal(await preparePhoto(small),small);
+});
+
+test('photo management is focused, supports multi-select and reports progress',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  const styles=readFileSync(new URL('../gear/gear.css',import.meta.url),'utf8');
+  assert.match(source,/button\('photos','Add photos'\)/);
+  assert.match(source,/id="pi-stored-upload"[^>]+multiple/);
+  assert.match(source,/Uploading \$\{i\+1\} of \$\{files\.length\}/);
+  assert.match(source,/status\.classList\.toggle\('is-busy',busy\)/);
+  assert.match(source,/input\.disabled=busy/);
+  assert.match(source,/id="pi-photo-done">Done/);
+  assert.match(source,/photos added and saved\./);
+  assert.match(source,/button\('remove','Remove listing'\)/);
+  assert.match(source,/This hides the listing now\. You can recover it for 30 days\./);
+  assert.doesNotMatch(source,/button\('close','Close listing'\)/);
+  assert.doesNotMatch(source,/button\('delete','Delete'\)/);
+  assert.match(source,/← My listings/);
+  assert.match(styles,/\.pi-manage\.pi-photo-mode>:not\(#pi-photo-manager\)/);
+  assert.match(styles,/\.pi-photo-upload-status\.is-busy::before/);
+  assert.match(styles,/@keyframes pi-photo-spin/);
+});
+
+test('connected Gear hides developer preview navigation',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/\$\('\.pi-preview-bar'\)\.hidden=true/);
 });
 
 test('production projections preserve only fields needed by the existing editor',()=>{

@@ -54,17 +54,22 @@ async function publishBeforeAdultMigration(db,now=100){
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
 async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits','gear_contact_attempts','gear_contact_messages'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,15,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,18,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
- }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA','VERIFY','CONTACT'],d1Persist:temp,
+	 }}`,compatibilityDate:'2026-07-01',host:'127.0.0.1',d1Databases:['DB','UPGRADE','QUOTA','VERIFY','CONTACT','SESSION'],d1Persist:temp,
   outboundService:request=>new Response(JSON.stringify({url:request.url,id:'01234567-89ab-4cde-8fab-0123456789ab'}),{status:200})};
  mf=new Miniflare(runtimeOptions);
  const mailProbe=await mf.dispatchFetch('http://localhost/mail-runtime-probe');assert.equal(mailProbe.status,200);assert.equal((await mailProbe.json()).url,'https://api.resend.com/emails');
  console.log('PASS: Workers accepts manual redirect handling while mocked outbound mail remains local.');
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_d1_check_migrations').first()).n,files.length);
+	 const sessionDb=await mf.getD1Database('SESSION');await migrate(sessionDb);
+	 await publish(sessionDb,{email:'session-retention@example.test',title:'Session retention bag'},1000);
+	 const retainedSession=await login(sessionDb,'session-retention@example.test',1100);
+	 const retainedRow=await sessionDb.prepare('SELECT created_at,expires_at FROM gear_management_sessions ORDER BY created_at DESC LIMIT 1').first();
+ assert.equal(retainedRow.expires_at-retainedRow.created_at,30*86400000);assert.equal(retainedSession.expiresAt,retainedRow.expires_at);
  const probe=await db.prepare('UPDATE gear_sellers SET verified_at=1 WHERE id=? RETURNING id').bind('missing').run();
  assert.equal(probe.meta.changes,0);assert.deepEqual(probe.results,[]);
  const uploadCascadeSeller='00000000-0000-4000-8000-000000000013';
@@ -92,7 +97,7 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all fifteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact limits and verification-delivery state; D1 RETURNING/meta.changes.');
+ console.log('PASS: all eighteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact limits, verification-delivery state and 30-day management-session retention; D1 RETURNING/meta.changes.');
  const verifyDb=await mf.getD1Database('VERIFY');await migrate(verifyDb);
  const verifyNow=10*86400000,verifyDraft=await createDraft(verifyDb,{...sample,email:'verify@example.test',title:'D1 verification delivery'},verifyNow);
  const firstVerification=await issueVerification(verifyDb,verifyDraft.id,verifyNow+1);assert.ok(firstVerification);
@@ -322,7 +327,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 15 with legacy data and queued photo deletion state preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 18 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

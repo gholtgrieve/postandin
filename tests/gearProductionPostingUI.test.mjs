@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createGearConfigHandler} from '../functions/api/gear/config.js';
 import * as configRoute from '../functions/api/gear/config.js';
 import {draftListingInput,productionAPI,takeVerificationToken} from '../gear/production-api.mjs';
@@ -33,7 +34,7 @@ test('public posting config is canonical, no-store and fails closed without a va
 });
 
 test('production posting adapter uses bounded same-origin requests and preserves Retry-After',async()=>{
-  const calls=[];let requests=0;const api=productionAPI({origin:ORIGIN,fetcher:async(url,options)=>{calls.push({url,options});if(url==='/api/gear/config')return json(200,{turnstileSiteKey:SITE_KEY,contactEnabled:false,reportEnabled:false});if(url.endsWith('/verification/request'))return ++requests===1?json(202,{message:'Verification email accepted for delivery.'}):new Response('<h1>limited</h1>',{status:429,headers:{'Retry-After':'42','Content-Type':'text/html'}});return json(url.endsWith('/drafts')?201:200,url.endsWith('/drafts')?{id:'00000000-0000-4000-8000-000000000001',status:'unverified'}:{verified:true,listingId:'00000000-0000-4000-8000-000000000001'});}});
+  const calls=[];let requests=0;const api=productionAPI({origin:ORIGIN,fetcher:async(url,options)=>{calls.push({url,options});if(url==='/api/gear/config')return json(200,{turnstileSiteKey:SITE_KEY,contactEnabled:false,reportEnabled:false});if(url.endsWith('/verification/request'))return ++requests===1?json(202,{message:'Verification email accepted for delivery.'}):new Response('<h1>limited</h1>',{status:429,headers:{'Retry-After':'42','Content-Type':'text/html'}});return json(url.endsWith('/drafts')?201:200,url.endsWith('/drafts')?{id:'00000000-0000-4000-8000-000000000001',status:'unverified',photoToken:TOKEN}:{verified:true,listingId:'00000000-0000-4000-8000-000000000001'});}});
   assert.deepEqual(await api.config(),{turnstileSiteKey:SITE_KEY,contactEnabled:false,reportEnabled:false});
   const listing={title:'Bag'};await api.createDraft(listing,'turnstile-token');
   assert.deepEqual(await api.requestVerification('00000000-0000-4000-8000-000000000001'),{message:'Verification email accepted for delivery.'});
@@ -55,6 +56,23 @@ test('posting adapter rejects malformed success shapes and bounds server errors'
 test('draft projection includes seller verification fields but excludes browser-only data',()=>{
   const result=draftListingInput({title:'Bag',description:'Good bag',category:'Bundles',size:'Junior',fit:'Junior',condition:'Used — good',city:'Seattle',type:'Sale',priceCents:1200,trade:null,clubs:[],otherClub:'',seller:'Alex',email:'seller@example.test',photos:[{name:'private.jpg'}]},true);
   assert.equal(result.sellerName,'Alex');assert.equal(result.email,'seller@example.test');assert.equal(result.adult,true);assert.equal(Object.hasOwn(result,'photos'),false);assert.equal(Object.hasOwn(result,'seller'),false);
+});
+
+test('posting flow keeps photos in the main path and handles draft upload retries clearly',()=>{
+  const html=readFileSync(new URL('../gear/index.html',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  const styles=readFileSync(new URL('../gear/gear.css',import.meta.url),'utf8');
+  assert.match(html,/id="pi-photo-files"[^>]+multiple/);
+  assert.match(html,/id="pi-post-photos"/);
+  assert.doesNotMatch(html,/id="pi-adult"/);
+  assert.match(html,/id="pi-post-submit">Send verification email/);
+  assert.match(source,/postPhotos\.forEach\(photo=>\{if\(photo\.file\)photo\.uploaded=false;\}\)/);
+  assert.match(source,/#pi-post-photos'\)\.hidden=Boolean\(connectedMode&&editingId\)/);
+  assert.match(source,/status\.classList\.remove\('is-busy'\);status\.classList\.add\('is-error'\)/);
+  assert.match(source,/return '#pi-draft-upload-status'/);
+  assert.doesNotMatch(source,/This saved draft can request another email without a new privacy check/);
+  assert.match(styles,/button:disabled\{cursor:not-allowed;opacity:\.5\}/);
+  assert.match(styles,/\.pi-manage \.pi-seller-heading\{/);
 });
 
 test('Turnstile loader is configuration-gated and loads the exact explicit-render script',async()=>{

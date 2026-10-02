@@ -54,7 +54,7 @@ record content, signed export URLs or provider tokens.
 
 `scripts/gear/lean-backup.mjs` verifies decrypted JSON, restores it to a new local
 SQLite rehearsal database, or writes data-only SQL for a new D1 database after
-migrations 0001–0015. The SQL path is tested against a freshly migrated temporary
+migrations 0001–0018. The SQL path is tested against a freshly migrated temporary
 database.
 
 `gear-backup/github-actions.yml.example` is deliberately outside
@@ -128,7 +128,7 @@ disaster. Before reopening traffic, re-apply any later action that can be
 reconstructed from the surviving live system or operator/mail records.
 
 Importing `restore.sql` into a new remote D1 database is a separately authorized
-incident action. First create a new database, apply migrations 0001–0015, verify
+incident action. First create a new database, apply migrations 0001–0018, verify
 it is empty, then use the documented D1 SQL import mechanism. Never import over
 the original database or use this procedure as a production test.
 

@@ -24,7 +24,7 @@ Responses are JSON with `no-store`, `no-referrer` and `nosniff` headers.
    Opening the link performs no write.
 3. `POST /api/gear/management/confirm` requires the token and `confirm:true`.
    Successful redemption consumes the token, revokes prior sessions for that
-   seller and creates a fresh 24-hour session transactionally. The response sets
+   seller and creates a fresh 30-day session transactionally. The response sets
    `__Host-gear_session` with `Secure; HttpOnly; SameSite=Strict; Path=/` and no
    Domain, and returns only the derived CSRF value and original expiry.
 4. `POST /api/gear/management/session` requires exactly one host-only session

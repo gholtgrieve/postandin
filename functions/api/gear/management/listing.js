@@ -7,7 +7,7 @@ const BODY_MAX_BYTES=24*1024;
 function input(value){
   if(!value||typeof value!=='object'||Array.isArray(value)||!isGearImageProviderId(value.id))return null;
   if(value.action==='edit'&&Object.keys(value).length===3&&value.listing&&typeof value.listing==='object'&&!Array.isArray(value.listing))return value;
-  return ['pending','available','close','relist'].includes(value.action)&&Object.keys(value).length===2?value:null;
+  return ['pending','available','relist'].includes(value.action)&&Object.keys(value).length===2?value:null;
 }
 
 export function createManagementListingHandler({recover=recoverManagementSession,edit=editManagedListing,change=changeListingState,now=Date.now}={}){

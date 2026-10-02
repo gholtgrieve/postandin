@@ -23,7 +23,7 @@ add a deployed write route.
 - `lib/gear-photo-rate-limit.mjs`: exact per-seller UTC-day upload-attempt budget
   used before production provider work; it stores no network address.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies migrations 1–14 once and preserves records on reopening.
+  It applies all 18 checked-in migrations once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -31,7 +31,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All fifteen migrations, the acknowledgement
+Local tests exercise real SQLite. All eighteen migrations, the acknowledgement
 write, photo metadata/quarantine adapters and private moderation projection pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
@@ -285,7 +285,7 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all ten migrations, populated version-6 upgrade, persistence,
+Current D1 evidence: all eighteen migrations, populated version-6 upgrade, persistence,
 transaction/error semantics, moderation read projection and core storage flows
 passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and

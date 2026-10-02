@@ -84,9 +84,9 @@ test('HTTP recovery is generic; confirmation sets secure cookie; mutations requi
   const response=await post('/management/confirm',{token,confirm:true});assert.equal(response.status,200);
   const cookie=response.headers.get('set-cookie');assert.match(cookie,/HttpOnly; Secure; SameSite=Strict/);assert.ok(cookie.includes('Max-Age='+MANAGEMENT_TTL_MS/1000));const access=await response.json();assert.equal(access.session,undefined);
   const headers={Cookie:cookie.split(';')[0]};const listingResponse=await fetch(base+'/management/listings',{headers});assert.equal(listingResponse.status,200);const {listings}=await listingResponse.json();
-  assert.equal((await post('/management/listing',{id:listings[0].id,action:'close'},headers)).status,403);
-  assert.equal((await post('/management/listing',{id:listings[0].id,action:'close'},{...headers,'X-Gear-CSRF':access.csrf,Origin:'https://example.test'})).status,403);
-  assert.equal((await post('/management/listing',{id:listings[0].id,action:'close'},{...headers,'X-Gear-CSRF':access.csrf})).status,200);
+  assert.equal((await post('/management/listing',{id:listings[0].id,action:'pending'},headers)).status,403);
+  assert.equal((await post('/management/listing',{id:listings[0].id,action:'pending'},{...headers,'X-Gear-CSRF':access.csrf,Origin:'https://example.test'})).status,403);
+  assert.equal((await post('/management/listing',{id:listings[0].id,action:'pending'},{...headers,'X-Gear-CSRF':access.csrf})).status,200);
   assert.equal((await post('/management/logout',{}, {...headers,'X-Gear-CSRF':access.csrf})).status,200);
   assert.equal((await fetch(base+'/management/listings',{headers})).status,401);
  }finally{await new Promise(r=>server.close(r));db.close();}
@@ -115,6 +115,9 @@ test('write authorization rejects foreign/unverified records and missing, revoke
   const stored=db.sqlite.prepare('SELECT created_at,expires_at FROM gear_management_sessions').get();
   assert.equal(stored.expires_at-stored.created_at,MANAGEMENT_TTL_MS);
   assert.equal(access.expiresAt,stored.expires_at);
+  // Session and listing both normally last 30 days. Keep this record live a
+  // little longer so the boundary below isolates session authorization.
+  db.sqlite.prepare('UPDATE gear_listings SET expires_at=expires_at+1000 WHERE id=?').run(id);
   assert.ok(await listManaged(db,access.session,access.expiresAt-1));
   assert.equal(await changeListingState(db,access.session,access.csrf,id,'pending',access.expiresAt-1),true);
   for(const now of [access.expiresAt,access.expiresAt+1]){
