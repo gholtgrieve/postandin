@@ -43,7 +43,13 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through September 20, 2026/);
+  assert.match(statsPage, /Through September 27, 2026/);
+  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">8<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">1-6-1<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">13 \/ 24<\/span>/);
+  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>8<\/td><td>3<\/td><td>1<\/td><td class="points">4<\/td><td>0<\/td>/);
+  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>8<\/td><td>2<\/td><td>1<\/td><td class="points">3<\/td><td>4<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>7<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>37<\/td>/);
 });
 
 test('both player tables provide sortable column controls', () => {
@@ -57,8 +63,8 @@ test('goalie totals include derived saves and save percentage', () => {
   assert.match(statsPage, />GA<\/button>/);
   assert.match(statsPage, />SV<\/button>/);
   assert.match(statsPage, />SV%<\/button>/);
-  assert.match(statsPage, /Anthony O'Donnell<\/td><td>2<\/td><td>0<\/td><td>1<\/td><td>1<\/td><td>70<\/td><td>5<\/td><td>65<\/td><td class="points" data-sort-value="92\.9">92\.9%/);
-  assert.match(statsPage, /Miguel Martinez<\/td><td>2<\/td><td>0<\/td><td>2<\/td><td>0<\/td><td>81<\/td><td>8<\/td><td>73<\/td><td class="points" data-sort-value="90\.1">90\.1%/);
+  assert.match(statsPage, /Anthony O'Donnell<\/td><td>4<\/td><td>0<\/td><td>3<\/td><td>1<\/td><td>166<\/td><td>12<\/td><td>154<\/td><td class="points" data-sort-value="92\.8">92\.8%/);
+  assert.match(statsPage, /Miguel Martinez<\/td><td>4<\/td><td>1<\/td><td>3<\/td><td>0<\/td><td>150<\/td><td>12<\/td><td>138<\/td><td class="points" data-sort-value="92\.0">92\.0%/);
 });
 
 test('display names retain natural order while sorting by surname', () => {
@@ -70,4 +76,32 @@ test('display names retain natural order while sorting by surname', () => {
 test('player positions reflect the current Seattle Junior roster', () => {
   assert.match(statsPage, /Max Haglof McCallum<\/td><td>F<\/td>/);
   assert.match(statsPage, /Zaedan Longley<\/td><td>F\/D<\/td>/);
+});
+
+test('coach-review analytics preserve the basic tables and label data limitations', () => {
+  assert.match(statsPage, /Season Snapshot/);
+  assert.doesNotMatch(statsPage, /Coach-review draft/);
+  assert.doesNotMatch(statsPage, /These figures describe what has happened so far/);
+  assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);
+  assert.match(statsPage, /Shots by game/);
+  assert.match(statsPage, /Three-game shot-share trend/);
+  assert.match(statsPage, /34\.1%/);
+  assert.match(statsPage, /31\.4%/);
+  assert.equal((statsPage.match(/class="trend-point"/g) ?? []).length, 6);
+  assert.match(statsPage, /Game efficiency/);
+  assert.match(statsPage, /Seattle Junior share of shots/);
+  assert.match(statsPage, /Final goal differential/);
+  assert.match(statsPage, /On our goal \(−\)/);
+  assert.match(statsPage, /On their goal \(\+\)/);
+  assert.equal((statsPage.match(/class="diverging-chart game-shot-chart"/g) ?? []).length, 8);
+  assert.equal((statsPage.match(/class="diverging-chart period-goal-chart"/g) ?? []).length, 3);
+  assert.match(statsPage, /Goals by period/);
+  assert.match(statsPage, /Penalty profile/);
+  assert.match(statsPage, /Playing penalties only: 32 calls and 67 PIM/);
+  assert.match(statsPage, /Misconduct records are excluded/);
+  assert.doesNotMatch(statsPage, /id="misconducts-title"/);
+  assert.match(statsPage, /Goaltender workload/);
+  assert.match(statsPage, /Period-level shot totals are available for four games/);
+  assert.match(statsPage, /Shot location and high-danger chances are not currently tracked/);
+  assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
 });
