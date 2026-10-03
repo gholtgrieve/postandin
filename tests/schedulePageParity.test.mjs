@@ -77,7 +77,7 @@ test('each page declares its activity and offers normal-link navigation to all s
 
 test('shared asset cache versions are exact and synchronized across page shells', () => {
   for (const [path, html] of Object.entries(pages)) {
-    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20260826b',
+    assert.equal(cacheVersion(html, '/stick-and-puck/schedule.css'), '20261002a',
       `${path} has an unexpected schedule.css cache version`);
     assert.equal(cacheVersion(html, '/stick-and-puck/modules/main.js'), '20260827',
       `${path} has an unexpected main.js cache version`);

@@ -308,6 +308,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   state.js/groups-ui.js, and `sessionMatchesDayFilter()` in groups-ui.js are all
   defined but have zero call sites anywhere in the codebase. Safe to remove
   whenever convenient; not urgent.
+/gear/                    → Unlinked, noindex in-memory development preview.
 /coaches/                  → index.html (public, indexable coach directory)
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
@@ -331,6 +332,18 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 /functions/
   /api/
     coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v3`)
+    /gear/
+      listings.js          → Source-only GET public Gear projection through the proposed
+                              GEAR_DB D1 binding. UI not connected; binding not provisioned.
+      reports.js           → Source-only POST public report submission with exact-origin
+                              JSON, server-side Turnstile and atomic GEAR_DB eligibility.
+      /admin/
+        session.js         → Source-only GET Cloudflare Access authentication probe for
+                              gear-admin.postandin.com. No moderation data or writes.
+        reports.js         → Source-only Access-authenticated GET of at most 100 open
+                              moderation reports from GEAR_DB. No writes or seller email.
+        actions.js         → Source-only Access-authenticated POST for exact-origin
+                              dismiss/remove/restore with transactional D1 history.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
     /groups/
@@ -376,6 +389,12 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               GROUPS KV + Durable Object group data to R2 daily. Also deployed
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
+/gear-maintenance/          → Separate, scheduled-only Gear cleanup Worker. Source-only until
+                              its D1, Images, state-KV and alert bindings are provisioned after
+                              explicit launch approval; deployed independently with Wrangler.
+/gear-images/               → Separate, service-binding-only Gear image-management Worker.
+                              Source-only and non-public; Pages upload/finalize routes will call
+                              it after an isolated-staging toolchain check and launch approval.
 /scripts/
   audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
                               Drop-in Hockey, and Public Skate terminology across
@@ -391,7 +410,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   admin-purge.js           → Local-only destructive-operation script; backs up before deleting
 ```
 
-**Two deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/` or `/scheduler/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches `group-do/src/group-do.js`, `scheduler/src/*.js`, or shared runtime imported by either Worker needs both `git push` (so the code is in version control and other Functions that reference it stay in sync) **and** a manual `wrangler deploy` in the affected Worker's directory. For the scheduler, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`. Pushing alone will not change the Worker's live behavior.
+**Independent deploy paths, easy to mix up:** `git push` to `main` auto-deploys the Cloudflare Pages site (everything under `/functions/`, plus static HTML). It does **not** deploy `/group-do/`, `/scheduler/`, `/gear-maintenance/` or `/gear-images/` — those are separate Workers that only update when you run `wrangler deploy` from inside each directory. A commit that touches one of those Workers or shared runtime it imports needs both `git push` (so the source is versioned) **and** a manual `wrangler deploy` in the affected Worker's directory. For the schedule Worker, shared runtime includes `lib/activities.js`, `lib/rinks.js`, `lib/scrapeAll.js`, and `lib/scrapers/*.js`; Gear maintenance imports `lib/gear-maintenance.mjs`, `lib/gear-maintenance-alert.mjs`, `lib/gear-management-mail.mjs`, `lib/gear-validation.mjs` and `lib/gear-exchange.mjs`; Gear Images imports `lib/gear-image-upload.mjs` and `lib/gear-image-provider-id.mjs`. Pushing alone will not change any Worker's live behavior.
 
 ---
 
@@ -469,7 +488,7 @@ path is no longer in the asset manifest. Static HTML is cached with
 `s-maxage=604800` (7 days), so the deleted page keeps being served at its exact
 URL until that expires.
 
-`/mets-16aa-travel/` and `/mets-16aa-stats/` are intentional exceptions: their
+`/gear/`, `/mets-16aa-travel/` and `/mets-16aa-stats/` are intentional exceptions: their
 `_headers` rules set `Cache-Control: no-cache` so frequently changing logistics
 and season totals revalidate. Treat that as intended configuration until
 deployment, then confirm the actual response header rather than assuming the
@@ -551,15 +570,22 @@ profiles without a headshot currently emit no social image.
 --panel:  #EFEBE2   /* secondary surfaces, sidebars, filter bars */
 --card:   #DED9CD   /* card backgrounds, photo placeholders */
 --mustard:#9A7B00   /* primary accent — borders, links, highlights */
---ink:    #141210   /* primary text, nav background */
+--ink:    #2E2A26   /* dark navigation and footer surfaces */
 --rule:   #B8B2A4   /* borders, dividers, secondary text */
 ```
 
 ### Aesthetic
 Flyer/cream-paper. Warm, editorial, tactile. Not a sports tech product — closer to a community bulletin board that takes itself seriously.
 
+Body copy may use the slightly darker `#141210` where an existing feature page
+needs the additional contrast; this is a text color, not a competing shell color.
+
 ### Layout Conventions
 - **Nav:** always --ink background, white/muted text. Site chrome, not page content.
+- **Shared shell:** navigation is 52px high and page content is centered at a
+  maximum width of 1100px with responsive side padding. Feature pages may use
+  full-width background bands, but their text and controls align to that same
+  content column.
 - **Page headers:** --paper background. Name/title in --ink. Mustard rule (`border-bottom: 2px solid var(--mustard)`) separates header from content.
 - **Content areas:** --paper background for main, --panel for sidebars and secondary surfaces.
 - **Tags/pills:** specialty tags use --mustard border and color; metadata tags use --rule border and muted color.
@@ -1102,10 +1128,312 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ---
 
+## Gear Exchange — in development
+
+Local-only management sessions, reload recovery, HTTPS browser validation and owner-checked writes are documented in
+[gear-management.md](gear-management.md). Ordinary static hosting remains simulated.
+
+Local verified mailbox transfers, including the opt-in connected management
+form, are described in [gear-email-change.md](gear-email-change.md).
+
+Local D1/workerd validation passed; see [gear-d1-validation.md](gear-d1-validation.md)
+for the observed coverage and remaining remote/legacy-data limits.
+
+The opt-in connected local HTTPS flow is described in
+[gear-connected-preview.md](gear-connected-preview.md). Ordinary static hosting
+remains simulated; there are no deployed Gear APIs. A source-only
+`GET /api/gear/listings` Pages Function reads the public projection through a
+proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
+deployed, and the route remains unavailable until D1 plus all three signed-photo
+delivery settings are configured. On the exact production origin, the Gear UI
+now replaces its sample rows with a bounded, strictly validated response from
+that route and renders browse/detail plus signed photos. Failed or malformed
+initial responses leave an empty list with a generic notice and retry action;
+later refresh failures retain the last validated snapshot. Concurrent refreshes
+are generation-guarded so an older response cannot replace a newer one. Local
+connected mode and the ordinary static demo keep their existing data sources.
+A failed public image whose signature is near expiry can refresh the listing
+projection in the background; the recovery is throttled, repeatable after the
+cooldown, and preserves the selected photo and picker focus. The source projection
+replaces ordered hosted-image references with ten-minute signed photo URLs.
+The approved production direction uses the existing Cloudflare Images account
+rather than R2 for Gear photos. Source-only migration 7 records immutable
+adult-acknowledgement evidence and hosted-image metadata (provider ID and order
+only). Source-only upload, management and signed-delivery code exists, but no
+Gear binding, secret, variant or cloud resource is configured.
+Persistent local management
+photos use a macOS trusted encoder and the sample database; see
+[gear-photos.md](gear-photos.md).
+
+Local buyer contact uses a bounded in-memory test inbox, server visibility checks,
+sharing acknowledgement and temporary local limits; see [gear-contact.md](gear-contact.md).
+No real contact email is delivered.
+
+The source-only production buyer-contact backend is described in
+[gear-production-contact.md](gear-production-contact.md). Migration 15 adds
+hashed ten-minute attempt accounting and private 24-hour delivery copies. The
+same-origin Pages route requires the dedicated `gear-contact` Turnstile action,
+current public eligibility and a browser-generated idempotency UUID. Its bounded
+Resend adapter sends plain text from `gear@postandin.com` to the current seller
+with the buyer email as Reply-To and records provider acceptance before success.
+The route also requires `GEAR_CONTACT_ENABLED=true`. The production contact
+form is source-connected but remains disabled unless the no-store config route
+reports that the same flag is exactly enabled. It renders a dedicated
+`gear-contact` Turnstile widget and uses one request UUID per submission. An
+uncertain network or server response ends that browser submission with a neutral
+delivery-not-confirmed result and no duplicate-send action. A retryable server
+failure keeps the same request UUID and provider idempotency key. No binding, secret,
+feature flag, edge rule, mail or deployment exists.
+
+Local reports now use a bounded in-memory inspection queue; see
+[gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
+Opt-in local owner authentication, report review, reversible removal and persistent
+history are described in [gear-owner-moderation.md](gear-owner-moderation.md).
+This adds local SQLite tables, not deployed identity or D1 operations.
+
+The source-only production owner boundary is described in
+[gear-access.md](gear-access.md). It validates the Access assertion signature,
+issuer, audience, time claims, exact owner allowlist and admin host using native
+Web Crypto. The probe route returns only authentication state. No Access
+application, custom domain or environment value is provisioned or deployed. The
+separate source-only production schema and action route follow.
+
+Source-only migration 8 adds constrained production `gear_reports`,
+`gear_removals` and `gear_moderation_history` tables. The owner-only
+`GET /api/gear/admin/reports` Pages Function verifies the Access assertion before
+touching `GEAR_DB`, then returns at most 100 newest open reports and 100 active
+owner removals with independent truncation flags, current listing review fields
+and seller-deletion restore blocking, but no seller email/ID, acknowledgement
+evidence or image provider IDs. The private owner page uses these APIs only on
+the exact admin origin while preserving its separate connected-local flow. The source-only
+`POST /api/gear/admin/actions` route reuses the same Access identity, requires
+exact admin Origin and bounded JSON, and transactionally dismisses a report,
+removes its listing, or restores a removed listing while recording bounded owner
+history. Restore preserves the previous status and expiry and rechecks current
+verification, quota and duplicates. The implemented production seller-deletion
+marker blocks owner restore while seller recovery remains active. See
+[gear-production-moderation.md](gear-production-moderation.md).
+
+The source-only public `POST /api/gear/reports` route is described in
+[gear-production-reports.md](gear-production-reports.md). It accepts only
+exact-origin JSON from `https://postandin.com`, bounds the body, validates a
+single-use Turnstile token server-side for hostname `postandin.com` and action
+`gear-report`, then uses one `INSERT ... SELECT` statement to recheck current
+listing/seller verification, public status and strict future expiry while
+inserting the report. It sends no reporter IP to Siteverify and stores no
+reporter identity. Both the no-store public config and the route require the
+exact `GEAR_REPORTS_ENABLED=true` feature flag, with the config additionally
+requiring `GEAR_DB` and a valid Turnstile secret. The exact-production-origin
+form is source-connected through a bounded adapter and a dedicated
+`gear-report` widget; the static demo and connected local workflow are
+unchanged. The site key, secret and feature flag do not exist in the repo, and
+the required Cloudflare edge rate-limit rule is not provisioned.
+
+Source-only migration 9 adds production `gear_deletions` recovery markers and a
+minimal `gear_deletion_ledger`. An exact-origin, cookie/CSRF-authenticated Pages
+route transactionally deletes and recovers seller listings, while owner restore
+fails whenever the active marker exists. Source-only production management routes
+request a generic recovery email, explicitly redeem a one-use token into a
+host-only session, recover the derived CSRF value after reload without renewal,
+revoke the session on logout, return a transactional snapshot of the owner's
+verified listings outside seller-deletion recovery (including owner-moderated
+removed listings) with signed ordered photos plus minimal deletion recovery
+metadata, and apply CSRF-protected edits or state changes through the existing
+D1 invariants. The Resend adapter is covered with mocked HTTP; no key, real
+delivery, edge rate limit, production cleanup schedule or backup
+reconciliation is configured or deployed. See `gear-production-management.md` and
+[gear-production-deletions.md](gear-production-deletions.md).
+
+When the exact staging public origin is configured, all verification, management
+recovery and buyer-contact adapters additionally require a valid
+`GEAR_STAGING_MAIL_RECIPIENTS` secret and refuse delivery unless the normalized
+recipient is in that exact comma-separated allowlist. Production delivery does
+not consult this staging-only value.
+
+The source-only browser production adapter activates only at the exact
+`https://postandin.com` origin. It erases a management token fragment immediately,
+then uses explicit same-origin POSTs for confirmation, session reload, recovery,
+logout, listing changes, seller deletion/recovery and photo management. Direct
+photo bytes go only to the validated HTTPS Cloudflare Images upload host with
+credentials omitted and no referrer. It also erases verification fragments before
+any awaited import or request, requires a configured public Turnstile site key
+before enabling new posting, and uses explicit POSTs for draft creation, mail
+request and publication confirmation. Email changes remain disconnected so they
+cannot silently use demo behavior.
+
+The source-only production posting boundary exposes exact-origin POST routes for
+draft creation, verification-email delivery and explicit confirmation. Draft
+creation validates the complete listing before server-side Turnstile validation
+for hostname `postandin.com` and action `gear-post`, then writes only an
+unverified D1 record. The browser creates this private record when the seller
+leaves the Details step, before photo selection. A separate random, hashed,
+listing-scoped draft credential authorizes validated detail revisions and private
+photo attachment, idempotent removal and authoritative ordered-subset replacement
+during the three-day draft lifetime; revisions preserve the
+listing ID and never make the record public. Its random UUID is a temporary capability for resending a
+verification message to the address already stored with that draft; it never
+selects a new recipient. Resend receives a 30-minute, one-listing bearer token in
+the URL fragment, and opening the link cannot publish because confirmation is a
+separate POST. Tokens are stored only as SHA-256 hashes. Production delivery is
+limited to five messages per draft with a one-minute cooldown, including across
+draft email corrections; editing invalidates an issued link without resetting
+that cap, and reissue revokes
+the old token. Confirmation is single-use at the mutation boundary, safely
+acknowledges a committed response retry within token expiry, and publication
+rechecks draft state, seller/email consistency, the active-listing quota and
+duplicate constraints atomically. Confirmation does
+not create a seller-management session. Provider failure returns an honest error
+while preserving the three-day draft for retry. Only definite pre-delivery
+rejections release the attempt's count and cooldown; ambiguous network, 5xx and
+post-acceptance outcomes remain reserved. A token-hash guard cannot change a
+newer issuance.
+Maintenance retains the cap row for the life of an unverified draft. Issuance and confirmation enforce
+that retention boundary even if scheduled cleanup is delayed. A public same-origin
+config route fails closed unless `GEAR_TURNSTILE_SITE_KEY` is valid. The browser
+then loads Cloudflare's exact explicit-render script, requests action `gear-post`,
+uses a flexible-width widget with automatic retry/expiry refresh, and resets the
+single-use client token after a draft attempt. Its response adapter preserves
+non-JSON edge error status and Retry-After. Confirmation does not depend on
+posting configuration. The real site key, D1 and secret bindings,
+Resend key, and edge limits for posting and verification delivery are still
+launch work; see
+`gear-production-verification.md`.
+
+Source-only migration 10 adds a durable hosted-photo deletion outbox. The
+separate `gear-maintenance/` scheduled Worker stages provider IDs before D1
+listing/photo cascades, applies the approved draft/credential/history/deletion
+retention rules, deletes queued private Cloudflare Images objects idempotently,
+prioritizes bounded image work, shares a sub-limit D1/time budget across two
+attempts, retries once after one minute, and sends only first-failure and
+recovery alerts. Its Wrangler file is an unconfigured example; an isolated
+staging D1 and maintenance KV now exist, but no production D1/KV, Images binding,
+secret, cron or Worker is provisioned or deployed. The source-only lean
+disaster-recovery package now creates a retention-safe records projection,
+encrypts it with an offline-held `age` identity, uploads it to a private
+Backblaze B2 prefix and verifies the stored ciphertext by read-back. It
+deliberately excludes photos and short-lived credentials/contact/report data; a
+total media loss requires sellers to upload photos again. The workflow template
+is inactive. The private B2 target, restricted key, lifecycle, offline `age`
+identity and read-only D1 token are prepared, but no GitHub secret, scheduled job
+or real backup exists. A successful manual backup and
+local/data-only-SQL restore rehearsal remain launch gates; see
+[gear-lean-backup.md](gear-lean-backup.md).
+
+The source-only production photo adapter uses a ten-minute Direct Creator Upload
+as a private, unattached quarantine. Finalization downloads and bounds the actual
+bytes, requires Cloudflare Images to decode and scale down without upscaling,
+requests a still WebP, and independently rejects metadata/animation/unknown
+chunks, malformed ordering or output beyond the expected 1600-pixel scale-down.
+Only verified, stream-bounded output is uploaded as a new private hosted image,
+with the quarantine ID recorded as a non-personal reconciliation key; the
+quarantine is deleted or returned as a durable cleanup reference. Because Pages
+Functions have no Images binding, a dedicated Worker is reached by a future
+`GEAR_IMAGES` service binding. Source-only authenticated upload and finalize
+routes coordinate that Worker with durable quarantine ownership, retry-safe D1
+attachment and immediate/outbox compensation. Both bindings and an explicit
+`GEAR_PHOTO_UPLOADS_ENABLED=true` flag are required before the routes operate;
+an exact source-only D1 seller budget now caps upload creation at 60 attempts per
+UTC day across all listings. Migration 13 retains only seller/window/count data
+until it becomes cleanup-eligible at the UTC-day boundary; the next successful
+daily maintenance run removes it. A separate launch-time Cloudflare rule must
+rate-limit the production hostname and exact upload path by source IP at 12
+requests per minute with a ten-minute block; use a POST match when the plan
+supports it. The desired periods require at least Pro under Cloudflare's current
+plan table, and no rule is provisioned. Launch operations remain;
+see
+[gear-production-photos.md](gear-production-photos.md).
+
+Source-only migration 11 durably binds each private quarantine provider ID to
+the authenticated seller and listing without storing bearer credentials. A
+five-minute hash-only claim lease serializes finalization. The D1 attachment
+batch rechecks current session, CSRF, ownership and listing state, records the
+sanitized provider ID, inserts the lowest free photo position, durably queues the
+original provider ID for idempotent deletion, and consumes the quarantine
+atomically. A committed-operation replay returns a distinct non-compensating
+result rather than an ambiguous failure. Rows intentionally do not cascade with sellers/listings,
+so deletion or email transfer cannot discard remote cleanup references. A full
+six-photo listing retains the sanitized ID for cleanup and cannot attach it later
+if a slot opens. Combined attached photos and live unsanitized reservations are
+capped at six per listing. No route, binding or provider operation is part of
+migration 11.
+
+Source-only migration 12 preserves the hosted-photo deletion outbox while
+allowing provider-discovered orphans to omit a misleading listing ID. Scheduled
+maintenance now consumes expired or conflict quarantine rows only after durable
+outbox staging, lists both fixed Gear image purposes with a 24-hour grace period,
+and atomically queues only provider objects without attached or retained-conflict
+D1 references. Each purpose pass scans at most 1,000 returned objects per attempt;
+ordinary page caps save an opaque cursor in maintenance KV and resume on the next
+attempt. Progress is coalesced to one KV write per attempt; rejected cursors reset
+once and unreadable cursor state cannot block record cleanup. Malformed pages use
+the existing retry and failure-only alert path.
+The deletion drain never calls Images for a provider ID that is currently live.
+
+Source-only seller photo-management routes remove or reorder attached photos only
+after the existing session, CSRF, ownership and manageable-state checks. Removal
+stages the private provider ID in `gear_photo_deletions` before metadata disappears.
+Both operations recheck an exact bounded photo snapshot inside one D1 batch;
+reorder requires the complete current ID permutation, so a concurrent upload or
+removal rolls back rather than losing or resurrecting metadata. Provider IDs stay
+server-side during management operations.
+
+The source-only public listing projection reads visible listing fields and ordered
+photo references in one D1 statement, then replaces each reference with a
+ten-minute Cloudflare Images signed URL for a fixed configured variant. The HMAC
+key is a Pages secret; account hash and variant are fixed bindings, never request
+input. The response has no standalone provider ID, no hidden listing photos and
+no cacheable listing JSON. Missing configuration or malformed stored references
+fail closed. The Cloudflare delivery URL necessarily contains its image ID, but
+the short-lived signature is the access authority only while every variant in
+the Images account keeps **Always allow public access** disabled. This is a
+launch and every-new-variant verification item. Already-issued URLs can survive
+a listing takedown for at most ten minutes, and browsers may retain bytes already
+fetched under the configured variant's browser TTL. Production and Preview Pages
+both require the account hash, fixed variant and Images **Keys** signing value;
+the signing value is a whitespace-free Pages secret, not an API token.
+
+Upload creation runs the existing authenticated capacity preflight before
+atomically consuming the seller's UTC-day D1 budget, then calls the Images
+service. Provider failures consume the attempt; a full listing does not. The
+limit response is generic 429 with `Retry-After`. Session, CSRF, listing ownership
+and manageable state are rechecked by the counter write. D1 stores no network
+address. The counter is keyed to the current verified-email seller record; an
+email transfer starts a fresh target-seller budget, and there is no global
+provider ceiling. Cloudflare's separately configured source-IP rule is a
+burst-control layer whose counters are per data center, may briefly overshoot and
+can fail open; the D1 seller-account counter is the exact authenticated-traffic
+backstop.
+
+**Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
+
+The local-only draft schema, validation, persistence, token verification,
+duplicate prevention and API harness are
+documented in [gear-storage.md](gear-storage.md). The separate source-only public
+list route reuses that projection; no write route or cloud service is
+provisioned, and ordinary static hosting remains in-memory.
+
+The accepted product decisions, design-review disposition, implementation
+sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
+The first increment adds shared field options and public-listing search logic
+in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` development preview uses these definitions.
+There is no deployed Gear API, production D1/R2 resource, email delivery or
+homepage card yet. An isolated, empty staging D1 and maintenance KV exist.
+
+Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
+Under ordinary static hosting, sample listings, management access, verification
+and contact actions are simulated. Those inputs/photos reset on reload. The
+opt-in local server persists listings and management photos.
+The static public sample dataset is separate from seller drafts. Source-only
+production uploads, authentication, delivery, scheduled cleanup and deletion
+retention are implemented but remain unconfigured and undeployed. Public reads
+filter expiry at the storage boundary.
+
+
 ## Current Status
 
 | Page / Feature | Status | Notes |
 |---|---|---|
+| Gear Exchange (/gear/) | Development preview — unlinked and noindex | Static hosting uses in-memory samples. Source accepts only the fixed production origins or fixed staging public/admin origins selected by exact environment values; invalid values fail closed. Isolated staging D1/KV exist, but no Gear Pages/Worker deployment or real email exists. |
 | Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |
@@ -1244,7 +1572,7 @@ workflow run and confirm it reports a match.
 - Do not make strategic, UX, or copy decisions unilaterally — scope those in chat first
 - Do not return `e.message`, `e.stack`, or other internal error details in any public-facing API response or rendered HTML — log server-side, return a generic message (see Error handling convention above)
 - Do not accept a client-supplied `memberId` for a group write without validating it against that group's actual member list first (see Cloudflare KV + Durable Objects above)
-- Do not run `git push` and assume it deployed everything — `/group-do/` and `/scheduler/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
+- Do not run `git push` and assume it deployed everything — `/group-do/`, `/scheduler/`, `/gear-maintenance/` and `/gear-images/` require a separate `wrangler deploy` from within each directory; pushing to `main` only deploys the Pages site
 - Do not add a new import to a `stick-and-puck/modules/*.js` file without checking the dependency order in File Structure above first — `utils.js` and `state.js` are leaves with no imports of their own; `schedule.js` and `rsvp.js` deliberately avoid importing from each other (that's why `GOING_PERSON_SVG` lives in `utils.js` instead of `schedule.js`) to prevent a circular import. If a new feature seems to need module A to import from module B and B to import from A, that's a sign the shared piece belongs in a lower-level module instead, not a sign to force the circular import through.
 
 ---
@@ -1255,3 +1583,19 @@ Google Form for user-reported issues:
 https://docs.google.com/forms/d/e/1FAIpQLSeXw2VWloYrwHVheDhBlfeNtkIbDFvzuRqYNkEmmy_35uxAQg/viewform
 
 Fields: What's the issue (dropdown including "Groups feature"), Which rink, Details (free text).
+
+Local seller deletion now supports a 30-day recovery window, explicit offline
+cleanup and tested SQLite record/photo snapshot restoration. See
+[Gear lifecycle](gear-lifecycle.md) for retention, commands and limitations.
+Production maintenance source exists, but deployment and remote disaster recovery remain launch gates.
+
+The Gear preview includes expandable rules, protective-equipment and privacy
+disclosures. Buyer contact now requires adult self-attestation in the form and
+local server, alongside existing sharing consent. No age-verification service is
+implemented. New stored seller drafts record the self-attestation timestamp and
+disclosure version; older records remain NULL.
+
+Local Gear cleanup now runs on server startup and daily while listening, with
+one-minute failure retries. The approved short retention schedule and optional
+snapshot-pruning directory are documented in `gear-lifecycle.md`.
+Production scheduling and failure/recovery alerts remain unprovisioned deployment gates.
