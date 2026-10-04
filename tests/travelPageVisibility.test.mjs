@@ -43,13 +43,18 @@ test('every trip with published game times includes the warmup reminder', () => 
   }
 });
 
-test('completed Tacoma is collapsed after upcoming trips without an expired booking action', () => {
+test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
   const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
   assert.doesNotMatch(glance, /href="#tacoma"/);
-  assert.match(travelPage, /<article class="trip priority" id="tri-cities-october">/);
+  assert.doesNotMatch(glance, /href="#tri-cities-october"/);
+  assert.deepEqual([...travelPage.matchAll(/<article class="trip priority" id="([^"]+)">/g)].map(match => match[1]), ['spokane']);
+  assert.match(travelPage, /<article class="trip priority" id="spokane">\s*<header class="trip-heading"><p class="eyebrow">Next trip<\/p>/);
   assert.ok(archiveStart > travelPage.indexOf('<article class="trip" id="gopher-state">'));
+  assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tri-Cities · October 3–4, 2026<\/summary>\s*<article class="trip" id="tri-cities-october">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tacoma · September 25–27, 2026<\/summary>\s*<article class="trip" id="tacoma">/);
+  assert.ok(travelPage.indexOf('<article class="trip" id="tri-cities-october">') < travelPage.indexOf('<article class="trip" id="tacoma">'));
+  assert.doesNotMatch(travelPage, /groupCode=100326SEA|Book by September 30 for the group rate/);
   assert.doesNotMatch(travelPage.slice(archiveStart), /ctyhocn=SEADPHX/);
 });
 

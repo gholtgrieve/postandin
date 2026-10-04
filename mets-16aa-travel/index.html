@@ -157,23 +157,27 @@ h1 .accent { color: var(--mustard); }
 
 .glance-list {
   display: grid;
-  gap: 2px;
-  background: var(--rule);
+  grid-auto-rows: 112px;
+  gap: 8px;
   list-style: none;
 }
 
+.glance-list li { min-width: 0; }
+
 .glance-link {
-  min-height: 64px;
+  height: 100%;
   padding: 12px 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
   background: var(--panel);
+  border: 1px solid var(--rule);
   border-left: 4px solid transparent;
   text-decoration: none;
 }
 
+.glance-list li:first-child .glance-link { border-left-color: var(--urgent); }
 .glance-link:hover,
 .glance-link:focus-visible { border-left-color: var(--mustard); }
 
@@ -187,8 +191,7 @@ h1 .accent { color: var(--mustard); }
 .glance-dates { color: var(--ink3); font-size: 12px; }
 
 .status {
-  grid-row: 1 / span 2;
-  grid-column: 2;
+  margin-top: auto;
   padding: 5px 7px;
   border: 1px solid var(--rule);
   color: var(--ink3);
@@ -365,6 +368,7 @@ h1 .accent { color: var(--mustard); }
   font-weight: 700;
 }
 .past-trips details[open] > summary { margin-bottom: 16px; }
+.past-trips details + details { margin-top: 12px; }
 .past-trips details > summary:hover,
 .past-trips details > summary:focus-visible { border-color: var(--mustard); }
 
@@ -382,8 +386,7 @@ body > footer {
 @media (min-width: 640px) {
   .hero-inner,
   .content { padding-right: 28px; padding-left: 28px; }
-  .glance-list { grid-template-columns: 1fr 1fr; }
-  .glance-list li:first-child { grid-column: 1 / -1; }
+  .glance-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trip-heading,
   .trip-body { padding-right: 24px; padding-left: 24px; }
   .travel-fact { padding-right: 24px; padding-left: 24px; }
@@ -394,8 +397,7 @@ body > footer {
 }
 
 @media (min-width: 860px) {
-  .glance-list { grid-template-columns: repeat(3, 1fr); }
-  .glance-list li:first-child { grid-column: auto; }
+  .glance-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .trip-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr); gap: 36px; }
   .trip-block + .trip-block { margin-top: 0; padding-top: 0; border-top: 0; }
 }
@@ -421,7 +423,7 @@ body > footer {
       <p class="eyebrow">Seattle Junior Mets 16U AA</p>
       <h1 id="page-title">Travel<br><span class="accent">Information</span></h1>
       <p class="season">2026–27 Season</p>
-      <p class="updated">Last updated: September 27, 2026</p>
+      <p class="updated">Last updated: October 4, 2026</p>
       <p class="update-note">Travel information will be updated as lodging and schedules are confirmed. All game times are local to the venue.</p>
     </div>
   </section>
@@ -431,17 +433,10 @@ body > footer {
       <p class="section-label">At a glance</p>
       <ul class="glance-list">
         <li>
-          <a class="glance-link" href="#tri-cities-october">
-            <span class="glance-place">Tri-Cities</span>
-            <span class="glance-dates">Oct. 3–4 · Arrive Saturday</span>
-            <span class="status action">Book by Sept. 30</span>
-          </a>
-        </li>
-        <li>
           <a class="glance-link" href="#spokane">
             <span class="glance-place">Spokane</span>
             <span class="glance-dates">Oct. 29–Nov. 1 · Arrive Thursday</span>
-            <span class="status action">Book by Sept. 29</span>
+            <span class="status">Group cutoff passed</span>
           </a>
         </li>
         <li>
@@ -490,42 +485,8 @@ body > footer {
     </nav>
 
     <div class="trips">
-      <article class="trip priority" id="tri-cities-october">
-        <header class="trip-heading"><p class="eyebrow">Next trip</p><h2>Tri-Cities</h2><p class="trip-dates">October 3–4, 2026</p></header>
-        <div class="travel-callout"><div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Saturday</span></div><div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div></div>
-        <div class="trip-body">
-          <section class="trip-block" aria-labelledby="tricities-october-hotel">
-            <h3 id="tricities-october-hotel">Team lodging</h3>
-            <p class="lodging-name">La Quinta Inn &amp; Suites by Wyndham Kennewick</p>
-            <p class="muted">2600 South Quillan Place, Kennewick, WA 99338</p>
-            <p class="rate">$100 per night</p>
-            <p class="muted">Two queen beds or one king bed with a pull-out couch.</p>
-            <p class="muted">Rates are before tax and fees.</p>
-            <p class="muted">Room block: October 3–4</p>
-            <p class="deadline">Book by September 30 for the group rate.</p>
-            <p class="muted">If booking by phone, ask for the “Seattle Juniors OCT 2026” group rate.</p>
-            <div class="actions">
-              <a class="action-link primary" href="https://www.wyndhamhotels.com/hotels/30498?checkInDate=10%2F03%2F26&amp;checkOutDate=10%2F04%2F26&amp;groupCode=100326SEA" target="_blank" rel="noopener">Book</a>
-              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=La+Quinta+Inn+%26+Suites+by+Wyndham+Kennewick+2600+South+Quillan+Place+Kennewick+WA+99338" target="_blank" rel="noopener">Hotel directions</a>
-              <a class="action-link contact" href="tel:+15097363656">Call (509) 736-3656</a>
-            </div>
-          </section>
-          <section class="trip-block" aria-labelledby="tricities-october-games">
-            <h3 id="tricities-october-games">Games</h3>
-            <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
-            <p class="muted" style="margin-bottom: 15px">Both games against Tri-Cities Jr. Americans at Toyota Arena Rink B in Kennewick.</p>
-            <div class="games">
-              <div class="game-day"><p class="day-label">Saturday, October 3</p><div class="game"><time datetime="2026-10-03T13:45">1:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
-              <div class="game-day"><p class="day-label">Sunday, October 4</p><div class="game"><time datetime="2026-10-04T12:30">12:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
-            </div>
-            <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Arena+7016+W+Grandridge+Blvd+Kennewick+WA+99336" target="_blank" rel="noopener">Toyota Arena directions</a></div>
-          </section>
-        </div>
-        <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
-      </article>
-
-      <article class="trip" id="spokane">
-        <header class="trip-heading"><h2>Spokane</h2><p class="trip-dates">October 29–November 1, 2026</p></header>
+      <article class="trip priority" id="spokane">
+        <header class="trip-heading"><p class="eyebrow">Next trip</p><h2>Spokane</h2><p class="trip-dates">October 29–November 1, 2026</p></header>
         <div class="travel-callout">
           <div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Thursday</span></div>
           <div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div>
@@ -540,7 +501,7 @@ body > footer {
             <p class="muted">Rates are before tax.</p>
             <p class="muted">Room block: October 29–November 1</p>
             <p class="muted">A Friday–Sunday stay is also available.</p>
-            <p class="deadline">Book by September 29 for the group rate.</p>
+            <p class="muted">The group-rate booking deadline was September 29.</p>
             <div class="actions">
               <a class="action-link primary" href="https://www.ihg.com/redirect?path=rates&amp;brandCode=EX&amp;localeCode=en&amp;regionCode=1&amp;hotelCode=SKASH&amp;checkInDate=29&amp;checkInMonthYear=092026&amp;checkOutDate=01&amp;checkOutMonthYear=102026&amp;_PMID=99801505&amp;GPC=SJN&amp;cn=no&amp;adjustMonth=false&amp;showApp=true&amp;monthIndex=00" target="_blank" rel="noopener">Book</a>
               <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Holiday+Inn+Express+Spokane+Airport+1616+South+Windsor+Drive+Spokane+WA+99224" target="_blank" rel="noopener">Holiday Inn directions</a>
@@ -721,7 +682,38 @@ body > footer {
 
     </div>
     <section class="past-trips" aria-labelledby="past-trips-heading">
-      <p class="section-label" id="past-trips-heading">Past trips</p>
+      <p class="section-label" id="past-trips-heading">Recent trips</p>
+      <details>
+        <summary>Tri-Cities · October 3–4, 2026</summary>
+        <article class="trip" id="tri-cities-october">
+          <header class="trip-heading"><h2>Tri-Cities</h2><p class="trip-dates">October 3–4, 2026</p></header>
+          <div class="travel-callout"><div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Saturday</span></div><div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Sunday</span></div></div>
+          <div class="trip-body">
+            <section class="trip-block" aria-labelledby="tricities-october-hotel">
+              <h3 id="tricities-october-hotel">Team lodging</h3>
+              <p class="lodging-name">La Quinta Inn &amp; Suites by Wyndham Kennewick</p>
+              <p class="muted">2600 South Quillan Place, Kennewick, WA 99338</p>
+              <p class="rate">$100 per night</p>
+              <p class="muted">Two queen beds or one king bed with a pull-out couch.</p>
+              <p class="muted">Rates are before tax and fees.</p>
+              <div class="actions">
+                <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=La+Quinta+Inn+%26+Suites+by+Wyndham+Kennewick+2600+South+Quillan+Place+Kennewick+WA+99338" target="_blank" rel="noopener">Hotel directions</a>
+              </div>
+            </section>
+            <section class="trip-block" aria-labelledby="tricities-october-games">
+              <h3 id="tricities-october-games">Games</h3>
+              <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
+              <p class="muted" style="margin-bottom: 15px">Both games against Tri-Cities Jr. Americans at Toyota Arena Rink B in Kennewick.</p>
+              <div class="games">
+                <div class="game-day"><p class="day-label">Saturday, October 3</p><div class="game"><time datetime="2026-10-03T13:45">1:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+                <div class="game-day"><p class="day-label">Sunday, October 4</p><div class="game"><time datetime="2026-10-04T12:30">12:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
+              </div>
+              <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Arena+7016+W+Grandridge+Blvd+Kennewick+WA+99336" target="_blank" rel="noopener">Toyota Arena directions</a></div>
+            </section>
+          </div>
+          <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
+        </article>
+      </details>
       <details>
         <summary>Tacoma · September 25–27, 2026</summary>
         <article class="trip" id="tacoma">
