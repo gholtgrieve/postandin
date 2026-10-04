@@ -19,7 +19,7 @@ async function login(db,email=input.email,now=200){const receipt=await issueLoca
 test('migration 11 stores durable quarantine cleanup references without cascading them',async()=>{
   const db=openLocalDatabase();
   try{
-    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,18);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,19);
     const id=await publish(db),access=await login(db),row=await recordPhotoQuarantine(db,access.session,access.csrf,id,provider(1),201);
     assert.deepEqual({...row},{providerId:provider(1),listingId:id,createdAt:201,expiresAt:201+GEAR_QUARANTINE_TTL_MS});
     assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_photo_quarantines').get()).includes(access.session),false);

@@ -4,7 +4,7 @@ import { openLocalDatabase } from '../scripts/gear/local-db.mjs';
 import { localServer } from '../scripts/gear/local-server.mjs';
 import { createDraft } from '../lib/gear-storage.mjs';
 import { issueLocalVerification, confirmVerification } from '../lib/gear-verification.mjs';
-import { issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing, MANAGEMENT_TTL_MS, RECOVERY_TTL_MS } from '../lib/gear-management.mjs';
+import { issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement, changeListingState, editManagedListing, MANAGEMENT_TTL_MS, RECOVERY_TTL_MS, RECOVERY_COOLDOWN_MS } from '../lib/gear-management.mjs';
 import { LIMITS } from '../lib/gear-exchange.mjs';
 const input={title:'Bag',description:'Worn zipper',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
 async function publish(db,patch={},now=100){const {id}=await createDraft(db,{...input,...patch},now);const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;}
@@ -26,20 +26,22 @@ test('session grants verified listings only, hashes credentials and enforces exp
 test('reissue and redemption revoke old links and sessions; listing tokens cannot log in',async()=>{
  const db=openLocalDatabase();try{
   const id=await publish(db);const first=await login(db);
-  const old=await issueLocalManagementLink(db,input.email,300),fresh=await issueLocalManagementLink(db,input.email,400);
-  assert.equal(await redeemManagementLink(db,old.token,401),null);
-  assert.ok(await listManaged(db,first.session,401)); // requesting alone cannot log owner out
-  const second=await redeemManagementLink(db,fresh.token,500);
-  assert.equal(await listManaged(db,first.session,501),null);
-  assert.equal(await redeemManagementLink(db,fresh.token,501),null);
-  assert.ok(await listManaged(db,second.session,501));
-  assert.equal(await revokeManagement(db,second.session,second.csrf,502),true);
-  assert.equal(await listManaged(db,second.session,503),null);
-  const expiring=await issueLocalManagementLink(db,input.email,600);
-  assert.equal(await redeemManagementLink(db,expiring.token,600+RECOVERY_TTL_MS),null);
-  const draft=await createDraft(db,{...input,title:'Fresh'}),verification=await issueLocalVerification(db,draft.id,600);
-  assert.equal(await redeemManagementLink(db,verification.token,601),null);
-  assert.equal(await issueLocalManagementLink(db,'unknown@example.test',600),null);
+  const oldAt=300,old=await issueLocalManagementLink(db,input.email,oldAt);
+  assert.equal(await issueLocalManagementLink(db,input.email,oldAt+RECOVERY_COOLDOWN_MS-1),null);
+  const freshAt=oldAt+RECOVERY_COOLDOWN_MS,fresh=await issueLocalManagementLink(db,input.email,freshAt);
+  assert.equal(await redeemManagementLink(db,old.token,freshAt+1),null);
+  assert.ok(await listManaged(db,first.session,freshAt+1)); // requesting alone cannot log owner out
+  const second=await redeemManagementLink(db,fresh.token,freshAt+2);
+  assert.equal(await listManaged(db,first.session,freshAt+3),null);
+  assert.equal(await redeemManagementLink(db,fresh.token,freshAt+3),null);
+  assert.ok(await listManaged(db,second.session,freshAt+3));
+  assert.equal(await revokeManagement(db,second.session,second.csrf,freshAt+4),true);
+  assert.equal(await listManaged(db,second.session,freshAt+5),null);
+  const expiring=await issueLocalManagementLink(db,input.email,freshAt+6);
+  assert.equal(await redeemManagementLink(db,expiring.token,freshAt+6+RECOVERY_TTL_MS),null);
+  const draft=await createDraft(db,{...input,title:'Fresh'}),verification=await issueLocalVerification(db,draft.id,freshAt+6);
+  assert.equal(await redeemManagementLink(db,verification.token,freshAt+7),null);
+  assert.equal(await issueLocalManagementLink(db,'unknown@example.test',freshAt+6),null);
  }finally{db.close();}
 });
 test('edit preserves status/expiry/owner, updates clubs atomically and prevents duplicates',async()=>{
@@ -89,6 +91,21 @@ test('HTTP recovery is generic; confirmation sets secure cookie; mutations requi
   assert.equal((await post('/management/listing',{id:listings[0].id,action:'pending'},{...headers,'X-Gear-CSRF':access.csrf})).status,200);
   assert.equal((await post('/management/logout',{}, {...headers,'X-Gear-CSRF':access.csrf})).status,200);
   assert.equal((await fetch(base+'/management/listings',{headers})).status,401);
+ }finally{await new Promise(r=>server.close(r));db.close();}
+});
+
+test('local recovery inbox never offers a consumed receipt after the daily cap',async()=>{
+ const db=openLocalDatabase();await publish(db,{},Date.now());const server=localServer(db);await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ const post=(path,body)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:base},body:JSON.stringify(body)});
+ try{
+  for(let index=0;index<5;index++){
+   assert.equal((await post('/management/recovery',{email:input.email})).status,200);
+   const before=await(await fetch(base+'/local/management-mail')).json();assert.equal(before.receipts.length,1);
+   assert.equal((await post('/management/confirm',{token:before.receipts[0].token,confirm:true})).status,200);
+   assert.deepEqual(await(await fetch(base+'/local/management-mail')).json(),{receipts:[]});
+  }
+  assert.equal((await post('/management/recovery',{email:input.email})).status,200);
+  assert.deepEqual(await(await fetch(base+'/local/management-mail')).json(),{receipts:[]});
  }finally{await new Promise(r=>server.close(r));db.close();}
 });
 

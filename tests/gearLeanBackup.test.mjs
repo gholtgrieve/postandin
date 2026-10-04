@@ -15,7 +15,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 
 const sample={title:'Backup bag',description:'Used for backup testing.',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
-const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery','unified_removal','draft_photo_access','management_session_retention'];
+const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery','unified_removal','draft_photo_access','management_session_retention','management_recovery_limits'];
 const migrationsSql=()=>migrationNames.map((name,index)=>readFileSync(new URL(`../migrations/gear/${String(index+1).padStart(4,'0')}_${name}.sql`,import.meta.url),'utf8')).join('\n');
 
 async function published(db,patch={},now=Date.now()){
@@ -45,7 +45,7 @@ test('lean backup keeps recoverable records but excludes photos, drafts, credent
     assert.deepEqual(backup.tables.listings.map(row=>row.id),[live,removed].sort());
     assert.equal(backup.tables.removals[0].reason,GEAR_LEAN_REMOVAL_REASON);
     assert.deepEqual(backup.deletionEvidence,[{listingId:deleted,deletedAt:now,purgeAt:now+30*86_400_000}]);
-    for(const secret of [providerId,'Private draft','session-secret','csrf-secret','Private title','private-owner@example.test','private history reason','private owner reason'])assert.equal(serialized.includes(secret),false,secret);
+    for(const secret of [providerId,'Private draft','draft@example.test','deleted@example.test','session-secret','csrf-secret','Private title','private-owner@example.test','private history reason','private owner reason'])assert.equal(serialized.includes(secret),false,secret);
     assert.doesNotThrow(()=>validateLeanGearBackup(backup,{now}));
   }finally{db.close();}
 });
@@ -120,10 +120,10 @@ test('age encryption reports a fixed error when the binary cannot start',async()
   await assert.rejects(ageEncrypt('input','output',cloudEnv.GEAR_BACKUP_AGE_RECIPIENT,{spawnImpl}),/Unable to start age encryption/);
 });
 
-test('Gear backup workflow remains manual-only, pinned and production-environment restricted',()=>{
+test('Gear backup workflow remains manual-capable, nightly, pinned and production-environment restricted',()=>{
   const workflow=readFileSync(new URL('../.github/workflows/gear-records-backup.yml',import.meta.url),'utf8');
   const active=workflow.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
-  assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:');
+  assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:\n  schedule:\n    - cron: "17 8 * * *"');
   assert.match(active,/^permissions:\n  contents: read$/m);
   assert.match(active,/^          persist-credentials: false$/m);
   assert.match(workflow,/^    environment: gear-backup$/m);
@@ -134,6 +134,25 @@ test('Gear backup workflow remains manual-only, pinned and production-environmen
   assert.match(active,/age=1\.1\.1-1ubuntu0\.24\.04\.3/);
   assert.equal([...active.matchAll(/secrets\.(GEAR_BACKUP_[A-Z0-9_]+)/g)].map(match=>match[1]).sort().join(','),Object.keys(cloudEnv).sort().join(','));
   assert.match(active,/^        run: node scripts\/gear\/lean-cloud-backup\.mjs$/m);
+});
+
+test('public Gear privacy copy discloses the bounded off-site records backup',()=>{
+  const html=readFileSync(new URL('../gear/index.html',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  const disclosure="Nightly, GitHub Actions reads Gear listing records, keeps published listings (including closed, expired, or moderator-removed ones; listings you remove yourself are left out of later backups) and each retained seller's account email, encrypts them, and copies them to a private off-site Backblaze B2 backup retained for about 30 days. Photos, unpublished drafts, and contact messages are not kept in that backup.";
+  const rules=html.match(/<details class="pi-recovery" id="pi-gear-rules">([\s\S]*?)<\/details>/)?.[1]||'';
+  assert.match(rules,new RegExp(`<p id="pi-backup-disclosure" hidden>${disclosure.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}<\\/p>[\\s\\S]*?<p>`));
+  const connectedStart=source.indexOf('\nif(connectedMode){\n managed.length=0;');
+  const recoveryStart=source.indexOf(" $('#pi-recovery-send').textContent=",connectedStart);
+  const connectedSetup=source.slice(connectedStart,recoveryStart);
+  const localStart=connectedSetup.indexOf(' if(localMode){');
+  const productionStart=connectedSetup.indexOf('\n else{',localStart);
+  assert.ok(connectedStart>=0&&recoveryStart>connectedStart&&localStart>=0&&productionStart>localStart);
+  const localBranch=connectedSetup.slice(localStart,productionStart);
+  const productionBranch=connectedSetup.slice(productionStart);
+  assert.equal((source.match(/\$\('#pi-backup-disclosure'\)\.hidden=false;/g)||[]).length,1);
+  assert.doesNotMatch(localBranch,/pi-backup-disclosure/);
+  assert.match(productionBranch,/\$\('#pi-backup-disclosure'\)\.hidden=false;[\s\S]*?\$\('#pi-gear-rules p:last-child'\)\.hidden=true;/);
 });
 
 const cloudEnv={

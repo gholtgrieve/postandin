@@ -30,7 +30,7 @@ be denied for up to 60 seconds if a different unknown key triggered the most
 recent refresh. It stores no request-specific identity globally and returns the
 verified identity only to its caller.
 
-`GET /api/gear/admin/session` is a source-only authentication probe. A valid
+`GET /api/gear/admin/session` is a deployed authentication probe. A valid
 owner receives `{"authenticated":true}`; no identity or moderation data is
 returned. Invalid tokens, identities, hosts and signatures get the same generic
 403. Missing/malformed configuration and unavailable JWKS get a generic 503.
@@ -92,4 +92,4 @@ Before launch, repeat the checks in a non-production Access application with an
 explicit test identity, confirm that Access strips/replaces spoofed assertion
 headers, and verify the custom-domain policy and MFA through a real browser. That
 staging exercise requires separate owner authorization and is not implied by the
-source-only tests.
+local automated tests.

@@ -8,7 +8,7 @@ import {createManagementConfirmHandler} from '../functions/api/gear/management/c
 import {createManagementLogoutHandler} from '../functions/api/gear/management/logout.js';
 import {createManagementRecoveryHandler} from '../functions/api/gear/management/recovery.js';
 import {createManagementSessionHandler} from '../functions/api/gear/management/session.js';
-import {MANAGEMENT_TTL_MS,issueLocalManagementLink,issueManagementLink,recoverManagementSession} from '../lib/gear-management.mjs';
+import {MANAGEMENT_TTL_MS,RECOVERY_COOLDOWN_MS,RECOVERY_DAILY_LIMIT,RECOVERY_WINDOW_MS,issueLocalManagementLink,issueManagementLink,recoverManagementSession,redeemManagementLink} from '../lib/gear-management.mjs';
 import {GearManagementMailUnavailableError,sendManagementLink,validateManagementEmail} from '../lib/gear-management-mail.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {confirmVerification,issueLocalVerification} from '../lib/gear-verification.mjs';
@@ -30,11 +30,12 @@ test('production management issue preserves local simulation while returning onl
     await publish(db);
     const production=await issueManagementLink(db,' SAMPLE@EXAMPLE.TEST ',200);
     assert.equal(production.recipient,sample.email);assert.match(production.token,/^[a-f0-9]{64}$/);assert.equal(production.delivery,undefined);
-    const local=await issueLocalManagementLink(db,sample.email,201);
+    assert.equal(await issueLocalManagementLink(db,sample.email,200+RECOVERY_COOLDOWN_MS-1),null);
+    const local=await issueLocalManagementLink(db,sample.email,200+RECOVERY_COOLDOWN_MS);
     assert.equal(local.delivery,'local-simulation');assert.notEqual(local.token,production.token);
-    assert.equal(await issueManagementLink(db,'unknown@example.test',202),null);
-    const unicode={...sample,email:'müller@example.de',title:'Unicode seller'},draft=await createDraft(db,unicode,203),verification=await issueLocalVerification(db,draft.id,203);
-    assert.equal((await confirmVerification(db,verification.token,203)).verified,true);assert.equal((await issueManagementLink(db,' MÜLLER@EXAMPLE.DE ',204)).recipient,unicode.email);
+    assert.equal(await issueManagementLink(db,'unknown@example.test',200+RECOVERY_COOLDOWN_MS+1),null);
+    const unicode={...sample,email:'müller@example.de',title:'Unicode seller'},draft=await createDraft(db,unicode,200+RECOVERY_COOLDOWN_MS+2),verification=await issueLocalVerification(db,draft.id,200+RECOVERY_COOLDOWN_MS+2);
+    assert.equal((await confirmVerification(db,verification.token,200+RECOVERY_COOLDOWN_MS+2)).verified,true);assert.equal((await issueManagementLink(db,' MÜLLER@EXAMPLE.DE ',200+RECOVERY_COOLDOWN_MS+3)).recipient,unicode.email);
     assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_management_links').all()).includes(local.token),false);
   }finally{db.close();}
 });
@@ -71,6 +72,58 @@ test('recovery response is identical for known, unknown and failed delivery and 
   const known=await run(sample.email),unknown=await run('unknown@example.test');await Promise.all(pending);
   assert.deepEqual(known,unknown);assert.equal(known.status,202);assert.equal(known.body.includes(TOKEN),false);assert.deepEqual(calls,[{recipient:sample.email,token:TOKEN}]);
   assert.deepEqual(logs,[['Gear management email delivery failed:','status:503']]);assert.equal(JSON.stringify(logs).includes(sample.email),false);assert.equal(JSON.stringify(logs).includes(TOKEN),false);
+});
+
+test('recovery cooldown preserves the live link, suppresses delivery and permits a new link after consumption',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);let now=200;const deliveries=[];
+    const handler=createManagementRecoveryHandler({send:async receipt=>deliveries.push(receipt),now:()=>now});
+    const run=async()=>{const pending=[];const response=await handler({...context(request('/api/gear/management/recovery',{email:sample.email}),{GEAR_DB:db,GEAR_RESEND_API_KEY:'unused'}),waitUntil(value){pending.push(value);}});await Promise.all(pending);return response;};
+    const accepted=await run();assert.equal(accepted.status,202);assert.equal(deliveries.length,1);
+    const expected={message:'If verified listings match that address, a management link will be sent.'};
+    assert.deepEqual(await accepted.json(),expected);
+    const first={...db.sqlite.prepare('SELECT token_hash,created_at FROM gear_management_links').get()};
+    now=200+RECOVERY_COOLDOWN_MS-1;
+    const blocked=await run();assert.equal(blocked.status,202);assert.deepEqual(await blocked.json(),expected);assert.equal(deliveries.length,1);
+    assert.deepEqual({...db.sqlite.prepare('SELECT token_hash,created_at FROM gear_management_links').get()},first);
+    assert.ok(await redeemManagementLink(db,deliveries[0].token,now));
+    assert.ok(now-200<RECOVERY_COOLDOWN_MS);
+    assert.equal((await run()).status,202);assert.equal(deliveries.length,2);
+    assert.notEqual(deliveries[1].token,deliveries[0].token);
+  }finally{db.close();}
+});
+
+test('concurrent recovery requests create only one deliverable link',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);
+    const receipts=await Promise.all([issueManagementLink(db,sample.email,200),issueManagementLink(db,sample.email,200)]);
+    assert.equal(receipts.filter(Boolean).length,1);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,1);
+  }finally{db.close();}
+});
+
+test('recovery delivery is capped per seller for 24 hours and resets at the boundary',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);const start=200;
+    for(let index=0;index<RECOVERY_DAILY_LIMIT;index++)assert.ok(await issueManagementLink(db,sample.email,start+index*RECOVERY_COOLDOWN_MS));
+    assert.equal(await issueManagementLink(db,sample.email,start+RECOVERY_DAILY_LIMIT*RECOVERY_COOLDOWN_MS),null);
+    assert.equal(await issueManagementLink(db,sample.email,start+RECOVERY_WINDOW_MS-1),null);
+    const limited=db.sqlite.prepare('SELECT issue_count,window_started_at FROM gear_management_links').get();
+    assert.deepEqual({...limited},{issue_count:RECOVERY_DAILY_LIMIT,window_started_at:start});
+    assert.ok(await issueManagementLink(db,sample.email,start+RECOVERY_WINDOW_MS));
+    assert.deepEqual({...db.sqlite.prepare('SELECT issue_count,window_started_at FROM gear_management_links').get()},{issue_count:1,window_started_at:start+RECOVERY_WINDOW_MS});
+  }finally{db.close();}
+});
+
+test('failed recovery delivery still applies the per-seller cooldown',async()=>{
+  const db=openLocalDatabase();try{
+    await publish(db);let now=200,sends=0;
+    const handler=createManagementRecoveryHandler({now:()=>now,send:async()=>{sends++;throw new GearManagementMailUnavailableError('status:503');},log:()=>{}});
+    const run=async()=>{const pending=[];const response=await handler({...context(request('/api/gear/management/recovery',{email:sample.email}),{GEAR_DB:db,GEAR_RESEND_API_KEY:'unused'}),waitUntil(value){pending.push(value);}});await Promise.all(pending);return response;};
+    assert.equal((await run()).status,202);assert.equal(sends,1);
+    now++;
+    assert.equal((await run()).status,202);assert.equal(sends,1);
+  }finally{db.close();}
 });
 
 test('production routes complete confirmation, stable reload recovery, logout and replay protection',async()=>{

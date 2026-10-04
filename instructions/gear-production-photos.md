@@ -1,9 +1,10 @@
 # Gear Exchange production photo pipeline
 
 Status: production D1, the private Images service Worker, Pages service binding,
-delivery settings and signing secret are deployed. Public photo uploads remain
-fail-closed with the photo-upload feature flag unset; no production photo has
-been uploaded.
+delivery settings and dedicated signing secret are deployed. The photo-upload
+feature flag is configured for the go-live deployment, and the owner-approved
+combined Free-plan edge rule is Active. No production photo has been uploaded;
+the reviewed go-live deployment and owner-photo smoke test remain.
 
 ## Private quarantine and trusted sanitization
 
@@ -116,16 +117,16 @@ maintenance removes due rows. Source also requires
 `GEAR_PHOTO_UPLOADS_ENABLED=true`, in addition to both bindings, so merely adding
 the service binding cannot accidentally enable uploads.
 
-The complementary per-IP control stays at Cloudflare's edge and is a launch gate:
-match hostname `postandin.com` and the exact
-`/api/gear/management/photos/upload` path, count by source IP, allow 12 requests
-per 60 seconds and block for ten minutes. On Business or above, also match method
-`POST`; lower plans do not expose Method in the rule expression. Current
-Cloudflare availability requires at least Pro for the 60-second counting period
-and ten-minute mitigation; Free offers only ten seconds for each. Confirm the
-live zone plan before launch and upgrade or obtain an explicit owner decision on
-a documented alternative—do not silently weaken this gate. It is deliberately
-not represented as application code or provisioned by this increment.
+The complementary per-IP control stays at Cloudflare's edge and is a launch gate.
+The preferred paid-plan rule matches `postandin.com` and the exact photo-upload
+paths, allows 12 requests per 60 seconds, and blocks for ten minutes. The live
+zone is on the Free plan, which permits one rule and only ten-second counting and
+mitigation periods. On 2026-10-03, the owner explicitly approved one combined
+Free-plan rule for every public Gear write/upload path: count by source IP, allow
+20 matching requests per 10 seconds, then block matching requests for 10 seconds.
+This accommodates the upload/finalize calls for a six-photo flow. The exact D1
+seller-account budget remains the provider-cost backstop. Revisit the preferred
+endpoint-specific rule if the zone is upgraded.
 Cloudflare documents that edge counters are scoped per data center, may briefly
 overshoot and can fail open under infrastructure overload. The exact D1
 seller-account budget is therefore the provider-cost backstop for authenticated
@@ -221,10 +222,10 @@ The claim and sanitized provider ID remain server-side and are never accepted
 from or returned to the browser as authority. The adapter and schema also reject
 using the original quarantine ID as the sanitized ID.
 
-`gear-images/src/index.js` now supplies the source-only provider boundary as a
-small service-binding-only Worker. Its example config disables public worker and
-preview URLs; no route, resource or binding is provisioned. The Pages source
-expects a future `GEAR_IMAGES` service binding. The Worker
+`gear-images/src/index.js` supplies the deployed provider boundary as a small
+service-binding-only Worker. Its checked-in config disables public worker and
+preview URLs. The production Worker and the Pages `GEAR_IMAGES` service binding
+are deployed. The Worker
 accepts only bounded internal JSON for create, sanitize and idempotent delete,
 and keeps provider errors generic while returning cleanup references to Pages.
 Create-time provider/config failures and sanitize `pending`/`unavailable` states
@@ -236,11 +237,11 @@ four seconds before returning 503 so Pages can queue the ID. Cleanup IDs go
 directly into `gear_photo_deletions`; they are not round-tripped through the
 stricter immediate delete endpoint.
 
-The installed Wrangler/workerd/Miniflare build loads the real entry module but
-does not expose hosted Images management methods, including `createDirectUpload`.
-Cloudflare added those binding methods in September 2026. Before deployment, pin
-a newer compatible toolchain and verify the real binding in isolated staging.
-The Worker has a separate deploy and rollback path and remains undeployed.
+The implementation-time Wrangler/workerd/Miniflare build loaded the real entry
+module but did not expose hosted Images management methods, including
+`createDirectUpload`. Cloudflare added those binding methods in September 2026.
+The compatible toolchain and real binding were verified in isolated staging; the
+Worker is deployed with its separate deploy and rollback path.
 
 No production image was uploaded during implementation. Deterministic tests use
 mocked bindings and cover the direct-upload contract, stream inputs, exact byte

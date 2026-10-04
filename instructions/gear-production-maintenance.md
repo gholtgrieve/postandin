@@ -1,7 +1,9 @@
 # Gear Exchange production scheduled maintenance
 
-Status: owner-authorized production deployment completed on 2026-10-03.
-Migrations 0001–0018 are applied to the production Gear D1 database. The Images
+Status: owner-authorized production foundation deployment completed on 2026-10-03.
+Migrations 0001–0018 are applied to the production Gear D1 database; migration
+0019 and the corresponding Worker redeploy are required before the reviewed Pages
+launch commit is merged. The Images
 binding, dedicated maintenance-state KV namespace, Resend secret, alert recipient,
 Worker and 11:00 UTC Cron Trigger are provisioned. The checked-in
 `gear-maintenance/wrangler.toml.example` deliberately remains free of production
@@ -27,7 +29,9 @@ recipient before making any cleanup write. It then works within one shared
    moderation state/history and the listing, and stamps the minimal deletion
    ledger when applicable. Every statement rechecks the due marker or draft state,
    so seller recovery or verification winning the race leaves all content intact.
-3. Removes expired/consumed management links and transfers; revoked/expired
+3. Removes expired/consumed management links only after their anchored 24-hour
+   recovery-delivery window ends, preserving the five-message cap; removes consumed
+   transfers; revoked/expired
    sessions; and verification tokens after expiry unless their unverified draft
    remains inside its three-day lifetime. That live-draft token row retains the
    durable five-message delivery count until draft deletion cascades it. Consumed

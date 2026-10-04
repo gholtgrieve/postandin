@@ -58,41 +58,39 @@ Local listing reports use a bounded inspection queue; see
 Persistent local management photos are documented in
 [instructions/gear-photos.md](instructions/gear-photos.md).
 
-The source-only production foundation adds immutable adult-acknowledgement
-evidence and a D1 metadata adapter for private Cloudflare Images. It provisions
-nothing and adds no upload, authentication or deployed write route; see
+The production foundation adds immutable adult-acknowledgement evidence and a
+D1 metadata adapter for private Cloudflare Images; see
 [instructions/gear-storage.md](instructions/gear-storage.md).
 
-The source-only production owner boundary validates Cloudflare Access JWTs with
-native Web Crypto and an environment-provided exact allowlist. Nothing is
-provisioned or deployed; see [instructions/gear-access.md](instructions/gear-access.md).
+The production owner boundary validates Cloudflare Access JWTs with native Web
+Crypto and an environment-provided exact allowlist. It is deployed behind the
+Access-protected owner hostname; see [instructions/gear-access.md](instructions/gear-access.md).
 
-The source-only production moderation foundation adds constrained D1 tables,
+The deployed production moderation foundation adds constrained D1 tables,
 an Access-authenticated private owner workspace for open reports and active
 removals, and same-origin dismiss/remove/restore actions with transactional
-history. It is not configured or deployed; see
+history; see
 [instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
 
-The source-only public report route requires exact-origin JSON, an exact feature
+The production public report route requires exact-origin JSON, an exact feature
 flag, server-validated Turnstile and a currently public listing before
 atomically inserting the bounded report fields. The production-origin UI is
 source-connected behind the same fail-closed config gate and a dedicated
-`gear-report` widget. Its site key, secret, feature flag and edge rate-limit rule
-are not configured;
+`gear-report` widget. Its site key, secret, feature flag, and the owner-approved
+combined Free-plan edge rate-limit rule are configured for the go-live deploy;
 see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
 
-The source-only production seller-deletion path adds an active recovery marker,
+The production seller-deletion path adds an active recovery marker,
 minimal purge ledger and authenticated delete/recover transaction, and blocks
 owner restore while the active marker exists; see
 [instructions/gear-production-deletions.md](instructions/gear-production-deletions.md).
 
-The source-only production seller-access boundary adds same-origin Pages routes
+The production seller-access boundary adds same-origin Pages routes
 for generic recovery requests, explicit one-use link confirmation, reload
 recovery, logout, signed owner-listing reads, and CSRF-protected listing edits and
-status changes. A Resend adapter is tested with mock delivery only; no API key,
-real mail or edge rate limit is configured. The browser UI now connects these
-routes only on the exact production origin, while deployment and provider
-configuration remain separate launch work. See
+status changes. The Resend adapter, production key, and combined edge rate limit
+are configured. The browser UI connects these routes only on the exact production
+origin; the reviewed go-live deploy and smoke test remain. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
 The production posting flow validates the full listing and a
@@ -103,9 +101,10 @@ sends a 30-minute fragment credential only to the stored address, and a separate
 explicit POST publishes the listing without creating a management session. The
 exact-origin browser loads Turnstile only when a public site key is configured,
 erases verification fragments before network work, and keeps confirmation usable
-when new posting is disabled. Production Pages and D1 are deployed, while the
-Turnstile, Resend and edge-limit write configuration remains deliberately unset;
-new public writes therefore fail closed. See
+when new posting is disabled. Production Pages and D1 are deployed. Turnstile,
+Resend, the feature switches, and the combined edge-limit rule are configured for
+the reviewed go-live deploy; new public writes remain fail-closed until that
+deploy. See
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
 
 The production maintenance package adds an idempotent D1 cleanup
@@ -116,22 +115,23 @@ binding, alert secret, Worker and 11:00 UTC Cron Trigger were owner-authorized
 and deployed on 2026-10-03; the checked-in config remains identifier-free. See
 [instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
 
-The source-only production photo foundation includes authenticated Pages routes
+The production photo foundation includes authenticated Pages routes
 that reserve ten-minute private quarantine uploads through a dedicated Images
 service Worker, then claim, sanitize and atomically attach only the verified
 still WebP. Provider/D1 failures are compensated immediately or through the
 durable deletion outbox when D1 remains writable; unresolved provider commits
 are found by the bounded 24-hour-grace reconciliation sweep. Authenticated
-source-only routes also remove and reorder attached metadata with exact snapshot
-and ownership checks; removal queues remote deletion atomically. The source-only
+production routes also remove and reorder attached metadata with exact snapshot
+and ownership checks; removal queues remote deletion atomically. The
 public listing route now replaces private photo references with ten-minute
 Cloudflare Images signed URLs for one configured variant. Upload creation has an
 exact 60-per-current-seller UTC-day D1 budget; email transfer starts a fresh
-target-seller budget. A separate 12-per-minute source-IP edge rule remains a
-required launch configuration, and its desired one-minute period and ten-minute
-block require at least Cloudflare Pro under the current plan table. No service
-binding, secret, resource, edge rule or route is deployed. The exact-origin
-management UI source performs direct upload, finalize, removal and reorder; see
+target-seller budget. On the Free Website plan, the owner approved and deployed
+one combined source-IP rule for all public Gear writes: 20 matching requests per
+10 seconds, followed by a 10-second block. The private Images service, Pages
+binding, dedicated signing secret, routes, and feature flag are configured for
+the go-live deploy. The exact-origin management UI performs direct upload,
+finalize, removal and reorder; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
 An opt-in connected HTTPS preview is documented in
@@ -149,14 +149,14 @@ signed photos are restricted to Cloudflare Images delivery, and an initial
 failure leaves the public list empty with a generic notice and retry action.
 Later refresh failures retain the last validated listing snapshot. Expired image
 signatures refresh in the background without changing the selected photo. The
-production D1, Pages routes, Images service and owner boundary are deployed;
-public writes remain fail-closed. The separate owner-only
+production D1, Pages routes, Images service, and owner boundary are deployed;
+public writes remain fail-closed until the reviewed go-live deploy. The separate owner-only
 `GET /api/gear/admin/reports` route reads the proposed moderation queue only
 after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
 actions through transactional D1 batches. Run the focused route and storage tests
 with `node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
 
-A source-only production buyer-contact boundary now adds durable request
+The production buyer-contact boundary adds durable request
 idempotency, hashed ten-minute abuse accounting, 24-hour private delivery copies,
 the dedicated `gear-contact` Turnstile action and a bounded plain-text Resend
 adapter. The exact production-origin form is connected through a config-gated
@@ -170,7 +170,7 @@ Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.
 The production `/gear/` page uses the deployed read boundary while public writes
-remain disabled; local preview modes still exercise in-memory sample data. Run its focused checks with
+remain disabled until the reviewed go-live deploy; local preview modes still exercise in-memory sample data. Run its focused checks with
 `node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
@@ -178,8 +178,9 @@ Under ordinary static hosting, listings, management access, verification and
 contact actions are simulated; inputs and photos reset on reload. The opt-in
 local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
 The static public sample dataset is separate from seller drafts. Production
-provider configuration, remote migrations, staging checks and deployment remain
-unimplemented. The separate storage query already filters expiry on reads.
+provider configuration, remote migrations, and staging checks are complete; the
+reviewed go-live deploy and immediate smoke tests remain. The separate storage
+query already filters expiry on reads.
 
 
 ## Groups feature
@@ -331,20 +332,23 @@ forward recent last-known-good rink/activity data for up to 24 hours.
 Local seller deletion now supports a 30-day recovery window, explicit offline
 cleanup and tested SQLite record/photo snapshot restoration. See
 [Gear lifecycle](instructions/gear-lifecycle.md) for retention, commands and limitations.
-Production maintenance deployment and remote disaster recovery remain launch gates.
+Production maintenance and remote records disaster recovery are deployed, and
+their first controlled production checks passed. Photos remain deliberately
+outside the off-provider recovery scope.
 
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
-Production maintenance scheduling and failure/recovery alerts are deployed;
-the manual records-backup run and restore rehearsal remain launch gates.
+Production maintenance scheduling and failure/recovery alerts are deployed. The
+first production records backup, exact B2 read-back, and isolated restore
+rehearsal passed on 2026-10-03 PDT.
 The consolidated provisioning, staging, backup, deployment and
 rollback sequence is in
 [instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).
 The owner selected a lean records-only off-Cloudflare backup: encrypted D1
 projections to B2, with photos deliberately excluded and re-upload required
-after a total media loss. The production workflow is checked in for manual
-dispatch, and its private B2 target, restricted key, lifecycle, offline recovery
-identity and owner-reported D1 Read token are configured. Current environment and
-secret-migration status is maintained in
+after a total media loss. The production workflow supports manual dispatch and a
+nightly 08:17 UTC schedule. Its private B2 target, restricted key, lifecycle,
+offline recovery identity, and owner-approved D1 Edit token are configured.
+Current environment and secret-migration status is maintained in
 [instructions/gear-lean-backup.md](instructions/gear-lean-backup.md).

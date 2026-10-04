@@ -1,9 +1,10 @@
 # Gear Exchange production buyer-contact boundary
 
-Status: production route, browser form and D1 schema are deployed. Buyer-contact
-delivery remains fail-closed because the Pages Resend key, edge rule and exact
-feature flag are unset; no production contact data or mail exists. Public config stays
-off unless the D1 binding, bounded Resend configuration and exact
+Status: production route, browser form and D1 schema are deployed. The Pages
+Resend key and exact feature flag are configured for the go-live deployment, and
+the owner-approved combined Free-plan edge rule is Active. No production contact
+data or mail exists. Public config stays off unless the D1
+binding, bounded Resend configuration and exact
 `GEAR_CONTACT_ENABLED=true` flag are all present; the route independently checks
 the same delivery configuration. Shared posting/verification settings therefore
 cannot enable contact by accident.
@@ -35,8 +36,9 @@ current at submission. The request UUID is the durable idempotency key. An exact
 replay reuses the same record; a UUID reused with different content is rejected.
 Rolling ten-minute limits are three attempts per buyer/listing, five per buyer
 and 60 globally. Malformed or unconfigured requests do not count; eligible and
-ineligible verified submissions do. No IP address is stored, so the required
-Cloudflare edge IP limit remains a launch item.
+ineligible verified submissions do. No IP address is stored, so the
+owner-approved combined Free-plan edge rule in the launch runbook provides the
+source-IP boundary.
 
 The Resend adapter fixes the sender to `Post & In Gear <gear@postandin.com>`,
 sends only plain text to the current seller, and sets the normalized buyer email
@@ -88,6 +90,5 @@ git diff --check
 ```
 
 All tests use synthetic addresses, injected provider responses and temporary
-databases. Configuring D1, Resend and the edge rule, explicitly enabling contact,
-staging allowlisted delivery and deploying remain separate explicitly authorized
-work.
+databases. D1, Resend, the exact feature flag, and the combined edge rule are
+configured; the reviewed go-live deployment and immediate smoke test remain.

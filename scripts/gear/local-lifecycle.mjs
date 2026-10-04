@@ -68,7 +68,7 @@ export function cleanup(db,{apply=false,now=Date.now()}={}){
  const rules=[
   ['gear_email_changes','expires_at<=? OR consumed_at IS NOT NULL OR session_hash IN (SELECT session_hash FROM gear_management_sessions WHERE expires_at<=? OR revoked_at IS NOT NULL)',[now,now]],
   ['gear_management_sessions','expires_at<=? OR revoked_at IS NOT NULL',[now]],
-  ['gear_management_links','expires_at<=? OR consumed_at IS NOT NULL',[now]],
+  ['gear_management_links','(expires_at<=? OR consumed_at IS NOT NULL) AND window_started_at<=?',[now,now-DAY_MS]],
   ['gear_verification_tokens','expires_at<=? OR consumed_at IS NOT NULL',[now]],
   ['gear_local_reports','created_at<=?',[now-HISTORY_MS]],
   ['gear_local_moderation_history','created_at<=?',[now-HISTORY_MS]],

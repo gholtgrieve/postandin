@@ -37,14 +37,16 @@ All current check groups passed:
    adapter while mocked outbound email remains local. The adapter itself is
    unit-tested in Node; this probe does not load the adapter module.
 2. Failed migration batch rolls schema changes back.
-3. All eighteen checked-in migrations apply to a fresh D1 database; the harness
+3. All nineteen checked-in migrations apply to a fresh D1 database; the harness
    ledger makes repeated application a no-op. RETURNING and meta.changes have the
    expected shape, including a no-op update. The seller foreign-key cascade also
    removes its photo-upload counter in actual D1. Verification delivery count is
    constrained by migration 14. Migration 15 contact reservation, exact replay,
    delivery claiming and sent-receipt persistence run through a separate temporary
    D1 binding. Migrations 16–18 unify removal, add draft-photo access and limit
-   redeemed management sessions to 30 days; the harness asserts that exact lifetime.
+   redeemed management sessions to 30 days. Migration 19 adds the anchored
+   management-recovery delivery cap; the harness asserts the cap and its exact
+   24-hour reset boundary.
 4. Production verification issuance, cooldown, the five-message cap,
    failed-delivery release, confirmation replay and maintenance preservation run
    through actual D1. A populated pre-migration token upgrades with count one.
@@ -78,7 +80,7 @@ All current check groups passed:
 13. Two concurrent confirmation calls are serialized by D1 and cannot exceed ten
    active listings. Direct trigger rejection and the email-transfer quota failure
    are also checked, with unchanged-data assertions.
-14. A populated version-6 database upgrades through version 15 with listing/session
+14. A populated version-6 database upgrades through version 19 with listing/session
    data preserved, legacy acknowledgement left NULL, bounded verification-delivery
    state added, and email transfer working afterward.
 15. Stored data and migration bookkeeping survive disposal and restart of workerd.

@@ -1,8 +1,9 @@
 # Gear Exchange local draft storage
 
-Status: local development plus source-only production seams. This increment does
-not connect the UI, publish to the live site, send mail, provision D1/Images, or
-add a deployed write route.
+Status: this document began as the local storage increment and retains its design
+history. The production D1, Images service, Pages routes, and exact-origin UI are
+now deployed; current launch state and controls are maintained in
+`gear-launch-runbook.md` and the `gear-production-*.md` documents.
 
 ## Files and boundaries
 
@@ -23,7 +24,7 @@ add a deployed write route.
 - `lib/gear-photo-rate-limit.mjs`: exact per-seller UTC-day upload-attempt budget
   used before production provider work; it stores no network address.
 - `scripts/gear/local-db.mjs`: Node SQLite adapter for the D1 methods used here.
-  It applies all 18 checked-in migrations once and preserves records on reopening.
+  It applies all 19 checked-in migrations once and preserves records on reopening.
 - `scripts/gear/local-server.mjs`: loopback-only sample-data API, deliberately
   outside `functions/`. Host, Origin and Sec-Fetch-Site checks reject cross-site browser
   requests and DNS rebinding. It serves no static files and has no CORS allowance.
@@ -31,7 +32,7 @@ add a deployed write route.
 The storage layer uses D1's documented prepared statements and transactional
 batch API: https://developers.cloudflare.com/d1/worker-api/d1-database/
 Foreign-key reference: https://developers.cloudflare.com/d1/sql-api/foreign-keys/
-Local tests exercise real SQLite. All eighteen migrations, the acknowledgement
+Local tests exercise real SQLite. All nineteen migrations, the acknowledgement
 write, photo metadata/quarantine adapters and private moderation projection pass the
 local workerd/D1 harness. This is not a remote D1 or deployed Pages test.
 
@@ -95,18 +96,19 @@ pagination/search integration comes with the real browse API.
 Verified email changes now exist locally; see [gear-email-change.md](gear-email-change.md).
 Production verification delivery now has source-level cooldown/cap controls and
 an exact draft-retention boundary; see
-[gear-production-verification.md](gear-production-verification.md). D1/HTTPS
-staging validation, browser integration and edge abuse limits remain. This local
-server is not a production security boundary or deployable API.
+[gear-production-verification.md](gear-production-verification.md).
+This local server is not a production security boundary or deployable API. The
+separate production validation, browser integration, and edge controls are
+documented in the production files and launch runbook.
 
 ## Migration and rollback
 
-No root Wrangler file, cloud binding or deployment configuration changed. Local
-migration bookkeeping is independent of future D1 migration bookkeeping.
-Apply the additive migration to a dedicated test D1 instance before new server
-code uses it; production migration remains separately authorized. Roll back
-application code without dropping tables or real records. A local SQLite record/photo snapshot and restore procedure now exists in
-[gear-lifecycle.md](gear-lifecycle.md); remote D1/Cloudflare Images recovery remains unimplemented.
+Local migration bookkeeping remains independent of D1 migration bookkeeping.
+The additive production migrations and bindings are deployed under the launch
+runbook. Roll back application code without dropping tables or real records. A
+local SQLite record/photo snapshot and restore procedure exists in
+[gear-lifecycle.md](gear-lifecycle.md); off-provider D1 records recovery is
+implemented, while Cloudflare Images bytes remain deliberately excluded.
 
 ## Verification
 
@@ -158,10 +160,10 @@ UI-to-storage integration must map the preview's offer labels to lowercase
 types, seller to sellerName, and include the explicit adult acknowledgement.
 The opt-in HTTPS local preview now connects these endpoints through
 `gear/local-api.mjs`; ordinary static hosting remains simulated. See
-[gear-connected-preview.md](gear-connected-preview.md). A separate source-only
-Pages Function at `GET /api/gear/listings` reuses `readPublicListings` through
-the proposed `GEAR_DB` binding. It has no write path, returns empty photo arrays,
-is not connected to the UI, and has not been bound, provisioned or deployed.
+[gear-connected-preview.md](gear-connected-preview.md). The deployed Pages
+Function at `GET /api/gear/listings` reuses `readPublicListings` through the
+`GEAR_DB` binding and is connected to the exact production-origin UI. The current
+projection and signed-photo behavior are documented in the production files.
 
 Migration 7 adds immutable `adult_acknowledged_at` and `disclosure_version`
 evidence for every new draft. Legacy listings remain NULL rather than receiving
@@ -186,7 +188,8 @@ maintenance must also list sanitized Gear objects and delete, after a grace
 period, any object absent from both `gear_photos` and an in-flight finalization
 record; this covers a provider commit followed by an exception or Worker loss.
 Retries and failure/recovery alerts belong to the maintenance Worker. These remote
-operations and their tests are not implemented in this source-only increment.
+operations and their tests are now implemented and deployed as documented in
+`gear-production-maintenance.md` and `gear-production-photos.md`.
 Photo insertion chooses the lowest free position, so a future removal operation
 cannot strand capacity behind a position gap.
 
@@ -264,8 +267,9 @@ same-email isolation, replay, exact token expiry, reissue, removed records,
 rollback, competing final-slot confirmations, publication duplicates and scanner-safe
 GET. Concurrency tests use one local SQLite connection; multi-connection/D1
 contention is a separate integration check. Real delivery, browser cookie/CSRF
-integration, rate limits and draft cleanup remain unimplemented. Local management
-cookies and CSRF checks are covered by the current management tests.
+integration, rate limits, and draft cleanup are implemented in the separate
+production modules. Local management cookies and CSRF checks are covered by the
+current management tests.
 
 September 26 review follow-up: upgrade tests now cover the original version-1
 database and an existing version-3 database with the old unverified-draft index
@@ -285,7 +289,7 @@ recovery/revocation and transactional stale-duplicate cleanup. No production ser
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.
 
-Current D1 evidence: all eighteen migrations, populated version-6 upgrade, persistence,
+Current D1 evidence: all nineteen migrations, populated version-6 upgrade, persistence,
 transaction/error semantics, moderation read projection and core storage flows
 passed in local workerd. See
 [gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and

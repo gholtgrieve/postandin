@@ -1,8 +1,9 @@
 # Gear Exchange production report submission
 
-Status: production route, UI and D1 schema are deployed. Report submission is
-fail-closed because the feature flag, Turnstile configuration and edge rate-limit
-rule remain unset. The production owner queue is empty.
+Status: production route, UI and D1 schema are deployed. The feature flag and
+Turnstile configuration are set for the go-live deployment, and the
+owner-approved combined Free-plan edge rule is Active. The production owner
+queue is empty; the reviewed go-live deployment and smoke test remain.
 
 ## Public boundary
 
@@ -65,9 +66,9 @@ authorize and configure:
    Pages secret in production; ordinary Pages preview hosts are intentionally
    denied by the exact-origin guard, and any future staging host requires a
    separately reviewed source/configuration change;
-3. a Cloudflare edge rate-limit rule scoped to the report endpoint, verified to
-   challenge or block abusive clients before they consume Worker/Siteverify/D1
-   work;
+3. the owner-approved combined Free-plan source-IP rule documented in the launch
+   runbook, which includes `/api/gear/reports` and blocks abusive clients before
+   they consume Worker/Siteverify/D1 work;
 4. migrations 8–9 and the `GEAR_DB` binding under the separately reviewed
    deployment/rollback procedure;
 5. the exact `GEAR_REPORTS_ENABLED=true` environment flag, only after the
@@ -75,8 +76,8 @@ authorize and configure:
    disabled.
 
 Turnstile is necessary but does not replace rate limiting. No reporter IP is
-stored in application data. Exact rule availability and thresholds must be
-confirmed against the owner's Cloudflare plan during deployment configuration.
+stored in application data. The Free-plan limits were confirmed and approved on
+2026-10-03.
 
 ## Verification
 

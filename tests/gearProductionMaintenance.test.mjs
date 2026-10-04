@@ -7,6 +7,7 @@ import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {submitReport} from '../lib/gear-report-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {confirmVerification,issueLocalVerification,issueVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../lib/gear-verification.mjs';
+import {issueManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 
 const sample={title:'Bag',description:'Sample wear',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
@@ -87,6 +88,21 @@ test('maintenance preserves the verification delivery cap until the live draft i
     assert.deepEqual(await issueVerification(db,draft.id,now+VERIFICATION_REISSUE_COOLDOWN_MS),{limited:true,reason:'cap'});
     await cleanupGearRecords(db,{now:firstIssue-1+3*GEAR_DAY_MS});
     assert.equal(db.sqlite.prepare('SELECT 1 FROM gear_listings WHERE id=?').get(draft.id),undefined);assert.equal(count(db,'gear_verification_tokens'),0);
+  }finally{db.close();}
+});
+
+test('maintenance preserves management recovery accounting until its anchored window ends',async()=>{
+  const db=openLocalDatabase();try{
+    const windowStart=10*GEAR_DAY_MS,id=await publish(db,100),sellerId=db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(id).seller_id;
+    const consumed=await issueManagementLink(db,sample.email,windowStart);assert.ok(consumed);assert.ok(await redeemManagementLink(db,consumed.token,windowStart+1));
+    await cleanupGearRecords(db,{now:windowStart+GEAR_DAY_MS-1});
+    assert.equal(count(db,'gear_management_links'),1);
+    await cleanupGearRecords(db,{now:windowStart+GEAR_DAY_MS});
+    assert.equal(count(db,'gear_management_links'),0);
+    const live=await issueManagementLink(db,sample.email,windowStart+GEAR_DAY_MS);assert.ok(live);
+    db.sqlite.prepare('UPDATE gear_management_links SET window_started_at=0,expires_at=? WHERE seller_id=?').run(windowStart+2*GEAR_DAY_MS+1,sellerId);
+    await cleanupGearRecords(db,{now:windowStart+2*GEAR_DAY_MS});
+    assert.equal(count(db,'gear_management_links'),1);
   }finally{db.close();}
 });
 

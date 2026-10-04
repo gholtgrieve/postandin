@@ -1,11 +1,11 @@
 name: Gear records backup
 
-# Manually dispatched production backup. Keep the schedule disabled until the
-# first real backup and restore rehearsal both pass.
+# Production backup. Manual dispatch remains available for controlled checks;
+# the schedule was enabled after the first real backup and restore rehearsal passed.
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "0 8 * * *"
+  schedule:
+    - cron: "17 8 * * *"
 
 permissions:
   contents: read

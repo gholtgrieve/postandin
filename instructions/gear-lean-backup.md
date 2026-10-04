@@ -4,13 +4,18 @@ The value-free mapping between password-manager records, provider resources,
 and deployment secret names is maintained in the launch runbook's
 [password-manager record map](gear-launch-runbook.md#password-manager-record-map).
 
-Status: the production backup workflow is checked in for manual dispatch only.
+Status: the production backup workflow completed its first real encrypted backup,
+B2 read-back and isolated local restore rehearsal on 2026-10-03 PDT. The
+production D1 export completed in a conservative 6.89-second upper bound. The
+nightly 08:17 UTC schedule is enabled by the launch change that records this
+evidence.
 The owner created the private Backblaze bucket, restricted prefix key, 30-day
-lifecycle, offline `age` identity and owner-reported D1 Read token. The
+lifecycle, offline `age` identity and owner-approved account-scoped D1 Edit token;
+the stronger permission is required by the export endpoint and has no Workers,
+Pages, Images, DNS or account-administration permission. The
 branch-restricted `gear-backup` GitHub environment contains all seven workflow
 secrets, allows only `main`, and no repository-level secret name begins with
-`GEAR_BACKUP_`. The encryption/decryption canary passed. The nightly schedule
-remains disabled until the first manual backup and restore rehearsal pass.
+`GEAR_BACKUP_`. The encryption/decryption canary and real restore rehearsal passed.
 
 ## Deliberate scope
 
@@ -65,16 +70,16 @@ tokens, object names or byte counts.
 
 `scripts/gear/lean-backup.mjs` verifies decrypted JSON, restores it to a new local
 SQLite rehearsal database, or writes data-only SQL for a new D1 database after
-migrations 0001–0018. The SQL path is tested against a freshly migrated temporary
+migrations 0001–0019. The SQL path is tested against a freshly migrated temporary
 database.
 
-`.github/workflows/gear-records-backup.yml` is the canonical workflow. It is
-manual-dispatch only, serializes runs, uses immutable action revisions and reads
-secrets from the branch-restricted `gear-backup` GitHub environment. It fixes the
-runner to Ubuntu 24.04 and installs the reviewed Ubuntu `age` package version
-explicitly. Enable its
-08:00 UTC nightly schedule only after the first real backup and restore rehearsal
-pass and after setting a GitHub Actions budget that prevents paid overage.
+`.github/workflows/gear-records-backup.yml` is the canonical workflow. It supports
+manual dispatch plus a nightly 08:17 UTC schedule, serializes runs, uses immutable
+action revisions and reads secrets from the branch-restricted `gear-backup`
+GitHub environment. It fixes the runner to Ubuntu 24.04 and installs the reviewed
+Ubuntu `age` package version explicitly. The repository is public, so standard
+GitHub-hosted runners do not consume paid Actions minutes; a paid-overage budget
+does not apply to this workflow under the current repository visibility.
 If Ubuntu removes that exact `age` version from the Noble package index, verify
 the replacement in Ubuntu's official package index and update both the workflow
 pin and its matching test assertion in the same reviewed change.
@@ -97,9 +102,9 @@ Do this only with explicit owner authorization:
    only the public `age1...` recipient.
 4. Create a Cloudflare API token scoped to the production account with only the
    D1 permission required by export/query. Current token permissions are
-   account-scoped, not database-scoped; try D1 Read first and, if export requires
-   D1 Edit, record the risk acceptance before storing that more powerful token
-   in GitHub. It receives no Workers, Pages, Images, DNS or account-administration
+   account-scoped, not database-scoped, and production confirmed that export
+   requires D1 Edit. Record the risk acceptance before storing that token in
+   GitHub. It receives no Workers, Pages, Images, DNS or account-administration
    permission. Confirm the available scope again during provider setup.
 5. Add the seven values named in the workflow as secrets in the branch-restricted
    `gear-backup` GitHub environment. Do not put their values in repository-level
@@ -118,15 +123,18 @@ To locate a backup without exposing its object name in public workflow logs,
 open the private B2 bucket and select the newest object under the `gear/` prefix
 by upload time.
 
-GitHub's failed-workflow notification is the initial alert. There is no separate
-dead-man service. Once a month, confirm a recent successful run and rehearse one
-decryption. If usage or importance grows, missed-run monitoring and photo-byte
-backup can be added as separately reviewed upgrades.
+GitHub's failed-workflow notification is the initial alert and goes to the user
+who last changed the cron schedule. There is no separate dead-man service.
+GitHub may automatically disable scheduled workflows in public repositories
+after 60 days without repository activity without producing a failed run. Once a
+month, confirm that the schedule is still enabled and a recent run succeeded,
+then rehearse one decryption. If usage or importance grows, missed-run monitoring
+and photo-byte backup can be added as separately reviewed upgrades.
 
 Cloudflare documents that D1 is unavailable to queries while an export runs.
-The first staging run must measure and record that interruption before any
-production dispatch; keep the nightly job at 08:00 UTC and leave scheduling
-disabled if the measured impact is unacceptable.
+The first staging run measured and recorded that interruption before the first
+production dispatch. The nightly job runs at 08:17 UTC; disable scheduling if a
+future measured impact becomes unacceptable.
 
 On 2026-10-03, an authenticated remote export of the isolated staging D1 database
 completed in 3.04 seconds wall-clock time. This is a conservative interruption
@@ -134,6 +142,16 @@ upper bound because it includes CLI polling and download time. The downloaded
 staging SQL and its temporary directory were deleted immediately. Use a
 low-traffic window for the first production dispatch and record the runner's
 upper bound as separate evidence.
+
+Later on 2026-10-03 PDT, the first production workflow completed its D1 export in
+6.89 seconds, encrypted the records-only snapshot, uploaded it to the private B2
+prefix and verified an exact read-back. The newest ciphertext was then downloaded
+to a protected temporary directory on the owner's Mac and decrypted with the
+offline identity. JSON verification, a new SQLite restore and generated SQL
+applied to a second freshly migrated database all passed. Both databases contained
+all 20 Gear tables and migration levels 0001–0018; production was intentionally
+empty before launch, so every data table was empty. The recovery identity,
+plaintext JSON, SQLite databases and SQL output were deleted after the rehearsal.
 
 ## Restore rehearsal
 
@@ -163,7 +181,7 @@ disaster. Before reopening traffic, re-apply any later action that can be
 reconstructed from the surviving live system or operator/mail records.
 
 Importing `restore.sql` into a new remote D1 database is a separately authorized
-incident action. First create a new database, apply migrations 0001–0018, verify
+incident action. First create a new database, apply migrations 0001–0019, verify
 it is empty, then use the documented D1 SQL import mechanism. Never import over
 the original database or use this procedure as a production test.
 

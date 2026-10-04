@@ -17,7 +17,7 @@ import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {cleanupGearRecords,reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
 import {claimContactDelivery,markContactSent,releaseContactDelivery,reserveContact} from '../../lib/gear-contact-storage.mjs';
 import {confirmProductionVerification,issueLocalVerification,issueVerification,releaseFailedVerificationIssue,confirmVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../../lib/gear-verification.mjs';
-import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState} from '../../lib/gear-management.mjs';
+import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState,RECOVERY_COOLDOWN_MS,RECOVERY_DAILY_LIMIT,RECOVERY_WINDOW_MS} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
 const modulePath=process.env.GEAR_WRANGLER_MODULE;
 if(!modulePath)throw new Error('Set GEAR_WRANGLER_MODULE to an installed Wrangler module absolute path.');
@@ -31,6 +31,7 @@ const interrupt=()=>{cleanup().catch(()=>console.error('D1 check cleanup failed.
 process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
 const files=readdirSync(new URL('../../migrations/gear/',import.meta.url)).filter(f=>/^\d+.*\.sql$/.test(f)).sort();
 const sample={title:'Bag',description:'Sample wear',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
+async function sha256(value){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),byte=>byte.toString(16).padStart(2,'0')).join('');}
 async function migrate(db,through=files.length){
  await db.prepare('CREATE TABLE IF NOT EXISTS gear_d1_check_migrations(name TEXT PRIMARY KEY)').run();
  for(const file of files.slice(0,through)){
@@ -54,7 +55,7 @@ async function publishBeforeAdultMigration(db,now=100){
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
 async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits','gear_contact_attempts','gear_contact_messages'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,18,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,19,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
@@ -70,6 +71,13 @@ try{
 	 const retainedSession=await login(sessionDb,'session-retention@example.test',1100);
 	 const retainedRow=await sessionDb.prepare('SELECT created_at,expires_at FROM gear_management_sessions ORDER BY created_at DESC LIMIT 1').first();
  assert.equal(retainedRow.expires_at-retainedRow.created_at,30*86400000);assert.equal(retainedSession.expiresAt,retainedRow.expires_at);
+ const recoveryEmail='recovery-limit@example.test',recoveryStart=2000;
+ await publish(sessionDb,{email:recoveryEmail,title:'Recovery limit bag'},1200);
+ for(let index=0;index<RECOVERY_DAILY_LIMIT;index++)assert.ok(await issueManagementLink(sessionDb,recoveryEmail,recoveryStart+index*RECOVERY_COOLDOWN_MS));
+ assert.equal(await issueManagementLink(sessionDb,recoveryEmail,recoveryStart+RECOVERY_DAILY_LIMIT*RECOVERY_COOLDOWN_MS),null);
+ assert.equal(await issueManagementLink(sessionDb,recoveryEmail,recoveryStart+RECOVERY_WINDOW_MS-1),null);
+ assert.ok(await issueManagementLink(sessionDb,recoveryEmail,recoveryStart+RECOVERY_WINDOW_MS));
+ assert.deepEqual(await sessionDb.prepare('SELECT issue_count,window_started_at FROM gear_management_links WHERE seller_id=(SELECT id FROM gear_sellers WHERE email=?)').bind(recoveryEmail).first(),{issue_count:1,window_started_at:recoveryStart+RECOVERY_WINDOW_MS});
  const probe=await db.prepare('UPDATE gear_sellers SET verified_at=1 WHERE id=? RETURNING id').bind('missing').run();
  assert.equal(probe.meta.changes,0);assert.deepEqual(probe.results,[]);
  const uploadCascadeSeller='00000000-0000-4000-8000-000000000013';
@@ -97,7 +105,7 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all eighteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact limits, verification-delivery state and 30-day management-session retention; D1 RETURNING/meta.changes.');
+ console.log('PASS: all nineteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact/recovery limits, verification-delivery state and 30-day management-session retention; D1 RETURNING/meta.changes.');
  const verifyDb=await mf.getD1Database('VERIFY');await migrate(verifyDb);
  const verifyNow=10*86400000,verifyDraft=await createDraft(verifyDb,{...sample,email:'verify@example.test',title:'D1 verification delivery'},verifyNow);
  const firstVerification=await issueVerification(verifyDb,verifyDraft.id,verifyNow+1);assert.ok(firstVerification);
@@ -314,20 +322,26 @@ try{
  assert.equal(await confirmEmailChange(quota,overLimit.token,206),false);
  assert.equal(await data(quota),transferBefore);
  console.log('PASS: competing D1 confirmations preserve the ten-active limit.');
- const upgrade=await mf.getD1Database('UPGRADE');await migrate(upgrade,6);
- const oldId=await publishBeforeAdultMigration(upgrade),oldAccess=await login(upgrade);const oldData=await dataWithoutProductionFoundation(upgrade);
+ const upgrade=await mf.getD1Database('UPGRADE');await migrate(upgrade,6);const legacyBase=10*RECOVERY_WINDOW_MS;
+ const oldId=await publishBeforeAdultMigration(upgrade,legacyBase),legacyToken='a'.repeat(64),legacySeller=(await upgrade.prepare('SELECT seller_id FROM gear_listings WHERE id=?').bind(oldId).first()).seller_id;
+ await upgrade.prepare('INSERT INTO gear_management_links(seller_id,token_hash,email,created_at,expires_at) VALUES(?,?,?,?,?)').bind(legacySeller,await sha256(legacyToken),sample.email,legacyBase+50,legacyBase+500).run();
+ const oldAccess=await redeemManagementLink(upgrade,legacyToken,legacyBase+51);assert.ok(oldAccess);
+ const oldData=await dataWithoutProductionFoundation(upgrade);
  await migrate(upgrade,11);assert.equal(await dataWithoutProductionFoundation(upgrade),oldData);
  const preservedOutbox='00000000-0000-4000-8000-000000000097';
  await upgrade.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at,attempts,last_attempt_at) VALUES(?,?,?,?,?)').bind(preservedOutbox,oldId,190,2,191).run();
  await migrate(upgrade);
+ assert.deepEqual(await upgrade.prepare('SELECT issue_count,window_started_at FROM gear_management_links WHERE seller_id=?').bind(legacySeller).first(),{issue_count:1,window_started_at:0});
+ assert.ok(await issueManagementLink(upgrade,sample.email,legacyBase+60));
+ assert.deepEqual(await upgrade.prepare('SELECT issue_count,window_started_at FROM gear_management_links WHERE seller_id=?').bind(legacySeller).first(),{issue_count:1,window_started_at:legacyBase+60});
  assert.equal((await upgrade.prepare('SELECT issue_count FROM gear_verification_tokens WHERE listing_id=?').bind(oldId).first()).issue_count,1);
  assert.deepEqual(await upgrade.prepare('SELECT * FROM gear_photo_deletions WHERE provider_id=?').bind(preservedOutbox).first(),{provider_id:preservedOutbox,listing_id:oldId,queued_at:190,attempts:2,last_attempt_at:191});
  await upgrade.prepare('INSERT INTO gear_photo_deletions(provider_id,listing_id,queued_at) VALUES(?,?,?)').bind('00000000-0000-4000-8000-000000000096',null,192).run();
  const acknowledgement=await upgrade.prepare('SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id=?').bind(oldId).first();
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
- assert.equal((await listManaged(upgrade,oldAccess.session,201))[0].id,oldId);
- const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',202);assert.equal(await confirmEmailChange(upgrade,transfer.token,203),true);
- console.log('PASS: populated migration-6 database upgrades through 18 with legacy data and queued photo deletion state preserved.');
+ assert.equal((await listManaged(upgrade,oldAccess.session,legacyBase+61))[0].id,oldId);
+ const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',legacyBase+62);assert.equal(await confirmEmailChange(upgrade,transfer.token,legacyBase+63),true);
+ console.log('PASS: populated migration-6 database upgrades through 19 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);
@@ -336,6 +350,6 @@ try{
 }finally{try{await cleanup();}finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);}}
 async function dataWithoutProductionFoundation(db){
  const listingColumns='id,seller_id,seller_name,title,description,category,size,fit,condition,city,type,price_cents,trade,other_club,status,verified_at,expires_at,created_at,duplicate_key,management_clubs';
- const queries=['SELECT * FROM gear_sellers ORDER BY rowid',`SELECT ${listingColumns} FROM gear_listings ORDER BY rowid`,'SELECT * FROM gear_listing_clubs ORDER BY rowid','SELECT * FROM gear_management_sessions ORDER BY rowid','SELECT * FROM gear_email_changes ORDER BY rowid'];
+ const queries=['SELECT * FROM gear_sellers ORDER BY rowid',`SELECT ${listingColumns} FROM gear_listings ORDER BY rowid`,'SELECT * FROM gear_listing_clubs ORDER BY rowid','SELECT * FROM gear_management_links ORDER BY rowid','SELECT * FROM gear_management_sessions ORDER BY rowid','SELECT * FROM gear_email_changes ORDER BY rowid'];
  return JSON.stringify(await Promise.all(queries.map(async sql=>(await db.prepare(sql).all()).results)));
 }

@@ -3,9 +3,13 @@
 Status: active production launch plan. Isolated staging validation passed,
 including migrations 0001–0018 and a 3.04-second conservative export-interruption
 upper bound. Owner-authorized production Pages, D1, Images service, maintenance
-Worker/Cron and owner Access are deployed with an empty database. Public write
-features remain fail-closed. The records-backup workflow is manual-only until its
-environment-secret move, first production run and restore rehearsal pass.
+Worker/Cron and owner Access are deployed with an empty database. The first
+production encrypted backup and exact B2 read-back passed with a 6.89-second D1
+export upper bound, and its isolated JSON/SQLite/data-only-SQL restore rehearsal
+passed on 2026-10-03 PDT. Production Turnstile, mail and dedicated Images signing
+credentials plus the public feature-switch values are configured; they remain
+inactive until the launch redeployment and immediate smoke tests. The nightly
+records-backup schedule is enabled by the reviewed launch change.
 
 ## Release boundary
 
@@ -40,10 +44,10 @@ signing keys or backup keys in this repository.
 Do not enable public writes until a complete recovery rehearsal passes.
 
 The approved lean job is checked in at
-`.github/workflows/gear-records-backup.yml` for manual dispatch through the
-branch-restricted `gear-backup` GitHub environment. Once the first backup and
-restore rehearsal pass, it will run nightly at 08:00 UTC, away from the 11:00 UTC
-maintenance window, and:
+`.github/workflows/gear-records-backup.yml` for manual dispatch and nightly
+08:17 UTC runs through the branch-restricted `gear-backup` GitHub environment,
+away from the 11:00 UTC maintenance window. Its first production backup and
+restore rehearsal passed, and it:
 
 1. request a table-filtered D1 SQL export through the polling export API and
    retain its time-travel bookmark on the external runner only;
@@ -64,16 +68,17 @@ maintenance window, and:
 7. rely on a reviewed B2 lifecycle rule to permanently remove current and prior
    object versions after 30 days. Object Lock is intentionally not enabled.
 
-Use a dedicated account-scoped Cloudflare D1 Read token for export/query and
-rotate it independently of the Pages/Worker credentials. If export
-requires D1 Edit, explicitly record that the GitHub secret can write any D1
-database in the account. The workflow itself never authorizes restore or deletion.
+Use the dedicated account-scoped Cloudflare D1 Edit token for export/query and
+rotate it independently of the Pages/Worker credentials. Production confirmed
+that export requires D1 Edit, so the GitHub secret can write any D1 database in
+the account; the owner accepted this constrained risk before the first run. The
+workflow itself never authorizes restore or deletion.
 The backup runner must not receive production Pages or Worker deployment rights.
 `GEAR_MAINTENANCE_STATE` is transient cursor/alert state and is deliberately not
 part of disaster recovery.
 
 Cloudflare's export API makes the D1 database unavailable to queries while an
-export runs. Keep the 08:00 UTC low-traffic schedule, measure the interruption
+export runs. Keep the 08:17 UTC low-traffic schedule, measure the interruption
 in staging and do not activate the schedule if it is operationally unacceptable.
 The isolated staging export measured a conservative 3.04-second upper bound on
 2026-10-03, including CLI polling and download; its temporary download was
@@ -97,7 +102,7 @@ Provision disposable staging records/auth resources only after separate owner
 authorization:
 
 - a separate Pages project and Access application;
-- a new D1 database containing migrations `0001` through `0018` in order;
+- a new D1 database containing migrations `0001` through `0019` in order;
 - a dedicated maintenance-state KV namespace;
 - staging-only Turnstile, Resend and Cloudflare Access settings;
 - an allowlisted mail recipient and synthetic records only.
@@ -300,6 +305,36 @@ contact, reports and photo upload. Turnstile and database counters complement
 those limits; neither replaces the source-IP boundary. Confirm the chosen
 Cloudflare plan can express every documented rule before launch approval.
 
+The owner approved a documented Free-plan alternative on 2026-10-03. Because
+the zone permits one rule with a ten-second counting and mitigation period, that
+single source-IP rule covers the exact public draft, verification-delivery,
+management-recovery, contact, report, and draft/management photo upload/finalize
+paths. It allows 20 matching requests per 10 seconds and then blocks matching
+requests from that IP for 10 seconds. This accommodates one six-photo flow while
+providing a burst boundary. Turnstile, request bounds, listing/photo limits, D1
+counters, delivery cooldowns, and provider idempotency remain the durable
+backstops. Revisit the stronger endpoint-specific periods if the zone is upgraded.
+
+The deployed rule is scoped to the `postandin.com` zone, uses source IP as its
+counting characteristic, counts 20 requests in 10 seconds, and blocks that IP for
+10 seconds. Its exact path expression is:
+
+```text
+http.request.uri.path in {
+  "/api/gear/drafts"
+  "/api/gear/verification/request"
+  "/api/gear/verification/confirm"
+  "/api/gear/management/recovery"
+  "/api/gear/management/confirm"
+  "/api/gear/contact"
+  "/api/gear/reports"
+  "/api/gear/drafts/photos/upload"
+  "/api/gear/drafts/photos/finalize"
+  "/api/gear/management/photos/upload"
+  "/api/gear/management/photos/finalize"
+}
+```
+
 ## Gate 4: release candidate
 
 From a clean canonical checkout at the exact proposed commit:
@@ -326,7 +361,7 @@ Only after an explicit deployment instruction:
    GitHub workflow, then verify the target with a synthetic canary;
 2. provision production D1/KV/Images identities and capture the empty D1
    bookmark/export;
-3. apply migrations `0001`–`0018` in order and verify schema/contracts;
+3. apply migrations `0001`–`0019` in order and verify schema/contracts;
 4. deploy `gear-images` with no public route and verify it by service binding;
 5. deploy `gear-maintenance`, verify its cron and execute one controlled run on
    synthetic production smoke data without sending an alert;
@@ -358,6 +393,28 @@ Steps 6–11 require a maintenance window because a push to the production branc
 can deploy Pages. Stop at the first failed verification; do not continue hoping a
 later step repairs it.
 
+For the 2026-10-03 launch window, step 10 and only the schedule-enable portion
+of step 11 share one reviewed deployment:
+the public disclosure is present, production has a dedicated Images signing key,
+the staging secret is a random placeholder, `gearStaging` is revoked, and the
+production Turnstile, mail, and feature-switch values are configured. The
+owner-approved combined Free-plan edge rule was deployed Active and verified in
+the Cloudflare dashboard before merge. The
+remaining release order is mandatory: apply
+`migrations/gear/0019_management_recovery_limits.sql` to the production Gear D1,
+then verify `PRAGMA table_info(gear_management_links)` contains `issue_count` and
+`window_started_at`; deploy the reviewed `gear-maintenance` Worker and complete
+one controlled run; only then merge the Pages commit. Merging Pages before 0019
+would make recovery fail, while leaving the older maintenance Worker deployed
+would permit cleanup to reset the new delivery cap. The merge activates the
+configured public values and nightly backup schedule together. The remaining
+step 11 discoverability work—the first scheduled B2 read-back, homepage Gear
+card, `noindex`, sitemap, robots and cache changes—follows only after that
+scheduled read-back succeeds. A failed public-write
+or photo smoke test requires disabling the affected feature flag and redeploying;
+the proven backup schedule may remain enabled unless its own run or read-back
+fails.
+
 ## Rollback and incident rules
 
 - Pages rollback: redeploy the last known-good Pages commit. Do not reverse D1
@@ -368,6 +425,10 @@ later step repairs it.
 - Maintenance rollback: disable the Cron Trigger, preserve D1/KV state, and
   redeploy the last known-good Worker. Do not delete cursor or failure-episode
   state except under its documented incident procedure.
+- Migration 0019 rollback: do not remove its additive columns. Older Pages and
+  maintenance code ignore them, so redeploying the last known-good versions is
+  safe after disabling the Cron Trigger. Reapply the reviewed deployment order
+  before attempting launch again.
 - Suspected data corruption: disable public write feature flags and photo uploads,
   capture a fresh bookmark/export and external deletion evidence, then diagnose.
   Do not time-travel production or import a backup without a separately approved

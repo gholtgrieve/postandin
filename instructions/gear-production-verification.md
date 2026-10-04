@@ -1,8 +1,9 @@
 # Gear production posting and email verification
 
-Status: backend and browser flow deployed with production D1. Public posting is
-fail-closed because its Turnstile, Resend and edge-limit configuration remains
-unset. No production listing or real production verification mail exists.
+Status: backend and browser flow are deployed with production D1. Turnstile and
+Resend are configured for the go-live deployment, and the owner-approved combined
+Free-plan edge rule is Active. No production listing or real production
+verification mail exists; the reviewed go-live deployment and smoke test remain.
 
 ## Request flow
 
@@ -103,8 +104,9 @@ Before launch, provision and verify:
 
 - separate staging and production D1/Turnstile/Resend configuration;
 - a production-host-restricted Turnstile widget and matching secret;
-- Cloudflare edge limits for draft creation and verification delivery, with the
-  final thresholds documented and tested (Turnstile does not replace rate limits);
+- the owner-approved combined Free-plan edge rule documented in the launch
+  runbook, covering draft creation and verification delivery (Turnstile does not
+  replace rate limits);
 - Resend sender/domain authorization and allowlisted staging recipients;
 - production-origin browser checks at phone and desktop sizes, including lost
   responses, reissue, expiry, replay, quota and duplicate conflicts;

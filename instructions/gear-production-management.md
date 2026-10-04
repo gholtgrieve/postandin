@@ -1,9 +1,11 @@
 # Gear Exchange production seller management sessions
 
-Status: production Pages routes and D1 binding are deployed. Seller recovery and
-other public writes remain fail-closed while production mail, Turnstile and edge
-limits are not enabled. Tests use temporary sample databases and mocked provider
-responses; no production seller or management session exists.
+Status: production Pages routes and D1 binding are deployed. Production mail and
+Turnstile are configured for the go-live deployment, and the owner-approved
+combined Free-plan edge rule is Active for seller recovery and other public
+writes. Tests use temporary sample databases and mocked provider responses; no
+production seller or management session exists. The reviewed go-live deployment
+and smoke test remain.
 
 ## Credential flow and listing routes
 
@@ -73,11 +75,26 @@ issuing access. Raw tokens, sessions and CSRF values are never stored in D1.
 and expose only a generic error to application callers. Delivery runs under the
 Pages request lifetime. A provider failure is logged server-side but deliberately
 does not change the public 202 response, which avoids disclosing whether an email
-belongs to a verified seller. A later request safely replaces the previous link.
+belongs to a verified seller. Delivery is capped at five messages per seller in
+each anchored 24-hour window. Within that cap, while the previous link remains unconsumed, a
+request made less than 60 seconds later for the same seller returns the same
+generic response without replacing the link or sending mail. At the cooldown
+boundary, a later request safely replaces the previous link; a seller who has
+consumed the prior link may request a new one immediately.
 
-Do not deploy these routes until the owner has explicitly
-authorized deployment and the recovery endpoint has Cloudflare edge controls for
-per-IP and per-recipient throttling plus bot abuse. Staging must verify the Resend
+Because the public recovery response must not reveal whether an email belongs to
+a seller, anyone who knows a seller's address can consume that address's five
+delivery attempts and delay further recovery mail until its anchored window ends.
+An existing 30-day management session continues to work. If the owner confirms a
+legitimate seller is locked out, inspect that seller's recovery row and reset it
+by deleting the matching `gear_management_links` row; record the intervention and
+never disclose whether a row existed to an unverified requester. The combined
+source-IP edge rule reduces single-source abuse but does not replace this
+per-seller limit.
+
+Do not deploy these routes until the owner has explicitly authorized deployment
+and the recovery endpoint has the combined Cloudflare source-IP rule plus the
+D1-backed 60-second per-seller cooldown and five-per-24-hour cap. Staging must verify the Resend
 sender and secret without exercising this production-host-only flow. End-to-end
 cookie, delivery and logout validation must run on `postandin.com` behind a
 temporary owner-only gate while the public UI remains unlinked; a separate

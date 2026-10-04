@@ -1,8 +1,9 @@
 # Gear Exchange production seller deletion and recovery
 
 Status: migration 0009 and the seller deletion/recovery route and UI are deployed
-with production D1. Public listing creation remains fail-closed, so production
-has no seller deletion marker or recovery record. The credential issuer is
+with production D1. Public listing creation remains fail-closed until the
+reviewed go-live deploy, so production has no seller deletion marker or recovery
+record. The credential issuer is
 documented in `gear-production-management.md`.
 
 ## Storage boundary
@@ -19,8 +20,7 @@ Migration `0009_seller_deletions.sql` adds:
 
 The schema constrains prior status and requires non-negative integer timestamps,
 a purge deadline strictly after deletion, and an actual purge time no earlier
-than the deadline. Due-time indexes support future cleanup without adding a
-scheduler or cleanup implementation here.
+than the deadline. Due-time indexes support the deployed cleanup scheduler.
 
 ## Seller-write contract
 
@@ -48,7 +48,7 @@ conservatively.
 The route accepts only exact-origin JSON from `https://postandin.com`, rejects
 cross-site requests, bounds the raw body to 1 KiB before fatal UTF-8 decoding and
 requires exactly one production-only `__Host-gear_session` cookie plus the
-derived `X-Gear-CSRF` value. The source-only issuer sets that cookie from
+derived `X-Gear-CSRF` value. The production issuer sets that cookie from
 `postandin.com` with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/` and no
 `Domain` attribute. The raw credentials are SHA-256 hashed before D1 access.
 Every write rechecks the active, unrevoked session, its CSRF hash, its original
@@ -66,14 +66,15 @@ an active state. Eligible stale duplicates expire in the same transaction.
 
 Missing or malformed credentials, conflicts and internal failures return generic
 no-store responses. The route does not issue or renew a session, set a cookie,
-send mail, expose deletion records or connect the static management UI.
+send mail or expose deletion records.
 
-Current application writes preserve a strict pairing invariant: every active
+Application writes preserve a strict pairing invariant: every active
 `gear_deletions` marker has one matching unpurged ledger row with identical
-timestamps. Future purge and backup-reconciliation work must preserve that pair
-until it atomically removes the listing/marker and stamps the ledger as purged;
-it must add a regression for owner-moderated `previous_status='removed'` records.
-This is a launch gate, not an implemented cleanup claim.
+timestamps. Scheduled purge and backup-reconciliation work preserve that pair
+until it atomically removes the listing/marker and stamps the ledger as purged.
+Regression coverage includes owner-moderated `previous_status='removed'` records.
+The deployed implementation and its coverage are documented in the
+maintenance and lean-backup documents.
 
 ## Owner restore guard
 
@@ -81,20 +82,16 @@ Production owner restore now requires that no matching row exists in
 `gear_deletions`. A seller-deleted listing therefore stays removed even when it
 also has a moderation removal. The failed owner action writes no history, expires
 no stale duplicate and leaves both the deletion and moderation state unchanged.
-Future authenticated seller recovery must remove the active deletion marker
+Authenticated seller recovery removes the active deletion marker
 before owner restoration can be considered independently.
 
-Permanent purge and remote retention cleanup now have a separate source-only
-scheduled implementation in `gear-production-maintenance.md`; it is not
-configured or deployed. Backup reconciliation remains unimplemented. Production
-session issuance and mocked-delivery mail integration are separate source-only
-work. Because the ledger is
-stored in the same D1 database, restoring an older D1 copy also restores an older
-ledger. The future disaster-recovery procedure must reconcile the candidate
-restore against deletion evidence exported after that backup or kept outside
-that D1 database; the restored ledger alone cannot prevent snapshot resurrection.
-Do not provision the admin hostname and Access configuration with `GEAR_DB` until
-the cleanup and disaster-recovery paths are complete.
+Permanent purge and remote retention cleanup are deployed through the scheduled
+implementation in `gear-production-maintenance.md`. The off-provider backup and
+restore process in `gear-lean-backup.md` reconciles fresh deletion evidence so an
+older snapshot cannot resurrect a seller purge. Production session issuance and
+mail integration are deployed behind the reviewed launch controls. The admin
+hostname, Access policy, and `GEAR_DB` binding are deployed; the owner workspace
+remains private, unlinked, and independently verifies Access on every request.
 
 ## Verification
 

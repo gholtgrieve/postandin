@@ -97,11 +97,14 @@ verification tokens are discarded. Obtain fresh local management access.
 Older snapshot restrictions may remain conservatively in place even if later
 recovered; this is not a merge of every subsequent edit or moderation action.
 
-This is a tested local restore rehearsal, not disaster recovery when the latest
-working database/ledger is lost. That case remains a launch gate. Cloud D1/R2,
-mail delivery, owner keys, certificates, memory queues and external backups are
-outside snapshot coverage. Stop the server to avoid races between reconciliation
-and source changes; these tools do not enforce an exclusive process lock.
+This is the local snapshot restore path. Loss of the latest working D1 records is
+covered separately by the encrypted off-provider backup and tested restore in
+`gear-lean-backup.md`; that recovery deliberately excludes photos, credentials,
+contact messages, reports, and short-lived state, so sellers must upload photos
+again after a total media loss. Mail delivery, owner keys, certificates, and
+memory queues remain outside snapshot coverage. Stop the server to avoid races
+between reconciliation and source changes; these tools do not enforce an
+exclusive process lock.
 
 ## Verification and next boundary
 
@@ -148,10 +151,10 @@ with listing purges. Preview reports candidate counts, not a sum of cascaded row
 Contact and memory-report getters prune expired entries, and the scheduled run
 also clears them during idle periods. Queues can evict earlier at their existing
 20-entry bound or server shutdown. Custom delivery sinks own their retention;
-this policy covers the built-in sample inbox. Source-only production contact
-copies are removed by the next daily maintenance pass after their exact due time,
-so physical deletion can occur up to one schedule interval later. No production
-mail is sent by the current undeployed configuration.
+this policy covers the built-in sample inbox. Production contact copies are
+removed by the next daily maintenance pass after their exact due time, so
+physical deletion can occur up to one schedule interval later. Production mail
+remains fail-closed until the reviewed go-live deploy.
 
 New snapshots enforce the earliest retained-content deadline and contain no
 credentials. Restore applies cleanup again, preserves original purge timestamps,
@@ -160,17 +163,16 @@ made by older versions retain their original expiry metadata; retire those copie
 when adopting this policy. Do not hand-edit metadata or restore from stale clones.
 
 Local automation is not an OS background job: it runs only while this server is
-listening. The separate source-only production Worker is documented in
-`gear-production-maintenance.md`; its bindings, cron, secrets and alerts are not
-provisioned or deployed. No production backup creation schedule or raw-log
-retention service is configured. No private request bodies are added to cleanup
-logs. Filesystem/Dropbox history erasure is outside this tool.
+listening. The separate production Worker documented in
+`gear-production-maintenance.md` has its bindings, cron, secret, and alerts
+deployed. The encrypted records-only backup is scheduled separately as described
+in `gear-lean-backup.md`; no private request bodies are added to cleanup logs.
+Filesystem/Dropbox history erasure is outside this tool.
 
-Current package verification: all 97 Gear tests pass, including maintenance
-startup/retry/cancellation, automatic snapshot pruning, exact retention boundaries
-and transactional rollback. Both HTTPS Chrome harnesses pass, including adult
-contact consent and expanded rules at 1040/390/320 widths. Claude found one medium and one low issue; both are fixed and regression-tested.
-No second Claude review after fixes.
+Package verification covers maintenance startup/retry/cancellation, automatic
+snapshot pruning, exact retention boundaries, and transactional rollback. The
+HTTPS Chrome harnesses cover adult contact consent and expanded rules at
+1040/390/320 widths.
 
 
 Review fixes: restore reconciliation history always uses fixed generic text,

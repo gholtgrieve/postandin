@@ -494,6 +494,7 @@ if(connectedMode){
   data.length=0;options('#pi-area',[],'All cities');$('.pi-preview-bar').hidden=true;
   $('.pi-manage .pi-demo-note').hidden=true;
   $('.pi-post .pi-demo-note').firstChild.textContent='Verify by email to publish. ';
+  $('#pi-backup-disclosure').hidden=false;
   $('#pi-gear-rules p:last-child').hidden=true;
   $('[data-step-label="2"]').textContent='2 · Photos & contact';
   $('#pi-fill-demo').hidden=true;
