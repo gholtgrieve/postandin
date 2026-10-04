@@ -121,8 +121,19 @@ test('short retention removes only due drafts, invalid credentials and old histo
   assert.throws(()=>cleanup(db,{apply:true,now}));assert.ok(db.sqlite.prepare('SELECT id FROM gear_listings WHERE id=?').get(old.id));db.sqlite.exec('DROP TRIGGER fail_retention');
   cleanup(db,{apply:true,now});
   assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listings').get().n,2);assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_sellers').get().n,1);
-  for(const table of ['gear_email_changes','gear_management_sessions','gear_management_links','gear_verification_tokens','gear_local_reports','gear_local_moderation_history'])assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM '+table).get().n,0,table);
+  for(const table of ['gear_email_changes','gear_management_sessions','gear_verification_tokens','gear_local_reports','gear_local_moderation_history'])assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM '+table).get().n,0,table);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,1);
   assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'removed');assert.match(db.sqlite.prepare('SELECT reason FROM gear_local_removals').get().reason,/original reason expired/);
+ }finally{db.close();}
+});
+test('local cleanup preserves recovery accounting until its anchored window ends',async()=>{
+ const db=openLocalDatabase();try{
+  setup(db);await publish(db);const windowStart=10*86400000,link=await issueLocalManagementLink(db,sample.email,windowStart);assert.ok(link);assert.ok(await redeemManagementLink(db,link.token,windowStart+1));
+  cleanup(db,{apply:true,now:windowStart+86400000-1});assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,1);
+  cleanup(db,{apply:true,now:windowStart+86400000});assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,0);
+  const live=await issueLocalManagementLink(db,sample.email,windowStart+86400000);assert.ok(live);
+  db.sqlite.prepare('UPDATE gear_management_links SET window_started_at=0,expires_at=?').run(windowStart+2*86400000+1);
+  cleanup(db,{apply:true,now:windowStart+2*86400000});assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,1);
  }finally{db.close();}
 });
 test('purge ledger expires after 30 days without extending purge time on restore reconciliation',async()=>{

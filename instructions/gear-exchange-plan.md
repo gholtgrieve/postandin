@@ -1,9 +1,11 @@
 # Gear Exchange implementation plan
 
-Status: production launch preparation, October 3, 2026. The reviewed Gear source
-is merged to `main`; production Pages, D1, Images, maintenance and owner Access
-resources are deployed. Public write features remain fail-closed while the
-records-backup activation and recovery rehearsal are completed.
+Status: production launch window, October 3, 2026. The reviewed Gear foundation
+is merged to `main`; production Pages, D1, Images, maintenance, and owner Access
+resources are deployed. The first production encrypted records backup, exact B2
+read-back, and isolated restore rehearsal passed. The go-live change activates
+the configured public-write features and nightly backup schedule, followed by
+immediate production smoke tests.
 
 ## Resume here
 
@@ -17,18 +19,22 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Branch at handoff: `codex/gear-backup-activation`, based on merged production
-foundation `4a7fe33`.
+Branch at handoff: `codex/gear-go-live`, based on `origin/main` at `6edc7a6`.
 
-Current increment: the manual-only encrypted records backup passed a zero-finding
-Claude review and was committed as `3a1e6e1`; PR #21 is open for that commit, and
-the credential-map documentation is being added to the same PR before merge. All
+Current increment: PR #21 and its credential-map documentation are merged. All
 seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
-and no repository-level `GEAR_BACKUP_*` secret remains. Next merge the fully
-reviewed PR, perform the first production backup, and complete the restore
-rehearsal. The staging export timing gate passed at 3.04 seconds on 2026-10-03
-and its temporary download was deleted. Do not enable the nightly schedule
-before the remaining checks pass.
+and no repository-level `GEAR_BACKUP_*` secret remains. The first production
+backup and exact B2 read-back passed, followed by the isolated restore rehearsal;
+the staging and production export upper bounds were 3.04 and 6.89 seconds on
+2026-10-03. Production write credentials and feature switches are configured,
+the dedicated Images signing key separation is complete, and the public backup
+disclosure is present. The next step is the reviewed go-live deployment sequence:
+apply migration 0019 and verify the two new recovery columns,
+deploy the reviewed `gear-maintenance` Worker and complete one controlled run,
+then merge. Follow with immediate public-write and owner-photo smoke checks and
+verification of the first scheduled B2 read-back before removing public `noindex`
+and adding the homepage Gear card. Never merge Pages before the migration and
+maintenance deployment complete.
 
 | Commit | Completed increment |
 |---|---|
@@ -475,8 +481,9 @@ environment-only API key. Tests mock every provider call; no real message was
 sent. Known addresses, unknown addresses and provider delivery failures receive
 the same generic 202 response, while delivery work is attached to the Pages
 request lifetime. The static UI remains disconnected. Before UI connection or
-deployment, provision per-IP/per-recipient recovery throttling and bot protection,
-configure/verify the sender and secret, then validate the production-host-only
+deployment, provision the combined source-IP edge rule and the D1-backed
+60-second per-seller delivery cooldown plus five-per-24-hour cap, configure/verify the sender and secret,
+then validate the production-host-only
 flow behind a temporary owner-only gate while the public UI remains disconnected.
 
 Direct Claude review found one high and four low issues. The Workers-incompatible
@@ -1100,12 +1107,14 @@ backup. The runner exports D1, removes drafts/credentials/contact/
 reports/history/photos and seller-deleted content, reconciles fresh minimal
 deletion evidence, encrypts before upload and verifies the B2 bytes. Tested
 restore creates a new photo-free, credential-free SQLite database or data-only
-SQL for a freshly migrated D1 database. The production workflow is checked in
-for manual dispatch and uses a branch-restricted GitHub environment.
-The owner has since created the private B2 bucket/restricted key/lifecycle,
-offline `age` identity and owner-reported D1 Read token; the local encryption
-canary passed. Current environment and secret-migration state is maintained in
-`gear-lean-backup.md`. No active schedule or real backup exists.
+SQL for a freshly migrated D1 database. At that historical handoff, the
+production workflow was checked in for manual dispatch and used a
+branch-restricted GitHub environment. The owner had created the private B2
+bucket/restricted key/lifecycle and offline `age` identity; the local encryption
+canary passed. Since that handoff, the account-scoped D1 Edit requirement was
+confirmed, the first real backup/read-back and restore rehearsal passed, and the
+nightly schedule was enabled. Current environment and secret-migration state is
+maintained in `gear-lean-backup.md`.
 
 Claude's first implementation review found 0 Blocker, 1 High, 5 Medium and 8
 Low findings. The required fixes make both CLIs execute safely through paths with
@@ -1294,7 +1303,11 @@ remaining low-severity observation—that a source assertion could match an olde
 mobile rule—was corrected by scoping the assertion to the final phone override
 block. No staging deployment is authorized by this work.
 
-### Photo canary preflight — in progress
+### Photo canary preflight — complete (historical)
+
+This section records the pre-deployment state. The Gear Images Worker and the
+Pages service binding were subsequently deployed and validated; current
+operations are documented in `gear-production-photos.md`.
 
 The next bounded increment is readiness for a real private photo-upload canary.
 No Worker, binding, feature flag or image object has been created or changed.
@@ -1462,10 +1475,11 @@ stands. The unrelated Groups binding-error finding is outside this increment.
 
 ## Operational requirements before launch
 
-Approved service direction: D1 records, Cloudflare Images for Gear photos, Pages
-Functions, Resend transactional mail, Cloudflare Access for owner moderation, a
-dedicated scheduled maintenance Worker, and encrypted off-Cloudflare backup.
-No Gear bindings, routes, credentials or resources have been provisioned.
+The approved production services—D1 records, Cloudflare Images, Pages Functions,
+Resend transactional mail, Cloudflare Access, scheduled maintenance and encrypted
+off-Cloudflare backup—are provisioned. Current launch status and remaining checks
+are maintained in `Resume here` above and `gear-launch-runbook.md`; the list below
+is retained as the design checklist that guided implementation.
 
 - Run a dedicated visual-polish and accessibility pass across Gear browse,
   detail, posting, verification, seller-management and owner-review screens at
@@ -1504,13 +1518,12 @@ No Gear bindings, routes, credentials or resources have been provisioned.
   disclosures before launch. Adult-use enforcement and final search-indexing
   policy must be resolved in the UI/launch increment.
 
-Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
-Under ordinary static hosting, listings, management access, verification and
-contact actions are simulated; inputs and photos reset on reload. The opt-in
-local server persists listings and management photos (see `gear-photos.md`).
-The static public sample dataset is separate from seller drafts. Production
-uploads, authentication, delivery, automatic expiry cleanup and deletion
-retention remain unimplemented; the separate storage query already enforces expiry on reads.
+Gear screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
+The production implementation persists listings and photos, authenticates owner
+review, delivers transactional mail, performs scheduled cleanup and enforces the
+documented deletion-retention rules. The local server and static fixtures remain
+available for isolated development. Reviewed go-live deployment and production
+smoke tests remain governed by `gear-launch-runbook.md`.
 
 Review fixes: new-listing navigation resets prior edits and pending verification;
 drafts store integer cents and clear inactive offer fields. Price formatting,

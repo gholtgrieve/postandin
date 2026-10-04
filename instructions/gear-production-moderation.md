@@ -1,6 +1,6 @@
 # Gear Exchange production moderation foundation
 
-Status: migrations 0001–0018, production D1, private owner routes,
+Status: migrations 0001–0018 (with 0019 required before the reviewed Pages launch), production D1, private owner routes,
 `gear-admin.postandin.com` and its exact-owner Access policy are deployed. The
 production moderation queue is empty; no production report or moderation action
 has been created.
@@ -23,9 +23,9 @@ must delete those dependent records before deleting a listing.
 `gear_reports.listing_id` is
 indexed for those deletes and future per-listing report work. History
 intentionally has no foreign keys so its bounded record may remain until its own
-retention cleanup after a report or listing is purged. Remote 30-day
-report/history cleanup and active-removal reason minimization are still required
-before launch.
+retention cleanup after a report or listing is purged. The deployed maintenance
+Worker performs the approved 30-day report/history cleanup and active-removal
+reason minimization.
 
 ## Read route
 
@@ -93,16 +93,11 @@ The page is unlinked and `noindex`; Cloudflare Access remains the external gate,
 and every API request independently verifies the assertion. Production history
 is retained in D1 but intentionally not projected into this minimal workspace.
 
-The source-only authenticated seller deletion/recovery transaction now writes the
+The deployed authenticated seller deletion/recovery transaction writes the
 migration-9 marker, and owner restore checks it so seller deletion cannot be
-bypassed. Do not provision the admin hostname and Access values with `GEAR_DB`—
-which would expose this action route even without an owner UI—until production
-session issuance, retention cleanup and disaster recovery are complete.
-
-Merging the source alone does not make the routes usable: on ordinary Pages hosts
-the Access verifier denies it, and the dedicated admin hostname, Access policy,
-environment values, migration and D1 binding remain separately authorized
-deployment work.
+bypassed. The admin hostname, Access policy, environment values, migrations, and
+`GEAR_DB` binding are deployed. Ordinary Pages hosts remain denied by the Access
+verifier, while the private owner page is unlinked and `noindex`.
 
 ## Verification
 

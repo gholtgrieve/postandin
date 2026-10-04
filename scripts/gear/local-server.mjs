@@ -66,7 +66,7 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDir
       if(req.method==='GET'&&url.pathname==='/local/contact-mail')return reply(200,{receipts:contact.receipts});
       if(req.method==='GET'&&url.pathname==='/local/email-change-mail')return reply(200,{receipts:emailChangeMailbox});
       if(req.method==='GET'&&url.pathname==='/management/email-change/confirm')return reply(200,{confirmationRequired:true});
-      if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox});
+      if(req.method==='GET'&&url.pathname==='/local/management-mail')return reply(200,{receipts:localMailbox.filter(receipt=>receipt.expiresAt>Date.now())});
       if(req.method==='GET'&&url.pathname==='/management/confirm')return reply(200,{confirmationRequired:true});
       if(req.method==='GET'&&url.pathname==='/management/deleted')return reply(200,{listings:deletedListings(db,session(req))});
       if(req.method==='GET'&&url.pathname==='/management/listings'){
@@ -134,13 +134,14 @@ export function localServer(db,{tls,preview=false,contactSink,ownerKey,backupDir
       }
       if(url.pathname==='/management/recovery'){
         const receipt=await issueLocalManagementLink(db,input?.email);
-        if(receipt){localMailbox.push({...receipt,expiresAt:Date.now()+1800000});if(localMailbox.length>20)localMailbox.shift();}
+        if(receipt){for(let i=localMailbox.length-1;i>=0;i--)if(localMailbox[i].recipient===receipt.recipient)localMailbox.splice(i,1);localMailbox.push({...receipt,expiresAt:Date.now()+1800000});if(localMailbox.length>20)localMailbox.shift();}
         return reply(200,{message:'If verified listings match that address, a management link will be sent. Local preview: no email was sent.'});
       }
       if(url.pathname==='/management/confirm'){
         if(input?.confirm!==true)return reply(400,{error:'Explicit confirmation is required.'});
         const access=await redeemManagementLink(db,input.token);
         if(!access)return reply(400,{error:'Access unavailable.'});
+        for(let i=localMailbox.length-1;i>=0;i--)if(localMailbox[i].token===input.token)localMailbox.splice(i,1);
         res.setHeader('Set-Cookie',sessionCookie(access.session));
         return reply(200,{csrf:access.csrf,expiresAt:access.expiresAt});
       }
