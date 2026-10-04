@@ -1,10 +1,11 @@
 # Gear Exchange production scheduled maintenance
 
-Status: source-only and not deployed. Migrations 10–13 have not been applied remotely.
-No Gear D1 database, Images binding, maintenance-state KV namespace, Resend secret,
-alert recipient, Cron Trigger or Worker has been provisioned. The checked-in
-`gear-maintenance/wrangler.toml.example` is intentionally not deployable until an
-owner-authorized setup replaces its commented placeholders.
+Status: owner-authorized production deployment completed on 2026-10-03.
+Migrations 0001–0018 are applied to the production Gear D1 database. The Images
+binding, dedicated maintenance-state KV namespace, Resend secret, alert recipient,
+Worker and 11:00 UTC Cron Trigger are provisioned. The checked-in
+`gear-maintenance/wrangler.toml.example` deliberately remains free of production
+identifiers and secrets.
 
 ## What the daily run does
 
@@ -109,25 +110,16 @@ upload time. Cleanup safety does not depend on the provider applying that filter
 the local workerd binding currently ignores it, and the populated-binding harness
 therefore exercises the client-side guard.
 
-## Deployment boundary
+## Production deployment record
 
-Do not copy the example to `wrangler.toml`, create resources, set secrets, apply
-migrations remotely, or deploy until the full Gear project is complete and the
-owner explicitly authorizes deployment. At that time, in a separately reviewed
-runbook:
-
-- create/identify the production Gear D1 database and apply all migrations in
-  order with a verified backup and rollback plan; follow the consolidated
-  source-only sequence in [gear-launch-runbook.md](gear-launch-runbook.md);
-- bind that database as `GEAR_DB`, the existing paid Images account as `IMAGES`,
-  and a dedicated KV namespace as `GEAR_MAINTENANCE_STATE`;
-- set `GEAR_RESEND_API_KEY` and `GEAR_ALERT_RECIPIENT` with `wrangler secret put`;
-- copy and complete the example config, retain `workers_dev=false` and
-  `preview_urls=false`, deploy manually from `gear-maintenance/`, and verify the
-  Cron Trigger and persisted logs;
-- test the scheduled handler first against isolated staging resources with mocked
-  or allowlisted mail and disposable private images. Never point local tests at an
-  owner database.
+The owner-authorized deployment binds production D1 as `GEAR_DB`, paid Images as
+`IMAGES` and dedicated KV as `GEAR_MAINTENANCE_STATE`; it stores the Resend key
+and alert recipient as Worker secrets. `workers_dev` and preview URLs remain
+disabled. The deployed Cron Trigger is 11:00 UTC daily. Keep production resource
+identifiers and secret values out of Git. Future binding, secret, migration or
+schedule changes require the consolidated review and rollback sequence in
+[gear-launch-runbook.md](gear-launch-runbook.md). Never point local tests at an
+owner database.
 
 Cloudflare references used for this design:
 [scheduled handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/),

@@ -1,9 +1,9 @@
 # Gear Exchange implementation plan
 
-Status: development preview, September 27, 2026. `/gear/` is an unlinked,
-noindex design preview. A local-only draft-storage API now exists separately;
-there is no deployed API, cloud storage, email service or homepage link. The external prototype
-is a design reference, not production code.
+Status: production launch preparation, October 3, 2026. The reviewed Gear source
+is merged to `main`; production Pages, D1, Images, maintenance and owner Access
+resources are deployed. Public write features remain fail-closed while the
+records-backup activation and recovery rehearsal are completed.
 
 ## Resume here
 
@@ -17,7 +17,18 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Branch at handoff: `codex/gear-exchange-foundation`.
+Branch at handoff: `codex/gear-backup-activation`, based on merged production
+foundation `4a7fe33`.
+
+Current increment: the manual-only encrypted records backup passed a zero-finding
+Claude review and was committed as `3a1e6e1`; PR #21 is open for that commit, and
+the credential-map documentation is being added to the same PR before merge. All
+seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
+and no repository-level `GEAR_BACKUP_*` secret remains. Next merge the fully
+reviewed PR, perform the first production backup, and complete the restore
+rehearsal. The staging export timing gate passed at 3.04 seconds on 2026-10-03
+and its temporary download was deleted. Do not enable the nightly schedule
+before the remaining checks pass.
 
 | Commit | Completed increment |
 |---|---|
@@ -1085,14 +1096,16 @@ with the lean package below.
 The owner then chose the lean community-site backup variant: nightly GitHub
 Actions, private Backblaze B2 storage, `age` encryption and 30-day lifecycle,
 without Healthchecks, Object Lock, a second Cloudflare account or photo-byte
-backup. The source-only runner exports D1, removes drafts/credentials/contact/
+backup. The runner exports D1, removes drafts/credentials/contact/
 reports/history/photos and seller-deleted content, reconciles fresh minimal
 deletion evidence, encrypts before upload and verifies the B2 bytes. Tested
 restore creates a new photo-free, credential-free SQLite database or data-only
-SQL for a freshly migrated D1 database. The workflow remains an inert example.
+SQL for a freshly migrated D1 database. The production workflow is checked in
+for manual dispatch and uses a branch-restricted GitHub environment.
 The owner has since created the private B2 bucket/restricted key/lifecycle,
-offline `age` identity and read-only D1 token; the local encryption canary passed,
-but no GitHub secret, active schedule or real backup exists.
+offline `age` identity and owner-reported D1 Read token; the local encryption
+canary passed. Current environment and secret-migration state is maintained in
+`gear-lean-backup.md`. No active schedule or real backup exists.
 
 Claude's first implementation review found 0 Blocker, 1 High, 5 Medium and 8
 Low findings. The required fixes make both CLIs execute safely through paths with
@@ -1130,11 +1143,19 @@ Pages host, the admin custom hostname and wildcard deployment hostnames for the
 approved owner identity with independent MFA. Anonymous redirects were verified
 on the public page, public listings API and a deployment-specific URL; the owner
 completed MFA enrollment and verified authenticated empty public browse plus the
-private owner dashboard. A staging-only random photo-signing secret and invalid-
-for-delivery placeholder account/variant values permit empty listing projection
-without an Images binding. No image was uploaded, no public write or mail feature
-was enabled, no maintenance/backup schedule was activated and no production
-resource was changed.
+private owner dashboard. The account-wide Cloudflare Images key named
+`gearStaging` was copied into the staging signing secret during setup even though
+invalid-for-delivery placeholder account/variant values make a real key
+unnecessary. Replace it promptly and no later than the launch step that enables
+photo uploads. Before revocation, confirm production uses a different dedicated
+key; if that cannot be proved, create a fresh production key, update the
+production secret, and confirm the redeployment succeeds first. Then replace the
+staging secret with an unrelated random placeholder, revoke the named provider
+key, and retire its password-manager record as described in the launch runbook's
+[password-manager record map](gear-launch-runbook.md#password-manager-record-map).
+No image was uploaded, no public write or mail feature was enabled, no
+maintenance/backup schedule was activated and no production resource was
+changed.
 
 Before binding a real staging Resend key, the mail adapters gained a fail-closed
 staging-only recipient boundary. Whenever the exact staging public origin is

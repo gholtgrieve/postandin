@@ -1,9 +1,9 @@
 # Gear Exchange production owner authentication
 
-Status: source-only and not deployed. No Cloudflare Access application, custom
-domain, environment value, owner identity or secret was configured by this
-increment. Production moderation schema and action increments were added later;
-see `gear-production-moderation.md`.
+Status: deployed on 2026-10-03. Cloudflare Access protects
+`gear-admin.postandin.com` with the exact owner identity, independent MFA and a
+six-hour session; Pages has the production team-domain, audience and owner
+allowlist values. See `gear-production-moderation.md`.
 
 ## Boundary
 

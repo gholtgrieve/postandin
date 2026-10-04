@@ -1,16 +1,11 @@
 # Gear Exchange launch and rollback runbook
 
-Status: active launch plan. The owner authorized isolated staging setup. A
-staging-only D1 database and maintenance-state KV namespace now exist; the empty
-D1 bookmark/export was captured, migrations `0001`–`0015` applied in order and
-the expected 18 empty Gear tables were verified. Migrations `0016`–`0018` are
-pending and must be applied before the matching Pages code. The isolated staging Pages
-project is deployed behind an owner-only Cloudflare Access application with
-independent MFA on the canonical, admin and wildcard deployment hostnames.
-Authenticated empty public browse and private owner-dashboard reads passed.
-Staging mail, image writes, maintenance Worker, backup schedule and every
-production resource remain undeployed. Production still requires separate
-explicit approval.
+Status: active production launch plan. Isolated staging validation passed,
+including migrations 0001–0018 and a 3.04-second conservative export-interruption
+upper bound. Owner-authorized production Pages, D1, Images service, maintenance
+Worker/Cron and owner Access are deployed with an empty database. Public write
+features remain fail-closed. The records-backup workflow is manual-only until its
+environment-secret move, first production run and restore rehearsal pass.
 
 ## Release boundary
 
@@ -44,8 +39,11 @@ signing keys or backup keys in this repository.
 
 Do not enable public writes until a complete recovery rehearsal passes.
 
-The approved lean nightly job runs in GitHub Actions at 08:00 UTC, away from the
-11:00 UTC maintenance window, and:
+The approved lean job is checked in at
+`.github/workflows/gear-records-backup.yml` for manual dispatch through the
+branch-restricted `gear-backup` GitHub environment. Once the first backup and
+restore rehearsal pass, it will run nightly at 08:00 UTC, away from the 11:00 UTC
+maintenance window, and:
 
 1. request a table-filtered D1 SQL export through the polling export API and
    retain its time-travel bookmark on the external runner only;
@@ -66,8 +64,8 @@ The approved lean nightly job runs in GitHub Actions at 08:00 UTC, away from the
 7. rely on a reviewed B2 lifecycle rule to permanently remove current and prior
    object versions after 30 days. Object Lock is intentionally not enabled.
 
-Use a dedicated account-scoped Cloudflare D1 token for export/query and rotate it
-independently of the Pages/Worker credentials. Try D1 Read during setup; if export
+Use a dedicated account-scoped Cloudflare D1 Read token for export/query and
+rotate it independently of the Pages/Worker credentials. If export
 requires D1 Edit, explicitly record that the GitHub secret can write any D1
 database in the account. The workflow itself never authorizes restore or deletion.
 The backup runner must not receive production Pages or Worker deployment rights.
@@ -77,6 +75,10 @@ part of disaster recovery.
 Cloudflare's export API makes the D1 database unavailable to queries while an
 export runs. Keep the 08:00 UTC low-traffic schedule, measure the interruption
 in staging and do not activate the schedule if it is operationally unacceptable.
+The isolated staging export measured a conservative 3.04-second upper bound on
+2026-10-03, including CLI polling and download; its temporary download was
+deleted immediately. Record the runner's first production interruption upper
+bound before enabling the schedule.
 
 Cloudflare D1 Time Travel is an additional short-term recovery layer, not the
 off-provider backup. Current Cloudflare documentation gives production D1 a
@@ -105,10 +107,18 @@ origin is `https://postandin-gear-staging.pages.dev`; the Access-protected admin
 origin is `https://gear-admin-staging.postandin.com`. Server configuration sets
 `GEAR_PUBLIC_ORIGIN` and `GEAR_ADMIN_ORIGIN` to those exact allowlisted values;
 an unset value retains the production origin and any other value fails closed.
-The Pages project also has a staging-only random photo-signing secret and
-syntactically valid placeholder delivery values so an empty public listing read
-can run without an Images binding. Those placeholders are not valid for photo
-testing and no image object has been uploaded.
+The Pages project does not need a valid Cloudflare Images signing key while its
+account-hash and variant values are placeholders. The named `gearStaging`
+Cloudflare Images key used during setup is account-wide despite its name. Replace
+it promptly and no later than deployment-order step 10. Before revocation,
+confirm production uses a different dedicated key; if that cannot be proved,
+create a fresh production key, update production `GEAR_IMAGES_SIGNING_KEY`,
+redeploy successfully, and record its password-manager title. Then replace the
+staging secret with an unrelated random placeholder, revoke `gearStaging`, and
+retire its password-manager record. Step 10 performs the first production upload
+and signed-delivery smoke check immediately after enabling the upload flag; if
+it fails, disable the flag again and redeploy before investigation. No staging
+image object has been uploaded.
 
 The staging public host, admin custom hostname and wildcard Pages deployment
 hostnames are protected by one temporary Cloudflare Access application limited
@@ -175,6 +185,68 @@ staging after final verification, and verify production has no example listings
 before launch.
 
 ## Gate 3: production configuration inventory
+
+### Password-manager record map
+
+This table records names and locations only. Never add credential values,
+recovery material, or screenshots of secret fields to this public repository.
+
+| Password-manager title | What it is | Stored or used as | Handling rule |
+|---|---|---|---|
+| `Post & In Gear Backup - Cloudflare D1 Token` | Account-scoped Cloudflare token used to export and query production Gear D1. | GitHub environment `gear-backup` secret `GEAR_BACKUP_CF_API_TOKEN`; used only by the Gear records backup workflow. | Keep it in the password manager and branch-restricted environment. Never use the Global API Key. |
+| `Post & In Signing Key - gearStaging` | A named Cloudflare Images signing key created during staging setup. Its `gearStaging` name does **not** limit its account-wide signing authority. | It was copied to Pages project `postandin-gear-staging` as Production-environment secret `GEAR_IMAGES_SIGNING_KEY`. Follow the production-protection sequence above, replace the staging secret with an unrelated random placeholder, revoke the named provider key, and retire this record promptly and before deployment-order step 10. | Treat it as production-sensitive until revoked. Never reuse it in production or assume its name scopes its authority. |
+| `Post & In Gear Staging — Resend API Key` | Staging-only Resend sending key for `postandin.com`. | Pages project `postandin-gear-staging`, Production-environment secret `GEAR_RESEND_API_KEY`; staging verification, recovery, and buyer-contact mail. | Keep it out of production and require the staging recipient allowlist. |
+| `Post & In Gear Staging — Cloudflare Turnstile Secret` | Private staging Turnstile widget secret. | Pages project `postandin-gear-staging`, Production-environment secret `GEAR_TURNSTILE_SECRET`; server-side token verification. | Never place it in client code, Git, screenshots, or chat. |
+| `Post & In Gear Staging — Cloudflare Turnstile Public Site Key` | Public staging Turnstile site key. | Pages project `postandin-gear-staging`, Production-environment text variable `GEAR_TURNSTILE_SITE_KEY`; returned to the browser by the config route. | Public by design. Do not confuse it with the secret key. |
+| `Post & In Gear Backup Recovery Key` | Private `age` identity beginning `AGE-SECRET-KEY-...`, ideally with its public `age1...` recipient recorded separately in the note. | Private identity is used only on a trusted recovery computer. GitHub receives only the public recipient as environment `gear-backup` secret `GEAR_BACKUP_AGE_RECIPIENT`. | Keep the private identity in the password manager and one offline recovery copy. Never put it in GitHub, Cloudflare, Backblaze, Git, screenshots, or chat. |
+| `Post & In Gear Backup – B2 Restricted Key` | Restricted Backblaze `applicationKeyId` and `applicationKey` for the private Gear bucket and `gear/` prefix. | GitHub environment `gear-backup` secrets `GEAR_BACKUP_B2_KEY_ID` and `GEAR_BACKUP_B2_APP_KEY`; uploads ciphertext and verifies it by read-back. | Restrict it to the one bucket/prefix with exactly `readFiles` and `writeFiles`. Do not confuse the application key with its ID. |
+| `Post & In Backblaze B2 Master Key` | Backblaze account master application-key credentials. A leading space or `&#x20;` shown by an export is not part of the intended title. | Password-manager/offline administration only. | Never copy it into GitHub, Cloudflare, a workflow, Git, screenshots, or chat. The backup job uses the restricted key instead. |
+
+Two backup inputs do not have separate password-manager titles in this list:
+
+- `GEAR_BACKUP_B2_BUCKET_ID` comes from Backblaze B2 → Buckets → the private
+  Gear backup bucket → **Bucket ID**. It is not the bucket name, account ID, key
+  ID, or application key. It may be recorded as a non-secret reference inside
+  `Post & In Gear Backup – B2 Restricted Key`.
+- `GEAR_BACKUP_AGE_RECIPIENT` is the public `age1...` recipient corresponding
+  to `Post & In Gear Backup Recovery Key`. Never substitute the private
+  `AGE-SECRET-KEY-...` identity.
+
+`GEAR_BACKUP_CF_ACCOUNT_ID` and `GEAR_BACKUP_D1_DATABASE_ID` are provider
+resource IDs in the branch-restricted GitHub `gear-backup` environment, not
+password-manager credentials. All seven backup names are currently stored in
+that environment, and no `GEAR_BACKUP_*` repository secret remains.
+
+No password-manager titles for the production counterparts of the staging
+Resend, Turnstile, or image-signing records were supplied for this map. The
+production image-signing secret is already deployed, but its backing key and
+password-manager title are not recorded here. Never reuse a staging value in
+production. Before revoking `gearStaging`, prove production uses a different
+dedicated key or create one, update production `GEAR_IMAGES_SIGNING_KEY`,
+redeploy successfully, and add its title here. Verify the first real upload and
+signed delivery immediately after enabling the upload flag in step 10. If that
+smoke check fails, disable the flag again and redeploy before investigation.
+
+For an ordinary provider-secret rotation, create and save the replacement,
+update the exact deployment secret above, redeploy the affected Pages project
+when applicable, verify the affected flow uses the replacement, and only then
+revoke the old credential at the provider. An `age` identity is different:
+after switching recipients, verify a new backup's read-back and decryption with
+the new identity. Retain the old identity until at least 30 days after the final
+backup encrypted to its recipient and until no stored object remains encrypted
+to it. Then remove it from the password manager and destroy its offline copy.
+If exposure is known or suspected, revoke an ordinary provider credential
+immediately and accept the temporary outage before creating and deploying its
+replacement. For an exposed `age` identity, switch new backups to a new
+recipient immediately and treat every still-retained backup encrypted to the
+old identity as exposed; revocation cannot protect existing ciphertext. Keep
+the exposed identity only until a new-recipient backup passes read-back and
+decryption and the owner decides whether to delete the retained old backups,
+which contain seller emails, or retain them through normal expiry. Record that
+decision; if the old backups are deleted, remove both copies of the exposed
+identity after confirming deletion. If they are retained, keep the exposed
+identity until those backups expire under the 30-day rule above and no object
+remains encrypted to it, then remove both copies.
 
 Pages requires these bindings/values, supplied through Cloudflare rather than
 committed files:
@@ -268,9 +340,14 @@ Only after an explicit deployment instruction:
 9. manually run and verify the first encrypted records backup and local restore
    checkpoint, accepting that photos are not covered;
 10. confirm the public privacy copy discloses the encrypted off-provider B2/GitHub
-    backup and its approximate retention, set the Turnstile values and explicitly
-    enable contact, reports and photo uploads, then repeat the public write smoke
-    checks;
+    backup and its approximate retention; confirm production uses a dedicated
+    Images signing key, the staging secret has been replaced with a random
+    placeholder and `gearStaging` has been revoked; set the Turnstile values and
+    enable contact and reports; set `GEAR_PHOTO_UPLOADS_ENABLED=true` and redeploy,
+    then immediately run one owner photo upload and confirm its signed image
+    loads. If that fails, set the flag back to `false` or remove it and redeploy
+    before correcting or rolling back the signing configuration; then repeat the
+    public write smoke checks;
 11. enable the nightly schedule, wait for its first successful B2 read-back, then
     add the homepage Gear card. Replace the broad `/gear/*`
     `noindex` rule and public-page meta directive while retaining `noindex` on the

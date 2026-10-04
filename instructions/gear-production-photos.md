@@ -1,9 +1,9 @@
 # Gear Exchange production photo pipeline
 
-Status: source-only foundation and not deployed. D1 quarantine ownership,
-authenticated Pages orchestration, atomic attachment and exact-origin management
-UI wiring exist, but no service binding, delivery variant, signed-delivery key or production resource
-is configured.
+Status: production D1, the private Images service Worker, Pages service binding,
+delivery settings and signing secret are deployed. Public photo uploads remain
+fail-closed with the photo-upload feature flag unset; no production photo has
+been uploaded.
 
 ## Private quarantine and trusted sanitization
 

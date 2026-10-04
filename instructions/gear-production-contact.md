@@ -1,8 +1,8 @@
 # Gear Exchange production buyer-contact boundary
 
-Source-only production backend and browser form on
-`codex/gear-exchange-foundation`. No D1 binding, Resend key, edge rule, mail,
-production data or deployment is created by this increment. Public config stays
+Status: production route, browser form and D1 schema are deployed. Buyer-contact
+delivery remains fail-closed because the Pages Resend key, edge rule and exact
+feature flag are unset; no production contact data or mail exists. Public config stays
 off unless the D1 binding, bounded Resend configuration and exact
 `GEAR_CONTACT_ENABLED=true` flag are all present; the route independently checks
 the same delivery configuration. Shared posting/verification settings therefore

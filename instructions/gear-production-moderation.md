@@ -1,9 +1,9 @@
 # Gear Exchange production moderation foundation
 
-Status: source-only and not deployed. No migration was applied remotely, no D1
-binding or Access policy was configured, and no production data was read or
-changed. The private owner page is source-connected only on the exact admin
-origin; no admin domain, Access policy, environment value or route is deployed.
+Status: migrations 0001–0018, production D1, private owner routes,
+`gear-admin.postandin.com` and its exact-owner Access policy are deployed. The
+production moderation queue is empty; no production report or moderation action
+has been created.
 
 ## Storage boundary
 

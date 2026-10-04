@@ -1,10 +1,8 @@
 # Gear Exchange production report submission
 
-Status: source-only and not deployed. The exact-production-origin Gear UI is
-connected behind an explicit feature gate and a dedicated Turnstile widget, but
-no site key, secret, feature flag, Cloudflare rate-limit rule, D1 binding,
-remote migration or production route was configured by this increment. The
-static demo and connected local workflow remain unchanged.
+Status: production route, UI and D1 schema are deployed. Report submission is
+fail-closed because the feature flag, Turnstile configuration and edge rate-limit
+rule remain unset. The production owner queue is empty.
 
 ## Public boundary
 

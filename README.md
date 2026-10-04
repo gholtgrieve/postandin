@@ -95,7 +95,7 @@ routes only on the exact production origin, while deployment and provider
 configuration remain separate launch work. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
-The source-only production posting flow validates the full listing and a
+The production posting flow validates the full listing and a
 dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
 A random draft ID permits at most five verification emails with a one-minute
 cooldown; the Resend adapter
@@ -103,16 +103,17 @@ sends a 30-minute fragment credential only to the stored address, and a separate
 explicit POST publishes the listing without creating a management session. The
 exact-origin browser loads Turnstile only when a public site key is configured,
 erases verification fragments before network work, and keeps confirmation usable
-when new posting is disabled. The site key, secret, D1 binding, Resend key and
-required edge rate limits are not configured or deployed; see
+when new posting is disabled. Production Pages and D1 are deployed, while the
+Turnstile, Resend and edge-limit write configuration remains deliberately unset;
+new public writes therefore fail closed. See
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
 
-The source-only production maintenance package adds an idempotent D1 cleanup
+The production maintenance package adds an idempotent D1 cleanup
 core, durable hosted-photo deletion outbox, daily scheduled Worker entry point,
 abandoned-quarantine and provider-orphan reconciliation, one-minute retry, and
-failure/recovery-only Resend alerts. Its deploy config is
-an inert example with no resource IDs or secrets; nothing is provisioned or
-deployed. See
+failure/recovery-only Resend alerts. The production D1, maintenance KV, Images
+binding, alert secret, Worker and 11:00 UTC Cron Trigger were owner-authorized
+and deployed on 2026-10-03; the checked-in config remains identifier-free. See
 [instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
 
 The source-only production photo foundation includes authenticated Pages routes
@@ -140,15 +141,16 @@ An opt-in connected HTTPS preview is documented in
 
 Local draft storage, validation, per-listing verification and duplicate checks
 are implemented separately from the preview;
-see [local storage instructions](instructions/gear-storage.md). A source-only
-`GET /api/gear/listings` Pages Function now exercises the public D1 projection,
+see [local storage instructions](instructions/gear-storage.md). The deployed
+`GET /api/gear/listings` Pages Function serves the public D1 projection,
 and the exact production-origin Gear browser source now uses that response for
 browse and detail instead of sample rows. Responses are size- and shape-checked,
 signed photos are restricted to Cloudflare Images delivery, and an initial
 failure leaves the public list empty with a generic notice and retry action.
 Later refresh failures retain the last validated listing snapshot. Expired image
-signatures refresh in the background without changing the selected photo. No
-remote binding, database, API deployment or other cloud resource exists. The separate owner-only
+signatures refresh in the background without changing the selected photo. The
+production D1, Pages routes, Images service and owner boundary are deployed;
+public writes remain fail-closed. The separate owner-only
 `GET /api/gear/admin/reports` route reads the proposed moderation queue only
 after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
 actions through transactional D1 batches. Run the focused route and storage tests
@@ -167,7 +169,8 @@ and the route independently checks the same delivery configuration. See
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.
-An unlinked, noindex `/gear/` development preview exercises the screens with in-memory sample data. There is no deployed backend yet. Run its focused checks with
+The production `/gear/` page uses the deployed read boundary while public writes
+remain disabled; local preview modes still exercise in-memory sample data. Run its focused checks with
 `node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
@@ -333,15 +336,15 @@ Production maintenance deployment and remote disaster recovery remain launch gat
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
-Production scheduling and external failure alerts now have source only;
-production provisioning, staging verification and deployment remain launch gates.
-The consolidated source-only provisioning, staging, backup, deployment and
+Production maintenance scheduling and failure/recovery alerts are deployed;
+the manual records-backup run and restore rehearsal remain launch gates.
+The consolidated provisioning, staging, backup, deployment and
 rollback sequence is in
 [instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).
-The owner selected a lean records-only off-Cloudflare backup: encrypted nightly
-D1 projections to B2, with photos deliberately excluded and re-upload required
-after a total media loss. Its source remains inactive; the private B2 target,
-restricted key, lifecycle, offline recovery identity and read-only D1 token are
-prepared, but GitHub secrets, the workflow schedule and the first real restore
-rehearsal remain pending. See
+The owner selected a lean records-only off-Cloudflare backup: encrypted D1
+projections to B2, with photos deliberately excluded and re-upload required
+after a total media loss. The production workflow is checked in for manual
+dispatch, and its private B2 target, restricted key, lifecycle, offline recovery
+identity and owner-reported D1 Read token are configured. Current environment and
+secret-migration status is maintained in
 [instructions/gear-lean-backup.md](instructions/gear-lean-backup.md).
