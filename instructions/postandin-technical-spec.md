@@ -308,7 +308,10 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   state.js/groups-ui.js, and `sessionMatchesDayFilter()` in groups-ui.js are all
   defined but have zero call sites anywhere in the codebase. Safe to remove
   whenever convenient; not urgent.
-/gear/                    → Unlinked, noindex in-memory development preview.
+/gear/                    → Public, indexable Gear Exchange backed by production
+                              D1, Turnstile, Resend, Images, maintenance, and
+                              encrypted off-provider records backup. Static/local
+                              preview modes retain their sample-data behavior.
 /coaches/                  → index.html (public, indexable coach directory)
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
@@ -418,7 +421,7 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 
 Established 2026-07-22 in commit `f23f83d` and expanded with the Coaches launch.
 The publicly discoverable and indexable pages are `/`, `/stick-and-puck/`,
-`/drop-in-hockey/`, `/public-skate/`, `/coaches/`, and every Live coach profile. Draft coach profiles and other
+`/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`, and every Live coach profile. Draft coach profiles and other
 unfinished pages remain reachable by direct URL but are kept out of search;
 deleted pages are gone.
 
@@ -426,7 +429,7 @@ deleted pages are gone.
 
 | Mechanism | Purpose |
 |---|---|
-| `sitemap.xml` | Lists launched pages, including all three schedule activities, the directory, and every Live coach profile. |
+| `sitemap.xml` | Lists launched pages, including all three schedule activities, the coach directory, Gear Exchange, and every Live coach profile. |
 | `robots.txt` | `Allow: /`, plus a specific `Allow: /api/coaches` exception before `Disallow: /api/`. The exception lets search render the client-enhanced directory while other API routes remain blocked. Crawling is *permitted* for unfinished pages. |
 | `<meta name="robots" content="noindex, nofollow">` | On each unfinished page. This is what actually keeps them out of search. |
 
@@ -442,12 +445,14 @@ URL by design.
 Pages currently carrying `noindex, nofollow`: Draft coach profiles and the
 "Coach Not Found" 404 response in
 `functions/coaches/[slug].js`, plus the direct-link static team logistics and
-statistics pages at `/mets-16aa-travel/` and `/mets-16aa-stats/`. Live coach
+statistics pages at `/mets-16aa-travel/` and `/mets-16aa-stats/`, and the private
+Gear owner assets under `/gear/owner*`. The owner page has page metadata and a
+matching `_headers` rule; it is never linked or included in the sitemap. Live coach
 profiles are indexable. When adding
 any new unfinished section, add the meta tag to *every* HTML response it can
 emit — server-rendered error pages are easy to miss.
 
-`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/public-skate/`, `/coaches/`, and Live coach profiles must never carry
+`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`, and Live coach profiles must never carry
 `noindex`.
 
 ### sitemap.xml conventions
@@ -528,14 +533,17 @@ including small footer links. Coaches is launched: the homepage includes a
 "Find Your Coach" tool card, Stick & Puck
 includes a persistent "Find Your Coach" header action, and the homepage, Stick
 & Puck, and 404 footers link to `/coaches/`.
+Gear Exchange is launched and linked from the homepage tool card and homepage
+footer; this release intentionally does not add Gear to other page footers.
 
 Homepage metadata (`<title>`, `description`, `og:title`, `og:description`)
-advertises the launched Coaches and schedule sections, but must not
+advertises the launched Coaches, Gear, and schedule sections, but must not
 advertise unfinished sections.
 
-The homepage, Stick & Puck, Drop-In Hockey, Public Skate, and Coaches directory
-use the shared 1200×630 `/social-preview-v2.png` for Open Graph and large Twitter
-Card previews. Each page retains page-specific social titles and descriptions.
+The homepage, Gear Exchange, Stick & Puck, Drop-In Hockey, Public Skate, and
+Coaches directory use the shared 1200×630 `/social-preview-v2.png` for Open
+Graph and large Twitter Card previews. Each page retains page-specific social
+titles and descriptions.
 The private Mets travel page keeps its dedicated preview image. Dynamically
 rendered coach profiles use their headshot as `og:image` when one is available;
 profiles without a headshot currently emit no social image.
@@ -1161,7 +1169,7 @@ adult-acknowledgement evidence and hosted-image metadata (provider ID and order
 only). Upload, management and signed-delivery code plus the private Images
 service, Pages binding, variant and dedicated signing secret are deployed. The
 photo-upload feature flag and owner-approved combined Free-plan edge rule are
-configured for the reviewed go-live deploy; uploads remain fail-closed until it.
+configured and active.
 Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
@@ -1185,7 +1193,7 @@ uncertain network or server response ends that browser submission with a neutral
 delivery-not-confirmed result and no duplicate-send action. A retryable server
 failure keeps the same request UUID and provider idempotency key. The production
 binding, secret, feature flag, mail adapter, and owner-approved combined Free-plan
-edge rule are configured for the reviewed go-live deploy.
+edge rule are configured and active.
 
 Local reports now use a bounded in-memory inspection queue; see
 [gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
@@ -1241,8 +1249,8 @@ revoke the session on logout, return a transactional snapshot of the owner's
 verified listings outside seller-deletion recovery (including owner-moderated
 removed listings) with signed ordered photos plus minimal deletion recovery
 metadata, and apply CSRF-protected edits or state changes through the existing
-D1 invariants. The Resend key and combined edge rule are configured for the
-go-live deployment. After migration 0019, D1 enforces a 60-second per-seller cooldown and a
+D1 invariants. The Resend key and combined edge rule are configured and active.
+After migration 0019, D1 enforces a 60-second per-seller cooldown and a
 five-per-24-hour recovery-mail cap. Scheduled cleanup and backup reconciliation
 are deployed. See `gear-production-management.md` and
 [gear-production-deletions.md](gear-production-deletions.md).
@@ -1298,8 +1306,7 @@ uses a flexible-width widget with automatic retry/expiry refresh, and resets the
 single-use client token after a draft attempt. Its response adapter preserves
 non-JSON edge error status and Retry-After. Confirmation does not depend on
 posting configuration. The real site key, D1 and secret bindings, Resend key,
-and edge limits are configured for the reviewed go-live deployment; public
-writes remain fail-closed until that deployment. See
+and edge limits are configured and active. See
 `gear-production-verification.md`.
 
 Migration 10 adds a durable hosted-photo deletion outbox. The
@@ -1413,16 +1420,15 @@ backstop.
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
 documented in [gear-storage.md](gear-storage.md). The deployed public list route
-reuses that projection; production write routes remain fail-closed until the
-reviewed go-live deploy, and ordinary local static hosting remains in-memory.
+reuses that projection; production write routes are active behind Turnstile and
+the combined edge rule, and ordinary local static hosting remains in-memory.
 
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
 Shared field options and public-listing search logic live in
 `lib/gear-exchange.mjs`, with focused tests. Production Pages, D1, Images,
 maintenance, and owner Access are deployed. Public-write credentials, feature
-switches, and the combined edge rule are configured; public writes and production
-email remain fail-closed until the reviewed go-live deploy. Isolated staging D1
+switches, and the combined edge rule are configured and active. Isolated staging D1
 and maintenance KV also remain available.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
@@ -1431,16 +1437,15 @@ and contact actions are simulated. Those inputs/photos reset on reload. The
 opt-in local server persists listings and management photos.
 The static public sample dataset is separate from seller drafts. Production
 uploads, authentication, delivery, scheduled cleanup, and deletion retention are
-implemented and deployed; their public-write configuration activates with the
-reviewed go-live deploy. Public reads filter expiry at the storage boundary.
+implemented, deployed, and active. Public reads filter expiry at the storage boundary.
 
 
 ## Current Status
 
 | Page / Feature | Status | Notes |
 |---|---|---|
-| Gear Exchange (/gear/) | Development preview — unlinked and noindex | Static hosting uses in-memory samples. Source accepts only the fixed production origins or fixed staging public/admin origins selected by exact environment values; invalid values fail closed. Isolated staging D1/KV exist, but no Gear Pages/Worker deployment or real email exists. |
-| Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus two tool cards: "Find Ice Time" and "Find Your Coach." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
+| Gear Exchange (/gear/) | **Publicly launched & indexable** | Linked from the homepage and sitemap. Production uses D1, Turnstile, Resend, private Images delivery, scheduled maintenance, owner Access, and encrypted off-provider records backup. The server-delivered HTML is production-safe before JavaScript runs; static/local preview modes explicitly reveal their sample-data controls. `/gear/owner*` remains unlinked and `noindex`. |
+| Homepage (index.html) | **Publicly launched & indexable** | Hero + mission statement plus three tool cards: "Find Ice Time," "Find Your Coach," and "Find Some Gear." The Ice Time card advertises Stick & Puck, Drop-In Hockey, and Public Skate while retaining Stick & Puck as its default destination. |
 | Stick & Puck (/stick-and-puck/) | Live — **publicly launched & indexable** | Primary feature, do not break. Listed in `sitemap.xml`; must never carry `noindex`. |
 | Drop-in Hockey (/drop-in-hockey/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with explicit `data-activity="drop-in-hockey"`, fetches `/api/schedule?activity=drop-in-hockey`, is linked from the activity switch and 404 page, and is listed in `sitemap.xml`. The homepage Ice Time card mentions Drop-In Hockey while continuing to link to Stick & Puck by default. |
 | Public Skate (/public-skate/) | Live — **publicly launched & indexable** | Uses the shared schedule UI with `data-activity="public-skate"`, fetches `/api/schedule?activity=public-skate`, and shows time, place, duration, Groups/RSVPs, and calendar actions while omitting hockey program subtitles. Like every schedule, it does not present price, reservation, availability, remaining-spots, or sold-out information. Linked from the three-way activity switch and 404 page and listed in `sitemap.xml`. |
@@ -1549,7 +1554,7 @@ workflow run and confirm it reports a match.
    switch, activity-aware client configuration, Groups support, sitemap entry,
    and launch documentation are complete. The homepage Ice Time card advertises
    all three activities while retaining Stick & Puck as its default destination.
-2. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time and Coaches tool cards are live. Spotlight modules are not yet built.
+2. ~~Homepage refresh~~ — **partially done**: hero with mission statement plus Ice Time, Coaches, and Gear tool cards are live. Spotlight modules are not yet built.
 3. ~~Launch Coaches directory~~ — directory and Live profiles are public and indexable; Draft profiles remain unlisted and `noindex`.
 4. Player spotlight feature — static, monthly, coach-nominated, one player per month
 5. ~~Coach intake form~~ — Airtable form is live; the directory offers it as an optional submission path alongside direct email

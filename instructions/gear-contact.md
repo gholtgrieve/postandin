@@ -1,7 +1,8 @@
 # Gear Exchange local buyer contact
 
-Development-only increment on `codex/gear-exchange-foundation`, based on
-`c2baff3`. No production route, real mail, binding, dependency or migration.
+Historical development-only increment on `codex/gear-exchange-foundation`, based
+on `c2baff3`. It predates the production route, mail and migration now documented
+in `gear-production-contact.md` and `gear-launch-runbook.md`.
 
 ## Run and inspect
 

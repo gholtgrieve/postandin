@@ -77,7 +77,7 @@ flag, server-validated Turnstile and a currently public listing before
 atomically inserting the bounded report fields. The production-origin UI is
 source-connected behind the same fail-closed config gate and a dedicated
 `gear-report` widget. Its site key, secret, feature flag, and the owner-approved
-combined Free-plan edge rate-limit rule are configured for the go-live deploy;
+combined Free-plan edge rate-limit rule are configured and active;
 see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
 
 The production seller-deletion path adds an active recovery marker,
@@ -90,7 +90,7 @@ for generic recovery requests, explicit one-use link confirmation, reload
 recovery, logout, signed owner-listing reads, and CSRF-protected listing edits and
 status changes. The Resend adapter, production key, and combined edge rate limit
 are configured. The browser UI connects these routes only on the exact production
-origin; the reviewed go-live deploy and smoke test remain. See
+origin; the reviewed go-live deploy and smoke checks passed. See
 [instructions/gear-production-management.md](instructions/gear-production-management.md).
 
 The production posting flow validates the full listing and a
@@ -102,9 +102,8 @@ explicit POST publishes the listing without creating a management session. The
 exact-origin browser loads Turnstile only when a public site key is configured,
 erases verification fragments before network work, and keeps confirmation usable
 when new posting is disabled. Production Pages and D1 are deployed. Turnstile,
-Resend, the feature switches, and the combined edge-limit rule are configured for
-the reviewed go-live deploy; new public writes remain fail-closed until that
-deploy. See
+Resend, the feature switches, and the combined edge-limit rule are configured
+and active. See
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
 
 The production maintenance package adds an idempotent D1 cleanup
@@ -129,8 +128,8 @@ exact 60-per-current-seller UTC-day D1 budget; email transfer starts a fresh
 target-seller budget. On the Free Website plan, the owner approved and deployed
 one combined source-IP rule for all public Gear writes: 20 matching requests per
 10 seconds, followed by a 10-second block. The private Images service, Pages
-binding, dedicated signing secret, routes, and feature flag are configured for
-the go-live deploy. The exact-origin management UI performs direct upload,
+binding, dedicated signing secret, routes, and feature flag are configured and
+active. The exact-origin management UI performs direct upload,
 finalize, removal and reorder; see
 [instructions/gear-production-photos.md](instructions/gear-production-photos.md).
 
@@ -150,7 +149,7 @@ failure leaves the public list empty with a generic notice and retry action.
 Later refresh failures retain the last validated listing snapshot. Expired image
 signatures refresh in the background without changing the selected photo. The
 production D1, Pages routes, Images service, and owner boundary are deployed;
-public writes remain fail-closed until the reviewed go-live deploy. The separate owner-only
+public writes are active behind Turnstile and the combined edge rule. The separate owner-only
 `GET /api/gear/admin/reports` route reads the proposed moderation queue only
 after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
 actions through transactional D1 batches. Run the focused route and storage tests
@@ -162,15 +161,15 @@ the dedicated `gear-contact` Turnstile action and a bounded plain-text Resend
 adapter. The exact production-origin form is connected through a config-gated
 dedicated Turnstile widget and preserves the same request UUID across uncertain
 retries. The button remains disabled unless D1, a valid Resend key and exact
-`GEAR_CONTACT_ENABLED=true` are all present; no mail/service configuration exists
-and the route independently checks the same delivery configuration. See
+`GEAR_CONTACT_ENABLED=true` are all present; production has those values and the
+route independently checks the same delivery configuration. See
 [production contact instructions](instructions/gear-production-contact.md).
 
 Shared field options and search logic are in `lib/gear-exchange.mjs`.
 The [implementation plan](instructions/gear-exchange-plan.md) records approved
 product decisions, review findings and remaining launch requirements.
-The production `/gear/` page uses the deployed read boundary while public writes
-remain disabled until the reviewed go-live deploy; local preview modes still exercise in-memory sample data. Run its focused checks with
+The production `/gear/` page is live with its reviewed read and public-write
+boundaries; local preview modes still exercise in-memory sample data. Run its focused checks with
 `node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
@@ -178,8 +177,8 @@ Under ordinary static hosting, listings, management access, verification and
 contact actions are simulated; inputs and photos reset on reload. The opt-in
 local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
 The static public sample dataset is separate from seller drafts. Production
-provider configuration, remote migrations, and staging checks are complete; the
-reviewed go-live deploy and immediate smoke tests remain. The separate storage
+provider configuration, remote migrations, encrypted B2 read-back, launch
+deployment, and smoke checks are complete. The separate storage
 query already filters expiry on reads.
 
 

@@ -1,15 +1,18 @@
 # Gear Exchange launch and rollback runbook
 
-Status: active production launch plan. Isolated staging validation passed,
+Status: production launch completed October 4, 2026. Isolated staging validation passed,
 including migrations 0001–0018 and a 3.04-second conservative export-interruption
 upper bound. Owner-authorized production Pages, D1, Images service, maintenance
 Worker/Cron and owner Access are deployed with an empty database. The first
 production encrypted backup and exact B2 read-back passed with a 6.89-second D1
 export upper bound, and its isolated JSON/SQLite/data-only-SQL restore rehearsal
 passed on 2026-10-03 PDT. Production Turnstile, mail and dedicated Images signing
-credentials plus the public feature-switch values are configured; they remain
-inactive until the launch redeployment and immediate smoke tests. The nightly
-records-backup schedule is enabled by the reviewed launch change.
+credentials plus the public feature-switch values are configured and active.
+Migration 0019, the maintenance Worker controlled run, PR #22 deployment, live
+browser/API/Access smoke checks, and a post-merge production backup all passed.
+The owner explicitly approved the post-merge backup; GitHub Actions run
+`37227958428` completed the encrypted B2 upload and exact read-back on the merged
+schema. The nightly records-backup schedule remains `17 8 * * *` UTC.
 
 ## Release boundary
 
@@ -383,7 +386,7 @@ Only after an explicit deployment instruction:
     loads. If that fails, set the flag back to `false` or remove it and redeploy
     before correcting or rolling back the signing configuration; then repeat the
     public write smoke checks;
-11. enable the nightly schedule, wait for its first successful B2 read-back, then
+11. enable the nightly schedule, verify a successful production B2 read-back, then
     add the homepage Gear card. Replace the broad `/gear/*`
     `noindex` rule and public-page meta directive while retaining `noindex` on the
     private owner page; update the sitemap/robots treatment, verify real 404s and
@@ -406,11 +409,21 @@ then verify `PRAGMA table_info(gear_management_links)` contains `issue_count` an
 `window_started_at`; deploy the reviewed `gear-maintenance` Worker and complete
 one controlled run; only then merge the Pages commit. Merging Pages before 0019
 would make recovery fail, while leaving the older maintenance Worker deployed
-would permit cleanup to reset the new delivery cap. The merge activates the
-configured public values and nightly backup schedule together. The remaining
-step 11 discoverability work—the first scheduled B2 read-back, homepage Gear
-card, `noindex`, sitemap, robots and cache changes—follows only after that
-scheduled read-back succeeds. A failed public-write
+would permit cleanup to reset the new delivery cap. The merge activated the
+configured public values and nightly backup schedule together. The owner-approved
+post-merge production run `37227958428` then verified encrypted B2 upload and
+exact read-back against the merged schema. The owner approved proceeding to
+launch with that manual run as the first-run gate instead of waiting for the
+first cron event. The GitHub environment API confirmed `gear-backup` has no
+required-reviewer or wait-timer protection (only the `main` branch policy), so
+unattended scheduled runs are not waiting for human approval. The scheduler
+itself remains an operational check for its first 08:17 UTC (`17 8 * * *`)
+occurrence; it was
+not falsely marked as exercised by the manual run. The reviewed discoverability release
+adds the homepage Gear card, removes public Gear `noindex`, updates the sitemap,
+and retains owner `noindex`. After deployment, purge only `/`, `/gear/`,
+`/robots.txt`, and `/sitemap.xml`, then verify those four responses plus a real
+404. A failed public-write
 or photo smoke test requires disabling the affected feature flag and redeploying;
 the proven backup schedule may remain enabled unless its own run or read-back
 fails.

@@ -1,11 +1,10 @@
 # Gear Exchange implementation plan
 
-Status: production launch window, October 3, 2026. The reviewed Gear foundation
-is merged to `main`; production Pages, D1, Images, maintenance, and owner Access
-resources are deployed. The first production encrypted records backup, exact B2
-read-back, and isolated restore rehearsal passed. The go-live change activates
-the configured public-write features and nightly backup schedule, followed by
-immediate production smoke tests.
+Status: production launch completed October 4, 2026. The reviewed Gear foundation
+and go-live change are merged to `main`; production Pages, D1, Images,
+maintenance, owner Access, public-write features, and the nightly backup schedule
+are active. Production encrypted records backups, exact B2 read-back, restore
+rehearsal, controlled maintenance, and immediate production smoke checks passed.
 
 ## Resume here
 
@@ -19,22 +18,21 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Branch at handoff: `codex/gear-go-live`, based on `origin/main` at `6edc7a6`.
+Launch merge: PR #22, merge commit `da562cf`. Discoverability follows in the
+reviewed `codex/gear-discoverability` change.
 
-Current increment: PR #21 and its credential-map documentation are merged. All
+Current increment: PR #22 is merged and live. All
 seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
 and no repository-level `GEAR_BACKUP_*` secret remains. The first production
 backup and exact B2 read-back passed, followed by the isolated restore rehearsal;
 the staging and production export upper bounds were 3.04 and 6.89 seconds on
 2026-10-03. Production write credentials and feature switches are configured,
 the dedicated Images signing key separation is complete, and the public backup
-disclosure is present. The next step is the reviewed go-live deployment sequence:
-apply migration 0019 and verify the two new recovery columns,
-deploy the reviewed `gear-maintenance` Worker and complete one controlled run,
-then merge. Follow with immediate public-write and owner-photo smoke checks and
-verification of the first scheduled B2 read-back before removing public `noindex`
-and adding the homepage Gear card. Never merge Pages before the migration and
-maintenance deployment complete.
+disclosure is present. Migration 0019, the reviewed `gear-maintenance` Worker,
+its controlled production run, the Pages merge, production browser/API/Access
+smoke checks, and an owner-approved encrypted B2 upload/read-back all passed.
+The discoverability change adds the homepage Gear card, removes public Gear
+`noindex`, updates the sitemap, and preserves `noindex` on owner assets.
 
 | Commit | Completed increment |
 |---|---|
@@ -65,19 +63,19 @@ maintenance deployment complete.
 | `fe3fa43` | Simplified Gear management and buyer-contact flows |
 | `1b60ea9` | Gear visual hierarchy and site-wide typography enforcement |
 
-These commits were created locally. No push, merge, production migration or
-provisioning was performed during this work. The documentation handoff is maintained in subsequent documentation commits;
-inspect `git status` and recent history before continuing.
+These historical increments are now merged and deployed. The documentation
+handoff is maintained in subsequent documentation commits; inspect `git status`
+and recent history before continuing.
 
 ### What actually works
 
 | Component | Implemented | Not implemented |
 |---|---|---|
-| `/gear/` preview | Static demo; opt-in local HTTPS posting/browse/management with persistence and local contact/report queues | Real email/cloud media; production publishing |
+| `/gear/` | Public production browse/post/manage/contact/report flow; static demo and opt-in local HTTPS preview remain available | No open launch implementation gap |
 | Shared modules | Options, public search, price formatting, server content validation | Identity or authorization checks |
-| Local storage | SQLite persistence through a D1-shaped adapter; atomic seller/listing/club inserts | Production D1 deployment (local binding validation now passes) |
-| Local API | Drafts, token confirmation, public projection, local authenticated management | Any Pages route, real mail |
-| Public query | Explicit public fields, listing/seller verification checks, status and read-time expiry | Deployed publication endpoint, pagination, search API, cleanup job |
+| Storage | SQLite development persistence and production D1; atomic seller/listing/club inserts | No open launch implementation gap |
+| API | Local preview plus deployed Pages routes for drafts, confirmation, public projection, mail and authenticated management | No open launch implementation gap |
+| Public query | Deployed bounded public projection with listing/seller verification, signed photos, status and read-time expiry | No open launch implementation gap |
 
 The ordinary static demo's managed records and public samples are separate arrays.
 Connected mode replaces both with API reads; persistent local photos are now
@@ -1458,20 +1456,19 @@ stands. The unrelated Groups binding-error finding is outside this increment.
 ## Implementation sequence
 
 1. Shared field/search contract and focused tests — complete.
-2. Repo-based preview screens and design fixes — complete as a simulation.
-   Keep unfinished pages unlinked and noindex until launch.
-3. Specify D1 schema, ownership/state transitions and migrations; implement local
-   persistence and server validation. Partly complete: the schema, local
-   persistence and validation are implemented; ownership and state-transition
-   design are documented for local verification and management; remote integration remains. No production resources in this step.
-4. Local per-listing verification and management are implemented. Remote integration requirements:
-   scanner-safe GET plus explicit POST actions,
-   hashed expiring tokens, revocation, safe cookies, CSRF/origin checks, generic
-   recovery responses, changed-email verification, and idempotent transitions.
+2. Repo-based preview screens and design fixes — complete; local simulation
+   remains available without appearing in production.
+3. D1 schema, ownership/state transitions, migrations, server validation and
+   remote integration — complete.
+4. Per-listing verification and management — complete, including scanner-safe
+   confirmation, hashed expiring tokens, revocation, safe cookies, CSRF/origin
+   checks, generic recovery responses, changed-email verification and idempotent
+   transitions.
 5. Private image pipeline, contact delivery, reporting and owner-authenticated
-   moderation, with abuse limits and failure-path tests.
-6. Retention/cleanup, restore rehearsal, policies, full integration checks,
-   owner-mediated implementation review, then separately authorized launch.
+   moderation, with abuse limits and failure-path tests — complete.
+6. Retention/cleanup, restore rehearsal, policies, integration checks,
+   owner-mediated implementation review and separately authorized launch —
+   complete. The discoverability release is the remaining follow-up.
 
 ## Operational requirements before launch
 
@@ -1522,8 +1519,8 @@ Gear screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 The production implementation persists listings and photos, authenticates owner
 review, delivers transactional mail, performs scheduled cleanup and enforces the
 documented deletion-retention rules. The local server and static fixtures remain
-available for isolated development. Reviewed go-live deployment and production
-smoke tests remain governed by `gear-launch-runbook.md`.
+available for isolated development. The reviewed go-live deployment and
+production smoke-test evidence are recorded in `gear-launch-runbook.md`.
 
 Review fixes: new-listing navigation resets prior edits and pending verification;
 drafts store integer cents and clear inactive offer fields. Price formatting,

@@ -9,6 +9,7 @@ const $=s=>root.querySelector(s);
 const localMode=root.dataset.localApi==='true';
 const productionMode=!localMode&&isGearPublicOrigin(location.origin);
 const connectedMode=localMode||productionMode;
+if(!productionMode){$('.pi-preview-bar').hidden=false;$('#pi-local-rules').hidden=false;}
 const recognizedVerificationLink=productionMode&&location.hash.startsWith('#verification=');
 const verificationToken=productionMode?takeVerificationToken():null;
 const managementToken=productionMode?takeManagementToken():null;
@@ -495,7 +496,7 @@ if(connectedMode){
   $('.pi-manage .pi-demo-note').hidden=true;
   $('.pi-post .pi-demo-note').firstChild.textContent='Verify by email to publish. ';
   $('#pi-backup-disclosure').hidden=false;
-  $('#pi-gear-rules p:last-child').hidden=true;
+  $('#pi-local-rules').hidden=true;
   $('[data-step-label="2"]').textContent='2 · Photos & contact';
   $('#pi-fill-demo').hidden=true;
   $('#pi-new-listing').hidden=true;

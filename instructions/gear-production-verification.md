@@ -1,9 +1,9 @@
 # Gear production posting and email verification
 
-Status: backend and browser flow are deployed with production D1. Turnstile and
-Resend are configured for the go-live deployment, and the owner-approved combined
-Free-plan edge rule is Active. No production listing or real production
-verification mail exists; the reviewed go-live deployment and smoke test remain.
+Status: backend and browser flow are live with production D1. Turnstile, Resend
+and the owner-approved combined Free-plan edge rule are Active. The reviewed
+go-live deployment and production smoke checks passed; the production database
+was empty at the recorded post-deploy inspection.
 
 ## Request flow
 

@@ -1,11 +1,10 @@
 # Gear Exchange production seller management sessions
 
-Status: production Pages routes and D1 binding are deployed. Production mail and
-Turnstile are configured for the go-live deployment, and the owner-approved
-combined Free-plan edge rule is Active for seller recovery and other public
-writes. Tests use temporary sample databases and mocked provider responses; no
-production seller or management session exists. The reviewed go-live deployment
-and smoke test remain.
+Status: production Pages routes, D1 binding, mail, Turnstile and the
+owner-approved combined Free-plan edge rule are live. The reviewed go-live
+deployment and production smoke checks passed. Tests continue to use temporary
+sample databases and mocked provider responses; the production database was
+empty at the recorded post-deploy inspection.
 
 ## Credential flow and listing routes
 

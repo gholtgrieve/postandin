@@ -1,9 +1,9 @@
 # Gear Exchange production report submission
 
-Status: production route, UI and D1 schema are deployed. The feature flag and
-Turnstile configuration are set for the go-live deployment, and the
-owner-approved combined Free-plan edge rule is Active. The production owner
-queue is empty; the reviewed go-live deployment and smoke test remain.
+Status: production route, UI, D1 schema, feature flag, Turnstile configuration
+and the owner-approved combined Free-plan edge rule are live. The reviewed
+go-live deployment and production smoke checks passed; the production owner
+queue was empty at the recorded post-deploy inspection.
 
 ## Public boundary
 

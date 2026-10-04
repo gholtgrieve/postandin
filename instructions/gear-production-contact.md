@@ -1,9 +1,10 @@
 # Gear Exchange production buyer-contact boundary
 
-Status: production route, browser form and D1 schema are deployed. The Pages
-Resend key and exact feature flag are configured for the go-live deployment, and
-the owner-approved combined Free-plan edge rule is Active. No production contact
-data or mail exists. Public config stays off unless the D1
+Status: production route, browser form, D1 schema, Pages Resend key, exact
+feature flag and the owner-approved combined Free-plan edge rule are live. The
+reviewed go-live deployment and production smoke checks passed; no production
+contact data or mail existed at the recorded post-deploy inspection. Public
+config stays off unless the D1
 binding, bounded Resend configuration and exact
 `GEAR_CONTACT_ENABLED=true` flag are all present; the route independently checks
 the same delivery configuration. Shared posting/verification settings therefore
@@ -90,5 +91,6 @@ git diff --check
 ```
 
 All tests use synthetic addresses, injected provider responses and temporary
-databases. D1, Resend, the exact feature flag, and the combined edge rule are
-configured; the reviewed go-live deployment and immediate smoke test remain.
+databases. D1, Resend, the exact feature flag and the combined edge rule are
+live; the reviewed go-live deployment and immediate production smoke checks
+passed.
