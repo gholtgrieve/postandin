@@ -113,6 +113,25 @@ h1 .accent { color: var(--mustard); }
 .metric { min-width: 0; padding: 16px; background: var(--panel); }
 .metric-value { display: block; margin: 4px 0; font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: .03em; line-height: 1; }
 .metric-context { color: var(--ink3); font-size: 12px; }
+.special-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 16px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.special-team-stat { padding: 18px; background: var(--card); }
+.special-team-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: .03em;
+  line-height: 1;
+}
+.special-team-detail { display: block; margin-top: 8px; color: var(--ink3); font-size: 12px; }
 .chart-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 16px; }
 .chart-card { min-width: 0; padding: 18px; border: 1px solid var(--rule); background: var(--panel); }
 .chart-wide { margin-top: 16px; }
@@ -251,6 +270,7 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
   .stat-value { font-size: 30px; }
   .analytics-heading { align-items: start; flex-direction: column; }
   .signal-grid, .metric-grid, .chart-grid { grid-template-columns: 1fr; }
+  .special-teams-grid { grid-template-columns: repeat(2, 1fr); }
   .penalty-grid { grid-template-columns: 1fr; }
   .metric { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 14px; }
   .metric .stat-label { margin-bottom: 0; }
@@ -321,6 +341,17 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
         <div class="metric"><span class="stat-label">Team save percentage</span><strong class="metric-value">92.4%</strong><span class="metric-context">292 saves on 316 shots</span></div>
         <div class="metric"><span class="stat-label">Penalty minutes</span><strong class="metric-value">12.1</strong><span class="metric-context">per game</span></div>
       </div>
+
+      <section class="chart-card chart-wide" aria-labelledby="special-teams-title">
+        <h3 class="chart-title" id="special-teams-title">Special teams goals</h3>
+        <div class="special-teams-grid">
+          <div class="special-team-stat"><span class="stat-label">Power-play goals for</span><strong>2</strong><span class="special-team-detail">26 opportunities · 7.7% · 0 GWG</span></div>
+          <div class="special-team-stat"><span class="stat-label">Power-play goals against</span><strong>2</strong><span class="special-team-detail">25 times shorthanded · 92.0% PK</span><span class="special-team-detail">1 GWG · Sep 26 vs Boise</span></div>
+          <div class="special-team-stat"><span class="stat-label">Shorthanded goals for</span><strong>0</strong><span class="special-team-detail">0 GWG</span></div>
+          <div class="special-team-stat"><span class="stat-label">Shorthanded goals against</span><strong>3</strong><span class="special-team-detail">1 GWG · Sep 20 vs Tacoma</span></div>
+        </div>
+        <p class="data-note">Special-teams totals cover eight games. GWG means game-winning goal.</p>
+      </section>
 
       <figure class="chart-card chart-wide" aria-labelledby="shots-title">
         <figcaption>
