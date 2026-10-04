@@ -122,8 +122,10 @@ test('age encryption reports a fixed error when the binary cannot start',async()
 
 test('Gear backup workflow remains manual-capable, nightly, pinned and production-environment restricted',()=>{
   const workflow=readFileSync(new URL('../.github/workflows/gear-records-backup.yml',import.meta.url),'utf8');
+  const runbook=readFileSync(new URL('../instructions/gear-launch-runbook.md',import.meta.url),'utf8');
   const active=workflow.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
   assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:\n  schedule:\n    - cron: "17 8 * * *"');
+  assert.match(runbook,/first 08:17 UTC \(`17 8 \* \* \*`\)\s+occurrence/);
   assert.match(active,/^permissions:\n  contents: read$/m);
   assert.match(active,/^          persist-credentials: false$/m);
   assert.match(workflow,/^    environment: gear-backup$/m);
@@ -141,7 +143,7 @@ test('public Gear privacy copy discloses the bounded off-site records backup',()
   const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
   const disclosure="Nightly, GitHub Actions reads Gear listing records, keeps published listings (including closed, expired, or moderator-removed ones; listings you remove yourself are left out of later backups) and each retained seller's account email, encrypts them, and copies them to a private off-site Backblaze B2 backup retained for about 30 days. Photos, unpublished drafts, and contact messages are not kept in that backup.";
   const rules=html.match(/<details class="pi-recovery" id="pi-gear-rules">([\s\S]*?)<\/details>/)?.[1]||'';
-  assert.match(rules,new RegExp(`<p id="pi-backup-disclosure" hidden>${disclosure.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}<\\/p>[\\s\\S]*?<p>`));
+  assert.match(rules,new RegExp(`<p id="pi-backup-disclosure" hidden>${disclosure.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}<\\/p>[\\s\\S]*?<p id="pi-local-rules" hidden>`));
   const connectedStart=source.indexOf('\nif(connectedMode){\n managed.length=0;');
   const recoveryStart=source.indexOf(" $('#pi-recovery-send').textContent=",connectedStart);
   const connectedSetup=source.slice(connectedStart,recoveryStart);
@@ -152,7 +154,7 @@ test('public Gear privacy copy discloses the bounded off-site records backup',()
   const productionBranch=connectedSetup.slice(productionStart);
   assert.equal((source.match(/\$\('#pi-backup-disclosure'\)\.hidden=false;/g)||[]).length,1);
   assert.doesNotMatch(localBranch,/pi-backup-disclosure/);
-  assert.match(productionBranch,/\$\('#pi-backup-disclosure'\)\.hidden=false;[\s\S]*?\$\('#pi-gear-rules p:last-child'\)\.hidden=true;/);
+  assert.match(productionBranch,/\$\('#pi-backup-disclosure'\)\.hidden=false;[\s\S]*?\$\('#pi-local-rules'\)\.hidden=true;/);
 });
 
 const cloudEnv={

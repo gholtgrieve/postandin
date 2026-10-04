@@ -30,8 +30,12 @@
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
 
-# Unfinished Gear Exchange design preview.
+# Public Gear Exchange pages are indexable but change as listings are posted.
 /gear/*
+  Cache-Control: no-cache
+
+# Keep the owner review assets out of search results on every Pages hostname.
+/gear/owner*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
 

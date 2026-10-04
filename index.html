@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Post &amp; In | Seattle Youth Hockey Coaches &amp; Ice Time</title>
-<meta name="description" content="Find Seattle-area youth hockey coaches and live Stick &amp; Puck, Drop-In Hockey, and Public Skate sessions across local rinks.">
+<title>Post &amp; In | Seattle Hockey Ice Time, Coaches &amp; Gear</title>
+<meta name="description" content="Find Seattle-area hockey ice time, youth coaches, and community gear listings for sale, trade, or free.">
 <link rel="canonical" href="https://postandin.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Post &amp; In">
-<meta property="og:title" content="Post &amp; In — Seattle Hockey Schedules &amp; Coaches">
-<meta property="og:description" content="Find live ice times and youth hockey coaches across the Seattle area.">
+<meta property="og:title" content="Post &amp; In — Seattle Hockey Ice Time, Coaches &amp; Gear">
+<meta property="og:description" content="Find live ice times, youth hockey coaches, and community gear listings across the Seattle area.">
 <meta property="og:url" content="https://postandin.com/">
 <meta property="og:image" content="https://postandin.com/social-preview-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Post &amp; In — Seattle's Hockey Hub">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Post &amp; In — Seattle Hockey Schedules &amp; Coaches">
-<meta name="twitter:description" content="Find live ice times and youth hockey coaches across the Seattle area.">
+<meta name="twitter:title" content="Post &amp; In — Seattle Hockey Ice Time, Coaches &amp; Gear">
+<meta name="twitter:description" content="Find live ice times, youth hockey coaches, and community gear listings across the Seattle area.">
 <meta name="twitter:image" content="https://postandin.com/social-preview-v2.png">
 <meta name="twitter:image:alt" content="Post &amp; In — Seattle's Hockey Hub">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -130,7 +130,7 @@ body {
   max-width: 1100px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
   background: var(--rule);
 }
@@ -205,6 +205,10 @@ footer {
 footer a { color: var(--rule); text-decoration: none; }
 footer a:hover { color: var(--mustard); }
 
+@media (max-width: 900px) {
+  .tools-inner { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 700px) {
   .page-banner {
     padding-top: 1.5rem;
@@ -213,7 +217,6 @@ footer a:hover { color: var(--mustard); }
   .page-title { margin-bottom: 18px; }
   .mission-body p + p { margin-top: 10px; }
   .bridge { padding-top: 0.5rem; padding-bottom: 0.75rem; }
-  .tools-inner { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -258,11 +261,16 @@ footer a:hover { color: var(--mustard); }
       <p class="card-body">Seattle-area coaches for private lessons and player development.</p>
       <span class="card-cta">Find Your Coach</span>
     </a>
+    <a class="tool-card" href="/gear/">
+      <div class="card-title"><span class="card-glyph"></span>Find Some Gear</div>
+      <p class="card-body">Buy, sell, trade, and pass along hockey gear with Seattle-area families.</p>
+      <span class="card-cta">Browse Gear</span>
+    </a>
   </div>
 </div>
 
 <footer>
-  postandin.com &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a> &nbsp;·&nbsp; <a href="/drop-in-hockey/">Drop-in Hockey</a> &nbsp;·&nbsp; <a href="/public-skate/">Public Skate</a> &nbsp;·&nbsp; <a href="/coaches/">Coaches</a> &nbsp;·&nbsp; <a href="mailto:gholtgrieve@gmail.com">Contact</a>
+  postandin.com &nbsp;·&nbsp; <a href="/stick-and-puck/">Stick &amp; Puck</a> &nbsp;·&nbsp; <a href="/drop-in-hockey/">Drop-in Hockey</a> &nbsp;·&nbsp; <a href="/public-skate/">Public Skate</a> &nbsp;·&nbsp; <a href="/coaches/">Coaches</a> &nbsp;·&nbsp; <a href="/gear/">Gear Exchange</a> &nbsp;·&nbsp; <a href="mailto:gholtgrieve@gmail.com">Contact</a>
 </footer>
 
 </body>

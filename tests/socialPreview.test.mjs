@@ -6,8 +6,14 @@ const pages = [
   {
     path: 'index.html',
     url: 'https://postandin.com/',
-    title: 'Post &amp; In — Seattle Hockey Schedules &amp; Coaches',
-    description: 'Find live ice times and youth hockey coaches across the Seattle area.',
+    title: 'Post &amp; In — Seattle Hockey Ice Time, Coaches &amp; Gear',
+    description: 'Find live ice times, youth hockey coaches, and community gear listings across the Seattle area.',
+  },
+  {
+    path: 'gear/index.html',
+    url: 'https://postandin.com/gear/',
+    title: 'Gear Exchange — Post &amp; In',
+    description: 'Buy, sell, trade, and pass along hockey gear with Seattle-area families.',
   },
   {
     path: 'stick-and-puck/index.html',

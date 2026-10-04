@@ -1,9 +1,10 @@
 # Gear Exchange production seller deletion and recovery
 
-Status: migration 0009 and the seller deletion/recovery route and UI are deployed
-with production D1. Public listing creation remains fail-closed until the
-reviewed go-live deploy, so production has no seller deletion marker or recovery
-record. The credential issuer is
+Status: migration 0009 and the seller deletion/recovery route and UI are live
+with production D1. Public listing creation is enabled behind the complete
+production configuration and abuse controls. The production database had no
+seller deletion marker or recovery record at the recorded post-deploy
+inspection. The credential issuer is
 documented in `gear-production-management.md`.
 
 ## Storage boundary

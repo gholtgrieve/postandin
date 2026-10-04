@@ -1,8 +1,9 @@
 # Local Gear deletion, cleanup and restore
 
-Status: local sample-data implementation, September 28, 2026. Review baseline
-`9836ff7` plus this lifecycle increment. No production service, production scheduled
-job, push or deployment. Owner approved immediate hiding, 30-day recovery, then
+Status: historical local implementation baseline from September 28, 2026,
+retained for lifecycle design details. The reviewed production service and daily
+maintenance job are now deployed; current production status and evidence live in
+`gear-launch-runbook.md`. Owner approved immediate hiding, 30-day recovery, then
 permanent cleanup.
 
 ## Seller behavior and authorization
@@ -154,7 +155,8 @@ also clears them during idle periods. Queues can evict earlier at their existing
 this policy covers the built-in sample inbox. Production contact copies are
 removed by the next daily maintenance pass after their exact due time, so
 physical deletion can occur up to one schedule interval later. Production mail
-remains fail-closed until the reviewed go-live deploy.
+is live and remains fail-closed whenever its exact configuration or feature flag
+is absent.
 
 New snapshots enforce the earliest retained-content deadline and contain no
 credentials. Restore applies cleanup again, preserves original purge timestamps,

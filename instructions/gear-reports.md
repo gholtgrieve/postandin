@@ -1,8 +1,9 @@
 # Gear Exchange local listing reports
 
-Uncommitted local-only increment, baseline `37e2738`, on
-`codex/gear-exchange-foundation`. No production API, migrations, dependencies,
-moderation actions, notifications or deployment. Use sample gear only.
+Historical local-only increment, baseline `37e2738`, on
+`codex/gear-exchange-foundation`. It predates the production API, migrations and
+moderation deployment now documented in `gear-production-reports.md` and
+`gear-launch-runbook.md`. Use sample gear only with these local instructions.
 
 ## Owner-mode extension
 

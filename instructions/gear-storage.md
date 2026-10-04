@@ -283,8 +283,10 @@ Current continuation: verification is committed as c2acb18 and management as
 06be078. The verified email-change increment is documented in
 [gear-email-change.md](gear-email-change.md). Local management
 work and its limits are documented in [gear-management.md](gear-management.md).
-The combined suite now has 51 passing tests, including authenticated writes,
-recovery/revocation and transactional stale-duplicate cleanup. No production services have been configured.
+The combined suite at that historical increment had 51 passing tests, including
+authenticated writes, recovery/revocation and transactional stale-duplicate
+cleanup. Production was not configured at that point; current deployment status
+is recorded in `gear-launch-runbook.md`.
 
 Local session recovery and an observed HTTPS Chrome session check are documented
 in `gear-management.md`; the preview UI is still separate and local D1/workerd validation now passes; see `gear-d1-validation.md`.

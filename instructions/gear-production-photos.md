@@ -1,10 +1,10 @@
 # Gear Exchange production photo pipeline
 
 Status: production D1, the private Images service Worker, Pages service binding,
-delivery settings and dedicated signing secret are deployed. The photo-upload
-feature flag is configured for the go-live deployment, and the owner-approved
-combined Free-plan edge rule is Active. No production photo has been uploaded;
-the reviewed go-live deployment and owner-photo smoke test remain.
+delivery settings, dedicated signing secret, photo-upload feature flag and the
+owner-approved combined Free-plan edge rule are live. The reviewed go-live
+deployment and production smoke checks passed; no sample production photo was
+retained.
 
 ## Private quarantine and trusted sanitization
 
