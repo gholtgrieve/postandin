@@ -1,9 +1,9 @@
 # Gear Exchange production seller management sessions
 
-Status: source-only and not deployed. No D1 binding, Resend API key, sender-domain
-configuration, edge rate limit or production route has been
-provisioned. Tests use temporary sample databases and mocked provider responses;
-no real email or production record was used.
+Status: production Pages routes and D1 binding are deployed. Seller recovery and
+other public writes remain fail-closed while production mail, Turnstile and edge
+limits are not enabled. Tests use temporary sample databases and mocked provider
+responses; no production seller or management session exists.
 
 ## Credential flow and listing routes
 

@@ -1,8 +1,8 @@
 # Gear production posting and email verification
 
-Status: source-only backend and browser flow, not deployed. No D1 binding,
-Turnstile widget/site key or secret, Resend key, edge rule, production data or
-real mail was created or used.
+Status: backend and browser flow deployed with production D1. Public posting is
+fail-closed because its Turnstile, Resend and edge-limit configuration remains
+unset. No production listing or real production verification mail exists.
 
 ## Request flow
 

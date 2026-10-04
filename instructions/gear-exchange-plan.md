@@ -1,9 +1,9 @@
 # Gear Exchange implementation plan
 
-Status: development preview, September 27, 2026. `/gear/` is an unlinked,
-noindex design preview. A local-only draft-storage API now exists separately;
-there is no deployed API, cloud storage, email service or homepage link. The external prototype
-is a design reference, not production code.
+Status: production launch preparation, October 3, 2026. The reviewed Gear source
+is merged to `main`; production Pages, D1, Images, maintenance and owner Access
+resources are deployed. Public write features remain fail-closed while the
+records-backup activation and recovery rehearsal are completed.
 
 ## Resume here
 
@@ -17,7 +17,15 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Branch at handoff: `codex/gear-exchange-foundation`.
+Branch at handoff: `codex/gear-backup-activation`, based on merged production
+foundation `4a7fe33`.
+
+Current increment: activate the manual-only encrypted records backup, complete a
+zero-finding Claude review, commit it, move the five private values into the
+branch-restricted `gear-backup` GitHub environment, then perform the first
+production backup and restore rehearsal. The staging export timing gate passed at
+3.04 seconds on 2026-10-03 and its temporary download was deleted. Do not enable
+the nightly schedule before the remaining checks pass.
 
 | Commit | Completed increment |
 |---|---|
@@ -1085,14 +1093,16 @@ with the lean package below.
 The owner then chose the lean community-site backup variant: nightly GitHub
 Actions, private Backblaze B2 storage, `age` encryption and 30-day lifecycle,
 without Healthchecks, Object Lock, a second Cloudflare account or photo-byte
-backup. The source-only runner exports D1, removes drafts/credentials/contact/
+backup. The runner exports D1, removes drafts/credentials/contact/
 reports/history/photos and seller-deleted content, reconciles fresh minimal
 deletion evidence, encrypts before upload and verifies the B2 bytes. Tested
 restore creates a new photo-free, credential-free SQLite database or data-only
-SQL for a freshly migrated D1 database. The workflow remains an inert example.
+SQL for a freshly migrated D1 database. The production workflow is checked in
+for manual dispatch and uses a branch-restricted GitHub environment.
 The owner has since created the private B2 bucket/restricted key/lifecycle,
-offline `age` identity and read-only D1 token; the local encryption canary passed,
-but no GitHub secret, active schedule or real backup exists.
+offline `age` identity and owner-reported D1 Read token; the local encryption
+canary passed. Current environment and secret-migration state is maintained in
+`gear-lean-backup.md`. No active schedule or real backup exists.
 
 Claude's first implementation review found 0 Blocker, 1 High, 5 Medium and 8
 Low findings. The required fixes make both CLIs execute safely through paths with

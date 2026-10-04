@@ -333,16 +333,16 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
   /api/
     coaches.js             → GET all Live coaches from Airtable (KV read-through cached, key `coaches:list:v3`)
     /gear/
-      listings.js          → Source-only GET public Gear projection through the proposed
-                              GEAR_DB D1 binding. UI not connected; binding not provisioned.
-      reports.js           → Source-only POST public report submission with exact-origin
+      listings.js          → Deployed GET public Gear projection through the production
+                              GEAR_DB D1 binding; signed-photo config fails closed.
+      reports.js           → Deployed POST public report submission, fail-closed behind exact-origin
                               JSON, server-side Turnstile and atomic GEAR_DB eligibility.
       /admin/
-        session.js         → Source-only GET Cloudflare Access authentication probe for
+        session.js         → Deployed GET Cloudflare Access authentication probe for
                               gear-admin.postandin.com. No moderation data or writes.
-        reports.js         → Source-only Access-authenticated GET of at most 100 open
+        reports.js         → Deployed Access-authenticated GET of at most 100 open
                               moderation reports from GEAR_DB. No writes or seller email.
-        actions.js         → Source-only Access-authenticated POST for exact-origin
+        actions.js         → Deployed Access-authenticated POST for exact-origin
                               dismiss/remove/restore with transactional D1 history.
     /coach/
       [slug].js            → GET single coach by slug from Airtable (KV read-through cached, key `coaches:profile:v3:{slug}`)
@@ -389,12 +389,12 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               GROUPS KV + Durable Object group data to R2 daily. Also deployed
                               via `wrangler deploy` from this directory, independently of git
                               push. See Backups below.
-/gear-maintenance/          → Separate, scheduled-only Gear cleanup Worker. Source-only until
-                              its D1, Images, state-KV and alert bindings are provisioned after
-                              explicit launch approval; deployed independently with Wrangler.
+/gear-maintenance/          → Deployed scheduled-only Gear cleanup Worker with production
+                              D1, Images, state-KV and alert bindings; deployed independently
+                              with Wrangler.
 /gear-images/               → Separate, service-binding-only Gear image-management Worker.
-                              Source-only and non-public; Pages upload/finalize routes will call
-                              it after an isolated-staging toolchain check and launch approval.
+                              Deployed and non-public; Pages upload/finalize routes call it only
+                              after authenticated, feature-gated checks.
 /scripts/
   audit-rinks.js           → Node.js script, run locally only. Audits Stick & Puck,
                               Drop-in Hockey, and Public Skate terminology across
@@ -1140,12 +1140,11 @@ Local D1/workerd validation passed; see [gear-d1-validation.md](gear-d1-validati
 for the observed coverage and remaining remote/legacy-data limits.
 
 The opt-in connected local HTTPS flow is described in
-[gear-connected-preview.md](gear-connected-preview.md). Ordinary static hosting
-remains simulated; there are no deployed Gear APIs. A source-only
-`GET /api/gear/listings` Pages Function reads the public projection through a
-proposed `GEAR_DB` D1 binding, but the binding is not configured, the UI is not
-deployed, and the route remains unavailable until D1 plus all three signed-photo
-delivery settings are configured. On the exact production origin, the Gear UI
+[gear-connected-preview.md](gear-connected-preview.md). Ordinary local static
+hosting remains simulated. The deployed `GET /api/gear/listings` Pages Function
+reads the public projection through the production `GEAR_DB` D1 binding and fails
+closed until all signed-photo delivery settings are configured. On the exact
+production origin, the Gear UI
 now replaces its sample rows with a bounded, strictly validated response from
 that route and renders browse/detail plus signed photos. Failed or malformed
 initial responses leave an empty list with a generic notice and retry action;
@@ -1157,10 +1156,11 @@ projection in the background; the recovery is throttled, repeatable after the
 cooldown, and preserves the selected photo and picker focus. The source projection
 replaces ordered hosted-image references with ten-minute signed photo URLs.
 The approved production direction uses the existing Cloudflare Images account
-rather than R2 for Gear photos. Source-only migration 7 records immutable
+rather than R2 for Gear photos. Migration 7 records immutable
 adult-acknowledgement evidence and hosted-image metadata (provider ID and order
-only). Source-only upload, management and signed-delivery code exists, but no
-Gear binding, secret, variant or cloud resource is configured.
+only). Upload, management and signed-delivery code plus the private Images
+service, Pages binding, variant and signing secret are deployed; public uploads
+remain fail-closed behind the disabled feature flag.
 Persistent local management
 photos use a macOS trusted encoder and the sample database; see
 [gear-photos.md](gear-photos.md).
@@ -1305,17 +1305,18 @@ listing/photo cascades, applies the approved draft/credential/history/deletion
 retention rules, deletes queued private Cloudflare Images objects idempotently,
 prioritizes bounded image work, shares a sub-limit D1/time budget across two
 attempts, retries once after one minute, and sends only first-failure and
-recovery alerts. Its Wrangler file is an unconfigured example; an isolated
-staging D1 and maintenance KV now exist, but no production D1/KV, Images binding,
-secret, cron or Worker is provisioned or deployed. The source-only lean
+recovery alerts. Production D1, maintenance KV, Images binding, alert secret,
+cron and Worker are provisioned and deployed. The lean
 disaster-recovery package now creates a retention-safe records projection,
 encrypts it with an offline-held `age` identity, uploads it to a private
 Backblaze B2 prefix and verifies the stored ciphertext by read-back. It
 deliberately excludes photos and short-lived credentials/contact/report data; a
-total media loss requires sellers to upload photos again. The workflow template
-is inactive. The private B2 target, restricted key, lifecycle, offline `age`
-identity and read-only D1 token are prepared, but no GitHub secret, scheduled job
-or real backup exists. A successful manual backup and
+total media loss requires sellers to upload photos again. The production
+workflow is checked in for manual dispatch and targets the branch-restricted
+`gear-backup` GitHub environment. The private B2 target, restricted key,
+lifecycle, offline `age` identity and owner-reported D1 Read token are configured.
+Current environment and secret-migration state is maintained in
+`gear-lean-backup.md`. No scheduled job or real backup exists. A successful manual backup and
 local/data-only-SQL restore rehearsal remain launch gates; see
 [gear-lean-backup.md](gear-lean-backup.md).
 
@@ -1408,16 +1409,16 @@ backstop.
 
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
-documented in [gear-storage.md](gear-storage.md). The separate source-only public
-list route reuses that projection; no write route or cloud service is
-provisioned, and ordinary static hosting remains in-memory.
+documented in [gear-storage.md](gear-storage.md). The deployed public list route
+reuses that projection; production write routes remain fail-closed, and ordinary
+local static hosting remains in-memory.
 
 The accepted product decisions, design-review disposition, implementation
 sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
-The first increment adds shared field options and public-listing search logic
-in `lib/gear-exchange.mjs`, with focused tests. An unlinked, noindex `/gear/` development preview uses these definitions.
-There is no deployed Gear API, production D1/R2 resource, email delivery or
-homepage card yet. An isolated, empty staging D1 and maintenance KV exist.
+Shared field options and public-listing search logic live in
+`lib/gear-exchange.mjs`, with focused tests. Production Pages, D1, Images,
+maintenance and owner Access are deployed; public writes and production email
+remain fail-closed. Isolated staging D1 and maintenance KV also remain available.
 
 Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
 Under ordinary static hosting, sample listings, management access, verification
@@ -1598,4 +1599,6 @@ disclosure version; older records remain NULL.
 Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `gear-lifecycle.md`.
-Production scheduling and failure/recovery alerts remain unprovisioned deployment gates.
+The production cleanup schedule and failure/recovery alerts are provisioned.
+The records-backup workflow remains manual-only until its first backup and
+restore rehearsal pass.

@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {EventEmitter} from 'node:events';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 import {createDraft,readPublicListings} from '../lib/gear-storage.mjs';
 import {createLeanGearBackup,restoreLeanGearBackup,validateLeanGearBackup,GEAR_LEAN_BACKUP_RETENTION_MS,GEAR_LEAN_REMOVAL_REASON} from '../lib/gear-lean-backup.mjs';
 import {SELLER_RECOVERY_MS} from '../lib/gear-seller-deletion.mjs';
-import {runLeanCloudBackup} from '../scripts/gear/lean-cloud-backup.mjs';
+import {ageEncrypt,BACKUP_SUCCESS_MESSAGE,exportDurationOutput,runLeanCloudBackup,safeFailure,successOutput} from '../scripts/gear/lean-cloud-backup.mjs';
 import {readLeanBackupFile,restoreLeanBackupFile,writeLeanRestoreSql} from '../scripts/gear/lean-backup.mjs';
 import {mkdtempSync,readFileSync,readdirSync,rmSync,statSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -97,8 +98,42 @@ test('lean backup CLIs run through symlink paths containing spaces',()=>{
     const script=join(directory,'lean backup.mjs'),cloudScript=join(directory,'lean cloud backup.mjs');
     symlinkSync(fileURLToPath(new URL('../scripts/gear/lean-backup.mjs',import.meta.url)),script);symlinkSync(fileURLToPath(new URL('../scripts/gear/lean-cloud-backup.mjs',import.meta.url)),cloudScript);
     const result=spawnSync(process.execPath,[script],{cwd,encoding:'utf8'});assert.notEqual(result.status,0);assert.match(result.stderr,/Usage: lean-backup\.mjs/);
-    const cloudResult=spawnSync(process.execPath,[cloudScript],{cwd,encoding:'utf8',env:{}});assert.notEqual(cloudResult.status,0);assert.equal(cloudResult.stderr,'Gear backup failed.\n');
+    const cloudResult=spawnSync(process.execPath,[cloudScript],{cwd,encoding:'utf8',env:{}});assert.notEqual(cloudResult.status,0);assert.equal(cloudResult.stderr,'Gear backup failed: Backup configuration is invalid.\n');
   }finally{rmSync(directory,{recursive:true,force:true});}
+});
+
+test('lean cloud CLI diagnostics are fixed and safe',()=>{
+  assert.equal(BACKUP_SUCCESS_MESSAGE,'Gear backup completed and verified.');
+  const output=`${exportDurationOutput(1234)}\n${successOutput({backupId:'private-id',fileName:'private-name',bytes:999})}`;
+  assert.equal(output,'D1 export completed in 1.23 s.\nGear backup completed and verified.');
+  for(const privateValue of ['private-id','private-name','999'])assert.equal(output.includes(privateValue),false);
+  assert.equal(safeFailure(new Error('Lean backup is too large.')),'Lean backup is too large.');
+  assert.equal(safeFailure(new Error('Invalid Gear lean backup relationships.')),'Invalid Gear lean backup relationships.');
+  assert.equal(safeFailure(new Error('Gear lean backup has expired.')),'Gear lean backup has expired.');
+  assert.equal(safeFailure(new Error('Gear backup retention cannot exceed seller-deletion evidence retention.')),'Gear backup retention cannot exceed seller-deletion evidence retention.');
+  assert.equal(safeFailure(new TypeError('Invalid Gear backup input.')),'Invalid Gear backup input.');
+  assert.equal(safeFailure(new Error('private-token-should-never-print')),'Unexpected backup failure.');
+});
+
+test('age encryption reports a fixed error when the binary cannot start',async()=>{
+  const spawnImpl=()=>{const child=new EventEmitter();child.stderr=new EventEmitter();queueMicrotask(()=>child.emit('error',new Error('private spawn detail')));return child;};
+  await assert.rejects(ageEncrypt('input','output',cloudEnv.GEAR_BACKUP_AGE_RECIPIENT,{spawnImpl}),/Unable to start age encryption/);
+});
+
+test('Gear backup workflow remains manual-only, pinned and production-environment restricted',()=>{
+  const workflow=readFileSync(new URL('../.github/workflows/gear-records-backup.yml',import.meta.url),'utf8');
+  const active=workflow.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
+  assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:');
+  assert.match(active,/^permissions:\n  contents: read$/m);
+  assert.match(active,/^          persist-credentials: false$/m);
+  assert.match(workflow,/^    environment: gear-backup$/m);
+  assert.match(workflow,/^  group: gear-records-backup$/m);
+  assert.match(workflow,/actions\/checkout@[a-f0-9]{40} # v7\.0\.1/);
+  assert.match(workflow,/actions\/setup-node@[a-f0-9]{40} # v7\.0\.0/);
+  assert.match(active,/^    runs-on: ubuntu-24\.04$/m);
+  assert.match(active,/age=1\.1\.1-1ubuntu0\.24\.04\.3/);
+  assert.equal([...active.matchAll(/secrets\.(GEAR_BACKUP_[A-Z0-9_]+)/g)].map(match=>match[1]).sort().join(','),Object.keys(cloudEnv).sort().join(','));
+  assert.match(active,/^        run: node scripts\/gear\/lean-cloud-backup\.mjs$/m);
 });
 
 const cloudEnv={
@@ -116,6 +151,13 @@ function exportedSql(now,id){
   return `${migrationsSql()}\nINSERT INTO gear_sellers VALUES('00000000-0000-4000-8000-000000000090','backup@example.test',${now},${now});
 INSERT INTO gear_listings(id,seller_id,seller_name,title,description,category,size,fit,condition,city,type,price_cents,trade,other_club,status,verified_at,expires_at,created_at,adult_acknowledged_at,disclosure_version,duplicate_key,management_clubs)
 VALUES('${id}','00000000-0000-4000-8000-000000000090','Seller','Cloud backup','Used','Bags & accessories','Junior','Junior','Used — good','Seattle','sale',4000,'','','available',${now},${now+GEAR_LEAN_BACKUP_RETENTION_MS},${now},${now},'gear-adult-v1','key',NULL);`;
+}
+
+function childFirstExportedSql(now,id){
+  return `${migrationsSql()}\n
+INSERT INTO gear_listings(id,seller_id,seller_name,title,description,category,size,fit,condition,city,type,price_cents,trade,other_club,status,verified_at,expires_at,created_at,adult_acknowledged_at,disclosure_version,duplicate_key,management_clubs)
+VALUES('${id}','00000000-0000-4000-8000-000000000090','Seller','Cloud backup','Used','Bags & accessories','Junior','Junior','Used — good','Seattle','sale',4000,'','','available',${now},${now+GEAR_LEAN_BACKUP_RETENTION_MS},${now},${now},'gear-adult-v1','key',NULL);
+INSERT INTO gear_sellers VALUES('00000000-0000-4000-8000-000000000090','backup@example.test',${now},${now});`;
 }
 
 function cloudFetch({sql,evidence=[],capabilities=['writeFiles','readFiles'],pollOnce=false,readBackMismatch=false}){
@@ -140,19 +182,40 @@ function cloudFetch({sql,evidence=[],capabilities=['writeFiles','readFiles'],pol
 
 test('lean cloud runner exports, reconciles, encrypts, uploads and reads back without real providers',async()=>{
   const now=2_000_000_000_000,id='00000000-0000-4000-8000-000000000091',later={listingId:id,deletedAt:now+1,purgeAt:now+GEAR_LEAN_BACKUP_RETENTION_MS},mock=cloudFetch({sql:exportedSql(now,id),evidence:[later],pollOnce:true}),waits=[];let plaintext;
-  const result=await runLeanCloudBackup({env:cloudEnv,fetchImpl:mock.fetchImpl,wait:async ms=>waits.push(ms),now:()=>now,uuid:()=> '00000000-0000-4000-8000-000000000092',encrypt:async(input,output)=>{plaintext=JSON.parse(readFileSync(input,'utf8'));writeFileSync(output,Buffer.from('synthetic age ciphertext'),{mode:0o600,flag:'wx'});}});
+  const ticks=[100,235],result=await runLeanCloudBackup({env:cloudEnv,fetchImpl:mock.fetchImpl,wait:async ms=>waits.push(ms),now:()=>now,clock:()=>ticks.shift(),uuid:()=> '00000000-0000-4000-8000-000000000092',encrypt:async(input,output)=>{plaintext=JSON.parse(readFileSync(input,'utf8'));writeFileSync(output,Buffer.from('synthetic age ciphertext'),{mode:0o600,flag:'wx'});}});
   assert.equal(plaintext.tables.listings.length,0);assert.deepEqual(plaintext.deletionEvidence,[later]);assert.equal(JSON.stringify(plaintext).includes('backup@example.test'),false);
   assert.equal(result.fileName,'gear/records-2033-05-18-00000000-0000-4000-8000-000000000092.json.age');assert.equal(result.bytes,24);assert.equal(result.scope,'records-only-no-photos-no-drafts-no-credentials-no-contact-no-report-history');
+  assert.equal(result.d1ExportMs,135);
   assert.deepEqual(waits,[5000]);
   assert.equal(mock.calls.some(url=>url.includes('b2_download_file_by_id')),true);
+});
+
+test('lean cloud runner accepts a D1 export whose child rows precede parent rows',async()=>{
+  const now=2_000_000_000_000,id='00000000-0000-4000-8000-000000000097',mock=cloudFetch({sql:childFirstExportedSql(now,id)});let plaintext;
+  await runLeanCloudBackup({env:cloudEnv,fetchImpl:mock.fetchImpl,now:()=>now,uuid:()=> '00000000-0000-4000-8000-000000000098',encrypt:async(input,output)=>{plaintext=JSON.parse(readFileSync(input,'utf8'));writeFileSync(output,'encrypted',{mode:0o600,flag:'wx'});}});
+  assert.deepEqual(plaintext.tables.listings.map(row=>row.id),[id]);
+  assert.equal(plaintext.tables.sellers.length,1);
+});
+
+test('lean cloud runner returns generic fixed errors for provider HTTP failures',async()=>{
+  await assert.rejects(runLeanCloudBackup({env:cloudEnv,fetchImpl:async()=>new Response('private provider details',{status:503})}),/Backup provider request failed/);
+});
+
+test('lean cloud runner rejects missing export bookmarks and invalid export SQL with fixed diagnostics',async()=>{
+  const withoutBookmark=async(url)=>String(url).endsWith('/export')?json({success:true,result:{status:'complete',result:{signed_url:'https://download.test/export.sql'}}}):new Response(exportedSql(Date.now(),'00000000-0000-4000-8000-000000000080'));
+  await assert.rejects(runLeanCloudBackup({env:cloudEnv,fetchImpl:withoutBookmark}),/D1 export returned no bookmark/);
+  const invalid=cloudFetch({sql:'private invalid SQL text'});
+  await assert.rejects(runLeanCloudBackup({env:cloudEnv,fetchImpl:invalid.fetchImpl}),/D1 export SQL could not be loaded/);
+  assert.equal(safeFailure(new Error('D1 export SQL could not be loaded.')),'D1 export SQL could not be loaded.');
 });
 
 test('lean cloud runner fails before provider work on bad config and rejects every overbroad B2 key',async()=>{
   let calls=0;await assert.rejects(runLeanCloudBackup({env:{},fetchImpl:async()=>{calls++;throw new Error('must not call');}}),/Invalid GEAR_BACKUP_CF_ACCOUNT_ID/);assert.equal(calls,0);
   const now=2_000_000_000_000,id='00000000-0000-4000-8000-000000000093';
   for(const capabilities of [['writeFiles','readFiles','deleteFiles'],['writeFiles','readFiles','listFiles']]){
-    const mock=cloudFetch({sql:exportedSql(now,id),capabilities});
-    await assert.rejects(runLeanCloudBackup({env:cloudEnv,fetchImpl:mock.fetchImpl,now:()=>now,uuid:()=> '00000000-0000-4000-8000-000000000094',encrypt:async(_input,output)=>writeFileSync(output,'encrypted',{mode:0o600,flag:'wx'})}),/not safely scoped/);
+    const mock=cloudFetch({sql:exportedSql(now,id),capabilities}),ticks=[100,235],measured=[];
+    await assert.rejects(runLeanCloudBackup({env:cloudEnv,fetchImpl:mock.fetchImpl,now:()=>now,clock:()=>ticks.shift(),onExportMeasured:value=>measured.push(exportDurationOutput(value)),uuid:()=> '00000000-0000-4000-8000-000000000094',encrypt:async(_input,output)=>writeFileSync(output,'encrypted',{mode:0o600,flag:'wx'})}),/not safely scoped/);
+    assert.deepEqual(measured,['D1 export completed in 0.14 s.']);
   }
 });
 

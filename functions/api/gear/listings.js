@@ -12,8 +12,8 @@ function json(status, body) {
   return new Response(JSON.stringify(body), { status, headers: HEADERS });
 }
 
-// Source-only production integration seam. The exact-origin Gear UI consumes
-// this route, but no remote binding or database has been provisioned.
+// Deployed production read boundary. The exact-origin Gear UI consumes this
+// route, which fails closed unless D1 and signed-photo delivery are configured.
 export function createGearListingsHandler({read=readPublicListingsWithPhotoRefs,signer=createGearPhotoSigner,now=Date.now}={}){
  return async function gearListings(context) {
   const db=context.env?.GEAR_DB,config=gearPhotoDeliveryConfig(context.env);

@@ -1,9 +1,9 @@
 # Gear Exchange production seller deletion and recovery
 
-Status: source-only and not deployed. Migration 9 has not been applied remotely,
-no seller UI is connected, and no production record was read or changed. The
-separate source-only credential issuer is documented in
-`gear-production-management.md`; it is not configured or deployed.
+Status: migration 0009 and the seller deletion/recovery route and UI are deployed
+with production D1. Public listing creation remains fail-closed, so production
+has no seller deletion marker or recovery record. The credential issuer is
+documented in `gear-production-management.md`.
 
 ## Storage boundary
 

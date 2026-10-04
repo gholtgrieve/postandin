@@ -1,16 +1,11 @@
 # Gear Exchange launch and rollback runbook
 
-Status: active launch plan. The owner authorized isolated staging setup. A
-staging-only D1 database and maintenance-state KV namespace now exist; the empty
-D1 bookmark/export was captured, migrations `0001`–`0015` applied in order and
-the expected 18 empty Gear tables were verified. Migrations `0016`–`0018` are
-pending and must be applied before the matching Pages code. The isolated staging Pages
-project is deployed behind an owner-only Cloudflare Access application with
-independent MFA on the canonical, admin and wildcard deployment hostnames.
-Authenticated empty public browse and private owner-dashboard reads passed.
-Staging mail, image writes, maintenance Worker, backup schedule and every
-production resource remain undeployed. Production still requires separate
-explicit approval.
+Status: active production launch plan. Isolated staging validation passed,
+including migrations 0001–0018 and a 3.04-second conservative export-interruption
+upper bound. Owner-authorized production Pages, D1, Images service, maintenance
+Worker/Cron and owner Access are deployed with an empty database. Public write
+features remain fail-closed. The records-backup workflow is manual-only until its
+environment-secret move, first production run and restore rehearsal pass.
 
 ## Release boundary
 
@@ -44,8 +39,11 @@ signing keys or backup keys in this repository.
 
 Do not enable public writes until a complete recovery rehearsal passes.
 
-The approved lean nightly job runs in GitHub Actions at 08:00 UTC, away from the
-11:00 UTC maintenance window, and:
+The approved lean job is checked in at
+`.github/workflows/gear-records-backup.yml` for manual dispatch through the
+branch-restricted `gear-backup` GitHub environment. Once the first backup and
+restore rehearsal pass, it will run nightly at 08:00 UTC, away from the 11:00 UTC
+maintenance window, and:
 
 1. request a table-filtered D1 SQL export through the polling export API and
    retain its time-travel bookmark on the external runner only;
@@ -66,8 +64,8 @@ The approved lean nightly job runs in GitHub Actions at 08:00 UTC, away from the
 7. rely on a reviewed B2 lifecycle rule to permanently remove current and prior
    object versions after 30 days. Object Lock is intentionally not enabled.
 
-Use a dedicated account-scoped Cloudflare D1 token for export/query and rotate it
-independently of the Pages/Worker credentials. Try D1 Read during setup; if export
+Use a dedicated account-scoped Cloudflare D1 Read token for export/query and
+rotate it independently of the Pages/Worker credentials. If export
 requires D1 Edit, explicitly record that the GitHub secret can write any D1
 database in the account. The workflow itself never authorizes restore or deletion.
 The backup runner must not receive production Pages or Worker deployment rights.
@@ -77,6 +75,10 @@ part of disaster recovery.
 Cloudflare's export API makes the D1 database unavailable to queries while an
 export runs. Keep the 08:00 UTC low-traffic schedule, measure the interruption
 in staging and do not activate the schedule if it is operationally unacceptable.
+The isolated staging export measured a conservative 3.04-second upper bound on
+2026-10-03, including CLI polling and download; its temporary download was
+deleted immediately. Record the runner's first production interruption upper
+bound before enabling the schedule.
 
 Cloudflare D1 Time Travel is an additional short-term recovery layer, not the
 off-provider backup. Current Cloudflare documentation gives production D1 a

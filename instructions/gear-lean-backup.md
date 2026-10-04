@@ -1,14 +1,19 @@
 # Gear Exchange lean off-Cloudflare backup
 
-Status: source-only runner and inactive schedule. The owner created the private
-Backblaze bucket, restricted prefix key, 30-day lifecycle, offline `age` identity
-and read-only Cloudflare D1 token. The encryption/decryption canary passed. No
-GitHub secret, workflow activation or real Gear backup exists yet.
+Status: the production backup workflow is checked in for manual dispatch only.
+The owner created the private Backblaze bucket, restricted prefix key, 30-day
+lifecycle, offline `age` identity and owner-reported D1 Read token. The
+branch-restricted `gear-backup` GitHub environment exists; its two public IDs are
+stored there as environment secrets, while its five private values still need to be copied from
+repository secrets before those old copies are removed. The encryption/decryption
+canary passed. The nightly schedule remains disabled until the first manual
+backup and restore rehearsal pass.
 
 ## Deliberate scope
 
-This is proportionate recovery for a free community classifieds service. Each
-night it preserves non-draft listings outside seller deletion/recovery, their
+This is proportionate recovery for a free community classifieds service. Once
+scheduled, it preserves each night non-draft listings outside seller
+deletion/recovery, their
 sellers and club selections, active owner-removal state with fixed generic text,
 and active minimal seller-deletion evidence needed to block resurrection.
 
@@ -48,19 +53,28 @@ restoring an older recovery point.
 7. downloads the stored ciphertext by file ID and verifies the exact bytes;
 8. removes runner temporary files whether the job succeeds or fails.
 
-Successful stdout contains only backup ID, object name, times, byte count and
-the fixed scope string. Provider failures are generic and never print credentials,
-record content, signed export URLs or provider tokens.
+Successful stdout records a conservative D1 export-interruption upper bound
+(from the first export request until the poll that observes completion) plus a
+fixed confirmation, without object metadata. Expected
+failure classes use fixed diagnostic text; unexpected failures remain generic.
+Logs never print credentials, record content, signed export URLs, provider
+tokens, object names or byte counts.
 
 `scripts/gear/lean-backup.mjs` verifies decrypted JSON, restores it to a new local
 SQLite rehearsal database, or writes data-only SQL for a new D1 database after
 migrations 0001–0018. The SQL path is tested against a freshly migrated temporary
 database.
 
-`gear-backup/github-actions.yml.example` is deliberately outside
-`.github/workflows`; it cannot run. At activation time, review it again, copy it
-to `.github/workflows/gear-records-backup.yml`, enable the 08:00 UTC nightly
-schedule and set a GitHub Actions budget that prevents paid overage.
+`.github/workflows/gear-records-backup.yml` is the canonical workflow. It is
+manual-dispatch only, serializes runs, uses immutable action revisions and reads
+secrets from the branch-restricted `gear-backup` GitHub environment. It fixes the
+runner to Ubuntu 24.04 and installs the reviewed Ubuntu `age` package version
+explicitly. Enable its
+08:00 UTC nightly schedule only after the first real backup and restore rehearsal
+pass and after setting a GitHub Actions budget that prevents paid overage.
+If Ubuntu removes that exact `age` version from the Noble package index, verify
+the replacement in Ubuntu's official package index and update both the workflow
+pin and its matching test assertion in the same reviewed change.
 
 ## Deployment-time provider setup
 
@@ -84,12 +98,22 @@ Do this only with explicit owner authorization:
    D1 Edit, record the risk acceptance before storing that more powerful token
    in GitHub. It receives no Workers, Pages, Images, DNS or account-administration
    permission. Confirm the available scope again during provider setup.
-5. Add the seven values named in the workflow example as GitHub Actions secrets.
-   Do not put their values in Git, workflow logs or the release record.
-6. Run the workflow manually. Confirm the B2 object is private, read-back passes,
+5. Add the seven values named in the workflow as secrets in the branch-restricted
+   `gear-backup` GitHub environment. Do not put their values in repository-level
+   secrets, Git, workflow logs or the release record. Before the first dispatch,
+   verify in GitHub that the environment already exists, its deployment branch
+   policy allows only `main`, all seven names exist there, and no repository-level
+   secret name begins with `GEAR_BACKUP_`.
+6. After measuring staging export interruption, dispatch the workflow during a
+   low-traffic production window and record the staging and production
+   interruption upper bounds. Confirm the B2 object is private, read-back passes,
    lifecycle covers current and prior versions, and GitHub retains no plaintext.
 7. Decrypt the first object on a trusted computer and complete the rehearsal
    below. Only then enable the nightly schedule.
+
+To locate a backup without exposing its object name in public workflow logs,
+open the private B2 bucket and select the newest object under the `gear/` prefix
+by upload time.
 
 GitHub's failed-workflow notification is the initial alert. There is no separate
 dead-man service. Once a month, confirm a recent successful run and rehearse one
@@ -97,8 +121,16 @@ decryption. If usage or importance grows, missed-run monitoring and photo-byte
 backup can be added as separately reviewed upgrades.
 
 Cloudflare documents that D1 is unavailable to queries while an export runs.
-The first staging run must measure that interruption; keep the nightly job at
-08:00 UTC and leave scheduling disabled if the measured impact is unacceptable.
+The first staging run must measure and record that interruption before any
+production dispatch; keep the nightly job at 08:00 UTC and leave scheduling
+disabled if the measured impact is unacceptable.
+
+On 2026-10-03, an authenticated remote export of the isolated staging D1 database
+completed in 3.04 seconds wall-clock time. This is a conservative interruption
+upper bound because it includes CLI polling and download time. The downloaded
+staging SQL and its temporary directory were deleted immediately. Use a
+low-traffic window for the first production dispatch and record the runner's
+upper bound as separate evidence.
 
 ## Restore rehearsal
 
