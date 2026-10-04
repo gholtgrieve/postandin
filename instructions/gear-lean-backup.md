@@ -1,13 +1,16 @@
 # Gear Exchange lean off-Cloudflare backup
 
+The value-free mapping between password-manager records, provider resources,
+and deployment secret names is maintained in the launch runbook's
+[password-manager record map](gear-launch-runbook.md#password-manager-record-map).
+
 Status: the production backup workflow is checked in for manual dispatch only.
 The owner created the private Backblaze bucket, restricted prefix key, 30-day
 lifecycle, offline `age` identity and owner-reported D1 Read token. The
-branch-restricted `gear-backup` GitHub environment exists; its two public IDs are
-stored there as environment secrets, while its five private values still need to be copied from
-repository secrets before those old copies are removed. The encryption/decryption
-canary passed. The nightly schedule remains disabled until the first manual
-backup and restore rehearsal pass.
+branch-restricted `gear-backup` GitHub environment contains all seven workflow
+secrets, allows only `main`, and no repository-level secret name begins with
+`GEAR_BACKUP_`. The encryption/decryption canary passed. The nightly schedule
+remains disabled until the first manual backup and restore rehearsal pass.
 
 ## Deliberate scope
 

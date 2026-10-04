@@ -20,12 +20,15 @@ in a generated Codex folder or copy the repo there.
 Branch at handoff: `codex/gear-backup-activation`, based on merged production
 foundation `4a7fe33`.
 
-Current increment: activate the manual-only encrypted records backup, complete a
-zero-finding Claude review, commit it, move the five private values into the
-branch-restricted `gear-backup` GitHub environment, then perform the first
-production backup and restore rehearsal. The staging export timing gate passed at
-3.04 seconds on 2026-10-03 and its temporary download was deleted. Do not enable
-the nightly schedule before the remaining checks pass.
+Current increment: the manual-only encrypted records backup passed a zero-finding
+Claude review and was committed as `3a1e6e1`; PR #21 is open for that commit, and
+the credential-map documentation is being added to the same PR before merge. All
+seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
+and no repository-level `GEAR_BACKUP_*` secret remains. Next merge the fully
+reviewed PR, perform the first production backup, and complete the restore
+rehearsal. The staging export timing gate passed at 3.04 seconds on 2026-10-03
+and its temporary download was deleted. Do not enable the nightly schedule
+before the remaining checks pass.
 
 | Commit | Completed increment |
 |---|---|
@@ -1140,11 +1143,19 @@ Pages host, the admin custom hostname and wildcard deployment hostnames for the
 approved owner identity with independent MFA. Anonymous redirects were verified
 on the public page, public listings API and a deployment-specific URL; the owner
 completed MFA enrollment and verified authenticated empty public browse plus the
-private owner dashboard. A staging-only random photo-signing secret and invalid-
-for-delivery placeholder account/variant values permit empty listing projection
-without an Images binding. No image was uploaded, no public write or mail feature
-was enabled, no maintenance/backup schedule was activated and no production
-resource was changed.
+private owner dashboard. The account-wide Cloudflare Images key named
+`gearStaging` was copied into the staging signing secret during setup even though
+invalid-for-delivery placeholder account/variant values make a real key
+unnecessary. Replace it promptly and no later than the launch step that enables
+photo uploads. Before revocation, confirm production uses a different dedicated
+key; if that cannot be proved, create a fresh production key, update the
+production secret, and confirm the redeployment succeeds first. Then replace the
+staging secret with an unrelated random placeholder, revoke the named provider
+key, and retire its password-manager record as described in the launch runbook's
+[password-manager record map](gear-launch-runbook.md#password-manager-record-map).
+No image was uploaded, no public write or mail feature was enabled, no
+maintenance/backup schedule was activated and no production resource was
+changed.
 
 Before binding a real staging Resend key, the mail adapters gained a fail-closed
 staging-only recipient boundary. Whenever the exact staging public origin is
