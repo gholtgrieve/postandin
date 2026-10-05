@@ -154,8 +154,7 @@ h1 .accent { color: var(--mustard); }
 .trend-chart .axis-text { fill: var(--ink3); font-size: 12px; }
 .trend-chart .axis-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
 .trend-chart .trend-line { fill: none; stroke: var(--mustard); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
-.trend-chart .trend-point { fill: var(--mustard); stroke: var(--panel); stroke-width: 3; }
-.trend-chart .trend-value { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.trend-chart .game-point { fill: var(--ink2); stroke: var(--panel); stroke-width: 3; }
 .chart-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
 .chart-subtitle { margin-top: 8px; color: var(--ink3); font-size: 13px; }
 .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; color: var(--ink3); font-size: 12px; }
@@ -375,13 +374,12 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
 
       <figure class="chart-card chart-wide" aria-labelledby="trend-title">
         <figcaption>
-          <h3 class="chart-title" id="trend-title">Three-game shot-share trend</h3>
-          <p class="chart-subtitle">Each point combines the listed game with the two games immediately before it.</p>
+          <h3 class="chart-title" id="trend-title">Game-by-game shot share</h3>
         </figcaption>
         <div class="efficiency-shell" role="region" aria-label="Scrollable three-game shot-share trend chart">
           <svg class="trend-chart" viewBox="0 0 800 350" role="img" aria-labelledby="trend-svg-title trend-svg-desc">
-            <title id="trend-svg-title">Three-game rolling Seattle Junior shot share</title>
-            <desc id="trend-svg-desc">Rolling shot share begins at 34.1 percent, peaks at 35.6 percent, falls to 29.0 percent and finishes at 31.4 percent.</desc>
+            <title id="trend-svg-title">Seattle Junior shot share by game with centered three-game average</title>
+            <desc id="trend-svg-desc">Eight individual game points range from 25.4 to 38.3 percent. A gold line shows the centered three-game average for the six games with a game before and after them.</desc>
 
             <line class="reference-line" x1="80" y1="40" x2="700" y2="40" />
             <line class="grid-line" x1="80" y1="113" x2="700" y2="113" />
@@ -397,33 +395,37 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
             <text class="axis-title" x="22" y="150" text-anchor="middle" transform="rotate(-90 22 150)">Seattle Junior shot share</text>
             <text class="axis-text" x="695" y="33" text-anchor="end">Even share</text>
 
-            <path class="trend-line" d="M100 157 L210 146 L320 158 L430 163 L540 194 L650 177" />
+            <path class="trend-line" d="M175 157 L260 146 L345 158 L430 163 L515 194 L600 177" />
 
-            <circle class="trend-point" cx="100" cy="157" r="8"><title>Through September 19 versus Tacoma: 34.1%</title></circle>
-            <text class="trend-value" x="100" y="143" text-anchor="middle">34.1%</text>
-            <circle class="trend-point" cx="210" cy="146" r="8"><title>Through September 20 versus Tacoma: 35.6%</title></circle>
-            <text class="trend-value" x="210" y="132" text-anchor="middle">35.6%</text>
-            <circle class="trend-point" cx="320" cy="158" r="8"><title>Through September 25 versus Team Wyoming: 33.9%</title></circle>
-            <text class="trend-value" x="320" y="180" text-anchor="middle">33.9%</text>
-            <circle class="trend-point" cx="430" cy="163" r="8"><title>Through September 26 versus Boise: 33.3%</title></circle>
-            <text class="trend-value" x="430" y="149" text-anchor="middle">33.3%</text>
-            <circle class="trend-point" cx="540" cy="194" r="8"><title>Through September 26 at Montana: 29.0%</title></circle>
-            <text class="trend-value" x="540" y="216" text-anchor="middle">29.0%</text>
-            <circle class="trend-point" cx="650" cy="177" r="8"><title>Through September 27 at Utah: 31.4%</title></circle>
-            <text class="trend-value" x="650" y="163" text-anchor="middle">31.4%</text>
+            <circle class="game-point" cx="90" cy="158" r="7"><title>September 12 at Sno-King: 33.9%</title></circle>
+            <circle class="game-point" cx="175" cy="177" r="7"><title>September 13 at Sno-King: 31.3%</title></circle>
+            <circle class="game-point" cx="260" cy="130" r="7"><title>September 19 versus Tacoma: 37.7%</title></circle>
+            <circle class="game-point" cx="345" cy="126" r="7"><title>September 20 versus Tacoma: 38.3%</title></circle>
+            <circle class="game-point" cx="430" cy="209" r="7"><title>September 25 versus Team Wyoming: 26.9%</title></circle>
+            <circle class="game-point" cx="515" cy="145" r="7"><title>September 26 versus Boise: 35.7%</title></circle>
+            <circle class="game-point" cx="600" cy="220" r="7"><title>September 26 at Montana: 25.4%</title></circle>
+            <circle class="game-point" cx="685" cy="157" r="7"><title>September 27 at Utah: 34.0%</title></circle>
 
-            <text class="axis-text" x="100" y="282" text-anchor="middle">Sep 19</text>
-            <text class="axis-text" x="210" y="282" text-anchor="middle">Sep 20</text>
-            <text class="axis-text" x="320" y="282" text-anchor="middle">Sep 25</text>
-            <text class="axis-text" x="430" y="282" text-anchor="middle">Sep 26</text>
-            <text class="axis-text" x="540" y="282" text-anchor="middle">Sep 26</text>
-            <text class="axis-text" x="650" y="282" text-anchor="middle">Sep 27</text>
-            <text class="axis-text" x="430" y="300" text-anchor="middle">Boise</text>
-            <text class="axis-text" x="540" y="300" text-anchor="middle">Montana</text>
-            <text class="axis-title" x="390" y="330" text-anchor="middle">Ending game in each three-game window</text>
+            <text class="axis-text" x="90" y="282" text-anchor="middle">Sep 12</text>
+            <text class="axis-text" x="90" y="300" text-anchor="middle">Sno-King</text>
+            <text class="axis-text" x="175" y="282" text-anchor="middle">Sep 13</text>
+            <text class="axis-text" x="175" y="300" text-anchor="middle">Sno-King</text>
+            <text class="axis-text" x="260" y="282" text-anchor="middle">Sep 19</text>
+            <text class="axis-text" x="260" y="300" text-anchor="middle">Tacoma</text>
+            <text class="axis-text" x="345" y="282" text-anchor="middle">Sep 20</text>
+            <text class="axis-text" x="345" y="300" text-anchor="middle">Tacoma</text>
+            <text class="axis-text" x="430" y="282" text-anchor="middle">Sep 25</text>
+            <text class="axis-text" x="430" y="300" text-anchor="middle">Wyoming</text>
+            <text class="axis-text" x="515" y="282" text-anchor="middle">Sep 26</text>
+            <text class="axis-text" x="515" y="300" text-anchor="middle">Boise</text>
+            <text class="axis-text" x="600" y="282" text-anchor="middle">Sep 26</text>
+            <text class="axis-text" x="600" y="300" text-anchor="middle">Montana</text>
+            <text class="axis-text" x="685" y="282" text-anchor="middle">Sep 27</text>
+            <text class="axis-text" x="685" y="300" text-anchor="middle">Utah</text>
+            <text class="axis-title" x="390" y="330" text-anchor="middle">Game</text>
           </svg>
         </div>
-        <p class="data-note">Rolling windows reduce the influence of a single game but remain based on a small early-season sample. The October 3 game is excluded because shots were not recorded.</p>
+        <p class="data-note">Dark points show each game's shot share. The gold line shows the centered three-game average, using the game before and the game after each point. The October 3 game is excluded because shots were not recorded.</p>
       </figure>
 
       <figure class="chart-card chart-wide" aria-labelledby="efficiency-title">

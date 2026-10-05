@@ -99,10 +99,13 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /GWG means game-winning goal/);
   assert.doesNotMatch(statsPage, /Goal type was not recorded/);
   assert.doesNotMatch(statsPage, /Goal strength classified|27 of 37 · 73%/);
-  assert.match(statsPage, /Three-game shot-share trend/);
-  assert.match(statsPage, /34\.1%/);
-  assert.match(statsPage, /31\.4%/);
-  assert.equal((statsPage.match(/class="trend-point"/g) ?? []).length, 6);
+  assert.match(statsPage, /Game-by-game shot share/);
+  assert.match(statsPage, /Dark points show each game's shot share/);
+  assert.match(statsPage, /centered three-game average/);
+  assert.match(statsPage, /using the game before and the game after each point/);
+  assert.equal((statsPage.match(/class="game-point"/g) ?? []).length, 8);
+  assert.equal((statsPage.match(/class="trend-line"/g) ?? []).length, 1);
+  assert.doesNotMatch(statsPage, /class="trend-point"|class="trend-value"/);
   assert.match(statsPage, /Game efficiency/);
   assert.match(statsPage, /Seattle Junior share of shots/);
   assert.match(statsPage, /Final goal differential/);
