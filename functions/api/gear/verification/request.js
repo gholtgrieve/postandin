@@ -35,6 +35,7 @@ export function createVerificationRequestHandler({issue=issueVerification,releas
           catch{console.error('Gear verification delivery rollback failed.');}
         }
         console.error('Gear verification email delivery failed:',error.code);
+        if(receipt?.token&&!error.releasable)return json(202,{message:'Verification email delivery could not be confirmed. Check your inbox before resending.',uncertain:true});
       }
       else console.error('Gear verification request failed unexpectedly.');
       return json(503,{error:'Unable to send the verification email right now. Your draft is saved; please try again.'});

@@ -1306,11 +1306,13 @@ access. Owner moderation permanently deletes the link and revokes its live
 listing-scoped sessions; restoration does not reissue it. A confirmation-response replay
 does not send another message. Management-mail failure is logged without private details and never
 rolls back the already-published listing; the browser directs the seller to
-request a fresh link if the automatic message does not arrive. Verification-mail
-provider failure returns an honest error
-while preserving the three-day draft for retry. Only definite pre-delivery
-rejections release the attempt's count and cooldown; ambiguous network, 5xx and
-post-acceptance outcomes remain reserved. A token-hash guard cannot change a
+request a fresh link if the automatic message does not arrive. Definite
+verification-mail failure returns an error while preserving the three-day draft
+for retry. An ambiguous network, 5xx, or post-acceptance outcome instead returns
+an explicit delivery-not-confirmed result; the browser asks the seller to check
+their inbox, including spam, before resending because the issued link remains
+usable. Only definite pre-delivery rejections release the attempt's count and
+cooldown; ambiguous outcomes remain reserved. A token-hash guard cannot change a
 newer issuance.
 Maintenance retains the cap row for the life of an unverified draft. Issuance and confirmation enforce
 that retention boundary even if scheduled cleanup is delayed. A public same-origin

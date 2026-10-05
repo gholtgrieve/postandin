@@ -34,12 +34,15 @@ no-referrer policy.
    send it only to the email already stored for that draft. It cannot choose or
    reveal the recipient. Source enforces a one-minute cooldown and five-message
    cap per draft, even if the seller corrects the draft email address; editing
-   invalidates an issued link without resetting that cap. A provider/configuration failure returns 503 and says the
+   invalidates an issued link without resetting that cap. A definite
+   configuration, input, or provider 3xx/4xx failure returns 503 and says the
    three-day draft remains saved for retry; it never claims delivery. Missing
    configuration does not rotate a prior token. A definite pre-delivery rejection
-   invalidates its unsent token and releases that attempt's count and cooldown;
-   ambiguous network, 5xx or post-acceptance failures keep the token, count and
-   cooldown reserved. A token-hash guard cannot roll back a newer issuance.
+   invalidates its unsent token and releases that attempt's count and cooldown.
+   An ambiguous network, 5xx, or post-acceptance outcome returns 202 with
+   `uncertain:true`, keeps the token, count, and cooldown reserved, and tells the
+   seller to check their inbox before resending. A token-hash guard cannot roll
+   back a newer issuance.
 5. The email link is
    `https://postandin.com/gear/#verification=<64-hex-token>`. The browser
    must read and erase the fragment synchronously. Opening the link is inert.
@@ -112,14 +115,11 @@ uses the same read-and-erase confirmation flow.
 
 The verification and management Resend adapters use the fixed sender
 `Post & In Gear <gear@postandin.com>`, plain-text messages, manual redirect
-handling, and ten-second timeouts. The automatic management email explains that
-its saved link works while that listing is available, pending, closed, expired,
-or within seller-deletion recovery, that choosing **Continue** starts a 30-day
-session limited to the listing, replaces any current Gear management session in
-that browser, and signs out any other device using the link, and that the seller
-can edit details, manage photos, change availability, renew or relist eligible
-gear, and remove or recover it. It warns the seller not to forward the bearer
-link and identifies the revocation conditions. The separate seller-wide recovery
+handling, and ten-second timeouts. The automatic management email asks the seller
+to save the message, explains that its private link is specific to the listing,
+summarizes the available listing and photo actions, warns the seller not to
+forward the bearer link, and points to the temporary-access recovery flow if the
+message is lost. The separate seller-wide recovery
 message remains one-use and expires after 30 minutes. The verification adapter additionally uses a 4 KiB response
 limit and a
 token-hash-derived idempotency key. It accepts only a successful JSON response
