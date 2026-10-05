@@ -10,6 +10,12 @@ Pages routes, real mail or cloud resources. Read the Resume here section in
   A verified mailbox can receive a simulated recovery link. Link tokens are
   256 random bits, hash-only in storage, expire after 30 minutes and are single
   use. Reissue invalidates older links without terminating current sessions.
+- Migration 20 adds a separate hash-only credential. The production Pages
+  confirmation handler issues it automatically for a newly verified listing;
+  the local preview does not issue it. That saved link is reusable while its one listing is
+  manageable or recoverable. Each redemption creates a 30-day session scoped to
+  that listing; it cannot enumerate or mutate another listing owned by the same
+  seller. Email transfer, permanent deletion, and moderation invalidate access.
 - Explicit confirmation redeems the link, creates a fresh 30-day session and
   revokes all previous sessions for that seller in one SQL statement/trigger.
   A failed session insert rolls back both revocation and token consumption.

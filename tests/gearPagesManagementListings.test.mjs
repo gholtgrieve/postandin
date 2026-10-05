@@ -5,7 +5,7 @@ import * as listingsRoute from '../functions/api/gear/management/listings.js';
 import {createManagementListingHandler} from '../functions/api/gear/management/listing.js';
 import {createManagementListingsHandler} from '../functions/api/gear/management/listings.js';
 import {changeSellerDeletion} from '../lib/gear-seller-deletion.mjs';
-import {issueLocalManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
+import {issueLocalManagementLink,issuePostVerificationManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {confirmVerification,issueLocalVerification} from '../lib/gear-verification.mjs';
@@ -27,11 +27,14 @@ test('production management listings return only current owner rows with signed 
     db.sqlite.prepare('UPDATE gear_deletions SET purge_at=199 WHERE listing_id=?').run(deletedId);db.sqlite.prepare('UPDATE gear_deletion_ledger SET purge_at=199 WHERE listing_id=?').run(deletedId);
     db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(ownerRemovedId);
     const response=await createManagementListingsHandler({now:()=>200})(context(request('/api/gear/management/listings',{},access),db,delivery));
-    assert.equal(response.status,200);const body=await response.json();assert.deepEqual(body.deleted.map(row=>row.id),[deletedId]);assert.equal(body.deleted[0].title,'Deleted bag');assert.equal(body.deleted[0].purgeAt,199);
+    assert.equal(response.status,200);const body=await response.json();assert.equal(body.scope,'seller');assert.deepEqual(body.deleted.map(row=>row.id),[deletedId]);assert.equal(body.deleted[0].title,'Deleted bag');assert.equal(body.deleted[0].purgeAt,199);
     assert.deepEqual(new Set(body.listings.map(row=>row.id)),new Set([id,ownerRemovedId]));assert.equal(body.listings.find(row=>row.id===ownerRemovedId).status,'removed');
     const projected=body.listings.find(row=>row.id===id);assert.equal(projected.photos.length,1);assert.equal(projected.photos[0].id,photo.id);
     assert.match(projected.photos[0].url,/^https:\/\/imagedelivery\.net\//);assert.equal(Object.hasOwn(projected.photos[0],'providerId'),false);
     assert.equal(JSON.stringify(body).includes(sample.email),false);assert.equal(JSON.stringify(body).includes(foreignId),false);
+    const durable=await issuePostVerificationManagementLink(db,id,100),scoped=await redeemManagementLink(db,durable.token,201);
+    const scopedResponse=await createManagementListingsHandler({now:()=>201})(context(request('/api/gear/management/listings',{},scoped),db,delivery)),scopedBody=await scopedResponse.json();
+    assert.equal(scopedBody.scope,'listing');assert.deepEqual(scopedBody.listings.map(row=>row.id),[id]);assert.deepEqual(scopedBody.deleted,[]);
   }finally{db.close();}
 });
 
@@ -53,7 +56,7 @@ test('production management listing route edits and changes state through the li
 });
 
 test('management listing routes reject malformed transport, stale access, missing configuration and private failures',async()=>{
-  let calls=0;const read=createManagementListingsHandler({read:async()=>{calls++;return {listings:[],deleted:[]};}}),write=createManagementListingHandler({recover:async()=>{calls++;return {csrf:CSRF};},change:async()=>{calls++;return true;}}),db={};
+  let calls=0;const read=createManagementListingsHandler({read:async()=>{calls++;return {scope:'seller',listings:[],deleted:[]};}}),write=createManagementListingHandler({recover:async()=>{calls++;return {csrf:CSRF};},change:async()=>{calls++;return true;}}),db={};
   assert.equal((await read(context(request('/api/gear/management/listings',{},null,{Origin:'https://foreign.test'}),db,delivery))).status,403);
   assert.equal((await read(context(request('/api/gear/management/listings',{extra:true}),db,delivery))).status,400);
   assert.equal((await read({request:request('/api/gear/management/listings',{}),env:{GEAR_DB:db}})).status,503);
@@ -67,7 +70,7 @@ test('management listing routes reject malformed transport, stale access, missin
   let response=await createManagementListingsHandler({read:async()=>null})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,401);
   response=await createManagementListingHandler({recover:async()=>null})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,401);
   response=await createManagementListingsHandler({read:async()=>{throw new Error('private read');}})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);
-  response=await createManagementListingsHandler({read:async()=>({listings:[{id:'00000000-0000-4000-8000-000000000001',photoRefs:[{id:'bad',providerId:'bad'}]}],deleted:[]})})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,500);
+  response=await createManagementListingsHandler({read:async()=>({scope:'seller',listings:[{id:'00000000-0000-4000-8000-000000000001',photoRefs:[{id:'bad',providerId:'bad'}]}],deleted:[]})})(context(request('/api/gear/management/listings',{}),db,delivery));assert.equal(response.status,500);
   response=await createManagementListingHandler({recover:async()=>({csrf:CSRF}),change:async()=>{throw new Error('private write');}})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,500);assert.equal((await response.text()).includes('private'),false);
   let recovers=0;
   response=await createManagementListingHandler({recover:async()=>++recovers===1?{csrf:CSRF}:null,change:async()=>false})(context(request('/api/gear/management/listing',{id:'00000000-0000-4000-8000-000000000001',action:'pending'}),db));assert.equal(response.status,401);

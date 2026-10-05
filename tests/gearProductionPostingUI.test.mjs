@@ -78,6 +78,7 @@ test('posting flow keeps photos in the main path and handles draft upload retrie
   assert.match(source,/#pi-post-photos'\)\.hidden=Boolean\(connectedMode&&editingId\)/);
   assert.match(source,/status\.classList\.remove\('is-busy'\);status\.classList\.add\('is-error'\)/);
   assert.match(source,/return '#pi-draft-upload-status'/);
+  assert.match(source,/Check your email for a management link and save that message for future use/);
   assert.doesNotMatch(html,/id="pi-review-status"/);
   assert.match(source,/data-review-photo/);
   assert.match(source,/Verify \$\{d\.email\} to publish for 30 days/);

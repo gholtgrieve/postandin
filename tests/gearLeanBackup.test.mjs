@@ -15,7 +15,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 
 const sample={title:'Backup bag',description:'Used for backup testing.',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:['Kent Valley']};
-const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery','unified_removal','draft_photo_access','management_session_retention','management_recovery_limits'];
+const migrationNames=['drafts','verification','duplicates','publication_duplicates','management','email_change','production_foundation','moderation','seller_deletions','maintenance','photo_quarantines','photo_reconciliation','photo_upload_limits','verification_delivery_limits','contact_delivery','unified_removal','draft_photo_access','management_session_retention','management_recovery_limits','listing_management_links'];
 const migrationsSql=()=>migrationNames.map((name,index)=>readFileSync(new URL(`../migrations/gear/${String(index+1).padStart(4,'0')}_${name}.sql`,import.meta.url),'utf8')).join('\n');
 
 async function published(db,patch={},now=Date.now()){
@@ -30,7 +30,7 @@ test('lean backup keeps recoverable records but excludes photos, drafts, credent
   try{
     const live=await published(db,{},now),removed=await published(db,{title:'Owner removed',email:'removed@example.test'},now+1),deleted=await published(db,{title:'Seller deleted',email:'deleted@example.test'},now+2);
     await createDraft(db,{...sample,title:'Private draft',email:'draft@example.test'},now+3);
-    const providerId='private-provider-id-that-must-not-leave-cloudflare';
+    const providerId='private-provider-id-that-must-not-leave-cloudflare',durableTokenHash='durable-token-hash-that-must-not-leave-cloudflare';
     db.sqlite.prepare('INSERT INTO gear_photos(id,listing_id,provider_id,position,created_at) VALUES(?,?,?,?,?)').run(crypto.randomUUID(),live,providerId,0,now);
     db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(removed);
     db.sqlite.prepare("INSERT INTO gear_removals VALUES(?,'available',?,'private owner reason')").run(removed,now);
@@ -39,13 +39,14 @@ test('lean backup keeps recoverable records but excludes photos, drafts, credent
     db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').run(deleted,now,now+30*86_400_000);
     db.sqlite.prepare('INSERT INTO gear_reports(id,listing_id,listing_title,reason,created_at) VALUES(?,?,?,?,?)').run(crypto.randomUUID(),live,'Private title','Other concern',now);
     db.sqlite.prepare('INSERT INTO gear_moderation_history(actor,action,listing_id,reason,before_status,after_status,created_at) VALUES(?,?,?,?,?,?,?)').run('private-owner@example.test','remove',live,'private history reason','available','removed',now);
-    db.sqlite.prepare('INSERT INTO gear_management_sessions VALUES(?,?,?,?,?,NULL)').run('session-secret',db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(live).seller_id,'csrf-secret',now,now+1000);
+    db.sqlite.prepare('INSERT INTO gear_management_sessions VALUES(?,?,?,?,?,NULL,NULL)').run('session-secret',db.sqlite.prepare('SELECT seller_id FROM gear_listings WHERE id=?').get(live).seller_id,'csrf-secret',now,now+1000);
+    db.sqlite.prepare('INSERT INTO gear_listing_management_links VALUES(?,?,?,?)').run(live,durableTokenHash,sample.email,now);
     const backup=createLeanGearBackup(db.sqlite,{now,bookmark:'bookmark-1',backupId:'00000000-0000-4000-8000-000000000001'}),serialized=JSON.stringify(backup);
     assert.equal(backup.expiresAt,now+GEAR_LEAN_BACKUP_RETENTION_MS);
     assert.deepEqual(backup.tables.listings.map(row=>row.id),[live,removed].sort());
     assert.equal(backup.tables.removals[0].reason,GEAR_LEAN_REMOVAL_REASON);
     assert.deepEqual(backup.deletionEvidence,[{listingId:deleted,deletedAt:now,purgeAt:now+30*86_400_000}]);
-    for(const secret of [providerId,'Private draft','draft@example.test','deleted@example.test','session-secret','csrf-secret','Private title','private-owner@example.test','private history reason','private owner reason'])assert.equal(serialized.includes(secret),false,secret);
+    for(const secret of [providerId,durableTokenHash,'Private draft','draft@example.test','deleted@example.test','session-secret','csrf-secret','Private title','private-owner@example.test','private history reason','private owner reason'])assert.equal(serialized.includes(secret),false,secret);
     assert.doesNotThrow(()=>validateLeanGearBackup(backup,{now}));
   }finally{db.close();}
 });
@@ -74,7 +75,7 @@ test('lean restore is photo-free, credential-free and reconciles newer deletion 
     const result=restoreLeanGearBackup(target.sqlite,backup,{now:now+3,newerDeletionEvidence:[evidence]});
     assert.deepEqual(result,{listings:1,sellers:1,photos:0,blocked:1});
     assert.deepEqual((await readPublicListings(target)).map(row=>row.id),[keep]);
-    for(const table of ['gear_photos','gear_verification_tokens','gear_management_links','gear_management_sessions','gear_email_changes','gear_contact_attempts','gear_contact_messages','gear_reports','gear_moderation_history'])assert.equal(target.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get().n,0,table);
+    for(const table of ['gear_photos','gear_verification_tokens','gear_listing_management_links','gear_management_links','gear_management_sessions','gear_email_changes','gear_contact_attempts','gear_contact_messages','gear_reports','gear_moderation_history'])assert.equal(target.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get().n,0,table);
     assert.equal(target.sqlite.prepare('SELECT purged_at FROM gear_deletion_ledger WHERE listing_id=?').get(blocked).purged_at,evidence.purgeAt);
     assert.throws(()=>restoreLeanGearBackup(target.sqlite,backup,{now:now+4}),/not empty/);
   }finally{source.close();target.close();}

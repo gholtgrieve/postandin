@@ -4,17 +4,17 @@ import { openLocalDatabase } from '../scripts/gear/local-db.mjs';
 import { localServer } from '../scripts/gear/local-server.mjs';
 import { createDraft } from '../lib/gear-storage.mjs';
 import { issueLocalVerification, confirmVerification } from '../lib/gear-verification.mjs';
-import { issueLocalManagementLink, redeemManagementLink, listManaged, revokeManagement } from '../lib/gear-management.mjs';
+import { issueLocalManagementLink, issuePostVerificationManagementLink, redeemManagementLink, listManaged, revokeManagement } from '../lib/gear-management.mjs';
 import { issueLocalEmailChange, confirmEmailChange, EMAIL_CHANGE_TTL_MS } from '../lib/gear-email-change.mjs';
 import { LIMITS } from '../lib/gear-exchange.mjs';
 const input={title:'Bag',description:'Worn zipper',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'source@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
 async function publish(db,patch={},now=100){const {id}=await createDraft(db,{...input,...patch},now);const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;}
 async function login(db,email=input.email,now=200){const receipt=await issueLocalManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-const rows=db=>JSON.stringify(['gear_sellers','gear_listings','gear_management_sessions','gear_management_links','gear_email_changes'].map(t=>db.sqlite.prepare('SELECT * FROM '+t).all()));
+const rows=db=>JSON.stringify(['gear_sellers','gear_listings','gear_management_sessions','gear_management_links','gear_listing_management_links','gear_email_changes'].map(t=>db.sqlite.prepare('SELECT * FROM '+t).all()));
 
 test('transfer preserves old control until confirmation; moves verified records only and revokes old access',async()=>{
  const db=openLocalDatabase();try{
-  const id=await publish(db),draft=await createDraft(db,{...input,title:'Draft'}),access=await login(db);
+  const id=await publish(db),durable=await issuePostVerificationManagementLink(db,id,100),draft=await createDraft(db,{...input,title:'Draft'}),access=await login(db);
   const before=db.sqlite.prepare('SELECT * FROM gear_listings WHERE id=?').get(id);
   const recovery=await issueLocalManagementLink(db,input.email,201);
   const receipt=await issueLocalEmailChange(db,access.session,access.csrf,'  NEW@Example.test ',202);
@@ -26,6 +26,7 @@ test('transfer preserves old control until confirmation; moves verified records 
   assert.equal(await confirmEmailChange(db,receipt.token,205),false);
   assert.equal(await listManaged(db,access.session,205),null);
   assert.equal(await redeemManagementLink(db,recovery.token,205),null);
+  assert.equal(await redeemManagementLink(db,durable.token,205),null);assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listing_management_links').get().n,0);
   const after=db.sqlite.prepare('SELECT * FROM gear_listings WHERE id=?').get(id);
   assert.notEqual(after.seller_id,before.seller_id);
   assert.deepEqual({...after,seller_id:before.seller_id},{...before});
@@ -35,9 +36,10 @@ test('transfer preserves old control until confirmation; moves verified records 
  }finally{db.close();}
 });
 
-test('request requires session and correct CSRF; reissue, expiry, revocation and wrong credential scope fail safely',async()=>{
+test('request requires a seller-wide session and correct CSRF; reissue, expiry, revocation and wrong credential scope fail safely',async()=>{
  const db=openLocalDatabase();try{
-  await publish(db);const access=await login(db);
+  const id=await publish(db),durable=await issuePostVerificationManagementLink(db,id,100),scoped=await redeemManagementLink(db,durable.token,199),access=await login(db);
+  assert.equal(await issueLocalEmailChange(db,scoped.session,scoped.csrf,'new@example.test',200),null);
   for(const csrf of ['',null,'0'.repeat(64)])assert.equal(await issueLocalEmailChange(db,access.session,csrf,'new@example.test',201),null);
   assert.equal(await issueLocalEmailChange(db,access.session,access.csrf,input.email,201),null);
   for(const email of ['bad','a@b..test','a@b.test\r\nBcc:x@y.test',null])await assert.rejects(issueLocalEmailChange(db,access.session,access.csrf,email,201));
@@ -60,7 +62,7 @@ test('request requires session and correct CSRF; reissue, expiry, revocation and
 
 test('merge with existing destination keeps drafts isolated and invalidates both sellers sessions and links',async()=>{
  const db=openLocalDatabase();try{
-  const id=await publish(db),destId=await publish(db,{email:'dest@example.test',title:'Skates'});
+  const id=await publish(db),destId=await publish(db,{email:'dest@example.test',title:'Skates'}),destDurable=await issuePostVerificationManagementLink(db,destId,100);
   const draft=await createDraft(db,{...input,email:'dest@example.test',title:'Draft'});
   const source=await login(db),dest=await login(db,'dest@example.test');
   assert.equal(await issueLocalEmailChange(db,source.session,dest.csrf,'third@example.test',201),null);
@@ -70,6 +72,7 @@ test('merge with existing destination keeps drafts isolated and invalidates both
   assert.equal(await confirmEmailChange(db,receipt.token,203),true);
   assert.equal(await listManaged(db,dest.session,204),null);
   assert.equal(await redeemManagementLink(db,oldLink.token,204),null);
+  assert.equal(await redeemManagementLink(db,destDurable.token,204),null);
   assert.equal(await confirmEmailChange(db,outgoing.token,204),false);
   const fresh=await login(db,'dest@example.test',205);
   assert.deepEqual(new Set((await listManaged(db,fresh.session,206)).map(r=>r.id)),new Set([id,destId]));

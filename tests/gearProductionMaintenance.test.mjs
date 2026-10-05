@@ -7,7 +7,7 @@ import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {submitReport} from '../lib/gear-report-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {confirmVerification,issueLocalVerification,issueVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../lib/gear-verification.mjs';
-import {issueManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
+import {issueManagementLink,issuePostVerificationManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 
 const sample={title:'Bag',description:'Sample wear',city:'Seattle',fit:'Junior',sellerName:'Sample',email:'seller@example.test',adult:true,category:'Bags & accessories',size:'Junior',condition:'Used — good',type:'sale',priceCents:4000,clubs:[]};
@@ -20,14 +20,14 @@ const count=(db,table)=>db.sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).
 
 test('due seller purge durably queues hosted photos before deleting records and retaining the ledger',async()=>{
   const db=openLocalDatabase();try{
-    const id=await publish(db),reportId=crypto.randomUUID();await recordHostedPhoto(db,id,providerId,110);await submitReport(db,{listingId:id,reason:'Other concern'},120,reportId);
+    const id=await publish(db),reportId=crypto.randomUUID(),durable=await issuePostVerificationManagementLink(db,id,100),scoped=await redeemManagementLink(db,durable.token,125);assert.ok(scoped);await recordHostedPhoto(db,id,providerId,110);await submitReport(db,{listingId:id,reason:'Other concern'},120,reportId);
     db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(id);
     db.sqlite.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').run(id,'available',130,200);
     db.sqlite.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').run(id,130,200);
     const result=await cleanupGearRecords(db,{now:200});assert.equal(result.purgedListings,1);assert.equal(result.batchFull,false);
     assert.equal(count(db,'gear_listings'),0);assert.equal(count(db,'gear_photos'),0);assert.equal(count(db,'gear_reports'),0);assert.equal(count(db,'gear_deletions'),0);
     assert.deepEqual({...db.sqlite.prepare('SELECT provider_id,listing_id,queued_at,attempts,last_attempt_at FROM gear_photo_deletions').get()},{provider_id:providerId,listing_id:id,queued_at:200,attempts:0,last_attempt_at:null});
-    assert.equal(db.sqlite.prepare('SELECT purged_at FROM gear_deletion_ledger').get().purged_at,200);assert.equal(count(db,'gear_sellers'),0);
+    assert.equal(db.sqlite.prepare('SELECT purged_at FROM gear_deletion_ledger').get().purged_at,200);assert.equal(count(db,'gear_listing_management_links'),0);assert.equal(count(db,'gear_management_sessions'),0);assert.equal(count(db,'gear_sellers'),0);
   }finally{db.close();}
 });
 

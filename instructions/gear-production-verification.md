@@ -3,7 +3,9 @@
 Status: backend and browser flow are live with production D1. Turnstile, Resend
 and the owner-approved combined Free-plan edge rule are Active. The reviewed
 go-live deployment and production smoke checks passed; the production database
-was empty at the recorded post-deploy inspection.
+was empty at the recorded post-deploy inspection. The automatic
+post-verification management-email change described below deploys with the Pages
+merge after migration 0020 is applied.
 
 ## Request flow
 
@@ -39,10 +41,13 @@ no-referrer policy.
    ambiguous network, 5xx or post-acceptance failures keep the token, count and
    cooldown reserved. A token-hash guard cannot roll back a newer issuance.
 5. The email link is
-   `https://postandin.com/gear/#verification=<64-hex-token>`. A browser increment
+   `https://postandin.com/gear/#verification=<64-hex-token>`. The browser
    must read and erase the fragment synchronously. Opening the link is inert.
    `POST /api/gear/verification/confirm` requires `{token, confirm:true}` and is
-   the only production action that can publish.
+   the only production action that can publish. A newly committed publication
+   then issues and sends a durable, listing-scoped management link to the
+   verified seller address. A safe replay of the committed verification response
+   does not issue or send another management link.
 
 The database stores only a SHA-256 token hash. Migration 14 records a bounded
 production issue count; existing token rows begin at one. Reissue replaces the
@@ -51,7 +56,19 @@ after 30 minutes, safely acknowledges retry after a committed response was lost,
 and atomically rechecks draft
 state, seller/email consistency, the ten-active-listing limit and live duplicate
 rules. Success verifies the seller and publishes only that one draft. It does not
-create a management session; the seller requests a separate management link.
+create a management session. Instead, it automatically emails the separate
+management credential; the seller must explicitly open it and choose **Continue** to
+create a 30-day browser session limited to that listing. The hash-only credential
+remains reusable while that listing is available, pending, closed, expired, or
+within its 30-day seller-deletion recovery period. Issuance is constrained to the listing published at the exact
+confirmation timestamp and never accepts an email from the browser. It is stored
+separately from one-use seller-wide recovery links and does not consume their
+delivery limit. Permanent deletion cascades the credential; verified email
+transfer deletes it, and owner moderation permanently deletes it and revokes its
+live listing-scoped sessions. Restoration does not reissue it. A
+provider or issuance failure cannot roll back publication and is logged without
+recipient, token, or provider details; the seller can request temporary
+seller-wide access from **Manage my listings**.
 Both issuance and confirmation enforce the three-day draft deadline even when
 scheduled cleanup is delayed. Maintenance keeps an expired unconsumed token row
 for a still-live draft so the durable delivery count cannot reset; the eventual
@@ -83,17 +100,28 @@ to Details and requests a new privacy check.
 The browser reads a strict `#verification=<64-hex-token>` fragment and erases it
 synchronously before any awaited import or network work. It never auto-publishes:
 the user must choose **Publish listing**, which sends the token in a no-referrer
-JSON POST. A successful confirmation does not create a management session; the
-seller requests a separate management link. The local connected preview and
+JSON POST. After a successful new publication, the browser tells the seller to
+check for the automatic management email, save it for future management, and
+request a temporary access link if it does not arrive. An already-committed replay directs the seller
+to the prior management email or the recovery form. The local connected preview and
 ordinary inert demo retain their existing behavior. Recognized malformed links
 show a generic invalid-link message, and same-document verification navigation
 uses the same read-and-erase confirmation flow.
 
 ## Provider boundary
 
-The Resend adapter uses the fixed sender `Post & In Gear <gear@postandin.com>`, a
-plain-text message, manual redirect handling, a ten-second whole-response timeout,
-a 4 KiB response limit and a
+The verification and management Resend adapters use the fixed sender
+`Post & In Gear <gear@postandin.com>`, plain-text messages, manual redirect
+handling, and ten-second timeouts. The automatic management email explains that
+its saved link works while that listing is available, pending, closed, expired,
+or within seller-deletion recovery, that choosing **Continue** starts a 30-day
+session limited to the listing, replaces any current Gear management session in
+that browser, and signs out any other device using the link, and that the seller
+can edit details, manage photos, change availability, renew or relist eligible
+gear, and remove or recover it. It warns the seller not to forward the bearer
+link and identifies the revocation conditions. The separate seller-wide recovery
+message remains one-use and expires after 30 minutes. The verification adapter additionally uses a 4 KiB response
+limit and a
 token-hash-derived idempotency key. It accepts only a successful JSON response
 containing a UUID. Errors expose only a bounded internal code to logs; logs never
 include the address, raw token, provider body or API key.

@@ -86,8 +86,25 @@ test('session refresh distinguishes authentication loss from a temporary failure
   assert.match(source,/if\(expiredEdit\)go\('manage',\{historyMode:'replace'\}\)/);
   assert.match(source,/if\(expiredEdit\)\$\('#pi-post-email'\)\.disabled=false/);
   assert.match(source,/if\(error\.status===401\)throw error;showStatus/);
-  assert.match(source,/\$\('#pi-active-count'\)\.hidden=!signedIn;\$\('#pi-new-listing'\)\.hidden=!signedIn\|\|\(productionMode&&!postingAvailable\)/);
+  assert.match(source,/managementScope=productionMode&&result\.scope==='listing'\?'listing':'seller'/);
+  assert.match(source,/\$\('#pi-active-count'\)\.hidden=!signedIn;\$\('#pi-new-listing'\)\.hidden=!signedIn\|\|managementScope==='listing'\|\|\(productionMode&&!postingAvailable\)/);
+  assert.match(source,/Managing one listing — use “Need a new management link\?” below to see all/);
   assert.match(source,/postingAvailable=true;renderManaged\(\)/);
+});
+
+test('saved management links require an explicit confirmation before redemption',()=>{
+  const source=readFileSync(new URL('../gear/gear.mjs',import.meta.url),'utf8');
+  assert.match(source,/else if\(productionMode&&managementToken\)showManagementConfirmation\(\)/);
+  assert.match(source,/verifyMode='management'/);
+  assert.match(source,/Continue to Gear management\?/);
+  assert.match(source,/Continue only if you opened this private link yourself/);
+  assert.match(source,/replaces any current Gear management session in this browser/);
+  assert.match(source,/may sign out another device already managing the same listings/);
+  assert.match(source,/This management link no longer works\. Request a temporary access link below\./);
+  assert.match(source,/else if\(verifyMode==='management'\)localAction\(confirmManagementLink\)/);
+  assert.doesNotMatch(source,/productionMode&&managementToken\)await localAction/);
+  assert.match(source,/sellerWide=signedIn&&managementScope==='seller'&&managed\.some\(listing=>listing\.id===result\.listingId\)/);
+  assert.match(source,/You can manage it here/);
 });
 
 test('confirmation and recovery keep credentials in POST bodies and expose safe errors',async()=>{

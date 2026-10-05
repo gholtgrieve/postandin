@@ -17,7 +17,7 @@ import {changeSellerDeletion} from '../../lib/gear-seller-deletion.mjs';
 import {cleanupGearRecords,reconcileHostedGearPhotos,runGearMaintenance} from '../../lib/gear-maintenance.mjs';
 import {claimContactDelivery,markContactSent,releaseContactDelivery,reserveContact} from '../../lib/gear-contact-storage.mjs';
 import {confirmProductionVerification,issueLocalVerification,issueVerification,releaseFailedVerificationIssue,confirmVerification,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../../lib/gear-verification.mjs';
-import {issueManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState,RECOVERY_COOLDOWN_MS,RECOVERY_DAILY_LIMIT,RECOVERY_WINDOW_MS} from '../../lib/gear-management.mjs';
+import {issueManagementLink,issuePostVerificationManagementLink,redeemManagementLink,recoverManagementSession,listManaged,readManagedSnapshotWithPhotoRefs,editManagedListing,changeListingState,RECOVERY_COOLDOWN_MS,RECOVERY_DAILY_LIMIT,RECOVERY_WINDOW_MS} from '../../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../../lib/gear-email-change.mjs';
 const modulePath=process.env.GEAR_WRANGLER_MODULE;
 if(!modulePath)throw new Error('Set GEAR_WRANGLER_MODULE to an installed Wrangler module absolute path.');
@@ -53,9 +53,9 @@ async function publishBeforeAdultMigration(db,now=100){
  const receipt=await issueLocalVerification(db,id,now);assert.equal((await confirmVerification(db,receipt.token,now)).verified,true);return id;
 }
 async function login(db,email=sample.email,now=200){const receipt=await issueManagementLink(db,email,now);return redeemManagementLink(db,receipt.token,now);}
-async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits','gear_contact_attempts','gear_contact_messages'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
+async function data(db){const tables=['gear_sellers','gear_listings','gear_listing_clubs','gear_verification_tokens','gear_management_sessions','gear_management_links','gear_listing_management_links','gear_email_changes','gear_photos','gear_reports','gear_removals','gear_moderation_history','gear_deletions','gear_deletion_ledger','gear_photo_deletions','gear_photo_quarantines','gear_photo_upload_limits','gear_contact_attempts','gear_contact_messages'];return JSON.stringify(await Promise.all(tables.map(async t=>(await db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()).results)));}
 try{
- assert.equal(files.length,19,'Update migration coverage when adding a migration.');
+ assert.equal(files.length,20,'Update migration coverage when adding a migration.');
  const runtimeOptions={modules:true,script:`export default {async fetch(request){
   if(new URL(request.url).pathname==='/mail-runtime-probe')return fetch('https://api.resend.com/emails',{method:'POST',redirect:'manual'});
   return new Response(null,{status:404});
@@ -67,8 +67,11 @@ try{
  const db=await mf.getD1Database('DB');await migrate(db);await migrate(db);
  assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_d1_check_migrations').first()).n,files.length);
 	 const sessionDb=await mf.getD1Database('SESSION');await migrate(sessionDb);
-	 await publish(sessionDb,{email:'session-retention@example.test',title:'Session retention bag'},1000);
-	 const retainedSession=await login(sessionDb,'session-retention@example.test',1100);
+	 const sessionListing=await publish(sessionDb,{email:'session-retention@example.test',title:'Session retention bag'},1000);
+	 assert.equal(await issuePostVerificationManagementLink(sessionDb,sessionListing,999),null);
+	 const automaticManagement=await issuePostVerificationManagementLink(sessionDb,sessionListing,1000);assert.equal(automaticManagement.recipient,'session-retention@example.test');assert.match(automaticManagement.token,/^[a-f0-9]{64}$/);
+	 const scopedSession=await redeemManagementLink(sessionDb,automaticManagement.token,1001);assert.deepEqual((await listManaged(sessionDb,scopedSession.session,1001)).map(row=>row.id),[sessionListing]);
+	 const retainedSession=await login(sessionDb,'session-retention@example.test',1000+RECOVERY_COOLDOWN_MS+1);
 	 const retainedRow=await sessionDb.prepare('SELECT created_at,expires_at FROM gear_management_sessions ORDER BY created_at DESC LIMIT 1').first();
  assert.equal(retainedRow.expires_at-retainedRow.created_at,30*86400000);assert.equal(retainedSession.expiresAt,retainedRow.expires_at);
  const recoveryEmail='recovery-limit@example.test',recoveryStart=2000;
@@ -105,7 +108,7 @@ try{
  await assert.rejects(db.batch([db.prepare('CREATE TABLE failed_migration(id TEXT PRIMARY KEY)'),db.prepare("INSERT INTO missing_migration_table VALUES('fail')")]));
  assert.equal(await db.prepare("SELECT name FROM sqlite_master WHERE name='failed_migration'").first(),null);
  console.log('PASS: migration batch failure rolls schema changes back.');
- console.log('PASS: all nineteen migrations, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact/recovery limits, verification-delivery state and 30-day management-session retention; D1 RETURNING/meta.changes.');
+ console.log('PASS: all twenty migrations, durable listing credentials, deletion constraints/cascade, photo cleanup/outbox, quarantine, upload/contact/recovery limits, verification-delivery state and 30-day management-session retention; D1 RETURNING/meta.changes.');
  const verifyDb=await mf.getD1Database('VERIFY');await migrate(verifyDb);
  const verifyNow=10*86400000,verifyDraft=await createDraft(verifyDb,{...sample,email:'verify@example.test',title:'D1 verification delivery'},verifyNow);
  const firstVerification=await issueVerification(verifyDb,verifyDraft.id,verifyNow+1);assert.ok(firstVerification);
@@ -169,12 +172,12 @@ try{
  assert.deepEqual(await changeSellerDeletion(db,lifecycleAccess.session,lifecycleAccess.csrf,{action:'recover',id:lifecycleId},147),{ok:true});
  assert.equal((await readPublicListings(db,148)).some(row=>row.id===lifecycleId),true);
  await db.prepare('DELETE FROM gear_listings WHERE id=?').bind(lifecycleId).run();
- const maintenanceId=await publish(db,{title:'Maintenance purge'},149),maintenanceProvider='00000000-0000-4000-8000-000000000098';
+ const maintenanceId=await publish(db,{title:'Maintenance purge'},149),maintenanceProvider='00000000-0000-4000-8000-000000000098',maintenanceLink=await issuePostVerificationManagementLink(db,maintenanceId,149),maintenanceSession=await redeemManagementLink(db,maintenanceLink.token,150);assert.ok(maintenanceSession);
  await recordHostedPhoto(db,maintenanceId,maintenanceProvider,150);await db.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").bind(maintenanceId).run();
  await db.batch([db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(maintenanceId,'available',150,151),db.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').bind(maintenanceId,150,151)]);
  const deletedImages=[];const maintenance=await runGearMaintenance({GEAR_DB:db,IMAGES:{hosted:{list:async()=>({images:[],listComplete:true}),image:id=>({delete:async()=>{deletedImages.push(id);return true;}})}}},{now:151});
- assert.equal(maintenance.purgedListings,1);assert.equal(maintenance.deletedPhotos,1);assert.deepEqual(deletedImages,[maintenanceProvider]);assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_photo_deletions').first()).n,0);assert.equal((await db.prepare('SELECT purged_at FROM gear_deletion_ledger WHERE listing_id=?').bind(maintenanceId).first()).purged_at,151);
- const id=await publish(db),access=await login(db);
+ assert.equal(maintenance.purgedListings,1);assert.equal(maintenance.deletedPhotos,1);assert.deepEqual(deletedImages,[maintenanceProvider]);assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_photo_deletions').first()).n,0);assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_listing_management_links WHERE listing_id=?').bind(maintenanceId).first()).n,0);assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_management_sessions WHERE listing_id=?').bind(maintenanceId).first()).n,0);assert.equal((await db.prepare('SELECT purged_at FROM gear_deletion_ledger WHERE listing_id=?').bind(maintenanceId).first()).purged_at,151);
+ const id=await publish(db),access=await login(db),moderationLink=await issuePostVerificationManagementLink(db,id,100),moderationSession=await redeemManagementLink(db,moderationLink.token,148);assert.ok(moderationSession);
  assert.equal(await submitReport(db,{listingId:id,reason:'Prohibited item'},149,'00000000-0000-4000-8000-000000000149'),true);
  await db.prepare("UPDATE gear_listings SET status='closed' WHERE id=?").bind(id).run();
  assert.equal(await submitReport(db,{listingId:id,reason:'Other concern'},150,'00000000-0000-4000-8000-000000000150'),false);
@@ -182,6 +185,7 @@ try{
  await db.prepare("UPDATE gear_listings SET status='available' WHERE id=?").bind(id).run();
  assert.equal(await moderateListing(db,{actor:'owner@example.test',action:'remove',id:'00000000-0000-4000-8000-000000000149',reason:'Reviewed removal'},151),true);
  assert.equal((await db.prepare('SELECT status FROM gear_listings WHERE id=?').bind(id).first()).status,'removed');
+ assert.equal((await db.prepare('SELECT count(*) AS n FROM gear_listing_management_links WHERE listing_id=?').bind(id).first()).n,0);assert.equal(await recoverManagementSession(db,moderationSession.session,151),null);
  await db.batch([
   db.prepare('INSERT INTO gear_deletions VALUES(?,?,?,?)').bind(id,'removed',151,152),
   db.prepare('INSERT INTO gear_deletion_ledger VALUES(?,?,?,NULL)').bind(id,151,152),
@@ -273,7 +277,7 @@ try{
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'close',204),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',205),true);
  assert.equal(await changeListingState(db,access.session,access.csrf,id,'relist',206),false);
- console.log('PASS: production management issue/redeem/recovery, scheduled record/image cleanup, quarantine claim/attachment, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
+ console.log('PASS: production automatic/recovery management issue, redeem/recovery, scheduled record/image cleanup, quarantine claim/attachment, publication, acknowledgement, photo metadata, public projection, seller delete/recover, JSON clubs, edit and relist via D1.');
  const duplicate=await createDraft(db,{...sample,title:'Edited',clubs:['Other'],otherClub:'Test'},207);
  const token=await issueLocalVerification(db,duplicate.id,207);
  const beforeDuplicate=await data(db);assert.equal((await confirmVerification(db,token.token,208)).verified,false);assert.equal(await data(db),beforeDuplicate);
@@ -341,7 +345,7 @@ try{
  assert.equal(acknowledgement.adult_acknowledged_at,null);assert.equal(acknowledgement.disclosure_version,null);
  assert.equal((await listManaged(upgrade,oldAccess.session,legacyBase+61))[0].id,oldId);
  const transfer=await issueLocalEmailChange(upgrade,oldAccess.session,oldAccess.csrf,'upgrade@example.test',legacyBase+62);assert.equal(await confirmEmailChange(upgrade,transfer.token,legacyBase+63),true);
- console.log('PASS: populated migration-6 database upgrades through 19 with legacy data and queued photo deletion state preserved.');
+ console.log('PASS: populated migration-6 database upgrades through 20 with legacy data and queued photo deletion state preserved.');
  const persisted=await data(upgrade);
  await mf.dispose();mf=new Miniflare(runtimeOptions);
  const reopened=await mf.getD1Database('UPGRADE');await migrate(reopened);assert.equal(await data(reopened),persisted);

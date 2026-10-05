@@ -39,7 +39,7 @@ export function writeLeanRestoreSql(file,output,{now=Date.now(),newerFiles=[]}={
       ['gear_removals',['listing_id','previous_status','removed_at','reason']],
       ['gear_deletion_ledger',['listing_id','deleted_at','purge_at','purged_at']],
     ];
-    const lines=['-- Post & In Gear lean records restore. Apply only to a new database after migrations 0001-0019.'];
+    const lines=['-- Post & In Gear lean records restore. Apply only to a new database after migrations 0001-0020.'];
     for(const [table,columns] of definitions){for(const row of db.prepare(`SELECT ${columns.join(',')} FROM ${table} ORDER BY ${columns[0]}`).all())lines.push(`INSERT INTO ${table}(${columns.join(',')}) VALUES(${columns.map(column=>sqlValue(row[column])).join(',')});`);}
     const bytes=Buffer.from(lines.join('\n')+'\n');if(bytes.length>MAX_BACKUP_BYTES)throw new Error('Gear restore SQL is too large.');writeFileSync(destination,bytes,{mode:0o600,flag:'wx'});return {bytes:bytes.length};
   }catch(error){rmSync(destination,{force:true});throw error;}

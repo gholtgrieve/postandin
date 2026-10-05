@@ -3,7 +3,8 @@
 Status: production launch completed October 4, 2026. Isolated staging validation passed,
 including migrations 0001–0018 and a 3.04-second conservative export-interruption
 upper bound. Owner-authorized production Pages, D1, Images service, maintenance
-Worker/Cron and owner Access are deployed with an empty database. The first
+Worker/Cron, and owner Access were deployed with an empty database; production
+may now contain legitimate community listings. The first
 production encrypted backup and exact B2 read-back passed with a 6.89-second D1
 export upper bound, and its isolated JSON/SQLite/data-only-SQL restore rehearsal
 passed on 2026-10-03 PDT. Production Turnstile, mail and dedicated Images signing
@@ -13,6 +14,32 @@ browser/API/Access smoke checks, and a post-merge production backup all passed.
 The owner explicitly approved the post-merge backup; GitHub Actions run
 `37227958428` completed the encrypted B2 upload and exact read-back on the merged
 schema. The nightly records-backup schedule remains `17 8 * * *` UTC.
+
+The current unreleased increment adds
+`migrations/gear/0020_listing_management_links.sql`. Before merging this
+increment to `main` (which deploys Pages), apply migration 0020 to the target D1 database and verify that
+`gear_listing_management_links` exists and `gear_management_sessions` includes
+nullable `listing_id`. The migration is additive, but the prior Pages code does
+not enforce `listing_id` and would widen a live listing-scoped session to every
+listing owned by that seller. Before rolling Pages back past this increment:
+
+1. place a temporary edge block on public
+   `/api/gear/verification/confirm` and `/api/gear/management/*` requests, and
+   verify that in-flight requests have drained;
+2. record a safe rollback timestamp in Unix milliseconds;
+3. run `DELETE FROM gear_listing_management_links;` so saved links cannot create
+   new scoped sessions while the rollback proceeds;
+4. run `UPDATE gear_management_sessions SET revoked_at = <ROLLBACK_TIME_MS> WHERE listing_id IS NOT NULL AND revoked_at IS NULL;` against the target database;
+5. verify that zero unrevoked rows with a non-null `listing_id` and zero durable
+   link rows remain, then deploy and confirm the prior Pages version;
+6. repeat the link deletion, scoped-session revocation, and zero-row checks while
+   the edge block remains active. The prior code cannot create a scoped session,
+   but this second pass closes any cutover race;
+7. remove the temporary edge block only after the repeated checks pass.
+
+Retain the additive table and column. Never expose the prior Pages version while
+a listing-scoped session remains live. This rollback permanently invalidates
+every saved durable management email; the application does not reissue them.
 
 ## Release boundary
 
@@ -105,7 +132,7 @@ Provision disposable staging records/auth resources only after separate owner
 authorization:
 
 - a separate Pages project and Access application;
-- a new D1 database containing migrations `0001` through `0019` in order;
+- a new D1 database containing migrations `0001` through `0020` in order;
 - a dedicated maintenance-state KV namespace;
 - staging-only Turnstile, Resend and Cloudflare Access settings;
 - an allowlisted mail recipient and synthetic records only.
@@ -364,7 +391,7 @@ Only after an explicit deployment instruction:
    GitHub workflow, then verify the target with a synthetic canary;
 2. provision production D1/KV/Images identities and capture the empty D1
    bookmark/export;
-3. apply migrations `0001`–`0019` in order and verify schema/contracts;
+3. apply migrations `0001`–`0020` in order and verify schema/contracts;
 4. deploy `gear-images` with no public route and verify it by service binding;
 5. deploy `gear-maintenance`, verify its cron and execute one controlled run on
    synthetic production smoke data without sending an alert;

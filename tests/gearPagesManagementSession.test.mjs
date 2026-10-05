@@ -45,8 +45,11 @@ test('Resend adapter sends a bounded fragment link with authorization and token-
   const result=await sendManagementLink({recipient:sample.email,token:TOKEN},{GEAR_RESEND_API_KEY:'test_key'}, {fetcher:async(...args)=>{[target,options]=args;return new Response(JSON.stringify({id:responseId}),{status:200});}});
   assert.deepEqual(result,{id:responseId});assert.equal(target,'https://api.resend.com/emails');assert.equal(options.method,'POST');assert.equal(options.redirect,'manual');
   assert.equal(options.headers.Authorization,'Bearer test_key');assert.match(options.headers['Idempotency-Key'],/^gear-management-[a-f0-9]{64}$/);assert.equal(options.headers['Idempotency-Key'].includes(TOKEN),false);
-  const body=JSON.parse(options.body);assert.deepEqual(body.to,[sample.email]);assert.equal(body.from,'Post & In Gear <gear@postandin.com>');
+  const body=JSON.parse(options.body);assert.deepEqual(body.to,[sample.email]);assert.equal(body.from,'Post & In Gear <gear@postandin.com>');assert.equal(body.subject,'Your Post & In Gear Exchange management link');
   assert.ok(body.text.includes(`/gear/#management=${TOKEN}`));assert.equal(body.text.includes('?management='),false);assert.equal(JSON.stringify(options.headers).includes(TOKEN),false);
+  for(const copy of ['Choose “Continue”','start a 30-day management session','signs out other devices currently managing those listings','edit listing details','add, remove, or reorder photos','mark gear pending or available','renew or relist eligible listings','remove a listing and recover it for 30 days','one-use and expires after 30 minutes'])assert.ok(body.text.includes(copy),copy);
+  const durableOptions={};await sendManagementLink({recipient:sample.email,token:TOKEN,durable:true},{GEAR_RESEND_API_KEY:'test_key'},{fetcher:async(_target,value)=>{Object.assign(durableOptions,value);return new Response(JSON.stringify({id:responseId}),{status:200});}});
+  const durable=JSON.parse(durableOptions.body);for(const copy of ['Save this email','Use this private link anytime','specific to this listing','Choose “Continue”','replaces any current Gear management session','signs out any other device using this link','session for this listing only','do not forward it','permanent deletion','verified email change','owner moderation','does not reissue it','temporary access link'])assert.ok(durable.text.includes(copy),copy);
 });
 
 test('mail validation and provider failures reveal no private provider detail',async()=>{
