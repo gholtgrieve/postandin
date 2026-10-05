@@ -48,7 +48,7 @@ test('verification mail configuration, input, timeout and provider failures stay
     [{GEAR_RESEND_API_KEY:'bad key'},async()=>Response.json({id:RESPONSE_ID}),'config',true,{recipient:sample.email,token:TOKEN}],
     [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('private',{status:400}),'status:400',true,{recipient:sample.email,token:TOKEN}],
     [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('private',{status:503}),'status:503',false,{recipient:sample.email,token:TOKEN}],
-    [{GEAR_RESEND_API_KEY:'key'},async()=>new Response(null,{status:302,headers:{Location:'https://example.test'}}),'status:302',false,{recipient:sample.email,token:TOKEN}],
+    [{GEAR_RESEND_API_KEY:'key'},async()=>new Response(null,{status:302,headers:{Location:'https://example.test'}}),'status:302',true,{recipient:sample.email,token:TOKEN}],
     [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('x'.repeat(4097)),'response',false,{recipient:sample.email,token:TOKEN}],
     [{GEAR_RESEND_API_KEY:'key'},async()=>new Response('{'),'response',false,{recipient:sample.email,token:TOKEN}],
     [{GEAR_RESEND_API_KEY:'key'},async()=>Response.json({id:'bad'}),'response',false,{recipient:sample.email,token:TOKEN}],
@@ -137,8 +137,10 @@ test('verification request rejects unavailable drafts and reports mail failure h
   try{
     let response=await createVerificationRequestHandler({issue:async()=>null,state:async()=>null,send:async()=>assert.fail('must not send'),configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,404);
     response=await createVerificationRequestHandler({issue:async()=>null,state:async()=>({verifiedAt:100}),send:async()=>assert.fail('must not send'),configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,409);assert.match(await response.text(),/already published/);
-    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('status:503');},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,503);const text=await response.text();assert.ok(text.includes('draft is saved'));assert.equal(text.includes(TOKEN),false);assert.equal(releases,0);
-    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('status:400',{releasable:true});},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,503);assert.equal(releases,1);assert.equal(JSON.stringify(logs).includes(sample.email),false);
+    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('status:503');},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,202);const result=await response.json();assert.deepEqual(result,{message:'Verification email delivery could not be confirmed. Check your inbox before resending.',uncertain:true});assert.equal(JSON.stringify(result).includes(TOKEN),false);assert.equal(releases,0);
+    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('response');},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,202);assert.equal((await response.json()).uncertain,true);assert.equal(releases,0);
+    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('status:400',{releasable:true});},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,503);assert.match((await response.json()).error,/draft is saved/);assert.equal(releases,1);assert.equal(JSON.stringify(logs).includes(sample.email),false);
+    response=await createVerificationRequestHandler({issue:async()=>({recipient:sample.email,token:TOKEN}),release:async()=>{releases++;return true;},send:async()=>{throw new GearVerificationMailUnavailableError('status:302',{releasable:true});},configured:()=>true})(context(request('/api/gear/verification/request',{id})));assert.equal(response.status,503);assert.equal(releases,2);
     for(const bad of ['bad','00000000-0000-0000-0000-000000000000'])assert.equal((await createVerificationRequestHandler()(context(request('/api/gear/verification/request',{id:bad})))).status,400);
     assert.equal((await createVerificationRequestHandler()(context(request('/api/gear/verification/request',{id}),{}))).status,503);
   }finally{console.error=saved;}
@@ -157,11 +159,11 @@ test('failed delivery releases its count and cooldown without touching a newer t
   }finally{db.close();}
 });
 
-test('ambiguous provider failures keep the token, cap count and cooldown reserved',async()=>{
+test('ambiguous provider failures tell the seller to check email while keeping the token, cap count and cooldown reserved',async()=>{
   const db=openLocalDatabase(),draft=await createDraft(db,sample,0);let now=100000,fail=true;
   const handler=createVerificationRequestHandler({configured:()=>true,now:()=>now,send:async()=>{if(fail)throw new GearVerificationMailUnavailableError('network');}});
   try{
-    let response=await handler(context(request('/api/gear/verification/request',{id:draft.id}),mailEnv(db)));assert.equal(response.status,503);
+    let response=await handler(context(request('/api/gear/verification/request',{id:draft.id}),mailEnv(db)));assert.equal(response.status,202);assert.deepEqual(await response.json(),{message:'Verification email delivery could not be confirmed. Check your inbox before resending.',uncertain:true});
     const reserved=db.sqlite.prepare('SELECT issue_count,created_at FROM gear_verification_tokens WHERE listing_id=?').get(draft.id);assert.deepEqual({...reserved},{issue_count:1,created_at:now});
     fail=false;response=await handler(context(request('/api/gear/verification/request',{id:draft.id}),mailEnv(db)));assert.equal(response.status,429);assert.equal(db.sqlite.prepare('SELECT issue_count FROM gear_verification_tokens').get().issue_count,1);
     now+=VERIFICATION_REISSUE_COOLDOWN_MS;response=await handler(context(request('/api/gear/verification/request',{id:draft.id}),mailEnv(db)));assert.equal(response.status,202);assert.equal(db.sqlite.prepare('SELECT issue_count FROM gear_verification_tokens').get().issue_count,2);

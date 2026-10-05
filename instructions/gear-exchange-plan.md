@@ -18,10 +18,11 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Launch deployment: PR #22. Follow-up public discoverability: PR #23.
+Launch deployment: PR #22. Follow-up public discoverability: PR #23. Durable
+post-verification management email: PR #24.
 
-Current production state: PR #23 is merged and live. All
-seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
+Current production state: PR #24 is merged and live at merge commit `ff02927`.
+All seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
 and no repository-level `GEAR_BACKUP_*` secret remains. The first production
 backup and exact B2 read-back passed, followed by the isolated restore rehearsal;
 the staging and production export upper bounds were 3.04 and 6.89 seconds on
@@ -90,10 +91,12 @@ Pages handler. All timestamps use milliseconds.
 A newly committed production verification now automatically issues and sends a
 durable, listing-scoped management link to the verified seller address. Safe
 replay of the committed verification response does not send a duplicate. The
-email explains that the saved link remains reusable while that listing is
-available, pending, closed, expired, or within seller-deletion recovery, starts a 30-day session limited to that
-listing, and supports editing, photos, availability, renewal, removal, and
-recovery. The stored token is hash-only. Permanent deletion, verified email
+deployed email asks the seller to save the message, explains that the link is
+private and listing-specific, describes the **Continue** confirmation and its
+30-day listing-scoped session, summarizes editing and recovery actions, and
+identifies when the link stops working. The stored token is hash-only. The link
+remains reusable while that listing is available, pending, closed, expired, or
+within seller-deletion recovery. Permanent deletion, verified email
 transfer, or owner moderation permanently deletes it and revokes its live
 listing-scoped sessions; restoration does not reissue it. Opening the link is
 inert until the seller chooses **Continue**, and the confirmation
@@ -101,9 +104,34 @@ warns that it replaces any current Gear management session in that browser.
 Provider or issuance failure is
 logged without private details and cannot roll back publication. The
 browser directs the seller to check the automatic email before using the existing
-generic recovery form. No provider call, production data change, or deployment is
-part of this local increment. Migration 0020 is additive and must precede the
-corresponding Pages deployment.
+generic recovery form. Migration 0020 was applied before PR #24 deployed, and
+the production route and reusable management-link behavior were verified after
+merge.
+
+### Verification delivery-response fix — current branch
+
+The verification request route now distinguishes a definite pre-delivery failure
+from an ambiguous provider outcome. Definite failures still preserve the draft,
+return an error, release the attempt when safe, and permit an immediate retry.
+When a network, 5xx, or post-acceptance response cannot establish whether Resend
+accepted the message, the usable token and rate-limit reservation remain in
+place, and the browser opens the **Check your email** state. It explains that the
+message may already be on its way and asks the seller to check their inbox,
+including spam, before resending. This prevents the false failure banner that can
+otherwise accompany an email that was actually delivered.
+
+This branch also shortens the automatic durable management email at the owner's
+request. It removes the paragraph describing **Continue**, session replacement,
+and other-device sign-out, plus the paragraph listing permanent revocation
+conditions. The confirmation page still explains the session and device effects;
+the email retains its save-this-message instruction, private-link warning,
+management-action summary, and temporary-access recovery direction.
+
+The focused route and browser-adapter tests pass, the isolated production-origin
+Chrome harness passes at 320 px, 768 px, and 1040 px, and the complete repository
+suite passes 523/523. No production data or provider was contacted. This source
+change uses the ordinary Pages deployment through a merge to `main`; it does not
+require a separate Worker deployment.
 
 ### Current increment: connected local preview
 

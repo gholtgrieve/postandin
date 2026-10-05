@@ -98,7 +98,9 @@ dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
 A random draft ID permits at most five verification emails with a one-minute
 cooldown; the Resend adapter
 sends a 30-minute fragment credential only to the stored address, and a separate
-explicit POST publishes the listing. A newly committed publication automatically
+explicit POST publishes the listing. If Resend's outcome is ambiguous, the page
+asks the seller to check their inbox, including spam, before resending instead
+of reporting a definite failure. A newly committed publication automatically
 emails a durable, listing-scoped management link with brief instructions. The
 saved link remains reusable while that listing is available, pending, closed,
 expired, or within seller-deletion recovery. Opening it is inert until the

@@ -369,9 +369,9 @@ async function prepareProductionDraftForReview(){
  status.classList.remove('is-busy','is-error');status.removeAttribute('aria-busy');status.textContent='';status.hidden=true;
  $('#pi-post-turnstile').hidden=true;$('#pi-turnstile-status').textContent='';renderReview();showPostStep(3);return '#pi-post-submit';
 }
-function showProductionDelivery(){
+function showProductionDelivery(uncertain=false){
  verifyMode='deliver';
- $('#pi-verify-title').textContent='Check your email';$('#pi-verify-intro').hidden=false;$('#pi-verify-intro-text').textContent='Open the link we sent to ';$('#pi-verify-email').hidden=false;$('#pi-verify-email').textContent=pendingDraft.email;$('#pi-verify-detail').hidden=false;$('#pi-verify-detail').textContent='It expires in 30 minutes.';
+ $('#pi-verify-title').textContent='Check your email';$('#pi-verify-intro').hidden=false;$('#pi-verify-intro-text').textContent=uncertain?'A verification email may already be on its way to ':'Open the link we sent to ';$('#pi-verify-email').hidden=false;$('#pi-verify-email').textContent=pendingDraft.email;$('#pi-verify-detail').hidden=false;$('#pi-verify-detail').textContent=uncertain?'Delivery could not be confirmed. Check your inbox, including spam, before resending. The link expires in 30 minutes.':'It expires in 30 minutes.';
  $('.pi-email-example').hidden=true;$('#pi-simulate-verify').textContent='Resend email';$('#pi-simulate-verify').className='pi-text-button';$('#pi-verify-note').hidden=true;$('#pi-verify-back').hidden=false;
  $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;
 }
@@ -395,7 +395,7 @@ function takeChangedVerificationLink(){
 if(productionMode)window.addEventListener('hashchange',takeChangedVerificationLink);
 async function requestVerification(){
  if(!localDraftId)throw adapter.safeError('Submit the listing form first.');
- if(productionMode){await productionDraftRequest(()=>api.requestVerification(localDraftId),{notFoundExpires:true});showProductionDelivery();return '#pi-verify-title';}
+ if(productionMode){const result=await productionDraftRequest(()=>api.requestVerification(localDraftId),{notFoundExpires:true});showProductionDelivery(result.uncertain===true);return '#pi-verify-title';}
  verificationReceipt=(await api.request('/drafts/'+localDraftId+'/verification',{})).receipt;
  $('#pi-verify-email').textContent=pendingDraft.email;$('#pi-email-item').textContent=pendingDraft.title;
  $('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;

@@ -39,6 +39,8 @@ test('production posting adapter uses bounded same-origin requests and preserves
   const listing={title:'Bag'};await api.createDraft(listing,'turnstile-token');
   assert.deepEqual(await api.requestVerification('00000000-0000-4000-8000-000000000001'),{message:'Verification email accepted for delivery.'});
   await assert.rejects(api.requestVerification('00000000-0000-4000-8000-000000000001'),error=>error.safe&&error.status===429&&error.retryAfter===42&&/Too many requests/.test(error.message));
+  const uncertain=productionAPI({origin:ORIGIN,fetcher:async()=>json(202,{message:'Verification email delivery could not be confirmed. Check your inbox before resending.',uncertain:true})});
+  assert.deepEqual(await uncertain.requestVerification('00000000-0000-4000-8000-000000000001'),{message:'Verification email delivery could not be confirmed. Check your inbox before resending.',uncertain:true});
   await api.confirmVerification(TOKEN);
   assert.equal(calls[0].options.method,'GET');assert.equal(calls[0].options.referrerPolicy,'no-referrer');
   assert.deepEqual(JSON.parse(calls[1].options.body),{listing,turnstileToken:'turnstile-token'});assert.deepEqual(JSON.parse(calls[2].options.body),{id:'00000000-0000-4000-8000-000000000001'});assert.deepEqual(JSON.parse(calls[3].options.body),{id:'00000000-0000-4000-8000-000000000001'});assert.deepEqual(JSON.parse(calls[4].options.body),{token:TOKEN,confirm:true});
@@ -47,6 +49,7 @@ test('production posting adapter uses bounded same-origin requests and preserves
 
 test('posting adapter rejects malformed success shapes and bounds server errors',async()=>{
   const malformed=productionAPI({origin:ORIGIN,fetcher:async()=>json(202,{})});await assert.rejects(malformed.requestVerification('00000000-0000-4000-8000-000000000001'),/unreadable response/);
+  const malformedUncertainty=productionAPI({origin:ORIGIN,fetcher:async()=>json(202,{message:'Check your email.',uncertain:'true'})});await assert.rejects(malformedUncertainty.requestVerification('00000000-0000-4000-8000-000000000001'),/unreadable response/);
   const nonJson=productionAPI({origin:ORIGIN,fetcher:async()=>new Response('<html>',{status:200,headers:{'Content-Type':'text/html'}})});await assert.rejects(nonJson.requestVerification('00000000-0000-4000-8000-000000000001'),error=>error.safe&&error.status===0&&/unreadable response/.test(error.message));
   const oversize=productionAPI({origin:ORIGIN,fetcher:async()=>new Response('x'.repeat(65537),{status:200})});await assert.rejects(oversize.requestVerification('00000000-0000-4000-8000-000000000001'),error=>error.safe&&error.status===0&&/unreadable response/.test(error.message));
   const unavailable=productionAPI({origin:ORIGIN,fetcher:async()=>new Response('gateway',{status:522})});await assert.rejects(unavailable.requestVerification('00000000-0000-4000-8000-000000000001'),error=>error.safe&&error.status===522&&/temporarily unavailable/.test(error.message));
@@ -83,6 +86,9 @@ test('posting flow keeps photos in the main path and handles draft upload retrie
   assert.match(source,/data-review-photo/);
   assert.match(source,/Verify \$\{d\.email\} to publish for 30 days/);
   assert.match(source,/notFoundExpires:true/);
+  assert.match(source,/showProductionDelivery\(result\.uncertain===true\)/);
+  assert.match(source,/A verification email may already be on its way to/);
+  assert.match(source,/Check your inbox, including spam, before resending/);
   assert.match(html,/id="pi-verify-back" data-post-back="1"/);
   assert.doesNotMatch(source,/This saved draft can request another email without a new privacy check/);
   assert.match(styles,/button:disabled\{cursor:not-allowed;opacity:\.5\}/);
