@@ -1295,8 +1295,8 @@ rechecks draft state, seller/email consistency, the active-listing quota and
 duplicate constraints atomically. Confirmation does
 not create a seller-management session. On the newly committed transition, the
 server automatically issues and sends a durable, listing-scoped management link
-to the verified seller address. This durable management-link change deploys with
-the Pages merge after migration 0020 is applied. The hash-only credential remains reusable while
+to the verified seller address. Migration 0020 was applied and verified before
+the PR #24 Pages merge, and this durable management-link behavior is live. The hash-only credential remains reusable while
 that listing is available, pending, closed, expired, or within seller-deletion
 recovery; opening it is inert until the seller chooses **Continue**, which
 explicitly creates a 30-day session authorized only for that listing, replaces
@@ -1343,8 +1343,9 @@ workflow targets the branch-restricted
 lifecycle, offline `age` identity and owner-approved D1 Edit token are configured.
 Current environment and secret-migration state is maintained in
 `gear-lean-backup.md`. The first real encrypted backup, exact B2 read-back and
-isolated JSON/SQLite/data-only-SQL restore rehearsal passed on 2026-10-03 PDT;
-the 08:17 UTC nightly schedule is enabled by the launch change. See
+isolated JSON/SQLite/data-only-SQL restore rehearsal passed on 2026-10-03 PDT.
+The first unattended scheduled run also passed, but GitHub enqueued it about
+8 hours 50 minutes after its nominal 08:17 UTC slot. See
 [gear-lean-backup.md](gear-lean-backup.md).
 
 The deployed production photo adapter uses a ten-minute Direct Creator Upload
@@ -1628,5 +1629,6 @@ Local Gear cleanup now runs on server startup and daily while listening, with
 one-minute failure retries. The approved short retention schedule and optional
 snapshot-pruning directory are documented in `gear-lifecycle.md`.
 The production cleanup schedule and failure/recovery alerts are provisioned.
-The records-backup workflow passed its first production backup and isolated
-restore rehearsal and is scheduled nightly at 08:17 UTC.
+The records-backup workflow passed its first production backup, isolated restore
+rehearsal, and first unattended scheduled run. It is scheduled nightly at 08:17
+UTC, but the first cron event was enqueued about 8 hours 50 minutes late.

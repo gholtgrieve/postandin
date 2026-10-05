@@ -126,7 +126,8 @@ test('Gear backup workflow remains manual-capable, nightly, pinned and productio
   const runbook=readFileSync(new URL('../instructions/gear-launch-runbook.md',import.meta.url),'utf8');
   const active=workflow.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
   assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:\n  schedule:\n    - cron: "17 8 * * *"');
-  assert.match(runbook,/first 08:17 UTC \(`17 8 \* \* \*`\)\s+occurrence/);
+  assert.match(runbook,/first\s+unattended scheduled backup, GitHub Actions run `37346066982`/);
+  assert.match(runbook,/08:17 UTC \(`17 8 \* \* \*`\) slot/);
   assert.match(active,/^permissions:\n  contents: read$/m);
   assert.match(active,/^          persist-credentials: false$/m);
   assert.match(workflow,/^    environment: gear-backup$/m);

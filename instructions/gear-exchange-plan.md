@@ -19,9 +19,10 @@ to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
 Launch deployment: PR #22. Follow-up public discoverability: PR #23. Durable
-post-verification management email: PR #24.
+post-verification management email: PR #24. Verification-delivery response and
+management-email copy follow-up: PR #25.
 
-Current production state: PR #24 is merged and live at merge commit `ff02927`.
+Latest Gear code release: PR #25, merge commit `26facd0`, is live on Pages.
 All seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
 and no repository-level `GEAR_BACKUP_*` secret remains. The first production
 backup and exact B2 read-back passed, followed by the isolated restore rehearsal;
@@ -33,8 +34,10 @@ its controlled production run, the Pages merge, production browser/API/Access
 smoke checks, and an owner-approved encrypted B2 upload/read-back all passed.
 The discoverability change (PR #23) adds the homepage Gear card, removes public Gear
 `noindex`, updates the sitemap, and preserves `noindex` on owner assets.
-The owner-approved post-merge production backup and exact read-back passed in
-GitHub Actions run `37227958428`.
+The owner-approved production backup and exact read-back after the PR #22 merge
+passed in GitHub Actions run `37227958428`. The first unattended scheduled
+backup later passed in run `37346066982` on `ff02927`; GitHub created it about
+8 hours 50 minutes after its nominal 08:17 UTC slot.
 
 | Commit | Completed increment |
 |---|---|
@@ -92,9 +95,9 @@ A newly committed production verification now automatically issues and sends a
 durable, listing-scoped management link to the verified seller address. Safe
 replay of the committed verification response does not send a duplicate. The
 deployed email asks the seller to save the message, explains that the link is
-private and listing-specific, describes the **Continue** confirmation and its
-30-day listing-scoped session, summarizes editing and recovery actions, and
-identifies when the link stops working. The stored token is hash-only. The link
+private and listing-specific, summarizes the available management actions, warns
+against forwarding, and points to temporary-access recovery if the message is
+lost. The stored token is hash-only. The link
 remains reusable while that listing is available, pending, closed, expired, or
 within seller-deletion recovery. Permanent deletion, verified email
 transfer, or owner moderation permanently deletes it and revokes its live
@@ -108,7 +111,7 @@ generic recovery form. Migration 0020 was applied before PR #24 deployed, and
 the production route and reusable management-link behavior were verified after
 merge.
 
-### Verification delivery-response fix — current branch
+### Verification delivery-response fix — deployed in PR #25
 
 The verification request route now distinguishes a definite pre-delivery failure
 from an ambiguous provider outcome. Definite failures still preserve the draft,
@@ -120,20 +123,31 @@ message may already be on its way and asks the seller to check their inbox,
 including spam, before resending. This prevents the false failure banner that can
 otherwise accompany an email that was actually delivered.
 
-This branch also shortens the automatic durable management email at the owner's
-request. It removes the paragraph describing **Continue**, session replacement,
-and other-device sign-out, plus the paragraph listing permanent revocation
+This release also shortens the automatic durable management email at the owner's
+request. It removes the sentences describing **Continue**, session replacement,
+and other-device sign-out, plus the sentence listing permanent revocation
 conditions. The confirmation page still explains the session and device effects;
 the email retains its save-this-message instruction, private-link warning,
 management-action summary, and temporary-access recovery direction.
 
-The focused route and browser-adapter tests pass, the isolated production-origin
-Chrome harness passes at 320 px, 768 px, and 1040 px, and the complete repository
-suite passes 523/523. No production data or provider was contacted. This source
-change uses the ordinary Pages deployment through a merge to `main`; it does not
-require a separate Worker deployment.
+Before merge, the focused route and browser-adapter tests passed, the isolated
+production-origin Chrome harness passed at 320 px, 768 px, and 1040 px, and the
+complete repository suite passed 523/523. No production data or provider was
+contacted during that verification. The Cloudflare Pages check for `26facd0`
+succeeded. A read-only post-deploy smoke check confirmed the public Gear page,
+its no-cache HTML headers, and the new ambiguous-delivery browser code in the
+live public modules; it did not create a listing or invoke either email path.
+`gear-maintenance` reaches `lib/gear-management-mail.mjs` only through
+`lib/gear-maintenance-alert.mjs`, which imports only the unchanged
+`validateManagementEmail` export; it does not import
+`lib/gear-verification-mail.mjs`. No migration was involved. No Worker imported
+changed behavior, so no separate Worker deployment was required.
 
-### Current increment: connected local preview
+### Next bounded task
+
+None is queued; await owner direction.
+
+### Connected local preview — historical increment
 
 The owner resumed work September 27 after the requested overnight stop.
 Claude's D1 review approved `2d33253`; optional coverage and documentation
@@ -149,7 +163,7 @@ and retested afterward. This increment is included in the local commit titled
 `Connect Gear Exchange preview to the local HTTPS API`; use Git history for its
 hash. No push, merge or deployment.
 
-### Email-change UI increment
+### Email-change UI — historical increment
 
 Connected local management now requests and confirms email transfers with the
 existing backend. See [gear-email-change.md](gear-email-change.md) for behavior,
@@ -160,7 +174,7 @@ follow-ups were fixed and browser-tested afterward; no additional review pass.
 This work is included in the local commit titled `Connect local Gear email-change management`;
 use Git history for its hash. No push, merge or deployment.
 
-### Next bounded task
+### Local photos — historical increment
 
 The reviewed persistent local-photo increment is included in the local commit
 `Add persistent photos to local Gear management` (baseline `7753fa2`); use Git
@@ -1406,7 +1420,7 @@ python3 -m http.server 8771 --bind 127.0.0.1
 ```
 
 Open `http://127.0.0.1:8771/gear/`. The demo Homepage is inside that preview;
-the real site's homepage has not received the Gear card.
+the real homepage Gear card shipped in PR #23.
 
 Local storage API (Node 24; no package installation):
 
@@ -1419,7 +1433,7 @@ safeguards and migration limitations. Do not assume a prior server is running.
 Use a new sample database filename if it predates unreleased schema edits;
 never silently drop or rewrite an existing database.
 
-### Review history, remaining notes and release boundary
+### Historical review notes and pre-launch boundary
 
 Claude's preview re-review and local-storage re-review both concluded **ready
 to merge for their limited development increments**, based on source only.
@@ -1482,7 +1496,7 @@ Links: Browse Gear, View Ice Time Calendar, Browse Coach Profiles.
 Preserve the current homepage/coaches colors and typography. Do not restore the
 removed seller label, contact filler, or pickup explanatory paragraph.
 
-## Claude review disposition
+## Historical Claude review disposition
 
 The September 25 design review concluded ready after design fixes. It inspected
 source, not a rendered browser, and could not read the accompanying design brief.
@@ -1502,7 +1516,7 @@ homepage and coaches use the prototype's charcoal/mustard variants. The technica
 spec's generic color table differs from those pages. Approved home copy/order
 stands. The unrelated Groups binding-error finding is outside this increment.
 
-## Implementation sequence
+## Historical implementation sequence
 
 1. Shared field/search contract and focused tests — complete.
 2. Repo-based preview screens and design fixes — complete; local simulation
@@ -1517,9 +1531,9 @@ stands. The unrelated Groups binding-error finding is outside this increment.
    moderation, with abuse limits and failure-path tests — complete.
 6. Retention/cleanup, restore rehearsal, policies, integration checks,
    owner-mediated implementation review and separately authorized launch —
-   complete. The discoverability release is the remaining follow-up.
+   complete, including the PR #23 discoverability release.
 
-## Operational requirements before launch
+## Historical operational requirements for launch
 
 The approved production services—D1 records, Cloudflare Images, Pages Functions,
 Resend transactional mail, Cloudflare Access, scheduled maintenance and encrypted

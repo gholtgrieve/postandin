@@ -7,8 +7,10 @@ and deployment secret names is maintained in the launch runbook's
 Status: the production backup workflow completed its first real encrypted backup,
 B2 read-back and isolated local restore rehearsal on 2026-10-03 PDT. The
 production D1 export completed in a conservative 6.89-second upper bound. The
-nightly 08:17 UTC schedule is enabled by the launch change that records this
-evidence.
+first unattended scheduled backup, GitHub Actions run `37346066982`, succeeded
+on `ff02927`; GitHub enqueued it at 17:07 UTC, about 8 hours 50 minutes after its
+nominal 08:17 UTC slot. Scheduled time therefore does not guarantee backup
+freshness, a low-traffic export window, or separation from maintenance.
 The owner created the private Backblaze bucket, restricted prefix key, 30-day
 lifecycle, offline `age` identity and owner-approved account-scoped D1 Edit token;
 the stronger permission is required by the export endpoint and has no Workers,
@@ -134,8 +136,10 @@ and photo-byte backup can be added as separately reviewed upgrades.
 
 Cloudflare documents that D1 is unavailable to queries while an export runs.
 The first staging run measured and recorded that interruption before the first
-production dispatch. The nightly job runs at 08:17 UTC; disable scheduling if a
-future measured impact becomes unacceptable.
+production dispatch. The nightly job is scheduled for 08:17 UTC, but GitHub may
+enqueue it late; the first scheduled run was enqueued at 17:07 UTC and exported
+during daytime traffic. Disable scheduling if a future measured impact becomes
+unacceptable.
 
 On 2026-10-03, an authenticated remote export of the isolated staging D1 database
 completed in 3.04 seconds wall-clock time. This is a conservative interruption

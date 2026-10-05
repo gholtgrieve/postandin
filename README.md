@@ -108,8 +108,8 @@ seller chooses **Continue**, which creates a 30-day session limited to that
 listing. The
 exact-origin browser loads Turnstile only when a public site key is configured,
 erases verification fragments before network work, and keeps confirmation usable
-when new posting is disabled. The durable management-link change deploys with
-the Pages merge after migration 0020 is applied. Production Pages and D1 are deployed. Turnstile,
+when new posting is disabled. Migration 0020 was applied and verified before the
+PR #24 Pages merge, and the durable management-link behavior is live. Production Pages and D1 are deployed. Turnstile,
 Resend, the feature switches, and the combined edge-limit rule are configured
 and active. See
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
