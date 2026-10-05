@@ -4,9 +4,9 @@ Status: production Pages routes, D1 binding, mail, Turnstile and the
 owner-approved combined Free-plan edge rule are live. The reviewed go-live
 deployment and production smoke checks passed. Tests continue to use temporary
 sample databases and mocked provider responses; the production database was
-empty at the recorded post-deploy inspection. The automatic
-post-verification management-email change described below deploys with the Pages
-merge after migration 0020 is applied.
+empty at the recorded post-deploy inspection. Migration 0020 was applied and
+verified before the PR #24 Pages merge, and the automatic post-verification
+management email described below is live.
 
 ## Credential flow and listing routes
 
@@ -35,8 +35,8 @@ Responses are JSON with `no-store`, `no-referrer` and `nosniff` headers.
    the pre-confirmation screen is scope-neutral. It warns that continuing replaces
    any current Gear management session in that browser and may sign out another
    device already managing the same listings. Automatic post-verification mail asks the
-   seller to save the email, explains that its link works while that listing is
-   available, pending, closed, expired, or within seller-deletion recovery, warns against forwarding it, and lists the available
+   seller to save the email, says the private link can be used anytime to manage
+   or recover that listing, warns against forwarding it, and lists the available
    actions. Recovery mail instead explains its 30-minute, one-use boundary.
 4. `POST /api/gear/management/confirm` requires the token and `confirm:true`.
    A recovery-token redemption consumes the token, revokes prior sessions for

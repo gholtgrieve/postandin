@@ -3,9 +3,9 @@
 Status: backend and browser flow are live with production D1. Turnstile, Resend
 and the owner-approved combined Free-plan edge rule are Active. The reviewed
 go-live deployment and production smoke checks passed; the production database
-was empty at the recorded post-deploy inspection. The automatic
-post-verification management-email change described below deploys with the Pages
-merge after migration 0020 is applied.
+was empty at the recorded post-deploy inspection. Migration 0020 was applied and
+verified before the PR #24 Pages merge, and the automatic post-verification
+management email described below is live.
 
 ## Request flow
 

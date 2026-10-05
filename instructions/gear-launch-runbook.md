@@ -15,13 +15,13 @@ The owner explicitly approved the post-merge backup; GitHub Actions run
 `37227958428` completed the encrypted B2 upload and exact read-back on the merged
 schema. The nightly records-backup schedule remains `17 8 * * *` UTC.
 
-The current unreleased increment adds
-`migrations/gear/0020_listing_management_links.sql`. Before merging this
-increment to `main` (which deploys Pages), apply migration 0020 to the target D1 database and verify that
-`gear_listing_management_links` exists and `gear_management_sessions` includes
-nullable `listing_id`. The migration is additive, but the prior Pages code does
-not enforce `listing_id` and would widen a live listing-scoped session to every
-listing owned by that seller. Before rolling Pages back past this increment:
+PR #24 added `migrations/gear/0020_listing_management_links.sql`. Migration 0020
+was applied to the production D1 database and verified before the PR #24 Pages
+merge: `gear_listing_management_links` exists, and
+`gear_management_sessions` includes nullable `listing_id`. The migration is
+additive, but Pages code from before PR #24 does not enforce `listing_id` and
+would widen a live listing-scoped session to every listing owned by that seller.
+Before rolling Pages back past PR #24:
 
 1. place a temporary edge block on public
    `/api/gear/verification/confirm` and `/api/gear/management/*` requests, and
@@ -443,10 +443,14 @@ exact read-back against the merged schema. The owner approved proceeding to
 launch with that manual run as the first-run gate instead of waiting for the
 first cron event. The GitHub environment API confirmed `gear-backup` has no
 required-reviewer or wait-timer protection (only the `main` branch policy), so
-unattended scheduled runs are not waiting for human approval. The scheduler
-itself remains an operational check for its first 08:17 UTC (`17 8 * * *`)
-occurrence; it was
-not falsely marked as exercised by the manual run. The reviewed discoverability release
+unattended scheduled runs are not waiting for human approval. The first
+unattended scheduled backup, GitHub Actions run `37346066982`, succeeded on
+`ff02927`. GitHub created it at 17:07 UTC on 2026-10-05, about 8 hours 50 minutes
+after its 08:17 UTC (`17 8 * * *`) slot, so operators must allow for a late cron
+enqueue when assessing backup freshness. The workflow was enqueued at 10:07 PDT,
+and its export therefore ran during daytime traffic. A late GitHub enqueue means
+neither the intended low-traffic window nor separation from the 11:00 UTC
+maintenance run is guaranteed. The reviewed discoverability release
 adds the homepage Gear card, removes public Gear `noindex`, updates the sitemap,
 and retains owner `noindex`. After deployment, purge only `/`, `/gear/`,
 `/robots.txt`, and `/sitemap.xml`, then verify those four responses plus a real

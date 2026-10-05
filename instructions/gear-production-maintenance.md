@@ -1,10 +1,10 @@
 # Gear Exchange production scheduled maintenance
 
 Status: owner-authorized production deployment completed on 2026-10-04.
-Migrations 0001–0019, the reviewed Worker, its controlled run, and the Pages
-launch are live. Migration 0020 and the durable listing-link behavior deploy with
-the Pages merge after migration 0020 is applied; they do not change this Worker's
-behavior. The Worker bundle includes `lib/gear-photo-quarantine.mjs`, but uses
+Migrations 0001–0020, the reviewed Worker, its controlled run, and the Pages
+launch are live. Migration 0020 was applied and verified before the PR #24 Pages
+merge, and the durable listing-link behavior is live; neither changed this
+Worker's behavior. The Worker bundle includes `lib/gear-photo-quarantine.mjs`, but uses
 only its `GEAR_QUARANTINE_CLAIM_MS` export. It also includes
 `lib/gear-management-mail.mjs` through `lib/gear-maintenance-alert.mjs`, but uses
 only its unchanged `validateManagementEmail` export. Neither used export changed,

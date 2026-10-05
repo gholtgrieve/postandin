@@ -1,11 +1,11 @@
 # Gear Exchange production moderation foundation
 
-Status: production migrations 0001–0019, D1, private owner routes,
+Status: production migrations 0001–0020, D1, private owner routes,
 `gear-admin.postandin.com` and its exact-owner Access policy are deployed. The
 production moderation queue was empty, with no production report or moderation
-action, at the recorded post-deploy inspection on 2026-10-04. Migration 0020 and
-its durable listing-link behavior deploy with the Pages merge after migration
-0020 is applied.
+action, at the recorded post-deploy inspection on 2026-10-04. Migration 0020 was
+applied and verified before the PR #24 Pages merge, and its durable listing-link
+behavior is live.
 
 ## Storage boundary
 
