@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../lib/gear-verification.mjs';
-import {issueLocalManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
+import {issueLocalManagementLink,issuePostVerificationManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {issueLocalEmailChange,confirmEmailChange} from '../lib/gear-email-change.mjs';
 import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {
@@ -19,7 +19,7 @@ async function login(db,email=input.email,now=200){const receipt=await issueLoca
 test('migration 11 stores durable quarantine cleanup references without cascading them',async()=>{
   const db=openLocalDatabase();
   try{
-    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,19);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,20);
     const id=await publish(db),access=await login(db),row=await recordPhotoQuarantine(db,access.session,access.csrf,id,provider(1),201);
     assert.deepEqual({...row},{providerId:provider(1),listingId:id,createdAt:201,expiresAt:201+GEAR_QUARANTINE_TTL_MS});
     assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_photo_quarantines').get()).includes(access.session),false);
@@ -55,6 +55,16 @@ test('record and claim require the current seller session, listing and bounded l
     assert.equal(await claimPhotoQuarantine(db,access.session,access.csrf,provider(2),300+GEAR_QUARANTINE_TTL_MS),null);
     for(let index=3;index<=6;index++)assert.ok(await recordPhotoQuarantine(db,access.session,access.csrf,id,provider(index),301));
     assert.equal(await recordPhotoQuarantine(db,access.session,access.csrf,id,provider(7),301),null);
+  }finally{db.close();}
+});
+
+test('durable listing sessions cannot upload photos to another listing from the same seller',async()=>{
+  const db=openLocalDatabase();try{
+    const first=await publish(db),second=await publish(db,{title:'Second scoped bag'},101),wide=await login(db,input.email,140),foreign=await recordPhotoQuarantine(db,wide.session,wide.csrf,second,provider(2),150),foreignClaim=await claimPhotoQuarantine(db,wide.session,wide.csrf,foreign.providerId,151),link=await issuePostVerificationManagementLink(db,first,100),access=await redeemManagementLink(db,link.token,200);
+    assert.ok(await recordPhotoQuarantine(db,access.session,access.csrf,first,provider(1),201));
+    assert.equal(await recordPhotoQuarantine(db,access.session,access.csrf,second,provider(3),201),null);
+    assert.equal(await claimPhotoQuarantine(db,access.session,access.csrf,foreign.providerId,201),null);
+    assert.equal(await attachClaimedPhoto(db,access.session,access.csrf,foreign.providerId,foreignClaim.claim,provider(4),202),null);
   }finally{db.close();}
 });
 

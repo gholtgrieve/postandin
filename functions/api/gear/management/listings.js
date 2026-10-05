@@ -16,7 +16,7 @@ export function createManagementListingsHandler({read=readManagedSnapshotWithPho
       const timestamp=now(),snapshot=await read(db,session,timestamp);if(!snapshot)return json(401,{error:'Access unavailable.'});
       const sign=await signer(config,timestamp),listings=[];
       for(const {photoRefs,...row} of snapshot.listings)listings.push({...row,photos:await sign(photoRefs)});
-      return json(200,{listings,deleted:snapshot.deleted});
+      return json(200,{scope:snapshot.scope,listings,deleted:snapshot.deleted});
     }catch(error){console.error('Gear management listings request failed.',error);return json(500,{error:'Unable to load your listings right now.'});}
   };
 }

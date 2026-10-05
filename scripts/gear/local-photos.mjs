@@ -21,7 +21,8 @@ function owner(db,session,csrf,id,write=false){
  if(!/^[a-f0-9]{64}$/.test(session||'')||(write&&!/^[a-f0-9]{64}$/.test(csrf||'')))return false;
  const now=Date.now();return Boolean(db.sqlite.prepare(`SELECT l.id FROM gear_listings l JOIN gear_sellers s ON s.id=l.seller_id JOIN gear_management_sessions m ON m.seller_id=s.id
  WHERE l.id=? AND l.verified_at IS NOT NULL AND s.verified_at IS NOT NULL AND l.status!='unverified' ${write?"AND l.status!='removed'":''}
- AND m.session_hash=? AND m.created_at<=? AND m.expires_at>? AND m.revoked_at IS NULL ${write?'AND m.csrf_hash=?':''}`).get(...[id,hash(session),now,now,...(write?[hash(csrf)]:[])]));
+ AND m.session_hash=? AND m.created_at<=? AND m.expires_at>? AND m.revoked_at IS NULL
+ AND (m.listing_id IS NULL OR m.listing_id=l.id) ${write?'AND m.csrf_hash=?':''}`).get(...[id,hash(session),now,now,...(write?[hash(csrf)]:[])]));
 }
 export function photoRows(db,id,privateView=false){return db.sqlite.prepare('SELECT id FROM gear_local_photos WHERE listing_id=? ORDER BY position,id').all(id).map((r,i)=>({id:r.id,name:'Photo '+(i+1),url:(privateView?'/management':'')+'/photos/'+r.id}));}
 export function photoContent(db,id,session,privateView=false){

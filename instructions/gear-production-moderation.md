@@ -1,9 +1,11 @@
 # Gear Exchange production moderation foundation
 
-Status: migrations 0001–0018 (with 0019 required before the reviewed Pages launch), production D1, private owner routes,
+Status: production migrations 0001–0019, D1, private owner routes,
 `gear-admin.postandin.com` and its exact-owner Access policy are deployed. The
-production moderation queue is empty; no production report or moderation action
-has been created.
+production moderation queue was empty, with no production report or moderation
+action, at the recorded post-deploy inspection on 2026-10-04. Migration 0020 and
+its durable listing-link behavior deploy with the Pages merge after migration
+0020 is applied.
 
 ## Storage boundary
 
@@ -64,12 +66,17 @@ Each accepted action uses one D1 `batch`, which D1 executes as a transaction:
 - dismiss records history and changes one open report to `dismissed` without
   changing its listing;
 - remove requires one open report and a verified available/pending listing,
-  records its prior state, changes it to `removed`, resolves the report and
-  records history;
+  records its prior state, changes it to `removed`, resolves the report, records
+  history, permanently deletes its durable listing-management link, and revokes
+  every live listing-scoped session for it;
 - restore requires an active removal and a still-verified, unexpired listing,
   rechecks the ten-active-listing quota and live duplicates, expires only stale
   duplicate rows, restores the prior available/pending state, removes the active
   removal row and records history. It never extends expiry.
+
+Restoration does not recreate a deleted durable link or revoked scoped session.
+The seller can still request a temporary seller-wide recovery link at the public
+management form after restoration.
 
 Every write is gated on the history row created by that same batch. Invalid,
 stale and replayed requests make no changes and return a generic conflict. A SQL,

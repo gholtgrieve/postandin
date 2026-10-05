@@ -18,10 +18,9 @@ Work only in `/Users/gordonholtgrieve/Dropbox/Documents/postandin`, which resolv
 to the Dropbox team folder. Read `AGENTS.md` and `CLAUDE.md`. Do not implement
 in a generated Codex folder or copy the repo there.
 
-Launch merge: PR #22, merge commit `da562cf`. Discoverability follows in the
-reviewed `codex/gear-discoverability` change.
+Launch deployment: PR #22. Follow-up public discoverability: PR #23.
 
-Current increment: PR #22 is merged and live. All
+Current production state: PR #23 is merged and live. All
 seven workflow secrets are in the `main`-only `gear-backup` GitHub environment,
 and no repository-level `GEAR_BACKUP_*` secret remains. The first production
 backup and exact B2 read-back passed, followed by the isolated restore rehearsal;
@@ -31,8 +30,10 @@ the dedicated Images signing key separation is complete, and the public backup
 disclosure is present. Migration 0019, the reviewed `gear-maintenance` Worker,
 its controlled production run, the Pages merge, production browser/API/Access
 smoke checks, and an owner-approved encrypted B2 upload/read-back all passed.
-The discoverability change adds the homepage Gear card, removes public Gear
+The discoverability change (PR #23) adds the homepage Gear card, removes public Gear
 `noindex`, updates the sitemap, and preserves `noindex` on owner assets.
+The owner-approved post-merge production backup and exact read-back passed in
+GitHub Actions run `37227958428`.
 
 | Commit | Completed increment |
 |---|---|
@@ -83,6 +84,26 @@ available through listing management (see `gear-photos.md`). Do not mistake simu
 renewal or deletion for backend behavior. `readLocalDraft` exposes private sample
 email for trusted local inspection and must never become an unauthenticated
 Pages handler. All timestamps use milliseconds.
+
+### Post-verification management email — release increment
+
+A newly committed production verification now automatically issues and sends a
+durable, listing-scoped management link to the verified seller address. Safe
+replay of the committed verification response does not send a duplicate. The
+email explains that the saved link remains reusable while that listing is
+available, pending, closed, expired, or within seller-deletion recovery, starts a 30-day session limited to that
+listing, and supports editing, photos, availability, renewal, removal, and
+recovery. The stored token is hash-only. Permanent deletion, verified email
+transfer, or owner moderation permanently deletes it and revokes its live
+listing-scoped sessions; restoration does not reissue it. Opening the link is
+inert until the seller chooses **Continue**, and the confirmation
+warns that it replaces any current Gear management session in that browser.
+Provider or issuance failure is
+logged without private details and cannot roll back publication. The
+browser directs the seller to check the automatic email before using the existing
+generic recovery form. No provider call, production data change, or deployment is
+part of this local increment. Migration 0020 is additive and must precede the
+corresponding Pages deployment.
 
 ### Current increment: connected local preview
 

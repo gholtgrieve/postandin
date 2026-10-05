@@ -9,8 +9,11 @@ import * as requestRoute from '../functions/api/gear/verification/request.js';
 import * as confirmRoute from '../functions/api/gear/verification/confirm.js';
 import {createTurnstileVerifier,GearTurnstileRejectedError,GearTurnstileUnavailableError} from '../lib/gear-turnstile.mjs';
 import {createDraft,readPublicListings} from '../lib/gear-storage.mjs';
+import {changeListingState,editManagedListing,issueManagementLink,issuePostVerificationManagementLink,listManaged,redeemManagementLink} from '../lib/gear-management.mjs';
 import {confirmVerification,issueLocalVerification,issueVerification,releaseFailedVerificationIssue,TOKEN_TTL_MS,VERIFICATION_MAX_ISSUES,VERIFICATION_REISSUE_COOLDOWN_MS} from '../lib/gear-verification.mjs';
 import {GEAR_DRAFT_RETENTION_MS} from '../lib/gear-exchange.mjs';
+import {changeSellerDeletion} from '../lib/gear-seller-deletion.mjs';
+import {GearManagementMailUnavailableError} from '../lib/gear-management-mail.mjs';
 import {GearVerificationMailUnavailableError,sendVerificationLink} from '../lib/gear-verification-mail.mjs';
 
 const ORIGIN='https://postandin.com';
@@ -183,14 +186,66 @@ test('production issue and confirmation enforce the three-day draft boundary',as
   }finally{db.close();}
 });
 
-test('explicit production confirmation publishes once without creating a session',async()=>{
+test('explicit production confirmation publishes once and automatically sends one management link',async()=>{
   const db=openLocalDatabase();try{
-    const draft=await createDraft(db,sample,100),receipt=await issueVerification(db,draft.id,200),handler=createVerificationConfirmHandler({now:()=>201});
+    const deliveries=[],draft=await createDraft(db,sample,100),receipt=await issueVerification(db,draft.id,200),handler=createVerificationConfirmHandler({now:()=>201,send:async value=>deliveries.push(value)});
     assert.equal((await handler(context(request('/api/gear/verification/confirm',{token:receipt.token}),{GEAR_DB:db}))).status,400);
     let response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{verified:true,listingId:draft.id});assert.equal(response.headers.get('set-cookie'),null);
-    assert.equal((await readPublicListings(db,201)).length,1);response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{verified:true,listingId:draft.id,alreadyVerified:true});
+    assert.equal(deliveries.length,1);assert.equal(deliveries[0].recipient,sample.email);assert.equal(deliveries[0].durable,true);assert.match(deliveries[0].token,/^[a-f0-9]{64}$/);assert.equal(JSON.stringify(db.sqlite.prepare('SELECT * FROM gear_listing_management_links').all()).includes(deliveries[0].token),false);
+    assert.equal((await readPublicListings(db,201)).length,1);response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{verified:true,listingId:draft.id,alreadyVerified:true});assert.equal(deliveries.length,1);
     db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(draft.id);response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,400);
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_sessions').get().n,0);
+  }finally{db.close();}
+});
+
+test('post-verification management links are durable, reusable and listing-scoped',async()=>{
+  const db=openLocalDatabase();try{
+    const first=await createDraft(db,sample,100),firstVerification=await issueLocalVerification(db,first.id,200);assert.equal((await confirmVerification(db,firstVerification.token,201)).verified,true);
+    assert.equal(await issuePostVerificationManagementLink(db,first.id,200),null);const firstLink=await issuePostVerificationManagementLink(db,first.id,201);assert.equal(firstLink.recipient,sample.email);assert.equal(firstLink.durable,true);
+    const second=await createDraft(db,{...sample,title:'Second verified listing'},202),secondVerification=await issueLocalVerification(db,second.id,203);assert.equal((await confirmVerification(db,secondVerification.token,204)).verified,true);
+    const secondLink=await issuePostVerificationManagementLink(db,second.id,204);assert.equal(secondLink.recipient,sample.email);assert.notEqual(secondLink.token,firstLink.token);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_management_links').get().n,0);assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listing_management_links').get().n,2);
+    const firstAccess=await redeemManagementLink(db,firstLink.token,205);assert.deepEqual((await listManaged(db,firstAccess.session,205)).map(row=>row.id),[first.id]);
+    assert.equal(await changeListingState(db,firstAccess.session,firstAccess.csrf,second.id,'pending',206),false);assert.equal(await editManagedListing(db,firstAccess.session,firstAccess.csrf,second.id,{...sample,title:'Blocked sibling edit'},206),false);assert.equal(db.sqlite.prepare('SELECT title FROM gear_listings WHERE id=?').get(second.id).title,'Second verified listing');assert.equal(await changeListingState(db,firstAccess.session,firstAccess.csrf,first.id,'pending',206),true);
+    const reused=await redeemManagementLink(db,firstLink.token,207);assert.ok(reused);assert.notEqual(reused.session,firstAccess.session);assert.equal(await listManaged(db,firstAccess.session,207),null);assert.deepEqual((await listManaged(db,reused.session,207)).map(row=>row.id),[first.id]);
+    assert.deepEqual(await changeSellerDeletion(db,reused.session,reused.csrf,{action:'delete',id:second.id},208),{ok:false,reason:'conflict'});assert.deepEqual(await changeSellerDeletion(db,reused.session,reused.csrf,{action:'delete',id:first.id},208),{ok:true});const recoveryAccess=await redeemManagementLink(db,firstLink.token,209);assert.ok(recoveryAccess);
+    assert.deepEqual(await changeSellerDeletion(db,recoveryAccess.session,recoveryAccess.csrf,{action:'recover',id:first.id},210),{ok:true});db.sqlite.prepare("UPDATE gear_listings SET status='removed' WHERE id=?").run(first.id);assert.equal(await redeemManagementLink(db,firstLink.token,211),null);
+  }finally{db.close();}
+});
+
+test('seller-wide recovery replaces a listing-scoped session',async()=>{
+  const db=openLocalDatabase();try{
+    const id=await publish(db),sibling=await publish(db,{title:'Recoverable sibling'},101),durable=await issuePostVerificationManagementLink(db,id,100),scoped=await redeemManagementLink(db,durable.token,200);
+    assert.ok(await listManaged(db,scoped.session,200));
+    const recovery=await issueManagementLink(db,sample.email,201),sellerWide=await redeemManagementLink(db,recovery.token,202);
+    assert.equal(await listManaged(db,scoped.session,202),null);assert.deepEqual(new Set((await listManaged(db,sellerWide.session,202)).map(row=>row.id)),new Set([id,sibling]));assert.deepEqual(await changeSellerDeletion(db,sellerWide.session,sellerWide.csrf,{action:'delete',id:sibling},203),{ok:true});
+    const scopedAgain=await redeemManagementLink(db,durable.token,204);assert.deepEqual(await changeSellerDeletion(db,scopedAgain.session,scopedAgain.csrf,{action:'recover',id:sibling},205),{ok:false,reason:'conflict'});
+  }finally{db.close();}
+});
+
+test('management mail failure never rolls back publication or leaks private details',async()=>{
+  const db=openLocalDatabase(),logs=[];try{
+    const draft=await createDraft(db,sample,100),receipt=await issueVerification(db,draft.id,200),handler=createVerificationConfirmHandler({now:()=>201,send:async()=>{throw new GearManagementMailUnavailableError('status:503');},log:(...values)=>logs.push(values)});
+    const response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{verified:true,listingId:draft.id});assert.equal((await readPublicListings(db,201)).length,1);
+    assert.deepEqual(logs,[['Gear post-verification management email delivery failed:','status:503']]);assert.equal(JSON.stringify(logs).includes(sample.email),false);assert.equal(JSON.stringify(logs).includes(receipt.token),false);
+  }finally{db.close();}
+});
+
+test('management-link issuance failure never rolls back publication',async()=>{
+  const db=openLocalDatabase(),logs=[];try{
+    const draft=await createDraft(db,sample,100),receipt=await issueVerification(db,draft.id,200),handler=createVerificationConfirmHandler({now:()=>201,issue:async()=>{throw new Error('private issuance detail');},log:(...values)=>logs.push(values)});
+    const response=await handler(context(request('/api/gear/verification/confirm',{token:receipt.token,confirm:true}),{GEAR_DB:db}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{verified:true,listingId:draft.id});assert.equal((await readPublicListings(db,201)).length,1);
+    assert.deepEqual(logs,[['Gear post-verification management link issuance failed.']]);assert.equal(JSON.stringify(logs).includes('private issuance detail'),false);
+  }finally{db.close();}
+});
+
+test('post-verification mail supports waitUntil and records a missing durable receipt',async()=>{
+  const db=openLocalDatabase(),pending=[],logs=[];try{
+    const first=await createDraft(db,sample,100),firstReceipt=await issueVerification(db,first.id,200),firstHandler=createVerificationConfirmHandler({now:()=>201,send:async()=>({id:RESPONSE_ID})});
+    const firstContext={...context(request('/api/gear/verification/confirm',{token:firstReceipt.token,confirm:true}),{GEAR_DB:db}),waitUntil:value=>pending.push(value)};
+    assert.equal((await firstHandler(firstContext)).status,200);assert.equal(pending.length,1);await pending[0];
+    const second=await createDraft(db,{...sample,title:'Missing management receipt'},202),secondReceipt=await issueVerification(db,second.id,203),secondHandler=createVerificationConfirmHandler({now:()=>204,issue:async()=>null,log:(...values)=>logs.push(values)});
+    assert.equal((await secondHandler(context(request('/api/gear/verification/confirm',{token:secondReceipt.token,confirm:true}),{GEAR_DB:db}))).status,200);assert.deepEqual(logs,[['Gear post-verification management link was not issued.']]);
   }finally{db.close();}
 });
 

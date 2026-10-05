@@ -15,7 +15,7 @@ const verificationToken=productionMode?takeVerificationToken():null;
 const managementToken=productionMode?takeManagementToken():null;
 const adapter=localMode?await import('./local-api.mjs'):productionMode?{productionAPI,safeError:productionSafeError,preparePhoto:prepareProductionPhoto,previewListing:productionPreviewListing,listingInput:productionListingInput,draftListingInput:productionDraftListingInput}:null;
 const api=localMode?adapter.localAPI():productionMode?adapter.productionAPI():null;
-let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,localDraftPhotoToken=null,signedIn=false,photoListingId=null,photoRefreshAttempted=false;
+let localBusy=false,verificationReceipt=null,loginReceipt=null,emailChangeReceipt=null,localDraftId=null,localDraftPhotoToken=null,signedIn=false,managementScope=null,photoListingId=null,photoRefreshAttempted=false,recoveryPromptPinned=false;
 let publicGeneration=0,publicLoading=productionMode,publicFailed=false,publicFetchedAt=0,publicPhotoRefreshAt=0,publicPhotoRefreshing=false;
 let postingAvailable=false,postingLoading=productionMode,postingSetup=null,turnstileSiteKey='',turnstileClient=null,turnstileWidget=null,turnstileToken='',productionVerificationToken=verificationToken,verificationScreenPending=false,verifyMode=null;
 let contactAvailable=false,contactWidget=null,contactToken='',contactRequestId=null;
@@ -24,7 +24,7 @@ let deleted=[],openDeletedAfterRefresh=false;
 const localNotice=document.createElement('p');localNotice.id='pi-local-notice';localNotice.className='pi-error';localNotice.tabIndex=-1;localNotice.setAttribute('role','alert');localNotice.hidden=true;root.prepend(localNotice);
 function showLocalError(message){delete localNotice.dataset.source;localNotice.textContent=message;localNotice.hidden=false;localNotice.focus();localNotice.scrollIntoView({block:'center'});}
 function showPassiveError(message,source=''){localNotice.dataset.source=source;localNotice.textContent=message;localNotice.hidden=false;}
-function clearLocalAccess(){deleted=[];if($('#pi-deleted-list'))$('#pi-deleted-list').replaceChildren();photoListingId=null;if(editingId)resetPost();resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
+function clearLocalAccess(){deleted=[];if($('#pi-deleted-list'))$('#pi-deleted-list').replaceChildren();photoListingId=null;recoveryPromptPinned=false;if(editingId)resetPost();resetEmailChange();if($('#pi-change-email')){$('#pi-change-email').value='';$('#pi-change-email').setCustomValidity('');}signedIn=false;managementScope=null;managed.length=0;renderManaged();$('#pi-recovery-form').hidden=false;}
 function serverField(error){
  if(error.emailChange&&error.fields?.email){const input=$('#pi-change-email');input.setCustomValidity(error.fields.email);return input;}
  const fields={title:'pi-post-name',description:'pi-post-description',category:'pi-post-category',size:'pi-post-size',fit:'pi-post-fit',condition:'pi-post-condition',city:'pi-post-city',priceCents:'pi-post-price',trade:'pi-post-trade',sellerName:'pi-post-seller',email:'pi-post-email',otherClub:'pi-other-club'};
@@ -62,7 +62,7 @@ async function refreshPublicListings(){
 }
 async function refreshLocal(){
  let publicError=null;try{await refreshPublicListings();}catch(error){if(localMode)throw error;publicError=error;}
- try{await api.session();const result=await api.request('/management/listings',productionMode?{}:undefined);signedIn=true;managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));deleted=productionMode?result.deleted:(await api.request('/management/deleted')).listings;}catch(error){if(error.status===401)clearLocalAccess();else throw error;}
+ try{await api.session();const result=await api.request('/management/listings',productionMode?{}:undefined);signedIn=true;managementScope=productionMode&&result.scope==='listing'?'listing':'seller';managed.splice(0,managed.length,...result.listings.map(adapter.previewListing));deleted=productionMode?result.deleted:(await api.request('/management/deleted')).listings;}catch(error){if(error.status===401)clearLocalAccess();else throw error;}
  renderManaged();render();
  if(publicError){if(state.screen==='gear')throw publicError;if(!publicError.safe)console.error(publicError);showPassiveError(publicError.safe?publicError.message:'Unable to load Gear listings right now.','public');}
 }
@@ -299,7 +299,7 @@ root.querySelectorAll('#pi-post-cancel,[data-post-cancel]').forEach(button=>butt
 $('#pi-next-photos').addEventListener('click',()=>{if(!validStep(1))return;if(productionMode&&!editingId){localAction(prepareProductionDraftForPhotos);return;}showPostStep(2);$('#pi-photo-files').focus({preventScroll:true});});
 $('#pi-next-review').addEventListener('click',()=>{if(!validStep(2))return;if(productionMode&&!editingId){localAction(prepareProductionDraftForReview);return;}renderReview();showPostStep(3);});
 root.querySelectorAll('[data-post-back]').forEach(el=>el.addEventListener('click',()=>showPostStep(Number(el.dataset.postBack))));
-function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;verificationReceipt=null;localDraftId=null;localDraftPhotoToken=null;}editingId=null;pendingDraft=null;verifyMode=null;postPhotos=[];$('#pi-post-photos').hidden=false;if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('#pi-photo-error').hidden=true;$('#pi-draft-upload-status').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
+function resetPost(){if(connectedMode){$('#pi-post-email').disabled=false;$('#pi-post-email').closest('label').hidden=false;$('.pi-contact-fields > .pi-field-help').hidden=false;verificationReceipt=null;localDraftId=null;localDraftPhotoToken=null;}editingId=null;pendingDraft=null;verifyMode=null;recoveryPromptPinned=false;postPhotos=[];$('#pi-post-photos').hidden=false;if(productionMode){resetProductionTurnstile();$('#pi-post-turnstile').hidden=true;}$('#pi-post-form').reset();root.querySelectorAll('#pi-post-form input,#pi-post-form textarea').forEach(el=>el.setCustomValidity(''));$('#pi-post-title').textContent='List Your Gear';$('.pi-steps').hidden=false;$('#pi-photo-error').hidden=true;$('#pi-draft-upload-status').hidden=true;offerChanged();clubsChanged();renderPhotos();showPostStep(1);}
 function fillPost(d){for(const [key,id]of Object.entries(postMap))$('#'+id).value=key==='price'?(d.type==='Sale'?(d.priceCents/100).toFixed(2):''):(d[key]??'');$('input[name=offer][value="'+d.type+'"]').checked=true;root.querySelectorAll('input[name=club]').forEach(el=>el.checked=d.clubs.includes(el.value));$('#pi-other-club').value=d.otherClub||'';postPhotos=connectedMode?[]:d.photos.map(p=>({...p}));$('#pi-post-photos').hidden=Boolean(connectedMode&&editingId);offerChanged();clubsChanged();renderPhotos();}
 $('#pi-fill-demo').addEventListener('click',()=>{resetPost();fillPost({title:'Seattle Junior hockey bag',type:'Sale',priceCents:4000,category:'Bags & accessories',size:'Junior',fit:'Junior bag, 30 × 18 × 15 in',condition:'Used — good',city:'Seattle',clubs:['Seattle Junior'],description:'Seattle Junior branded bag. Our player has changed clubs, so this is ready for another family. Scuffs on the bottom. All zippers work.',seller:'Alex',email:'seller@example.com',photos:[{name:'Front view — sample',url:null},{name:'Club logo — sample',url:null},{name:'Wear detail — sample',url:null}]});});
 function activeCount(){return managed.filter(r=>['Available','Pending'].includes(r.status)).length;}
@@ -307,7 +307,7 @@ function feedback(message){$('#pi-manage-feedback').textContent=message;$('#pi-m
 function expiry(){return Date.now()+LIMITS.durationDays*24*60*60*1000;}
 function renderManaged(){if(connectedMode){renderLocalManaged();return;}const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';$('#pi-managed-list').innerHTML=managed.map(r=>'<article class="pi-managed-item"><h3>'+esc(r.title)+'</h3><div class="pi-managed-meta">'+esc(formatPrice(r.type.toLowerCase(),r.priceCents))+' · '+esc(r.city)+' · '+esc(r.status)+(r.expires&&['Available','Pending'].includes(r.status)?' · Expires '+new Date(r.expires).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div><div class="pi-managed-actions"><button type="button" data-manage="edit" data-id="'+esc(r.id)+'">Edit</button>'+(['Available','Pending'].includes(r.status)?'<button type="button" data-manage="pending" data-id="'+esc(r.id)+'">'+(r.status==='Pending'?'Mark available':'Mark pending')+'</button>':'<button type="button" data-manage="renew" data-id="'+esc(r.id)+'">'+(r.status==='Closed'?'Relist for 30 days':'Renew for 30 days')+'</button>')+'<button type="button" data-manage="remove" data-id="'+esc(r.id)+'">Remove listing</button></div></article>').join('')||'<div class="pi-empty-state"><strong>You have no current listings.</strong></div>';}
 $('#pi-post-submit').addEventListener('click',()=>{if(connectedMode){localAction(saveLocal);return;}if(!validStep(1)){showPostStep(1);return;}if(!validStep(2)){showPostStep(2);return;}const d=draft();const existing=managed.find(r=>r.id===editingId);if(existing&&existing.email===d.email){Object.assign(existing,d);renderManaged();feedback('Changes saved in this preview.');go('manage');return;}if(!existing&&activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close a listing before adding another.');go('manage');return;}pendingDraft=d;$('#pi-verify-email').textContent=d.email;$('#pi-email-item').textContent=d.title;$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;});
-$('#pi-simulate-verify').addEventListener('click',()=>{if(productionMode){if(verifyMode==='confirm')localAction(confirmProductionLink);else if(verifyMode==='deliver')localAction(requestVerification);return;}if(localMode){localAction(verifyLocal);return;}if(!pendingDraft)return;const existing=managed.find(r=>r.id===editingId);if(existing){Object.assign(existing,pendingDraft);}else{if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before publishing another.');go('manage');return;}managed.unshift({...pendingDraft,id:'demo-'+Date.now(),status:'Available',expires:expiry()});}pendingDraft=null;renderManaged();feedback('Verification simulated. Your sample listing is ready to manage; nothing was published.');go('manage');});
+$('#pi-simulate-verify').addEventListener('click',()=>{if(productionMode){if(verifyMode==='confirm')localAction(confirmProductionLink);else if(verifyMode==='deliver')localAction(requestVerification);else if(verifyMode==='management')localAction(confirmManagementLink);return;}if(localMode){localAction(verifyLocal);return;}if(!pendingDraft)return;const existing=managed.find(r=>r.id===editingId);if(existing){Object.assign(existing,pendingDraft);}else{if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before publishing another.');go('manage');return;}managed.unshift({...pendingDraft,id:'demo-'+Date.now(),status:'Available',expires:expiry()});}pendingDraft=null;renderManaged();feedback('Verification simulated. Your sample listing is ready to manage; nothing was published.');go('manage');});
 function openNew(){if(productionMode&&!postingAvailable){feedback('New listing publication is temporarily unavailable.');go('manage');return;}if(activeCount()>=LIMITS.activeListings){feedback('You have ten active listings. Close one before adding another.');go('manage');return;}resetPost();go('post');}
 async function startNew(){if(productionMode&&postingLoading){if(localBusy)return;await localAction(()=>postingSetup);if(state.screen==='post'&&verifyMode==='confirm'&&productionVerificationToken)return;}openNew();}
 $('#pi-new-listing').addEventListener('click',startNew);
@@ -317,11 +317,11 @@ $('#pi-recovery-open').addEventListener('click',()=>{$('#pi-recovery-form').hidd
 function renderLocalManaged(){
  const deletedPanel=$('#pi-deleted-panel');if(deletedPanel){deletedPanel.hidden=!deleted.length;deletedPanel.querySelector('summary').textContent=`Recently removed (${deleted.length})`;if(openDeletedAfterRefresh&&deleted.length){deletedPanel.open=true;openDeletedAfterRefresh=false;}$('#pi-deleted-list').innerHTML=deleted.map(r=>`<article class="pi-deleted-item"><strong>${esc(r.title)}</strong><span>${r.purgeAt>Date.now()?`Recover by ${esc(new Date(r.purgeAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}`:'Recovery period ended'}</span>${r.purgeAt>Date.now()?`<button type="button" class="pi-text-button" data-recover="${esc(r.id)}">Recover listing</button>`:''}</article>`).join('');}
  renderPhotoManager();
- if($('#pi-email-change-panel'))$('#pi-email-change-panel').hidden=!signedIn;
- $('#pi-management-link').hidden=signedIn;
+ if($('#pi-email-change-panel'))$('#pi-email-change-panel').hidden=!signedIn||managementScope==='listing';
+ $('#pi-management-link').hidden=signedIn&&managementScope!=='listing'&&!recoveryPromptPinned;
  if($('#pi-local-logout'))$('#pi-local-logout').hidden=!signedIn;
- $('#pi-active-count').hidden=!signedIn;$('#pi-new-listing').hidden=!signedIn||(productionMode&&!postingAvailable);
- const count=activeCount();$('#pi-active-count').textContent=count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';
+ $('#pi-active-count').hidden=!signedIn;$('#pi-new-listing').hidden=!signedIn||managementScope==='listing'||(productionMode&&!postingAvailable);
+ const count=activeCount();$('#pi-active-count').textContent=managementScope==='listing'?'Managing one listing — use “Need a new management link?” below to see all':count+' of 10 in use';$('#pi-new-listing').textContent='List gear ＋';
  $('#pi-managed-list').innerHTML=managed.map(r=>{
   const button=(action,label)=>`<button type="button" data-manage="${action}" data-id="${esc(r.id)}">${label}</button>`;
   const actions=r.status==='Removed'?'':button('edit','Edit')+button('photos','Manage photos')+(['Available','Pending'].includes(r.status)?button('pending',r.status==='Pending'?'Mark available':'Mark pending'):button('renew','Relist for 30 days'))+button('remove','Remove listing');
@@ -377,9 +377,15 @@ function showProductionDelivery(){
 }
 function showProductionConfirmation(){
  verifyMode='confirm';
- state.screen='post';render();$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Publish this listing?';$('#pi-verify-intro').hidden=true;$('#pi-verify-detail').hidden=true;$('.pi-email-example').hidden=true;
+ state.screen='post';render();$('#pi-post-title').textContent='List Your Gear';$('.pi-steps').hidden=false;$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Publish this listing?';$('#pi-verify-intro').hidden=true;$('#pi-verify-detail').hidden=true;$('.pi-email-example').hidden=true;
  $('#pi-simulate-verify').textContent='Publish listing';$('#pi-simulate-verify').className='pi-primary';$('#pi-verify-note').hidden=true;$('#pi-verify-back').hidden=true;
  const heading=$('.pi-post h1');heading.tabIndex=-1;heading.focus();
+}
+function showManagementConfirmation(){
+ verifyMode='management';
+ state.screen='post';render();$('#pi-post-title').textContent='Gear management';$('.pi-steps').hidden=true;$('#pi-post-form').hidden=true;$('#pi-verify-screen').hidden=false;$('#pi-verify-title').textContent='Continue to Gear management?';$('#pi-verify-intro').hidden=true;$('#pi-verify-detail').hidden=false;$('#pi-verify-detail').textContent='Continue only if you opened this private link yourself. This starts a 30-day management session, replaces any current Gear management session in this browser, and may sign out another device already managing the same listings.';$('.pi-email-example').hidden=true;
+ $('#pi-simulate-verify').textContent='Continue';$('#pi-simulate-verify').className='pi-primary';$('#pi-verify-note').hidden=true;$('#pi-verify-back').hidden=true;
+ $('#pi-verify-title').focus();
 }
 function takeChangedVerificationLink(){
  if(!productionMode||!location.hash.startsWith('#verification='))return;
@@ -397,7 +403,16 @@ async function requestVerification(){
 async function confirmProductionLink(){
  if(!productionVerificationToken)throw adapter.safeError('This verification link is unavailable. Request a new email from the listing form.');
  const token=productionVerificationToken;freezeFields();const result=await api.confirmVerification(token);if(productionVerificationToken===token)productionVerificationToken=null;
- await afterSuccess(result.alreadyVerified?'This listing was already published. Request a management link below to sign in.':'Listing published. Request a management link below to sign in.','manage');return '#pi-recovery-email';
+ go('manage');try{await refreshLocal();}catch{showLocalError((result.alreadyVerified?'This listing was already published.':'Listing published.')+' The latest listing view could not be loaded. Use Refresh listings to retry.');return;}
+ const sellerWide=signedIn&&managementScope==='seller'&&managed.some(listing=>listing.id===result.listingId),message=result.alreadyVerified?(sellerWide?'This listing was already published. You can manage it here.':'This listing was already published. Open your saved management email, or request a temporary access link below.'):(sellerWide?'Listing published. Check your email for a management link, save that message for future use, or manage the listing here.':'Listing published. Check your email for a management link and save that message for future use. If it does not arrive, request a temporary access link below.');
+ recoveryPromptPinned=!sellerWide;feedback(message);if(sellerWide){const heading=$('.pi-manage h1');heading.tabIndex=-1;return '.pi-manage h1';}$('#pi-management-link').hidden=false;$('#pi-recovery-form').hidden=false;return '#pi-recovery-email';
+}
+async function confirmManagementLink(){
+ if(!managementToken)throw adapter.safeError('This management link is invalid or incomplete. Request a temporary access link below.');
+ freezeFields();try{await api.confirm(managementToken);}catch(error){if(error.status!==400)throw error;go('manage');try{await refreshLocal();}catch{showLocalError('This management link no longer works. The latest listing view could not be loaded. Use Refresh listings to retry.');return;}recoveryPromptPinned=true;feedback('This management link no longer works. Request a temporary access link below.');$('#pi-management-link').hidden=false;$('#pi-recovery-form').hidden=false;return '#pi-recovery-email';}
+ clearLocalAccess();$('#pi-recovery-form').hidden=true;signedIn=true;go('manage');try{await refreshLocal();}catch{showLocalError('Signed in, but the latest listing view could not be loaded. Use Refresh listings to retry.');return;}
+ if(!signedIn){feedback('This management link no longer works. Request a temporary access link below.');return '#pi-recovery-email';}
+ feedback(managementScope==='listing'?'Signed in to this listing.':'Signed in to your listings.');const heading=$('.pi-manage h1');heading.tabIndex=-1;return '.pi-manage h1';
 }
 async function verifyLocal(){
  if(!verificationReceipt)throw adapter.safeError('Request a new local verification link below.');
@@ -414,6 +429,7 @@ async function verifyLocal(){
 }
 function manageLocal(e){
  const b=e.target.closest('[data-manage]');if(!b||localBusy)return;const r=managed.find(r=>r.id===b.dataset.id);if(!r)return;
+ recoveryPromptPinned=false;
  if(b.dataset.manage==='remove'){openRemoveDialog(r);return;}
  if(b.dataset.manage==='photos'){photoListingId=r.id;photoRefreshAttempted=false;$('.pi-manage').classList.add('pi-photo-mode');renderPhotoManager();$('#pi-photo-manager h2').focus();$('#pi-photo-manager').scrollIntoView({block:'start'});return;}
  if(b.dataset.manage==='edit'){resetPost();editingId=r.id;fillPost(r);$('#pi-post-email').disabled=true;$('#pi-post-email').closest('label').hidden=true;$('.pi-contact-fields > .pi-field-help').hidden=true;$('#pi-post-title').textContent='Edit Your Listing';go('post');return;}
@@ -575,7 +591,7 @@ postingSetup=productionMode?configureProductionPosting():null;
 const publicSetup=productionMode?refreshPublicListings().then(()=>null,error=>error):null;
 if(productionMode&&productionVerificationToken)showProductionConfirmation();
 else if(recognizedVerificationLink)showLocalError('This verification link is invalid or incomplete. Request a new email.');
-else if(productionMode&&managementToken)await localAction(async()=>{clearLocalAccess();await api.confirm(managementToken);signedIn=true;await afterSuccess('Signed in.','manage');});
+else if(productionMode&&managementToken)showManagementConfirmation();
 else if(localMode||state.screen==='manage')await localAction(refreshLocal);
 if(publicSetup){const error=await publicSetup;render();if(error&&publicFailed){if(!error.safe)console.error(error);showLocalError(error.safe?error.message:'Unable to load Gear listings right now.');}}
 if(postingSetup)await postingSetup;

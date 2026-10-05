@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../lib/gear-verification.mjs';
 import {moderateListing,validateModerationAction} from '../lib/gear-moderation-actions.mjs';
+import {issuePostVerificationManagementLink,redeemManagementLink,recoverManagementSession} from '../lib/gear-management.mjs';
 import {GearAccessDeniedError,GearAccessUnavailableError} from '../lib/gear-access.mjs';
 import {createOwnerActionHandler,onRequestPost} from '../functions/api/gear/admin/actions.js';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
@@ -30,10 +31,11 @@ test('production moderation dismisses once and writes bounded owner history atom
 test('production moderation removes and restores without changing expiry or report evidence',async()=>{
   const db=openLocalDatabase();
   try{
-    const id=await publish(db),expiry=db.sqlite.prepare('SELECT expires_at FROM gear_listings WHERE id=?').get(id).expires_at;
+    const id=await publish(db),link=await issuePostVerificationManagementLink(db,id,100),access=await redeemManagementLink(db,link.token,150),expiry=db.sqlite.prepare('SELECT expires_at FROM gear_listings WHERE id=?').get(id).expires_at;
     db.sqlite.prepare("UPDATE gear_listings SET status='pending' WHERE id=?").run(id);
     const reportId=report(db,id,'Prohibited item');
     assert.equal(await moderateListing(db,action('remove',reportId,'Policy violation'),200),true);
+    assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_listing_management_links').get().n,0);assert.equal(await redeemManagementLink(db,link.token,200),null);assert.equal(await recoverManagementSession(db,access.session,200),null);
     assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(id).status,'removed');
     assert.deepEqual({...db.sqlite.prepare('SELECT previous_status,removed_at,reason FROM gear_removals WHERE listing_id=?').get(id)},{previous_status:'pending',removed_at:200,reason:'Policy violation'});
     assert.equal(db.sqlite.prepare('SELECT resolution FROM gear_reports WHERE id=?').get(reportId).resolution,'removed');
@@ -49,6 +51,7 @@ test('production moderation removes and restores without changing expiry or repo
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_moderation_history').get().n,1);
     db.sqlite.prepare('DELETE FROM gear_deletions WHERE listing_id=?').run(id);
     assert.equal(await moderateListing(db,action('restore',id,'Reviewed and eligible'),205),true);
+    assert.equal(await redeemManagementLink(db,link.token,205),null);
     assert.deepEqual({...db.sqlite.prepare('SELECT status,expires_at FROM gear_listings WHERE id=?').get(id)},{status:'pending',expires_at:expiry});
     assert.equal(db.sqlite.prepare('SELECT status FROM gear_listings WHERE id=?').get(staleDuplicate).status,'expired');
     assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_deletion_ledger WHERE listing_id=?').get(id).n,1);

@@ -29,9 +29,10 @@ It deliberately excludes Cloudflare Images bytes and `gear_photos` metadata,
 unverified drafts, verification/management/email-change credentials, contact
 attempts and message copies, reports, moderation history, upload counters,
 quarantines and the photo-deletion outbox. A disaster restore therefore produces
-usable records with no photos and no live credentials. Sellers need new
-management links and must upload photos again. This is an accepted simplicity
-and cost tradeoff, not complete media disaster recovery.
+usable records with no photos and no live credentials. Saved durable management
+emails do not survive a disaster restore and are not automatically reissued;
+sellers need new temporary management links and must upload photos again. This
+is an accepted simplicity and cost tradeoff, not complete media disaster recovery.
 
 Seller-deleted listings are excluded immediately rather than copied through
 their recovery window. Live D1 and Time Travel remain the recovery mechanism for
@@ -70,7 +71,7 @@ tokens, object names or byte counts.
 
 `scripts/gear/lean-backup.mjs` verifies decrypted JSON, restores it to a new local
 SQLite rehearsal database, or writes data-only SQL for a new D1 database after
-migrations 0001–0019. The SQL path is tested against a freshly migrated temporary
+migrations 0001–0020. The SQL path is tested against a freshly migrated temporary
 database.
 
 `.github/workflows/gear-records-backup.yml` is the canonical workflow. It supports
@@ -181,7 +182,7 @@ disaster. Before reopening traffic, re-apply any later action that can be
 reconstructed from the surviving live system or operator/mail records.
 
 Importing `restore.sql` into a new remote D1 database is a separately authorized
-incident action. First create a new database, apply migrations 0001–0019, verify
+incident action. First create a new database, apply migrations 0001–0020, verify
 it is empty, then use the documented D1 SQL import mechanism. Never import over
 the original database or use this procedure as a production test.
 

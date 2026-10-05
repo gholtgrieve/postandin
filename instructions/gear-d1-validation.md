@@ -37,7 +37,7 @@ All current check groups passed:
    adapter while mocked outbound email remains local. The adapter itself is
    unit-tested in Node; this probe does not load the adapter module.
 2. Failed migration batch rolls schema changes back.
-3. All nineteen checked-in migrations apply to a fresh D1 database; the harness
+3. All twenty checked-in migrations apply to a fresh D1 database; the harness
    ledger makes repeated application a no-op. RETURNING and meta.changes have the
    expected shape, including a no-op update. The seller foreign-key cascade also
    removes its photo-upload counter in actual D1. Verification delivery count is

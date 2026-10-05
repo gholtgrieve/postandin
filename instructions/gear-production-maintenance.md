@@ -1,9 +1,14 @@
 # Gear Exchange production scheduled maintenance
 
-Status: owner-authorized production foundation deployment completed on 2026-10-03.
-Migrations 0001–0018 are applied to the production Gear D1 database; migration
-0019 and the corresponding Worker redeploy are required before the reviewed Pages
-launch commit is merged. The Images
+Status: owner-authorized production deployment completed on 2026-10-04.
+Migrations 0001–0019, the reviewed Worker, its controlled run, and the Pages
+launch are live. Migration 0020 and the durable listing-link behavior deploy with
+the Pages merge after migration 0020 is applied; they do not change this Worker's
+behavior. The Worker bundle includes `lib/gear-photo-quarantine.mjs`, but uses
+only its `GEAR_QUARANTINE_CLAIM_MS` export. It also includes
+`lib/gear-management-mail.mjs` through `lib/gear-maintenance-alert.mjs`, but uses
+only its unchanged `validateManagementEmail` export. Neither used export changed,
+so no Worker redeploy is required. The Images
 binding, dedicated maintenance-state KV namespace, Resend secret, alert recipient,
 Worker and 11:00 UTC Cron Trigger are provisioned. The checked-in
 `gear-maintenance/wrangler.toml.example` deliberately remains free of production

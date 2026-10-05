@@ -4,6 +4,7 @@ import {mkdtempSync,rmSync,existsSync,statSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes} from 'node:crypto';
+import {DatabaseSync} from 'node:sqlite';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 import {initializeLifecycle,changeDeletion,deletedListings,cleanup,RECOVERY_MS} from '../scripts/gear/local-lifecycle.mjs';
 import {createBackup,restoreBackup,pruneBackups} from '../scripts/gear/local-backup.mjs';
@@ -70,6 +71,15 @@ test('snapshot restores records/photos, revokes credentials and never overwrites
   await restoreBackup(snapshot,target,path);restored=openLocalDatabase(target);assert.equal((await readPublicListings(restored))[0].id,id);assert.deepEqual(Buffer.from(photoContent(restored,photo,'',false)),Buffer.from('sample pixels'));assert.throws(()=>deletedListings(restored,access.session),status(401));
   assert.equal(restored.sqlite.prepare('SELECT count(*) AS n FROM gear_verification_tokens').get().n,0);await assert.rejects(restoreBackup(snapshot,path,path));assert.equal((await readPublicListings(db)).length,1);
  }finally{restored?.close();db.close();rmSync(dir,{recursive:true,force:true});}
+});
+test('version-19 databases can still be backed up and restored after migration 20 ships',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'gear-v19-backup-')),path=join(dir,'source.sqlite'),snapshot=join(dir,'snapshot.sqlite'),target=join(dir,'restored.sqlite');let db=openLocalDatabase(path),restored;
+ try{
+  setup(db);const id=await publish(db);db.close();db=null;
+  const legacy=new DatabaseSync(path);legacy.exec('DROP TRIGGER gear_email_change_revoke_listing_links; DROP INDEX gear_sessions_listing; DROP TABLE gear_listing_management_links; ALTER TABLE gear_management_sessions DROP COLUMN listing_id; DELETE FROM gear_local_migrations WHERE version=20;');legacy.close();
+  await createBackup(path,snapshot);await restoreBackup(snapshot,target,path);restored=openLocalDatabase(target);
+  assert.equal((await readPublicListings(restored))[0].id,id);assert.equal(restored.sqlite.prepare('SELECT count(*) AS n FROM gear_listing_management_links').get().n,0);
+ }finally{restored?.close();db?.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('restore reconciles newer deletion and moderation and excludes permanently purged snapshot content',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'gear-restore-ledger-')),path=join(dir,'source.sqlite'),snapshot=join(dir,'snapshot.sqlite');const db=openLocalDatabase(path);let restored;

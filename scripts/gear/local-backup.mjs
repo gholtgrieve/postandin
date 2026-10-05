@@ -8,6 +8,9 @@ import {initializeModeration} from './local-moderation.mjs';
 import {initializeLifecycle,purgeListing,cleanup,RECOVERY_MS,DRAFT_MS,HISTORY_MS} from './local-lifecycle.mjs';
 function source(path){const sqlite=new DatabaseSync(safeDatabasePath(path),{readOnly:true});try{if(!sqlite.prepare("SELECT 1 FROM sqlite_master WHERE name='gear_local_migrations'").get())throw new Error('Not a Gear database.');check(sqlite);return sqlite;}catch(e){sqlite.close();throw e;}}
 function check(sqlite){if(sqlite.prepare('PRAGMA integrity_check').get().integrity_check!=='ok'||sqlite.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Database integrity check failed.');}
+function clearCredentials(sqlite){
+ for(const table of ['gear_email_changes','gear_listing_management_links','gear_management_links','gear_management_sessions','gear_verification_tokens'])if(sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table))sqlite.exec('DELETE FROM '+table);
+}
 async function copy(from,to,after){const target=safeDatabasePath(to),input=source(from);let created=false,out;
  try{closeSync(openSync(target,'wx',0o600));created=true;await backup(input,target);out=new DatabaseSync(target);out.exec('PRAGMA foreign_keys=ON');if(after)after({sqlite:out});check(out);return {ok:true};}
  catch(e){if(out){out.close();out=null;}if(created)rmSync(target,{force:true});throw e;}finally{out?.close();input.close();}
@@ -16,7 +19,7 @@ export const createBackup=(from,to,now=Date.now())=>copy(from,to,db=>{
  if(db.sqlite.prepare("SELECT 1 FROM sqlite_master WHERE name='gear_local_snapshot'").get())throw new Error('Do not re-backup snapshots to extend their retention.');
  cleanup(db,{apply:true,now});
  // Credentials have no restore value; do not retain them in snapshots.
- db.sqlite.exec('DELETE FROM gear_email_changes; DELETE FROM gear_management_links; DELETE FROM gear_management_sessions; DELETE FROM gear_verification_tokens;');
+ clearCredentials(db.sqlite);
  const deadlines=[db.sqlite.prepare('SELECT min(purge_at) AS n FROM gear_local_deletions').get().n,
   db.sqlite.prepare("SELECT min(created_at)+? AS n FROM gear_listings WHERE status='unverified' AND verified_at IS NULL").get(DRAFT_MS).n];
  for(const table of ['gear_local_reports','gear_local_moderation_history'])if(db.sqlite.prepare('SELECT 1 FROM sqlite_master WHERE name=?').get(table))deadlines.push(db.sqlite.prepare('SELECT min(created_at)+? AS n FROM '+table).get(HISTORY_MS).n);
@@ -58,7 +61,7 @@ export async function restoreBackup(from,to,currentPath,now=Date.now()){
    }
    for(const d of db.sqlite.prepare('SELECT * FROM gear_local_deletion_ledger WHERE purged_at IS NOT NULL OR purge_at<=?').all(now))purgeListing(db,d.listing_id,now);
    // No restored cookie, recovery link or pending transfer may regain access.
-   db.sqlite.exec('DELETE FROM gear_email_changes; DELETE FROM gear_management_links; DELETE FROM gear_management_sessions; DELETE FROM gear_verification_tokens;');
+   clearCredentials(db.sqlite);
    db.sqlite.exec('COMMIT');
   }catch(e){db.sqlite.exec('ROLLBACK');throw e;}
   cleanup(db,{apply:true,now});

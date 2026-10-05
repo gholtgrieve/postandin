@@ -12,6 +12,11 @@ import { openLocalDatabase } from '../scripts/gear/local-db.mjs';
 const input={title:'Club bag',description:'Worn zipper, repaired seam.',city:'Seattle',fit:'Junior bag',sellerName:'Sample',email:'sample@example.test',adult:true,category:'Bags & accessories',size:'One size',condition:'Used — good',type:'sale',priceCents:4050,clubs:['Kent Valley']};
 const providerId=index=>`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`;
 
+test('migration 20 rollback runbook disables durable links before scoped sessions',()=>{
+  const runbook=readFileSync(new URL('../instructions/gear-launch-runbook.md',import.meta.url),'utf8'),remove='DELETE FROM gear_listing_management_links;',revoke='UPDATE gear_management_sessions SET revoked_at = <ROLLBACK_TIME_MS> WHERE listing_id IS NOT NULL AND revoked_at IS NULL;';
+  assert.ok(runbook.indexOf(remove)>=0);assert.ok(runbook.indexOf(revoke)>runbook.indexOf(remove));assert.match(runbook,/temporary edge block/);assert.match(runbook,/repeat the link deletion, scoped-session revocation, and zero-row checks/);assert.match(runbook,/zero unrevoked rows with a non-null `listing_id` and zero durable/);
+});
+
 test('new drafts record immutable adult acknowledgement evidence',async()=>{
   const db=openLocalDatabase();
   try{
@@ -52,7 +57,7 @@ test('production migrations preserve legacy listings without inventing acknowled
   try{
     const db=openLocalDatabase(path);
     try{
-      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,19);
+      assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM gear_local_migrations').get().n,20);
       const acknowledgement=db.sqlite.prepare("SELECT adult_acknowledged_at,disclosure_version FROM gear_listings WHERE id='legacy'").get();
       assert.equal(acknowledgement.adult_acknowledged_at,null);
       assert.equal(acknowledgement.disclosure_version,null);

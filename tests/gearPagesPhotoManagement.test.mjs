@@ -6,7 +6,7 @@ import {removeManagedPhoto,reorderManagedPhotos} from '../lib/gear-photo-managem
 import {recordHostedPhoto} from '../lib/gear-photo-storage.mjs';
 import {createDraft} from '../lib/gear-storage.mjs';
 import {issueLocalVerification,confirmVerification} from '../lib/gear-verification.mjs';
-import {issueLocalManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
+import {issueLocalManagementLink,issuePostVerificationManagementLink,redeemManagementLink} from '../lib/gear-management.mjs';
 import {openLocalDatabase} from '../scripts/gear/local-db.mjs';
 
 const ORIGIN='https://postandin.com';
@@ -36,6 +36,15 @@ test('seller photo reorder and removal are atomic, ownership checked and durably
     assert.deepEqual(stored(db,id).map(row=>row.id),[rows[2].id,rows[0].id]);assert.deepEqual(stored(db,id).map(row=>row.position),[0,1]);
     assert.deepEqual({...db.sqlite.prepare('SELECT provider_id,listing_id,queued_at FROM gear_photo_deletions').get()},{provider_id:rows[1].providerId,listing_id:id,queued_at:201});
     assert.equal(await removeManagedPhoto(db,access.session,access.csrf,id,rows[1].id,202),false);
+  }finally{db.close();}
+});
+
+test('durable listing sessions cannot mutate another listing from the same seller',async()=>{
+  const db=openLocalDatabase();try{
+    const first=await publish(db),second=await publish(db,{title:'Second scoped photo listing'},101),firstRows=await photos(db,first,1),secondRows=await photos(db,second,1,2),link=await issuePostVerificationManagementLink(db,first,100),access=await redeemManagementLink(db,link.token,200);
+    assert.equal(await reorderManagedPhotos(db,access.session,access.csrf,second,secondRows.map(row=>row.id).reverse(),201),false);
+    assert.equal(await removeManagedPhoto(db,access.session,access.csrf,second,secondRows[0].id,201),false);
+    assert.equal(await removeManagedPhoto(db,access.session,access.csrf,first,firstRows[0].id,201),true);
   }finally{db.close();}
 });
 

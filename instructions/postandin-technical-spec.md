@@ -1136,7 +1136,7 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 
 ---
 
-## Gear Exchange — in development
+## Gear Exchange — live
 
 Local-only management sessions, reload recovery, HTTPS browser validation and owner-checked writes are documented in
 [gear-management.md](gear-management.md). Ordinary static hosting remains simulated.
@@ -1293,7 +1293,21 @@ the old token. Confirmation is single-use at the mutation boundary, safely
 acknowledges a committed response retry within token expiry, and publication
 rechecks draft state, seller/email consistency, the active-listing quota and
 duplicate constraints atomically. Confirmation does
-not create a seller-management session. Provider failure returns an honest error
+not create a seller-management session. On the newly committed transition, the
+server automatically issues and sends a durable, listing-scoped management link
+to the verified seller address. This durable management-link change deploys with
+the Pages merge after migration 0020 is applied. The hash-only credential remains reusable while
+that listing is available, pending, closed, expired, or within seller-deletion
+recovery; opening it is inert until the seller chooses **Continue**, which
+explicitly creates a 30-day session authorized only for that listing, replaces
+any current Gear management session in that browser, and signs out any other
+device using the link. Permanent deletion and verified email transfer invalidate
+access. Owner moderation permanently deletes the link and revokes its live
+listing-scoped sessions; restoration does not reissue it. A confirmation-response replay
+does not send another message. Management-mail failure is logged without private details and never
+rolls back the already-published listing; the browser directs the seller to
+request a fresh link if the automatic message does not arrive. Verification-mail
+provider failure returns an honest error
 while preserving the three-day draft for retry. Only definite pre-delivery
 rejections release the attempt's count and cooldown; ambiguous network, 5xx and
 post-acceptance outcomes remain reserved. A token-hash guard cannot change a

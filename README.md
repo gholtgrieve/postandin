@@ -36,7 +36,7 @@ CLI before use. Never place secrets or private identifiers in documentation.
 
 ---
 
-## Gear Exchange (in development)
+## Gear Exchange (live)
 
 Local seller sessions, reload recovery, an HTTPS browser check and ownership-checked management are documented in
 [instructions/gear-management.md](instructions/gear-management.md).
@@ -98,10 +98,16 @@ dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
 A random draft ID permits at most five verification emails with a one-minute
 cooldown; the Resend adapter
 sends a 30-minute fragment credential only to the stored address, and a separate
-explicit POST publishes the listing without creating a management session. The
+explicit POST publishes the listing. A newly committed publication automatically
+emails a durable, listing-scoped management link with brief instructions. The
+saved link remains reusable while that listing is available, pending, closed,
+expired, or within seller-deletion recovery. Opening it is inert until the
+seller chooses **Continue**, which creates a 30-day session limited to that
+listing. The
 exact-origin browser loads Turnstile only when a public site key is configured,
 erases verification fragments before network work, and keeps confirmation usable
-when new posting is disabled. Production Pages and D1 are deployed. Turnstile,
+when new posting is disabled. The durable management-link change deploys with
+the Pages merge after migration 0020 is applied. Production Pages and D1 are deployed. Turnstile,
 Resend, the feature switches, and the combined edge-limit rule are configured
 and active. See
 [instructions/gear-production-verification.md](instructions/gear-production-verification.md).
