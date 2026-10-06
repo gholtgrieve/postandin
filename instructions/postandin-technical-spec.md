@@ -313,6 +313,10 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               encrypted off-provider records backup. Static/local
                               preview modes retain their sample-data behavior.
 /coaches/                  → index.html (public, indexable coach directory)
+/felix-holtgrieve/         → Static, indexable player profile and 2026–27 video
+                              library scaffold for Felix Holtgrieve. Listed in
+                              sitemap.xml but deliberately absent from the
+                              homepage, site navigation, and feature directories.
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
                               unlinked, omitted from sitemap.xml, and protected
@@ -403,8 +407,8 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               Drop-in Hockey, and Public Skate terminology across
                               FareHarbor, DaySmart, RecTimes, Everett, and Kent Valley.
   health-check.js          → Node.js script, hits live endpoints, run locally only.
-                              Checks every launched top-level page, including all three
-                              schedule activities.
+                              Checks the homepage, Coaches, the Felix profile, and all
+                              three schedule activities.
                               Includes `checkNotFound(path, note)` — asserts a path
                               returns HTTP 404 *and* isn't the homepage body, guarding
                               against the soft-404 regression described in Search
@@ -421,7 +425,11 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
 
 Established 2026-07-22 in commit `f23f83d` and expanded with the Coaches launch.
 The publicly discoverable and indexable pages are `/`, `/stick-and-puck/`,
-`/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`, and every Live coach profile. Draft coach profiles and other
+`/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`,
+`/felix-holtgrieve/`, and every Live coach profile. The Felix profile is an
+intentional exception to the usual navigation pattern: search engines can find
+it through `sitemap.xml`, but it is not linked from the homepage, global
+navigation, footer navigation, or another feature page. Draft coach profiles and other
 unfinished pages remain reachable by direct URL but are kept out of search;
 deleted pages are gone.
 
@@ -429,7 +437,7 @@ deleted pages are gone.
 
 | Mechanism | Purpose |
 |---|---|
-| `sitemap.xml` | Lists launched pages, including all three schedule activities, the coach directory, Gear Exchange, and every Live coach profile. |
+| `sitemap.xml` | Lists launched pages, including all three schedule activities, the coach directory, Gear Exchange, the unlinked but indexable Felix profile, and every Live coach profile. |
 | `robots.txt` | `Allow: /`, plus a specific `Allow: /api/coaches` exception before `Disallow: /api/`. The exception lets search render the client-enhanced directory while other API routes remain blocked. Crawling is *permitted* for unfinished pages. |
 | `<meta name="robots" content="noindex, nofollow">` | On each unfinished page. This is what actually keeps them out of search. |
 
@@ -452,7 +460,7 @@ profiles are indexable. When adding
 any new unfinished section, add the meta tag to *every* HTML response it can
 emit — server-rendered error pages are easy to miss.
 
-`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`, and Live coach profiles must never carry
+`/`, `/stick-and-puck/`, `/drop-in-hockey/`, `/public-skate/`, `/coaches/`, `/gear/`, `/felix-holtgrieve/`, and Live coach profiles must never carry
 `noindex`.
 
 ### sitemap.xml conventions
@@ -1470,6 +1478,7 @@ implemented, deployed, and active. Public reads filter expiry at the storage bou
 | Groups feature | Live on all three schedules | Durable-Object-backed (migrated from direct KV), gated by cookie. Membership is shared across all schedules, RSVPs are activity-qualified, and each page shows only its activity's signups. |
 | Coaches directory (/coaches/) | **Publicly launched & indexable** | Linked from the homepage and site footers, listed in `sitemap.xml`, and backed by the KV read-through cache added in commit `2b20051`. |
 | Coach profile pages (/coaches/[slug]) | **Live profiles public and indexable; Draft profiles unlisted and noindex** | Server-rendered from Airtable, KV read-through cached, and sharing `coaches:profile:v3:{slug}` with `/api/coach/[slug]`. Live profiles have canonical/social metadata and sitemap entries. Draft profiles remain available for direct preview with a red banner but are excluded from the directory and search. The optional `personal_url` field renders as "Visit Website." |
+| Felix Holtgrieve profile (/felix-holtgrieve/) | **Indexable but internally unlinked scaffold** | Static player profile with verified team, position, number, and season facts plus an empty 2026–27 video-library state. It has canonical, social, and `Person` metadata and is listed in `sitemap.xml`, but it is deliberately absent from the homepage, navigation, footers outside the page itself, and feature directories. High-resolution source footage and final profile copy remain future owner-supplied inputs; source video must not be committed to the public repository. |
 | Mets 16U AA travel (/mets-16aa-travel/) | **Direct-link, unlinked, and noindex** | Static mobile-first logistics page for the Seattle Junior Mets 16U AA 2026–27 season. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Open Graph and Twitter Card metadata use the page's own 1200×630 `/mets-16aa-travel/social-preview.png` (not the site-wide `/social-preview-v2.png`) so direct shares can render a branded large-image preview without making the page indexable. Every trip with published game times repeats the reminder that the displayed times are game times, players must be in warmup attire and ready for pre-game warmups one hour earlier, and families should plan to arrive about 1 hour 15 minutes early; add that reminder when currently-TBD times are published. The travel-page visibility test enforces both the social metadata and that reminders appear if and only if a trip contains a published `<time datetime>`. The daily workflow compares the complete NWAHL and SportsEngine team schedules with each other and with the travel-page games. Group email is limited to a discrepancy newly created by an NWAHL game change when no related SportsEngine game changed; travel-page mismatches, ambiguous related source changes, and checker failures go only to the SMTP owner. It records successful state in a closed GitHub issue and does not modify the page. Treat the URL as public-to-anyone-with-the-link; do not add player-specific itineraries, phone numbers, room assignments, medical details, or other private family data. |
 | Mets 16U AA stats (/mets-16aa-stats/) | **Direct-link, unlinked, and noindex** | Static unofficial season-statistics page using the public team roster and player-level totals. It is omitted from public navigation and `sitemap.xml`, remains crawlable so robots can read `noindex, nofollow`, and has matching `X-Robots-Tag` plus `Cache-Control: no-cache` in `_headers`. Tables are sortable in the browser. Updates are currently manual. |
 | About (/about/) | **Deleted 2026-07-22** | `about/index.html` removed entirely in commit `f23f83d`. It had been a stub that meta-refreshed to `/` anyway, so its content was never actually reachable. `/about/` is now a normal missing URL served by `/404.html` — deliberately **not** a redirect to `/`, and deliberately absent from `robots.txt`. The previous "discrepancy" rows for this page are resolved by deletion. |

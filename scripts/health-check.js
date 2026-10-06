@@ -154,6 +154,7 @@ await checkHtml('GET /coaches/ — 200', '/coaches/');
 await checkHtml('GET /stick-and-puck/ — 200', '/stick-and-puck/');
 await checkHtml('GET /drop-in-hockey/ — 200', '/drop-in-hockey/');
 await checkHtml('GET /public-skate/ — 200', '/public-skate/');
+await checkHtml('GET /felix-holtgrieve/ — 200', '/felix-holtgrieve/');
 const coaches = await checkCoachesList();
 await checkCoachGoodSlug(coaches?.[0]?.slug);
 await checkCoachBadSlug();
