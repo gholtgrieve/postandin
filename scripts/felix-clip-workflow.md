@@ -114,6 +114,10 @@ after a partial upload failure.
 Paste the updated generated object inside the `clips` array in
 `felix-holtgrieve/clips.js`, preview the page locally, and run:
 
+Whenever `clips.js` or `profile.js` changes, increment the shared `?v=` value
+in both the `profile.js` script URL in `index.html` and the `clips.js` import in
+`profile.js`. Production JavaScript can otherwise remain cached for four hours.
+
 ```sh
 node --test tests/felixProfileVisibility.test.mjs
 ```

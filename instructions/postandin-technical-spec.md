@@ -331,6 +331,9 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               and opens full clips on demand. Listed in
                               sitemap.xml but deliberately absent from the
                               homepage, site navigation, and feature directories.
+                              `index.html` and `profile.js` share a `?v=` token
+                              that must be incremented together when either
+                              `profile.js` or `clips.js` changes.
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
                               unlinked, omitted from sitemap.xml, and protected
