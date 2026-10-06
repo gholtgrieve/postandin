@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import test from 'node:test';
+import { categoryLabels, clips } from '../felix-holtgrieve/clips.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const page = read('felix-holtgrieve/index.html');
+const profileScript = read('felix-holtgrieve/profile.js');
+const clipManifest = read('felix-holtgrieve/clips.js');
 const sitemap = read('sitemap.xml');
 const robots = read('robots.txt');
 const headers = read('_headers');
@@ -56,7 +60,111 @@ test('Felix profile is absent from established public navigation surfaces', () =
 test('Felix profile scaffold includes verified facts and an empty clip state', () => {
   assert.match(page, /Seattle Junior Mets/);
   assert.match(page, /<dt>Position<\/dt>\s*<dd>Defense<\/dd>/);
-  assert.match(page, /<dt>Number<\/dt>\s*<dd>17<\/dd>/);
+  assert.match(page, /<dt>Height<\/dt>\s*<dd>6′0″<\/dd>/);
+  assert.match(page, /<dt>Weight<\/dt>\s*<dd>170 lbs<\/dd>/);
+  assert.match(page, /<dt>Shoots<\/dt>\s*<dd>Right<\/dd>/);
+  assert.match(page, /<dt>Birth year<\/dt>\s*<dd>2011<\/dd>/);
+  assert.doesNotMatch(page, /Defenseman profile and video highlights/);
   assert.match(page, /2026–27 Highlights/);
   assert.match(page, /Clips coming soon/);
+});
+
+test('clip library scaffolds categories, efficient previews, and full playback', () => {
+  for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
+    assert.match(page, new RegExp(`data-category="${category}"`));
+  }
+  assert.match(page, /id="clipDialog"/);
+  assert.match(profileScript, /IntersectionObserver/);
+  assert.match(profileScript, /rootMargin: '400px 0px'/);
+  assert.match(profileScript, /preview\.muted = true/);
+  assert.match(profileScript, /preview\.preload = 'none'/);
+  assert.match(profileScript, /video\.preload = 'auto'/);
+  assert.match(profileScript, /pointerenter/);
+  assert.match(profileScript, /event\.pointerType === 'mouse'/);
+  assert.match(profileScript, /prefers-reduced-motion: reduce/);
+  assert.match(profileScript, /clipDialog\.showModal\(\)/);
+  assert.match(page, /\.filter-button\[aria-pressed='true'\] \{ background: var\(--mustard2\); color: var\(--paper\); \}/);
+  assert.match(page, /id="clipStatus" role="status" aria-live="polite"/);
+  assert.doesNotMatch(page, /id="clipGrid"[^>]*aria-live/);
+  assert.match(clipManifest, /export const clips = \[/);
+});
+
+test('clip manifest entries are valid and media remains externally hosted', () => {
+  const ids = new Set();
+  const validCategories = new Set(Object.keys(categoryLabels));
+
+  for (const clip of clips) {
+    assert.equal(typeof clip.id, 'string');
+    assert.ok(clip.id.trim(), 'clip id must not be empty');
+    assert.ok(!ids.has(clip.id), `duplicate clip id: ${clip.id}`);
+    ids.add(clip.id);
+    assert.ok(validCategories.has(clip.category), `invalid category for ${clip.id}`);
+    assert.match(clip.date, /^\d{4}-\d{2}-\d{2}$/, `invalid date format for ${clip.id}`);
+    assert.equal(
+      new Date(`${clip.date}T00:00:00Z`).toISOString().slice(0, 10),
+      clip.date,
+      `invalid calendar date for ${clip.id}`,
+    );
+    assert.ok(clip.title?.trim(), `missing title for ${clip.id}`);
+    assert.ok(clip.opponent?.trim(), `missing opponent for ${clip.id}`);
+    assert.match(clip.previewSrc, /^https:\/\//, `preview must use external HTTPS hosting for ${clip.id}`);
+    assert.match(clip.fullSrc, /^https:\/\//, `full clip must use external HTTPS hosting for ${clip.id}`);
+  }
+
+  const trackedProfileFiles = execFileSync('git', ['ls-files', 'felix-holtgrieve'], { encoding: 'utf8' });
+  assert.doesNotMatch(trackedProfileFiles, /\.(?:mov|mp4|webm)$/im, 'video files must not be committed');
+});
+
+test('academic section lists approved Semester 1 coursework without grades', () => {
+  const currentYearSection = page.slice(
+    page.indexOf('id="academic-year-2026"'),
+    page.indexOf('id="academic-year-2025"'),
+  );
+  assert.match(page, /id="academics-title">High School Coursework<\/h2>/);
+  assert.match(page, /id="academic-year-2026">2026–27<\/h3>/);
+  assert.match(page, />Grade 10<\/p>/);
+  assert.match(page, /<h4 class="semester-title">Semester 1<\/h4>/);
+  for (const course of [
+    'French 2A',
+    'Algebra 2A',
+    'World Literature &amp; Composition 10A',
+    'Beginning Graphic Design',
+    'Biology A',
+    'AP World History 1',
+  ]) {
+    assert.match(currentYearSection, new RegExp(`<li>${course}<\\/li>`));
+  }
+  assert.doesNotMatch(currentYearSection, /course-status/);
+  assert.match(page, /grades are not published/i);
+  assert.doesNotMatch(page, /Student ID|State ID|Portal Username|Absences|Tardies|Teacher|Room|Advisory|Program Support/i);
+  assert.doesNotMatch(currentYearSection, /<th[^>]*>Grade<\/th>/i);
+});
+
+test('academic section includes only approved Grade 9 history from prior years', () => {
+  assert.match(page, /id="academic-year-2025">2025–26<\/h3>/);
+  assert.match(page, />Grade 9<\/p>/);
+  assert.match(page, /id="grade-9-semester-1">Semester 1<\/h4>/);
+  assert.match(page, /id="grade-9-semester-2">Semester 2<\/h4>/);
+
+  const approvedGradeNine = [
+    ['Health Education', 'C\\+'],
+    ['Introduction to Literature &amp; Composition 9A', 'B-'],
+    ['Geometry A', 'B\\+'],
+    ['Personal Fitness', 'A'],
+    ['Physics A', 'B\\+'],
+    ['French 1A', 'B\\+'],
+    ['Exploring Computer Science', 'B\\+'],
+    ['Introduction to Literature &amp; Composition 9B', 'B-'],
+    ['Geometry B', 'B\\+'],
+    ['Chemistry A', 'B\\+'],
+    ['World History 1', 'C\\+'],
+    ['French 1B', 'A-'],
+  ];
+
+  for (const [course, grade] of approvedGradeNine) {
+    assert.match(page, new RegExp(`<td class="course-name">${course}<\\/td><td class="course-grade">${grade}<\\/td>`));
+  }
+
+  assert.equal((page.match(/<td class="course-grade">/g) || []).length, 12);
+  assert.doesNotMatch(page, /Grade [678]|Madison MS|Course #|Credit Earned|Credit Attempted|Advisory/i);
 });

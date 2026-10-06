@@ -93,7 +93,6 @@ body {
   grid-template-columns: 220px minmax(0, 1fr);
   grid-template-areas:
     'headshot copy'
-    'headshot deck'
     'headshot facts';
   column-gap: clamp(28px, 5vw, 60px);
   row-gap: 18px;
@@ -145,17 +144,10 @@ h1 {
   line-height: .9;
 }
 
-.profile-deck {
-  grid-area: deck;
-  max-width: 660px;
-  color: var(--ink2);
-  font-size: 15px;
-}
-
 .facts {
   grid-area: facts;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
   margin-top: 28px;
   background: var(--rule);
@@ -192,6 +184,81 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   white-space: nowrap;
 }
 
+.clip-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 22px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+.filter-button {
+  flex: 1 1 150px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  background: var(--panel);
+  color: var(--ink2);
+  cursor: pointer;
+  font: 700 12px/1.25 'IBM Plex Mono', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.filter-button:hover { background: var(--card); }
+.filter-button[aria-pressed='true'] { background: var(--mustard2); color: var(--paper); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.preview-hint {
+  margin-top: 12px;
+  color: var(--ink3);
+  font-size: 12px;
+}
+
+.clip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.clip-card {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+}
+
+.clip-card:focus-within { outline: 3px solid var(--mustard); outline-offset: 3px; }
+.clip-preview { width: 100%; aspect-ratio: 16 / 9; display: block; background: var(--ink); object-fit: cover; }
+.clip-details { padding: 18px; }
+.clip-category { color: var(--mustard2); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.clip-title { margin-top: 7px; font-family: 'Bebas Neue', sans-serif; font-size: 29px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
+.clip-meta { margin-top: 9px; color: var(--ink3); font-size: 12px; }
+.watch-button {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: 700 12px/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.watch-button:hover { background: var(--ink); color: var(--paper); }
+
 .empty-library {
   min-height: 280px;
   margin-top: 18px;
@@ -202,6 +269,7 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   border-left: 5px solid var(--mustard);
   color: var(--paper);
 }
+.empty-library[hidden] { display: none; }
 
 .empty-mark {
   width: 13px;
@@ -226,6 +294,70 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   font-size: 14px;
 }
 
+.academics {
+  margin-top: clamp(42px, 6vw, 64px);
+  padding-top: clamp(28px, 4vw, 36px);
+  border-top: 2px solid var(--mustard);
+}
+
+.academic-intro {
+  max-width: 720px;
+  margin-top: 12px;
+  color: var(--ink3);
+  font-size: 13px;
+}
+
+.academic-year {
+  margin-top: 14px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.academic-year-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 14px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.academic-year-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
+.academic-grade-level { color: var(--rule); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.semester-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+.semester-title { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.semester-status { color: var(--mustard2); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.current-course-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; }
+.current-course-list li { min-width: 0; padding: 8px 12px; border-bottom: 1px solid var(--rule); font-size: 12px; font-weight: 700; }
+.current-course-list li:nth-child(odd) { border-right: 1px solid var(--rule); }
+.current-course-list li:nth-last-child(-n + 2) { border-bottom: 0; }
+.semester-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.semester-panel { min-width: 0; }
+.semester-panel + .semester-panel { border-left: 1px solid var(--rule); }
+.course-table { width: 100%; border-collapse: collapse; }
+.course-table th,
+.course-table td { padding: 8px 12px; border-bottom: 1px solid var(--rule); text-align: left; }
+.course-table tr:last-child td { border-bottom: 0; }
+.course-table th { padding: 7px 12px; color: var(--ink3); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; }
+.course-name { font-size: 12px; font-weight: 700; }
+.course-grade { width: 60px; color: var(--ink); font-size: 12px; font-weight: 700; text-align: right !important; white-space: nowrap; }
+
+.clip-dialog {
+  width: min(920px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--rule);
+  background: var(--ink);
+  color: var(--paper);
+}
+.clip-dialog::backdrop { background: rgba(20,18,16,.82); }
+.dialog-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding: 18px; }
+.dialog-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
+.dialog-meta { margin-top: 7px; color: var(--rule); font-size: 12px; }
+.dialog-close { padding: 8px 10px; border: 1px solid var(--rule); background: transparent; color: var(--paper); cursor: pointer; font: 700 11px/1 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+.dialog-video { width: 100%; max-height: 70vh; display: block; background: #000; }
+
 footer {
   margin-top: auto;
   padding: 16px;
@@ -248,13 +380,16 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
     grid-template-columns: 96px minmax(0, 1fr);
     grid-template-areas:
       'headshot copy'
-      'deck deck'
       'facts facts';
     gap: 16px;
   }
   .headshot-placeholder { font-size: 40px; }
   h1 { font-size: clamp(40px, 10.5vw, 50px); }
-  .facts { margin-top: 6px; }
+  .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 6px; }
+  .fact:last-child { grid-column: span 2; }
+  .clip-grid { grid-template-columns: 1fr; }
+  .semester-grid { grid-template-columns: 1fr; }
+  .semester-panel + .semester-panel { border-top: 1px solid var(--rule); border-left: 0; }
   .section-heading { display: block; }
   .season-label { display: block; margin-top: 8px; }
 }
@@ -280,19 +415,26 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
         <p class="eyebrow">Seattle Junior Mets · 16U AA</p>
         <h1 id="profile-title">Felix Holtgrieve</h1>
       </div>
-      <p class="profile-deck">Defenseman profile and video highlights from the 2026–27 season.</p>
       <dl class="facts" aria-label="Player facts">
         <div class="fact">
           <dt>Position</dt>
           <dd>Defense</dd>
         </div>
         <div class="fact">
-          <dt>Number</dt>
-          <dd>17</dd>
+          <dt>Height</dt>
+          <dd>6′0″</dd>
         </div>
         <div class="fact">
-          <dt>Season</dt>
-          <dd>2026–27</dd>
+          <dt>Weight</dt>
+          <dd>170 lbs</dd>
+        </div>
+        <div class="fact">
+          <dt>Shoots</dt>
+          <dd>Right</dd>
+        </div>
+        <div class="fact">
+          <dt>Birth year</dt>
+          <dd>2011</dd>
         </div>
       </dl>
     </div>
@@ -306,14 +448,102 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
       </div>
       <p class="season-label">Clips coming soon</p>
     </div>
-    <section class="empty-library" aria-labelledby="empty-title">
+    <div class="clip-filters" role="group" aria-label="Filter video highlights by play type">
+      <button class="filter-button" type="button" data-category="all" aria-pressed="true">All plays</button>
+      <button class="filter-button" type="button" data-category="defensive" aria-pressed="false">Defensive</button>
+      <button class="filter-button" type="button" data-category="offensive" aria-pressed="false">Offensive</button>
+      <button class="filter-button" type="button" data-category="puck-movement" aria-pressed="false">Puck movement</button>
+      <button class="filter-button" type="button" data-category="special-teams" aria-pressed="false">Special teams</button>
+    </div>
+    <p class="preview-hint">Hover over a clip for a quick muted preview. On a touch screen, select “Watch full clip” for immediate playback.</p>
+    <p class="sr-only" id="clipStatus" role="status" aria-live="polite"></p>
+    <div class="clip-grid" id="clipGrid"></div>
+    <section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title">
       <div class="empty-mark" aria-hidden="true"></div>
       <h3 id="empty-title">The season starts here.</h3>
       <p>Felix’s 2026–27 game clips will be added throughout the season, with each play labeled by date, opponent, and category.</p>
     </section>
+
+    <section class="academics" aria-labelledby="academics-title">
+      <p class="section-kicker">Academics</p>
+      <h2 id="academics-title">High School Coursework</h2>
+      <p class="academic-intro">Coursework is listed by academic year and semester. Current-year courses are in progress; current-year grades are not published.</p>
+      <section class="academic-year" aria-labelledby="academic-year-2026">
+        <div class="academic-year-header">
+          <h3 class="academic-year-title" id="academic-year-2026">2026–27</h3>
+          <p class="academic-grade-level">Grade 10</p>
+        </div>
+        <div class="semester-header">
+          <h4 class="semester-title">Semester 1</h4>
+          <p class="semester-status">In progress</p>
+        </div>
+        <ul class="current-course-list" aria-label="Grade 10 Semester 1 courses">
+          <li>French 2A</li>
+          <li>Algebra 2A</li>
+          <li>World Literature &amp; Composition 10A</li>
+          <li>Beginning Graphic Design</li>
+          <li>Biology A</li>
+          <li>AP World History 1</li>
+        </ul>
+      </section>
+      <section class="academic-year" aria-labelledby="academic-year-2025">
+        <div class="academic-year-header">
+          <h3 class="academic-year-title" id="academic-year-2025">2025–26</h3>
+          <p class="academic-grade-level">Grade 9</p>
+        </div>
+        <div class="semester-grid">
+          <section class="semester-panel" aria-labelledby="grade-9-semester-1">
+            <div class="semester-header">
+              <h4 class="semester-title" id="grade-9-semester-1">Semester 1</h4>
+              <p class="semester-status">Completed</p>
+            </div>
+            <table class="course-table">
+              <thead><tr><th scope="col">Course</th><th scope="col">Grade</th></tr></thead>
+              <tbody>
+                <tr><td class="course-name">Health Education</td><td class="course-grade">C+</td></tr>
+                <tr><td class="course-name">Introduction to Literature &amp; Composition 9A</td><td class="course-grade">B-</td></tr>
+                <tr><td class="course-name">Geometry A</td><td class="course-grade">B+</td></tr>
+                <tr><td class="course-name">Personal Fitness</td><td class="course-grade">A</td></tr>
+                <tr><td class="course-name">Physics A</td><td class="course-grade">B+</td></tr>
+                <tr><td class="course-name">French 1A</td><td class="course-grade">B+</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="semester-panel" aria-labelledby="grade-9-semester-2">
+            <div class="semester-header">
+              <h4 class="semester-title" id="grade-9-semester-2">Semester 2</h4>
+              <p class="semester-status">Completed</p>
+            </div>
+            <table class="course-table">
+              <thead><tr><th scope="col">Course</th><th scope="col">Grade</th></tr></thead>
+              <tbody>
+                <tr><td class="course-name">Exploring Computer Science</td><td class="course-grade">B+</td></tr>
+                <tr><td class="course-name">Introduction to Literature &amp; Composition 9B</td><td class="course-grade">B-</td></tr>
+                <tr><td class="course-name">Geometry B</td><td class="course-grade">B+</td></tr>
+                <tr><td class="course-name">Chemistry A</td><td class="course-grade">B+</td></tr>
+                <tr><td class="course-name">World History 1</td><td class="course-grade">C+</td></tr>
+                <tr><td class="course-name">French 1B</td><td class="course-grade">A-</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </section>
+    </section>
   </div>
 </main>
 
+<dialog class="clip-dialog" id="clipDialog" aria-labelledby="dialogTitle">
+  <div class="dialog-header">
+    <div>
+      <h2 class="dialog-title" id="dialogTitle">Video highlight</h2>
+      <p class="dialog-meta" id="dialogMeta"></p>
+    </div>
+    <form method="dialog"><button class="dialog-close" type="submit">Close</button></form>
+  </div>
+  <video class="dialog-video" id="dialogVideo" controls playsinline preload="metadata"></video>
+</dialog>
+
 <footer><a href="/">Post &amp; In · Seattle’s Hockey Hub</a></footer>
+<script type="module" src="/felix-holtgrieve/profile.js"></script>
 </body>
 </html>
