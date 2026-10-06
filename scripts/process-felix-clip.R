@@ -306,7 +306,9 @@ process_felix_clip <- function(
   }
 
   duration <- end_seconds - start_seconds
-  preview_source_duration <- min(max(5 - highlight_seconds, 0.5), duration)
+  if (duration > 60) {
+    stop("Clip duration must be 60 seconds or less for an efficient hover preview.", call. = FALSE)
+  }
 
   preview_path <- file.path(output_dir, paste0(id, "-preview.mp4"))
   full_path <- file.path(output_dir, paste0(id, ".mp4"))
@@ -348,17 +350,17 @@ process_felix_clip <- function(
     has_audio <- length(audio_probe) > 0L && any(nzchar(audio_probe))
   }
 
-  message("Creating five-second hover preview...")
+  message("Creating full-play hover preview...")
   felix_run_ffmpeg(ffmpeg, c(
     common,
     "-ss", seek,
-    "-t", sprintf("%.3f", preview_source_duration),
+    "-t", sprintf("%.3f", duration),
     "-i", input,
     "-loop", "1", "-framerate", "24", "-i", marker_path,
     "-filter_complex", preview_filter,
     "-map", "[v]",
     "-an",
-    "-t", sprintf("%.3f", preview_source_duration + highlight_seconds),
+    "-t", sprintf("%.3f", duration + highlight_seconds),
     "-c:v", "libx264",
     "-preset", "veryfast",
     "-crf", "27",

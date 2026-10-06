@@ -96,12 +96,14 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.match(profileScript, /IntersectionObserver/);
   assert.match(profileScript, /rootMargin: '400px 0px'/);
   assert.match(profileScript, /preview\.muted = true/);
+  assert.match(profileScript, /preview\.loop = true/);
   assert.match(profileScript, /preview\.preload = 'none'/);
   assert.match(profileScript, /matchMedia\('\(hover: hover\)'\)/);
   assert.match(profileScript, /!supportsHover\.matches/);
   assert.match(profileScript, /video\.preload = 'auto'/);
   assert.match(profileScript, /pointerenter/);
   assert.match(profileScript, /event\.pointerType === 'mouse'/);
+  assert.doesNotMatch(profileScript, /setTimeout\(\(\) => stopPreview/);
   assert.match(profileScript, /prefers-reduced-motion: reduce/);
   assert.match(profileScript, /clipDialog\.showModal\(\)/);
   assert.match(profileScript, /clip\.categories\.includes\(activeCategory\)/);

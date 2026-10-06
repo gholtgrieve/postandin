@@ -15,7 +15,6 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 const supportsHover = window.matchMedia('(hover: hover)');
 
 let activeCategory = 'all';
-const previewTimers = new WeakMap();
 
 const previewObserver = 'IntersectionObserver' in window
   ? new IntersectionObserver((entries) => {
@@ -49,13 +48,9 @@ function startPreview(video) {
   if (prefersReducedMotion.matches) return;
   ensurePreviewSource(video);
   video.play().catch(() => {});
-  clearTimeout(previewTimers.get(video));
-  previewTimers.set(video, setTimeout(() => stopPreview(video), 5000));
 }
 
 function stopPreview(video) {
-  clearTimeout(previewTimers.get(video));
-  previewTimers.delete(video);
   video.pause();
   video.currentTime = 0;
 }
@@ -87,6 +82,7 @@ function createClipCard(clip) {
   preview.className = 'clip-preview';
   preview.muted = true;
   preview.playsInline = true;
+  preview.loop = true;
   preview.preload = 'none';
   preview.poster = clip.posterSrc || '';
   preview.dataset.src = clip.previewSrc;

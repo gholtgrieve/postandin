@@ -28,7 +28,8 @@ source("scripts/process-felix-clip.R")
 
 Then run one clip. The start and end values may use `HH:MM:SS`, `MM:SS`, or
 plain seconds. For example, 47 minutes and 39 seconds is `47:39`; `47:39:00`
-means 47 hours and 39 minutes.
+means 47 hours and 39 minutes. Clips are limited to 60 seconds so the complete
+hover preview stays lightweight for visitors.
 
 ```r
 felix <- choose_felix_position(
@@ -61,7 +62,8 @@ one filter.
 
 The output directory receives four files:
 
-- `<id>-preview.mp4`: five-second, silent 360p hover preview with the marked pause;
+- `<id>-preview.mp4`: silent 360p version of the complete play, looped by the
+  page while the card is hovered or keyboard-focused;
 - `<id>.mp4`: marked pause followed by the full timestamp range at up to 720p;
 - `<id>.jpg`: marked opening frame shown before playback; and
 - `<id>-clip-entry.js`: metadata ready to add to `felix-holtgrieve/clips.js`.

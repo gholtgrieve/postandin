@@ -15,9 +15,9 @@ export const clips = [
     categories: ['puck-movement', 'offensive'],
     opponent: 'Utah Jr Grizzlies',
     date: '2026-09-27',
-    posterSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v1/2026-09-27-utah-d-zone-breakout-sog.jpg',
-    previewSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v1/2026-09-27-utah-d-zone-breakout-sog-preview.mp4',
-    fullSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v1/2026-09-27-utah-d-zone-breakout-sog.mp4',
+    posterSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v2/2026-09-27-utah-d-zone-breakout-sog.jpg',
+    previewSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v2/2026-09-27-utah-d-zone-breakout-sog-preview.mp4',
+    fullSrc: 'https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v2/2026-09-27-utah-d-zone-breakout-sog.mp4',
     captionsSrc: '',
   },
 ];
