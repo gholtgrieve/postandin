@@ -184,6 +184,52 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   white-space: nowrap;
 }
 
+.playing-history {
+  margin-bottom: clamp(42px, 6vw, 64px);
+  padding-bottom: clamp(28px, 4vw, 36px);
+  border-bottom: 2px solid var(--mustard);
+}
+
+.history-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.team-history-table {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-collapse: collapse;
+  background: var(--panel);
+}
+
+.team-history-table th,
+.team-history-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+
+.team-history-table tr:last-child td { border-bottom: 0; }
+.team-history-table th { color: var(--ink3); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+.history-season { width: 120px; color: var(--ink2); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.history-team { font-size: 12px; }
+.history-team strong { display: inline-block; margin-left: 8px; color: var(--ink); }
+
+.camp-highlight {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  border-left: 5px solid var(--mustard);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.camp-highlight h3 { margin-top: 7px; font-family: 'Bebas Neue', sans-serif; font-size: 30px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
+.camp-highlight p:last-child { margin-top: 10px; color: var(--rule); font-size: 12px; }
+
 .clip-filters {
   display: flex;
   flex-wrap: wrap;
@@ -218,12 +264,6 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-.preview-hint {
-  margin-top: 12px;
-  color: var(--ink3);
-  font-size: 12px;
 }
 
 .clip-grid {
@@ -298,13 +338,6 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   margin-top: clamp(42px, 6vw, 64px);
   padding-top: clamp(28px, 4vw, 36px);
   border-top: 2px solid var(--mustard);
-}
-
-.academic-intro {
-  max-width: 720px;
-  margin-top: 12px;
-  color: var(--ink3);
-  font-size: 13px;
 }
 
 .academic-year {
@@ -388,6 +421,7 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 6px; }
   .fact:last-child { grid-column: span 2; }
   .clip-grid { grid-template-columns: 1fr; }
+  .history-layout { grid-template-columns: 1fr; }
   .semester-grid { grid-template-columns: 1fr; }
   .semester-panel + .semester-panel { border-top: 1px solid var(--rule); border-left: 0; }
   .section-heading { display: block; }
@@ -441,6 +475,27 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   </section>
 
   <div class="content-inner">
+    <section class="playing-history" aria-labelledby="playing-history-title">
+      <p class="section-kicker">Playing history</p>
+      <h2 id="playing-history-title">Seattle Junior Teams</h2>
+      <div class="history-layout">
+        <table class="team-history-table">
+          <caption class="sr-only">Felix Holtgrieve’s Seattle Junior team history</caption>
+          <thead><tr><th scope="col">Season</th><th scope="col">Team</th></tr></thead>
+          <tbody>
+            <tr><td class="history-season">2024–25</td><td class="history-team">Seattle Junior Mets <strong>14U B</strong></td></tr>
+            <tr><td class="history-season">2025–26</td><td class="history-team">Seattle Junior Mets <strong>14U AA</strong></td></tr>
+            <tr><td class="history-season">2026–27</td><td class="history-team">Seattle Junior Mets <strong>16U AA</strong></td></tr>
+          </tbody>
+        </table>
+        <aside class="camp-highlight" aria-labelledby="camp-highlight-title">
+          <p class="section-kicker">Player development</p>
+          <h3 id="camp-highlight-title">PNAHA State Development Camp</h3>
+          <p>Invite-only attendee for two consecutive years.</p>
+        </aside>
+      </div>
+    </section>
+
     <div class="section-heading">
       <div>
         <p class="section-kicker">Video library</p>
@@ -455,7 +510,6 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
       <button class="filter-button" type="button" data-category="puck-movement" aria-pressed="false">Puck movement</button>
       <button class="filter-button" type="button" data-category="special-teams" aria-pressed="false">Special teams</button>
     </div>
-    <p class="preview-hint">Hover over a clip for a quick muted preview. On a touch screen, select “Watch full clip” for immediate playback.</p>
     <p class="sr-only" id="clipStatus" role="status" aria-live="polite"></p>
     <div class="clip-grid" id="clipGrid"></div>
     <section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title">
@@ -467,7 +521,6 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
     <section class="academics" aria-labelledby="academics-title">
       <p class="section-kicker">Academics</p>
       <h2 id="academics-title">High School Coursework</h2>
-      <p class="academic-intro">Coursework is listed by academic year and semester. Current-year courses are in progress; current-year grades are not published.</p>
       <section class="academic-year" aria-labelledby="academic-year-2026">
         <div class="academic-year-header">
           <h3 class="academic-year-title" id="academic-year-2026">2026–27</h3>

@@ -57,7 +57,7 @@ test('Felix profile is absent from established public navigation surfaces', () =
   }
 });
 
-test('Felix profile scaffold includes verified facts and an empty clip state', () => {
+test('Felix profile scaffold includes verified facts and a clip fallback state', () => {
   assert.match(page, /Seattle Junior Mets/);
   assert.match(page, /<dt>Position<\/dt>\s*<dd>Defense<\/dd>/);
   assert.match(page, /<dt>Height<\/dt>\s*<dd>6′0″<\/dd>/);
@@ -69,6 +69,25 @@ test('Felix profile scaffold includes verified facts and an empty clip state', (
   assert.match(page, /Clips coming soon/);
 });
 
+test('playing history lists Seattle Junior teams and invite-only development recognition', () => {
+  const teams = [
+    ['2024–25', '14U B'],
+    ['2025–26', '14U AA'],
+    ['2026–27', '16U AA'],
+  ];
+
+  assert.match(page, /id="playing-history-title">Seattle Junior Teams<\/h2>/);
+  for (const [season, level] of teams) {
+    assert.match(
+      page,
+      new RegExp(`<td class="history-season">${season}<\\/td><td class="history-team">Seattle Junior Mets <strong>${level}<\\/strong><\\/td>`),
+    );
+  }
+  assert.doesNotMatch(page, /2027–27/);
+  assert.match(page, /id="camp-highlight-title">PNAHA State Development Camp<\/h3>/);
+  assert.match(page, /Invite-only attendee for two consecutive years\./);
+});
+
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
@@ -78,11 +97,15 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.match(profileScript, /rootMargin: '400px 0px'/);
   assert.match(profileScript, /preview\.muted = true/);
   assert.match(profileScript, /preview\.preload = 'none'/);
+  assert.match(profileScript, /matchMedia\('\(hover: hover\)'\)/);
+  assert.match(profileScript, /!supportsHover\.matches/);
   assert.match(profileScript, /video\.preload = 'auto'/);
   assert.match(profileScript, /pointerenter/);
   assert.match(profileScript, /event\.pointerType === 'mouse'/);
   assert.match(profileScript, /prefers-reduced-motion: reduce/);
   assert.match(profileScript, /clipDialog\.showModal\(\)/);
+  assert.match(profileScript, /clip\.categories\.includes\(activeCategory\)/);
+  assert.match(profileScript, /clip\.categories\.map/);
   assert.match(page, /\.filter-button\[aria-pressed='true'\] \{ background: var\(--mustard2\); color: var\(--paper\); \}/);
   assert.match(page, /id="clipStatus" role="status" aria-live="polite"/);
   assert.doesNotMatch(page, /id="clipGrid"[^>]*aria-live/);
@@ -98,7 +121,11 @@ test('clip manifest entries are valid and media remains externally hosted', () =
     assert.ok(clip.id.trim(), 'clip id must not be empty');
     assert.ok(!ids.has(clip.id), `duplicate clip id: ${clip.id}`);
     ids.add(clip.id);
-    assert.ok(validCategories.has(clip.category), `invalid category for ${clip.id}`);
+    assert.ok(Array.isArray(clip.categories) && clip.categories.length, `missing categories for ${clip.id}`);
+    assert.equal(new Set(clip.categories).size, clip.categories.length, `duplicate categories for ${clip.id}`);
+    for (const category of clip.categories) {
+      assert.ok(validCategories.has(category), `invalid category for ${clip.id}: ${category}`);
+    }
     assert.match(clip.date, /^\d{4}-\d{2}-\d{2}$/, `invalid date format for ${clip.id}`);
     assert.equal(
       new Date(`${clip.date}T00:00:00Z`).toISOString().slice(0, 10),
@@ -107,8 +134,18 @@ test('clip manifest entries are valid and media remains externally hosted', () =
     );
     assert.ok(clip.title?.trim(), `missing title for ${clip.id}`);
     assert.ok(clip.opponent?.trim(), `missing opponent for ${clip.id}`);
+    assert.match(clip.posterSrc, /^https:\/\/media\.postandin\.com\//, `poster must use the Post & In media domain for ${clip.id}`);
     assert.match(clip.previewSrc, /^https:\/\//, `preview must use external HTTPS hosting for ${clip.id}`);
     assert.match(clip.fullSrc, /^https:\/\//, `full clip must use external HTTPS hosting for ${clip.id}`);
+    assert.match(clip.previewSrc, /^https:\/\/media\.postandin\.com\//, `preview must use the Post & In media domain for ${clip.id}`);
+    assert.match(clip.fullSrc, /^https:\/\/media\.postandin\.com\//, `full clip must use the Post & In media domain for ${clip.id}`);
+    for (const source of [clip.posterSrc, clip.previewSrc, clip.fullSrc]) {
+      assert.match(
+        source,
+        new RegExp(`^https://media\\.postandin\\.com/felix/\\d{4}-\\d{2}/${clip.id}/v[1-9]\\d*/`),
+        `media URL must use a versioned key for ${clip.id}`,
+      );
+    }
   }
 
   const trackedProfileFiles = execFileSync('git', ['ls-files', 'felix-holtgrieve'], { encoding: 'utf8' });
@@ -135,7 +172,6 @@ test('academic section lists approved Semester 1 coursework without grades', () 
     assert.match(currentYearSection, new RegExp(`<li>${course}<\\/li>`));
   }
   assert.doesNotMatch(currentYearSection, /course-status/);
-  assert.match(page, /grades are not published/i);
   assert.doesNotMatch(page, /Student ID|State ID|Portal Username|Absences|Tardies|Teacher|Room|Advisory|Program Support/i);
   assert.doesNotMatch(currentYearSection, /<th[^>]*>Grade<\/th>/i);
 });

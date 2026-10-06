@@ -12,6 +12,7 @@ const dialogTitle = document.querySelector('#dialogTitle');
 const dialogMeta = document.querySelector('#dialogMeta');
 const dialogVideo = document.querySelector('#dialogVideo');
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const supportsHover = window.matchMedia('(hover: hover)');
 
 let activeCategory = 'all';
 const previewTimers = new WeakMap();
@@ -33,8 +34,12 @@ function displayDate(value) {
     : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 }
 
+function displayCategories(clip) {
+  return clip.categories.map((category) => categoryLabels[category]).join(' · ');
+}
+
 function ensurePreviewSource(video) {
-  if (prefersReducedMotion.matches || video.src || !video.dataset.src) return;
+  if (prefersReducedMotion.matches || !supportsHover.matches || video.src || !video.dataset.src) return;
   video.src = video.dataset.src;
   video.preload = 'auto';
   video.load();
@@ -57,7 +62,7 @@ function stopPreview(video) {
 
 function openFullClip(clip) {
   dialogTitle.textContent = clip.title;
-  dialogMeta.textContent = `${categoryLabels[clip.category]} · ${clip.opponent} · ${displayDate(clip.date)}`;
+  dialogMeta.textContent = `${displayCategories(clip)} · ${clip.opponent} · ${displayDate(clip.date)}`;
   dialogVideo.poster = clip.posterSrc || '';
   dialogVideo.src = clip.fullSrc;
 
@@ -93,7 +98,7 @@ function createClipCard(clip) {
 
   const category = document.createElement('p');
   category.className = 'clip-category';
-  category.textContent = categoryLabels[clip.category];
+  category.textContent = displayCategories(clip);
 
   const title = document.createElement('h3');
   title.className = 'clip-title';
@@ -132,7 +137,7 @@ function createClipCard(clip) {
 function renderClips() {
   const visibleClips = activeCategory === 'all'
     ? clips
-    : clips.filter((clip) => clip.category === activeCategory);
+    : clips.filter((clip) => clip.categories.includes(activeCategory));
 
   clipGrid.querySelectorAll('.clip-preview').forEach((preview) => previewObserver?.unobserve(preview));
   clipGrid.replaceChildren(...visibleClips.map(createClipCard));

@@ -45,3 +45,9 @@ instructions/*
 !instructions/gear-lean-backup.md
 
 !instructions/gear-lifecycle.md
+
+# Local hockey source footage and generated clips never belong in this public repo.
+felix-holtgrieve/**/*.mp4
+felix-holtgrieve/**/*.mov
+felix-holtgrieve/**/*.webm
+.Rproj.user
