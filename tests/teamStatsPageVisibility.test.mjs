@@ -43,13 +43,13 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through October 3, 2026/);
-  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">9<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">1-7-1<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">14 \/ 29<\/span>/);
-  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>9<\/td><td>3<\/td><td>2<\/td><td class="points">5<\/td><td>0<\/td>/);
-  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>9<\/td><td>2<\/td><td>1<\/td><td class="points">3<\/td><td>4<\/td>/);
-  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>8<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>37<\/td>/);
+  assert.match(statsPage, /Through October 4, 2026/);
+  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">10<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">1-8-1<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">15 \/ 33<\/span>/);
+  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>10<\/td><td>3<\/td><td>2<\/td><td class="points">5<\/td><td>0<\/td>/);
+  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>10<\/td><td>3<\/td><td>1<\/td><td class="points">4<\/td><td>4<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>9<\/td><td>0<\/td><td>0<\/td><td class="points">0<\/td><td>37<\/td>/);
 });
 
 test('both player tables provide sortable column controls', () => {
@@ -64,8 +64,8 @@ test('goalie totals include derived saves and save percentage', () => {
   assert.match(statsPage, />SV<\/button>/);
   assert.match(statsPage, />SV%<\/button>/);
   assert.match(statsPage, /Anthony O'Donnell<\/td><td>5<\/td><td>0<\/td><td>4<\/td><td>1<\/td><td>166<\/td><td>17<\/td><td>154<\/td><td class="points" data-sort-value="92\.8">92\.8%/);
-  assert.match(statsPage, /Miguel Martinez<\/td><td>4<\/td><td>1<\/td><td>3<\/td><td>0<\/td><td>150<\/td><td>12<\/td><td>138<\/td><td class="points" data-sort-value="92\.0">92\.0%/);
-  assert.match(statsPage, /Anthony O'Donnell's SA, SV and SV% cover four of five games/);
+  assert.match(statsPage, /Miguel Martinez<\/td><td>5<\/td><td>1<\/td><td>4<\/td><td>0<\/td><td>150<\/td><td>16<\/td><td>138<\/td><td class="points" data-sort-value="92\.0">92\.0%/);
+  assert.match(statsPage, /Each goalie's SA, SV and SV% cover four of five games/);
 });
 
 test('display names retain natural order while sorting by surname', () => {
@@ -87,15 +87,16 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Shots by game/);
   assert.match(statsPage, /Special teams goals/);
   assert.match(statsPage, /Power-play goals for<\/span><strong>2/);
-  assert.match(statsPage, /Power-play goals against<\/span><strong>2/);
+  assert.match(statsPage, /Power-play goals against<\/span><strong>3/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>3/);
   assert.match(statsPage, /26 opportunities · 7\.7%/);
-  assert.match(statsPage, /25 times shorthanded · 92\.0% PK/);
+  assert.match(statsPage, /25 recorded times shorthanded through Sep 27/);
   assert.match(statsPage, /1 GWG · Sep 26 vs Boise/);
   assert.match(statsPage, /1 GWG · Sep 20 vs Tacoma/);
   assert.equal((statsPage.match(/0 GWG/g) ?? []).length, 2);
-  assert.match(statsPage, /Special-teams totals cover eight games/);
+  assert.match(statsPage, /Confirmed special-teams goal totals include October 4/);
+  assert.match(statsPage, /Opportunity totals cover eight games through September 27/);
   assert.match(statsPage, /GWG means game-winning goal/);
   assert.doesNotMatch(statsPage, /Goal type was not recorded/);
   assert.doesNotMatch(statsPage, /Goal strength classified|27 of 37 · 73%/);
@@ -115,12 +116,12 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.equal((statsPage.match(/class="diverging-chart period-goal-chart"/g) ?? []).length, 3);
   assert.match(statsPage, /Goals by period/);
   assert.match(statsPage, /Penalty profile/);
-  assert.match(statsPage, /Playing penalties only: 36 calls and 75 PIM/);
+  assert.match(statsPage, /Playing penalties only: 45 calls and 93 PIM/);
   assert.match(statsPage, /Misconduct records are excluded/);
   assert.doesNotMatch(statsPage, /id="misconducts-title"/);
   assert.match(statsPage, /Goaltender workload/);
   assert.match(statsPage, /Period-level shot totals are available for four games/);
   assert.match(statsPage, /Shot location and high-danger chances are not currently tracked/);
-  assert.match(statsPage, /October 3 scorecard recorded five goals against but did not record shots or saves/);
+  assert.match(statsPage, /October 3 and 4 scorecards recorded goals against but did not record shots or saves/);
   assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
 });
