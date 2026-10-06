@@ -37,6 +37,11 @@ felix <- choose_felix_position(
   start = "01:12:34.5"
 )
 
+offensive_zone <- choose_felix_position(
+  input = "/Users/your-name/Movies/full-game.mp4",
+  start = "01:12:45"
+)
+
 process_felix_clip(
   input = "/Users/your-name/Movies/full-game.mp4",
   start = "01:12:34.5",
@@ -47,14 +52,24 @@ process_felix_clip(
   opponent = "Opponent name",
   date = "2026-10-05",
   output_dir = "/Users/your-name/Movies/felix-clips",
-  felix_position = felix
+  felix_position = felix,
+  secondary_highlight_time = "10.5",
+  secondary_felix_position = offensive_zone
 )
 ```
 
 `choose_felix_position()` opens the first clip frame in the R plot pane. Click
 the center of Felix once. The generated poster and both videos use that position
-for a mustard circle. The opening frame pauses for 1.25 seconds with
-the marker visible, then the marker disappears and the play begins normally.
+for a mustard circle. The opening frame pauses for 1.75 seconds with the marker
+visible, then the marker disappears and the play begins normally.
+
+The optional `secondary_highlight_time` is measured from the clip start, not
+from the full game's beginning. In the example, `01:12:45` is 10.5 seconds after
+the clip starts at `01:12:34.5`. Select Felix on that full-game frame with a
+second `choose_felix_position()` call, then pass its result as
+`secondary_felix_position`. The generated videos briefly pause for 1.25 seconds
+and show the circle again at that point. Omit both secondary arguments when a
+clip needs only the opening identification.
 
 Allowed categories are `defensive`, `offensive`, `puck-movement`, and
 `special-teams`. Use a character vector when the same clip belongs in more than

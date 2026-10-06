@@ -76,7 +76,7 @@ test('playing history lists Seattle Junior teams and invite-only development rec
     ['2026–27', '16U AA'],
   ];
 
-  assert.match(page, /id="playing-history-title">Seattle Junior Teams<\/h2>/);
+  assert.match(page, /id="playing-history-title">Rep Hockey Teams<\/h2>/);
   for (const [season, level] of teams) {
     assert.match(
       page,
@@ -89,8 +89,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=3"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=3'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=4"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=4'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
   }

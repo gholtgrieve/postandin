@@ -244,6 +244,129 @@ felix_write_marker <- function(path, position, width = 1280, height = 720, radiu
   writeLines(svg, path, useBytes = TRUE)
 }
 
+felix_video_filter <- function(
+  width,
+  height,
+  fps,
+  highlight_seconds,
+  secondary_highlight_time = NULL,
+  secondary_highlight_seconds = NULL
+) {
+  scale_filter <- paste0(
+    sprintf("scale=%d:%d:force_original_aspect_ratio=decrease,", width, height),
+    sprintf("pad=%d:%d:(ow-iw)/2:(oh-ih)/2,", width, height),
+    sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
+  )
+  opening_frames <- max(1, floor((highlight_seconds * fps) + 0.5))
+  opening_duration <- opening_frames / fps
+
+  if (is.null(secondary_highlight_time)) {
+    return(paste0(
+      "[0:v:0]", scale_filter, ",split=2[opening-source][play-source];",
+      "[opening-source]trim=start_frame=0:end_frame=1,setpts=PTS-STARTPTS,",
+      sprintf(
+        "loop=loop=%d:size=1:start=0,setpts=N/(%d*TB)[opening];",
+        opening_frames - 1,
+        fps
+      ),
+      "[play-source]setpts=PTS-STARTPTS[play];",
+      sprintf(
+        "[opening][play]concat=n=2:v=1:a=0,fps=%d,settb=1/%d[joined];",
+        fps,
+        fps
+      ),
+      sprintf("[1:v:0]scale=%d:%d,format=rgba[marker];", width, height),
+      sprintf("[joined][marker]overlay=0:0:enable='lt(t,%.6f)',format=yuv420p[v]", opening_duration)
+    ))
+  }
+
+  secondary_frame <- floor((secondary_highlight_time * fps) + 0.5)
+  secondary_frames <- max(1, floor((secondary_highlight_seconds * fps) + 0.5))
+  secondary_frame_time <- secondary_frame / fps
+  secondary_duration <- secondary_frames / fps
+  secondary_start <- opening_duration + secondary_frame_time
+  secondary_end <- secondary_start + secondary_duration
+
+  paste0(
+    "[0:v:0]", scale_filter, ",",
+    "split=4[opening-source][before-source][freeze-source][after-source];",
+    "[opening-source]trim=start_frame=0:end_frame=1,setpts=PTS-STARTPTS,",
+    sprintf(
+      "loop=loop=%d:size=1:start=0,setpts=N/(%d*TB)[opening];",
+      opening_frames - 1,
+      fps
+    ),
+    sprintf(
+      "[before-source]trim=start_frame=0:end_frame=%d,setpts=PTS-STARTPTS[before];",
+      secondary_frame
+    ),
+    sprintf(
+      "[freeze-source]trim=start_frame=%d:end_frame=%d,setpts=PTS-STARTPTS,",
+      secondary_frame,
+      secondary_frame + 1
+    ),
+    sprintf(
+      "loop=loop=%d:size=1:start=0,setpts=N/(%d*TB)[freeze];",
+      secondary_frames - 1,
+      fps
+    ),
+    sprintf(
+      "[after-source]trim=start_frame=%d,setpts=PTS-STARTPTS[after];",
+      secondary_frame
+    ),
+    sprintf(
+      "[opening][before][freeze][after]concat=n=4:v=1:a=0,fps=%d,settb=1/%d[joined];",
+      fps,
+      fps
+    ),
+    sprintf("[1:v:0]scale=%d:%d,format=rgba[opening-marker];", width, height),
+    sprintf("[2:v:0]scale=%d:%d,format=rgba[secondary-marker];", width, height),
+    sprintf(
+      "[joined][opening-marker]overlay=0:0:enable='lt(t,%.3f)'[opening-marked];",
+      opening_duration
+    ),
+    sprintf(
+      "[opening-marked][secondary-marker]overlay=0:0:enable='between(t,%.3f,%.3f)',format=yuv420p[v]",
+      secondary_start,
+      secondary_end
+    )
+  )
+}
+
+felix_audio_filter <- function(
+  highlight_seconds,
+  secondary_highlight_time = NULL,
+  secondary_highlight_seconds = NULL
+) {
+  if (is.null(secondary_highlight_time)) {
+    return(sprintf("[0:a:0]adelay=%d:all=1[a]", round(highlight_seconds * 1000)))
+  }
+
+  paste0(
+    "[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:",
+    "channel_layouts=stereo,asetpts=PTS-STARTPTS,",
+    "asplit=2[before-audio-source][after-audio-source];",
+    sprintf(
+      "[before-audio-source]atrim=start=0:end=%.3f,asetpts=PTS-STARTPTS[before-audio];",
+      secondary_highlight_time
+    ),
+    sprintf(
+      "[after-audio-source]atrim=start=%.3f,asetpts=PTS-STARTPTS[after-audio];",
+      secondary_highlight_time
+    ),
+    sprintf(
+      "anullsrc=r=48000:cl=stereo,atrim=duration=%.3f[opening-silence];",
+      highlight_seconds
+    ),
+    sprintf(
+      "anullsrc=r=48000:cl=stereo,atrim=duration=%.3f[secondary-silence];",
+      secondary_highlight_seconds
+    ),
+    "[opening-silence][before-audio][secondary-silence][after-audio]",
+    "concat=n=4:v=0:a=1[a]"
+  )
+}
+
 process_felix_clip <- function(
   input,
   start,
@@ -255,7 +378,10 @@ process_felix_clip <- function(
   date,
   output_dir,
   felix_position,
-  highlight_seconds = 1.25,
+  highlight_seconds = 1.75,
+  secondary_highlight_time = NULL,
+  secondary_felix_position = NULL,
+  secondary_highlight_seconds = 1.25,
   overwrite = FALSE
 ) {
   ffmpeg <- felix_find_ffmpeg()
@@ -299,6 +425,23 @@ process_felix_clip <- function(
     stop("highlight_seconds must be greater than 0 and no more than 3.", call. = FALSE)
   }
 
+  has_secondary_time <- !is.null(secondary_highlight_time)
+  has_secondary_position <- !is.null(secondary_felix_position)
+  if (xor(has_secondary_time, has_secondary_position)) {
+    stop(
+      "secondary_highlight_time and secondary_felix_position must be supplied together.",
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(secondary_highlight_seconds) || length(secondary_highlight_seconds) != 1L ||
+      !is.finite(secondary_highlight_seconds) || secondary_highlight_seconds <= 0 ||
+      secondary_highlight_seconds > 3) {
+    stop(
+      "secondary_highlight_seconds must be greater than 0 and no more than 3.",
+      call. = FALSE
+    )
+  }
+
   start_seconds <- felix_timestamp_seconds(start)
   end_seconds <- felix_timestamp_seconds(end)
   if (end_seconds <= start_seconds) {
@@ -308,6 +451,16 @@ process_felix_clip <- function(
   duration <- end_seconds - start_seconds
   if (duration > 60) {
     stop("Clip duration must be 60 seconds or less for an efficient hover preview.", call. = FALSE)
+  }
+
+  if (has_secondary_time) {
+    secondary_highlight_time <- felix_timestamp_seconds(secondary_highlight_time)
+    if (secondary_highlight_time <= 0 || secondary_highlight_time >= duration) {
+      stop(
+        "secondary_highlight_time must fall after the clip start and before the clip end.",
+        call. = FALSE
+      )
+    }
   }
 
   preview_path <- file.path(output_dir, paste0(id, "-preview.mp4"))
@@ -322,23 +475,44 @@ process_felix_clip <- function(
   common <- c("-hide_banner", "-loglevel", "warning", if (overwrite) "-y" else "-n")
   seek <- sprintf("%.3f", start_seconds)
   marker_path <- tempfile("felix-marker-", fileext = ".svg")
-  on.exit(unlink(marker_path), add = TRUE)
+  secondary_marker_path <- NULL
+  on.exit(unlink(c(marker_path, secondary_marker_path)), add = TRUE)
   felix_write_marker(marker_path, felix_position)
+  if (has_secondary_time) {
+    secondary_marker_path <- tempfile("felix-secondary-marker-", fileext = ".svg")
+    felix_write_marker(secondary_marker_path, secondary_felix_position)
+  }
 
-  full_filter <- paste0(
-    "[0:v:0]scale=1280:720:force_original_aspect_ratio=decrease,",
-    "pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,format=yuv420p,",
-    sprintf("tpad=start_mode=clone:start_duration=%.3f[held];", highlight_seconds),
-    "[1:v:0]scale=1280:720,format=rgba[marker];",
-    sprintf("[held][marker]overlay=0:0:enable='lt(t,%.3f)',format=yuv420p[v]", highlight_seconds)
+  full_filter <- felix_video_filter(
+    1280,
+    720,
+    30,
+    highlight_seconds,
+    secondary_highlight_time,
+    secondary_highlight_seconds
   )
-  preview_filter <- paste0(
-    "[0:v:0]scale=640:360:force_original_aspect_ratio=decrease,",
-    "pad=640:360:(ow-iw)/2:(oh-ih)/2,fps=24,format=yuv420p,",
-    sprintf("tpad=start_mode=clone:start_duration=%.3f[held];", highlight_seconds),
-    "[1:v:0]scale=640:360,format=rgba[marker];",
-    sprintf("[held][marker]overlay=0:0:enable='lt(t,%.3f)',format=yuv420p[v]", highlight_seconds)
+  preview_filter <- felix_video_filter(
+    640,
+    360,
+    24,
+    highlight_seconds,
+    secondary_highlight_time,
+    secondary_highlight_seconds
   )
+  output_duration <- duration + highlight_seconds +
+    if (has_secondary_time) secondary_highlight_seconds else 0
+  preview_marker_inputs <- c("-loop", "1", "-framerate", "24", "-i", marker_path)
+  full_marker_inputs <- c("-loop", "1", "-framerate", "30", "-i", marker_path)
+  if (has_secondary_time) {
+    preview_marker_inputs <- c(
+      preview_marker_inputs,
+      "-loop", "1", "-framerate", "24", "-i", secondary_marker_path
+    )
+    full_marker_inputs <- c(
+      full_marker_inputs,
+      "-loop", "1", "-framerate", "30", "-i", secondary_marker_path
+    )
+  }
 
   has_audio <- FALSE
   if (nzchar(ffprobe)) {
@@ -356,11 +530,11 @@ process_felix_clip <- function(
     "-ss", seek,
     "-t", sprintf("%.3f", duration),
     "-i", input,
-    "-loop", "1", "-framerate", "24", "-i", marker_path,
+    preview_marker_inputs,
     "-filter_complex", preview_filter,
     "-map", "[v]",
     "-an",
-    "-t", sprintf("%.3f", duration + highlight_seconds),
+    "-t", sprintf("%.3f", output_duration),
     "-c:v", "libx264",
     "-preset", "veryfast",
     "-crf", "27",
@@ -374,12 +548,17 @@ process_felix_clip <- function(
     "-ss", seek,
     "-t", sprintf("%.3f", duration),
     "-i", input,
-    "-loop", "1", "-framerate", "30", "-i", marker_path
+    full_marker_inputs
   )
   if (has_audio) {
     full_filter <- paste0(
       full_filter,
-      sprintf(";[0:a:0]adelay=%d:all=1[a]", round(highlight_seconds * 1000))
+      ";",
+      felix_audio_filter(
+        highlight_seconds,
+        secondary_highlight_time,
+        secondary_highlight_seconds
+      )
     )
   }
   full_arguments <- c(
@@ -387,7 +566,7 @@ process_felix_clip <- function(
     "-filter_complex", full_filter,
     "-map", "[v]",
     if (has_audio) c("-map", "[a]") else "-an",
-    "-t", sprintf("%.3f", duration + highlight_seconds),
+    "-t", sprintf("%.3f", output_duration),
     "-c:v", "libx264",
     "-preset", "veryfast",
     "-crf", "23",
