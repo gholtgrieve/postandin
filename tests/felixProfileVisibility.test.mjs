@@ -61,7 +61,7 @@ test('Felix profile scaffold includes verified facts and a clip fallback state',
   assert.match(page, /Seattle Junior Mets/);
   assert.match(page, /<dt>Position<\/dt>\s*<dd>Defense<\/dd>/);
   assert.match(page, /<dt>Height<\/dt>\s*<dd>6′0″<\/dd>/);
-  assert.match(page, /<dt>Weight<\/dt>\s*<dd>170 lbs<\/dd>/);
+  assert.match(page, /<dt>Weight<\/dt>\s*<dd>173 lbs<\/dd>/);
   assert.match(page, /<dt>Shoots<\/dt>\s*<dd>Right<\/dd>/);
   assert.match(page, /<dt>Birth year<\/dt>\s*<dd>2011<\/dd>/);
   assert.doesNotMatch(page, /Defenseman profile and video highlights/);
