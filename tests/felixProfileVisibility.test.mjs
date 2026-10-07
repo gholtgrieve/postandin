@@ -99,8 +99,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=4"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=4'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=5"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=5'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
   }
