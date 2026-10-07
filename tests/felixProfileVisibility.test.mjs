@@ -71,16 +71,20 @@ test('Felix profile scaffold includes verified facts and a clip fallback state',
 
 test('playing history lists Seattle Junior teams and invite-only development recognition', () => {
   const teams = [
-    ['2024–25', '14U B'],
-    ['2025–26', '14U AA'],
-    ['2026–27', '16U AA'],
+    ['2024–25', '14U B', 'David Bailey'],
+    ['2025–26', '14U AA', 'Zach Wegener'],
+    ['2026–27', '16U AA', 'Kyle Moore'],
   ];
 
   assert.match(page, /id="playing-history-title">Rep Hockey Teams<\/h2>/);
-  for (const [season, level] of teams) {
+  assert.match(page, /<table class="team-history-table" role="table">/);
+  assert.match(page, /<th scope="col" role="columnheader">Head coach<\/th>/);
+  assert.doesNotMatch(page, /\.team-history-table thead\s*\{\s*display:\s*none/);
+  assert.match(page, /content: 'Head coach: ' \/ '';/);
+  for (const [season, level, headCoach] of teams) {
     assert.match(
       page,
-      new RegExp(`<td class="history-season">${season}<\\/td><td class="history-team">Seattle Junior Mets <strong>${level}<\\/strong><\\/td>`),
+      new RegExp(`<td class="history-season" role="cell">${season}<\\/td><td class="history-team" role="cell">Seattle Junior Mets <strong>${level}<\\/strong><\\/td><td class="history-coach" role="cell">${headCoach}<\\/td>`),
     );
   }
   assert.doesNotMatch(page, /2027–27/);

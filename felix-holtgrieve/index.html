@@ -216,6 +216,7 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
 .history-season { width: 120px; color: var(--ink2); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .history-team { font-size: 12px; }
 .history-team strong { display: inline-block; margin-left: 8px; color: var(--ink); }
+.history-coach { font-size: 12px; white-space: nowrap; }
 
 .camp-highlight {
   display: flex;
@@ -422,6 +423,39 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .fact:last-child { grid-column: span 2; }
   .clip-grid { grid-template-columns: 1fr; }
   .history-layout { grid-template-columns: 1fr; }
+  .team-history-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .team-history-table tbody,
+  .team-history-table tbody td { display: block; }
+  .team-history-table tbody tr {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 4px 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .team-history-table tbody tr:last-child { border-bottom: 0; }
+  .team-history-table tbody td { padding: 0; border-bottom: 0; }
+  .history-season { grid-row: 1 / 3; width: auto; }
+  .history-team,
+  .history-coach { grid-column: 2; }
+  .history-coach { white-space: normal; }
+  .history-coach::before {
+    content: 'Head coach: ' / '';
+    color: var(--ink3);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
   .semester-grid { grid-template-columns: 1fr; }
   .semester-panel + .semester-panel { border-top: 1px solid var(--rule); border-left: 0; }
   .section-heading { display: block; }
@@ -479,13 +513,13 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
       <p class="section-kicker">Playing history</p>
       <h2 id="playing-history-title">Rep Hockey Teams</h2>
       <div class="history-layout">
-        <table class="team-history-table">
-          <caption class="sr-only">Felix Holtgrieve’s Seattle Junior team history</caption>
-          <thead><tr><th scope="col">Season</th><th scope="col">Team</th></tr></thead>
-          <tbody>
-            <tr><td class="history-season">2024–25</td><td class="history-team">Seattle Junior Mets <strong>14U B</strong></td></tr>
-            <tr><td class="history-season">2025–26</td><td class="history-team">Seattle Junior Mets <strong>14U AA</strong></td></tr>
-            <tr><td class="history-season">2026–27</td><td class="history-team">Seattle Junior Mets <strong>16U AA</strong></td></tr>
+        <table class="team-history-table" role="table">
+          <caption class="sr-only">Felix Holtgrieve’s Seattle Junior team and head-coach history</caption>
+          <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Season</th><th scope="col" role="columnheader">Team</th><th scope="col" role="columnheader">Head coach</th></tr></thead>
+          <tbody role="rowgroup">
+            <tr role="row"><td class="history-season" role="cell">2024–25</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U B</strong></td><td class="history-coach" role="cell">David Bailey</td></tr>
+            <tr role="row"><td class="history-season" role="cell">2025–26</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U AA</strong></td><td class="history-coach" role="cell">Zach Wegener</td></tr>
+            <tr role="row"><td class="history-season" role="cell">2026–27</td><td class="history-team" role="cell">Seattle Junior Mets <strong>16U AA</strong></td><td class="history-coach" role="cell">Kyle Moore</td></tr>
           </tbody>
         </table>
         <aside class="camp-highlight" aria-labelledby="camp-highlight-title">
