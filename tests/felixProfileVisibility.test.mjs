@@ -71,9 +71,9 @@ test('Felix profile scaffold includes verified facts and a clip fallback state',
 
 test('playing history lists Seattle Junior teams and invite-only development recognition', () => {
   const teams = [
-    ['2024–25', '14U B', 'David Bailey'],
-    ['2025–26', '14U AA', 'Zach Wegener'],
     ['2026–27', '16U AA', 'Kyle Moore'],
+    ['2025–26', '14U AA', 'Zach Wegener'],
+    ['2024–25', '14U B', 'David Bailey'],
   ];
 
   assert.match(page, /id="playing-history-title">Rep Hockey Teams<\/h2>/);
@@ -87,6 +87,12 @@ test('playing history lists Seattle Junior teams and invite-only development rec
       new RegExp(`<td class="history-season" role="cell">${season}<\\/td><td class="history-team" role="cell">Seattle Junior Mets <strong>${level}<\\/strong><\\/td><td class="history-coach" role="cell">${headCoach}<\\/td>`),
     );
   }
+  const teamSeasonPositions = teams.map(([season]) => page.indexOf(`>${season}</td>`));
+  assert.deepEqual(
+    teamSeasonPositions,
+    [...teamSeasonPositions].sort((a, b) => a - b),
+    'rep teams should be listed with the most recent season first',
+  );
   assert.doesNotMatch(page, /2027–27/);
   assert.match(page, /id="camp-highlight-title">PNAHA State Development Camp<\/h3>/);
   assert.match(page, /Invite-only attendee for two consecutive years\./);
