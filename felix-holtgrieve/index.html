@@ -217,6 +217,13 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
 .history-team { font-size: 12px; }
 .history-team strong { display: inline-block; margin-left: 8px; color: var(--ink); }
 .history-coach { font-size: 12px; white-space: nowrap; }
+.history-coach a {
+  color: var(--ink);
+  text-decoration-color: var(--mustard2);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.history-coach a:hover, .history-coach a:focus-visible { color: var(--mustard2); }
 
 .camp-highlight {
   display: flex;
@@ -517,9 +524,9 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
           <caption class="sr-only">Felix Holtgrieve’s Seattle Junior team and head-coach history</caption>
           <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Season</th><th scope="col" role="columnheader">Team</th><th scope="col" role="columnheader">Head coach</th></tr></thead>
           <tbody role="rowgroup">
-            <tr role="row"><td class="history-season" role="cell">2026–27</td><td class="history-team" role="cell">Seattle Junior Mets <strong>16U AA</strong></td><td class="history-coach" role="cell">Kyle Moore</td></tr>
-            <tr role="row"><td class="history-season" role="cell">2025–26</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U AA</strong></td><td class="history-coach" role="cell">Zach Wegener</td></tr>
-            <tr role="row"><td class="history-season" role="cell">2024–25</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U B</strong></td><td class="history-coach" role="cell">David Bailey</td></tr>
+            <tr role="row"><td class="history-season" role="cell">2026–27</td><td class="history-team" role="cell">Seattle Junior Mets <strong>16U AA</strong></td><td class="history-coach" role="cell"><a href="mailto:coachkyle2244@gmail.com">Kyle Moore</a></td></tr>
+            <tr role="row"><td class="history-season" role="cell">2025–26</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U AA</strong></td><td class="history-coach" role="cell"><a href="mailto:zachwegener7@gmail.com">Zach Wegener</a></td></tr>
+            <tr role="row"><td class="history-season" role="cell">2024–25</td><td class="history-team" role="cell">Seattle Junior Mets <strong>14U B</strong></td><td class="history-coach" role="cell"><a href="mailto:DBailey618@live.com">David Bailey</a></td></tr>
           </tbody>
         </table>
         <aside class="camp-highlight" aria-labelledby="camp-highlight-title">
