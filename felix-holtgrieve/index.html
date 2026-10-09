@@ -11,15 +11,18 @@
 <meta property="og:title" content="Felix Holtgrieve — 2026–27 Hockey Profile">
 <meta property="og:description" content="Player profile and 2026–27 season video highlights for Seattle Junior Mets defenseman Felix Holtgrieve.">
 <meta property="og:url" content="https://postandin.com/felix-holtgrieve/">
+<meta property="og:image" content="https://postandin.com/felix-holtgrieve/images/felix-headshot.webp">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Felix Holtgrieve — 2026–27 Hockey Profile">
 <meta name="twitter:description" content="Player profile and 2026–27 season video highlights for Seattle Junior Mets defenseman Felix Holtgrieve.">
+<meta name="twitter:image" content="https://postandin.com/felix-holtgrieve/images/felix-headshot.webp">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Person",
   "name": "Felix Holtgrieve",
-  "url": "https://postandin.com/felix-holtgrieve/"
+  "url": "https://postandin.com/felix-holtgrieve/",
+  "image": "https://postandin.com/felix-holtgrieve/images/felix-headshot.webp"
 }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,22 +104,18 @@ body {
   padding-bottom: clamp(32px, 6vw, 64px);
 }
 
-.headshot-placeholder {
+.headshot {
   grid-area: headshot;
   width: 100%;
+  height: auto;
   aspect-ratio: 4 / 5;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  display: block;
+  object-fit: cover;
   background: var(--card);
   border: 1px solid var(--rule);
-  color: var(--mustard);
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(64px, 10vw, 96px);
-  letter-spacing: .06em;
 }
 
-.profile-copy { grid-area: copy; align-self: end; }
+.profile-copy { grid-area: copy; min-width: 0; align-self: end; }
 
 .eyebrow,
 .section-kicker,
@@ -146,6 +145,7 @@ h1 {
 
 .facts {
   grid-area: facts;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
@@ -424,9 +424,9 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
       'facts facts';
     gap: 16px;
   }
-  .headshot-placeholder { font-size: 40px; }
-  h1 { font-size: clamp(40px, 10.5vw, 50px); }
-  .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 6px; }
+  h1 { font-size: clamp(38px, 10vw, 44px); }
+  .family-name { display: block; }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 6px; }
   .fact:last-child { grid-column: span 2; }
   .clip-grid { grid-template-columns: 1fr; }
   .history-layout { grid-template-columns: 1fr; }
@@ -485,10 +485,10 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
 <main>
   <section class="profile" aria-labelledby="profile-title">
     <div class="profile-inner">
-      <div class="headshot-placeholder" role="img" aria-label="Felix Holtgrieve headshot placeholder">FH</div>
+      <img class="headshot" src="/felix-holtgrieve/images/felix-headshot.webp" alt="Felix Holtgrieve wearing a Seattle Junior Mets polo" width="700" height="875" decoding="async" fetchpriority="high">
       <div class="profile-copy">
         <p class="eyebrow">Seattle Junior Mets · 16U AA</p>
-        <h1 id="profile-title">Felix Holtgrieve</h1>
+        <h1 id="profile-title"><span>Felix</span> <span class="family-name">Holtgrieve</span></h1>
       </div>
       <dl class="facts" aria-label="Player facts">
         <div class="fact">

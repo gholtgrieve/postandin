@@ -31,6 +31,8 @@ test('Felix profile is indexable with canonical and Person metadata', () => {
   assert.match(page, /<link rel="canonical" href="https:\/\/postandin\.com\/felix-holtgrieve\/">/);
   assert.match(page, /"@type": "Person"/);
   assert.match(page, /"name": "Felix Holtgrieve"/);
+  assert.match(page, /"image": "https:\/\/postandin\.com\/felix-holtgrieve\/images\/felix-headshot\.webp"/);
+  assert.match(page, /<meta property="og:image" content="https:\/\/postandin\.com\/felix-holtgrieve\/images\/felix-headshot\.webp">/);
   const disallowedPaths = [...robots.matchAll(/^Disallow:\s*(\S+)/gmi)].map((match) => match[1]);
   assert.ok(disallowedPaths.every((path) => !route.startsWith(path)), `blocked by robots.txt: ${disallowedPaths}`);
   assert.ok(
@@ -59,6 +61,12 @@ test('Felix profile is absent from established public navigation surfaces', () =
 
 test('Felix profile scaffold includes verified facts and a clip fallback state', () => {
   assert.match(page, /Seattle Junior Mets/);
+  assert.match(
+    page,
+    /<img class="headshot" src="\/felix-holtgrieve\/images\/felix-headshot\.webp" alt="Felix Holtgrieve wearing a Seattle Junior Mets polo" width="700" height="875" decoding="async" fetchpriority="high">/,
+  );
+  assert.ok(fs.statSync('felix-holtgrieve/images/felix-headshot.webp').size > 0, 'headshot asset must exist');
+  assert.doesNotMatch(page, /headshot placeholder|>FH<\/div>/i);
   assert.match(page, /<dt>Position<\/dt>\s*<dd>Defense<\/dd>/);
   assert.match(page, /<dt>Height<\/dt>\s*<dd>6′0″<\/dd>/);
   assert.match(page, /<dt>Weight<\/dt>\s*<dd>173 lbs<\/dd>/);
