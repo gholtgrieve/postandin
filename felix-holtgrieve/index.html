@@ -293,8 +293,10 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
 .clip-details { padding: 18px; }
 .clip-category { color: var(--mustard2); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .clip-title { margin-top: 7px; font-family: 'Bebas Neue', sans-serif; font-size: 29px; font-weight: 400; letter-spacing: .04em; line-height: 1; }
-.clip-meta { margin-top: 9px; color: var(--ink3); font-size: 12px; }
+.clip-meta { margin-top: 9px; color: var(--ink2); font-size: 12px; }
+.clip-description { margin-top: 12px; color: var(--ink2); font-size: 13px; line-height: 1.6; }
 .watch-button {
+  display: inline-block;
   margin-top: 16px;
   padding: 10px 12px;
   border: 1px solid var(--ink);
@@ -303,9 +305,11 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   cursor: pointer;
   font: 700 12px/1.2 'IBM Plex Mono', monospace;
   letter-spacing: .1em;
+  text-decoration: none;
   text-transform: uppercase;
 }
 .watch-button:hover { background: var(--ink); color: var(--paper); }
+.watch-button:focus-visible { outline-color: var(--ink); }
 
 .empty-library {
   min-height: 280px;
@@ -542,7 +546,7 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
         <p class="section-kicker">Video library</p>
         <h2>2026–27 Highlights</h2>
       </div>
-      <p class="season-label">Clips coming soon</p>
+      <p class="season-label">1 clip</p>
     </div>
     <div class="clip-filters" role="group" aria-label="Filter video highlights by play type">
       <button class="filter-button" type="button" data-category="all" aria-pressed="true">All plays</button>
@@ -552,8 +556,19 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
       <button class="filter-button" type="button" data-category="special-teams" aria-pressed="false">Special teams</button>
     </div>
     <p class="sr-only" id="clipStatus" role="status" aria-live="polite"></p>
-    <div class="clip-grid" id="clipGrid"></div>
-    <section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title">
+    <div class="clip-grid" id="clipGrid">
+      <article class="clip-card" data-clip-id="2026-09-27-utah-d-zone-breakout-sog">
+        <img class="clip-preview" src="https://media.postandin.com/felix/2026-27/2026-09-27-utah-d-zone-breakout-sog/v4/2026-09-27-utah-d-zone-breakout-sog.jpg" alt="Felix Holtgrieve highlighted during a defensive-zone breakout against the Utah Jr Grizzlies" width="1280" height="720" loading="lazy">
+        <div class="clip-details">
+          <p class="clip-category">Puck movement · Offensive</p>
+          <h3 class="clip-title">D-zone breakout with shot on goal</h3>
+          <p class="clip-meta">Utah Jr Grizzlies · Sep 27, 2026</p>
+          <p class="clip-description">Felix Holtgrieve (#17) is highlighted during a defensive-zone breakout that develops into an offensive-zone shot on goal against the Utah Jr Grizzlies on September 27, 2026.</p>
+          <a class="watch-button" href="/felix-holtgrieve/video/2026-09-27-utah-d-zone-breakout-sog/">Watch full clip</a>
+        </div>
+      </article>
+    </div>
+    <section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title" hidden>
       <div class="empty-mark" aria-hidden="true"></div>
       <h3 id="empty-title">The season starts here.</h3>
       <p>Felix’s 2026–27 game clips will be added throughout the season, with each play labeled by date, opponent, and category.</p>
@@ -638,6 +653,6 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
 </dialog>
 
 <footer><a href="/">Post &amp; In · Seattle’s Hockey Hub</a></footer>
-<script type="module" src="/felix-holtgrieve/profile.js?v=5"></script>
+<script type="module" src="/felix-holtgrieve/profile.js?v=7"></script>
 </body>
 </html>

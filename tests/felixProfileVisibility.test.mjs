@@ -13,6 +13,28 @@ const robots = read('robots.txt');
 const headers = read('_headers');
 
 const route = '/felix-holtgrieve/';
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function readClipWatchPage(clip) {
+  assert.match(clip.pageSrc, /^\/felix-holtgrieve\/video\/[a-z0-9-]+\/$/, `invalid watch page path for ${clip.id}`);
+  return read(`${clip.pageSrc.slice(1)}index.html`);
+}
+
+function videoMetadataFrom(watchPage, clipId) {
+  const match = watchPage.match(/<script type="application\/ld\+json" id="video-metadata">\s*([\s\S]*?)\s*<\/script>/);
+  assert.ok(match, `video metadata must be present for ${clipId}`);
+  return JSON.parse(match[1]);
+}
+
+function displayDate(value) {
+  return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    .format(new Date(`${value}T12:00:00`));
+}
+
+function displayShortDate(value) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .format(new Date(`${value}T12:00:00`));
+}
 
 function matchingHeaderBlocks(path) {
   const blocks = headers.split(/\n(?=\S)/);
@@ -74,7 +96,7 @@ test('Felix profile scaffold includes verified facts and a clip fallback state',
   assert.match(page, /<dt>Birth year<\/dt>\s*<dd>2011<\/dd>/);
   assert.doesNotMatch(page, /Defenseman profile and video highlights/);
   assert.match(page, /2026–27 Highlights/);
-  assert.match(page, /Clips coming soon/);
+  assert.match(page, new RegExp(`<p class="season-label">${clips.length} clip${clips.length === 1 ? '' : 's'}<\\/p>`));
 });
 
 test('playing history lists Seattle Junior teams and invite-only development recognition', () => {
@@ -107,8 +129,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=5"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=5'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=7"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=7'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
   }
@@ -126,12 +148,60 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.doesNotMatch(profileScript, /setTimeout\(\(\) => stopPreview/);
   assert.match(profileScript, /prefers-reduced-motion: reduce/);
   assert.match(profileScript, /clipDialog\.showModal\(\)/);
+  assert.match(profileScript, /clipGrid\.replaceChildren/);
+  assert.match(profileScript, /event\.button !== 0 \|\| event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey \|\| event\.altKey/);
   assert.match(profileScript, /clip\.categories\.includes\(activeCategory\)/);
   assert.match(profileScript, /clip\.categories\.map/);
+  assert.match(profileScript, /description\.textContent = clip\.description/);
   assert.match(page, /\.filter-button\[aria-pressed='true'\] \{ background: var\(--mustard2\); color: var\(--paper\); \}/);
   assert.match(page, /id="clipStatus" role="status" aria-live="polite"/);
+  assert.match(page, /\.watch-button:focus-visible \{ outline-color: var\(--ink\); \}/);
   assert.doesNotMatch(page, /id="clipGrid"[^>]*aria-live/);
   assert.match(clipManifest, /export const clips = \[/);
+  assert.match(page, /data-clip-id="2026-09-27-utah-d-zone-breakout-sog"/);
+  assert.match(page, /<section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title" hidden>/);
+});
+
+test('every clip has search-readable profile HTML and a dedicated watch page', () => {
+  assert.doesNotMatch(page, /"@type": "VideoObject"/);
+
+  for (const clip of clips) {
+    const watchPage = readClipWatchPage(clip);
+    const videoMetadata = videoMetadataFrom(watchPage, clip.id);
+    const categories = clip.categories.map((category) => categoryLabels[category]).join(' · ');
+
+    assert.match(page, new RegExp(`data-clip-id="${escapeRegExp(clip.id)}"`));
+    assert.match(page, new RegExp(`<p class="clip-category">${escapeRegExp(categories)}<\\/p>`));
+    assert.match(page, new RegExp(`<h3 class="clip-title">${escapeRegExp(clip.title)}<\\/h3>`));
+    assert.match(page, new RegExp(`<p class="clip-meta">${escapeRegExp(clip.opponent)} · ${escapeRegExp(displayShortDate(clip.date))}<\\/p>`));
+    assert.match(page, new RegExp(escapeRegExp(clip.description)));
+    assert.match(page, new RegExp(`<img class="clip-preview" src="${escapeRegExp(clip.posterSrc)}"`));
+    assert.match(page, new RegExp(`<a class="watch-button" href="${escapeRegExp(clip.pageSrc)}">Watch full clip<\\/a>`));
+
+    assert.doesNotMatch(watchPage, /noindex/i);
+    const disallowedPaths = [...robots.matchAll(/^Disallow:\s*(\S+)/gmi)].map((match) => match[1]);
+    assert.ok(disallowedPaths.every((path) => !clip.pageSrc.startsWith(path)), `watch page blocked by robots.txt: ${clip.id}`);
+    assert.ok(
+      matchingHeaderBlocks(clip.pageSrc).every((block) => !/X-Robots-Tag:\s*[^\n]*noindex/i.test(block)),
+      `watch page blocked by an X-Robots-Tag header: ${clip.id}`,
+    );
+    assert.match(watchPage, new RegExp(`<link rel="canonical" href="https://postandin\\.com${escapeRegExp(clip.pageSrc)}">`));
+    assert.match(watchPage, new RegExp(`<h1>${escapeRegExp(clip.title)}<\\/h1>`));
+    assert.match(watchPage, new RegExp(escapeRegExp(clip.opponent)));
+    assert.match(watchPage, new RegExp(escapeRegExp(displayDate(clip.date))));
+    assert.match(watchPage, new RegExp(`<meta property="og:image" content="${escapeRegExp(clip.posterSrc)}">`));
+    assert.match(watchPage, new RegExp(`<meta property="og:video" content="${escapeRegExp(clip.fullSrc)}">`));
+    assert.match(watchPage, new RegExp(`<video[^>]+poster="${escapeRegExp(clip.posterSrc)}"[^>]+src="${escapeRegExp(clip.fullSrc)}"`));
+    assert.match(watchPage, /\.logo:focus-visible, footer a:focus-visible \{ outline-color: #D6BC58; \}/);
+    assert.equal(videoMetadata['@type'], 'VideoObject');
+    assert.equal(videoMetadata.name, `Felix Holtgrieve — ${clip.title}`);
+    assert.equal(videoMetadata.description, clip.description);
+    assert.equal(videoMetadata.thumbnailUrl, clip.posterSrc);
+    assert.equal(videoMetadata.uploadDate, clip.uploadDate);
+    assert.equal(videoMetadata.duration, `PT${clip.durationSeconds}S`);
+    assert.equal(videoMetadata.contentUrl, clip.fullSrc);
+    assert.match(sitemap, new RegExp(`<loc>https://postandin\\.com${escapeRegExp(clip.pageSrc)}<\\/loc>`));
+  }
 });
 
 test('clip manifest entries are valid and media remains externally hosted', () => {
@@ -155,7 +225,12 @@ test('clip manifest entries are valid and media remains externally hosted', () =
       `invalid calendar date for ${clip.id}`,
     );
     assert.ok(clip.title?.trim(), `missing title for ${clip.id}`);
+    assert.ok(clip.description?.trim(), `missing description for ${clip.id}`);
     assert.ok(clip.opponent?.trim(), `missing opponent for ${clip.id}`);
+    assert.match(clip.uploadDate, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/, `upload date must include a timezone for ${clip.id}`);
+    assert.ok(Number.isFinite(Date.parse(clip.uploadDate)), `invalid upload date for ${clip.id}`);
+    assert.ok(Number.isFinite(clip.durationSeconds) && clip.durationSeconds > 0, `invalid duration for ${clip.id}`);
+    assert.match(clip.pageSrc, /^\/felix-holtgrieve\/video\/[a-z0-9-]+\/$/, `invalid watch page for ${clip.id}`);
     assert.match(clip.posterSrc, /^https:\/\/media\.postandin\.com\//, `poster must use the Post & In media domain for ${clip.id}`);
     assert.match(clip.previewSrc, /^https:\/\//, `preview must use external HTTPS hosting for ${clip.id}`);
     assert.match(clip.fullSrc, /^https:\/\//, `full clip must use external HTTPS hosting for ${clip.id}`);

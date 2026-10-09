@@ -1,4 +1,4 @@
-import { categoryLabels, clips } from './clips.js?v=5';
+import { categoryLabels, clips } from './clips.js?v=7';
 
 const clipGrid = document.querySelector('#clipGrid');
 const emptyLibrary = document.querySelector('#emptyLibrary');
@@ -104,16 +104,22 @@ function createClipCard(clip) {
   meta.className = 'clip-meta';
   meta.textContent = `${clip.opponent} · ${displayDate(clip.date)}`;
 
-  const watchButton = document.createElement('button');
+  const description = document.createElement('p');
+  description.className = 'clip-description';
+  description.textContent = clip.description;
+
+  const watchButton = document.createElement('a');
   watchButton.className = 'watch-button';
-  watchButton.type = 'button';
+  watchButton.href = clip.pageSrc;
   watchButton.textContent = 'Watch full clip';
-  watchButton.addEventListener('click', () => {
+  watchButton.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
     stopPreview(preview);
     openFullClip(clip);
   });
 
-  details.append(category, title, meta, watchButton);
+  details.append(category, title, meta, description, watchButton);
   card.append(preview, details);
 
   card.addEventListener('pointerenter', (event) => {

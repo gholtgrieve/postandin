@@ -328,12 +328,23 @@ The `group-do` and `scheduler` Workers *do* configure their own bindings via
                               category filters, preloads lightweight previews near
                               the viewport, loops complete plays silently on
                               hover/focus,
-                              and opens full clips on demand. Listed in
+                              and opens full clips on demand. Each published clip
+                              also has a server-delivered fallback card with a
+                              plain-language play description and a link to its
+                              dedicated watch page. Listed in
                               sitemap.xml but deliberately absent from the
                               homepage, site navigation, and feature directories.
                               `index.html` and `profile.js` share a `?v=` token
                               that must be incremented together when either
                               `profile.js` or `clips.js` changes.
+/felix-holtgrieve/video/<clip-id>/
+                            → Static, indexable watch page for one Felix highlight.
+                              The full clip is the page's primary content and is
+                              embedded in a native video player. Each watch page
+                              has matching `VideoObject` metadata and its own
+                              sitemap entry. Watch pages are linked from the
+                              profile's clip cards but remain absent from global
+                              navigation and feature directories.
 /mets-16aa-travel/         → Direct-link static travel logistics page for the
                               Seattle Junior Mets 16U AA 2026–27 season. Mobile-first,
                               unlinked, omitted from sitemap.xml, and protected

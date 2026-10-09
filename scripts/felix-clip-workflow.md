@@ -81,7 +81,7 @@ The output directory receives four files:
   page while the card is hovered or keyboard-focused;
 - `<id>.mp4`: marked pause followed by the full timestamp range at up to 720p;
 - `<id>.jpg`: marked opening frame shown before playback; and
-- `<id>-clip-entry.js`: metadata ready to add to `felix-holtgrieve/clips.js`.
+- `<id>-clip-entry.js`: starting metadata for `felix-holtgrieve/clips.js`.
 
 FFmpeg seeks to the clip start before decoding, so it does not reprocess the
 whole game. The `veryfast` H.264 preset is intentional for an older Intel Mac.
@@ -126,8 +126,23 @@ because of a login, network, or service error, publishing also stops.
 `overwrite = TRUE` is reserved for retrying the exact same generated files
 after a partial upload failure.
 
-Paste the updated generated object inside the `clips` array in
-`felix-holtgrieve/clips.js`, preview the page locally, and run:
+Before pasting the generated object into `felix-holtgrieve/clips.js`, add:
+
+- `description`: a plain-language account of the visible play that identifies
+  Felix, the opponent, and the game date;
+- `uploadDate`: the first publication time for the current versioned clip URL
+  in ISO 8601 format, including its timezone;
+- `durationSeconds`: the published full clip's duration from `ffprobe`.
+- `pageSrc`: the root-relative URL for the clip's dedicated watch page.
+
+Add a server-delivered fallback card to `felix-holtgrieve/index.html`, update
+the season clip count, and create a dedicated page at
+`felix-holtgrieve/video/<clip-id>/index.html`. The fallback card must link to
+that watch page. The watch page must embed the full clip as its primary content
+and include matching `VideoObject` metadata. Use the full clip for `contentUrl`,
+the marked poster for `thumbnailUrl`, and the same title, description,
+publication time, and duration shown to users. Add the watch page URL to
+`sitemap.xml`, then preview the profile and watch page locally and run:
 
 Whenever `clips.js` or `profile.js` changes, increment the shared `?v=` value
 in both the `profile.js` script URL in `index.html` and the `clips.js` import in
