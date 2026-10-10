@@ -27,7 +27,7 @@ export const clips = [
   {
     id: '2026-09-19-neutral-zone-primary-assist',
     title: 'Neutral zone pass with primary assist',
-    description: 'Felix Holtgrieve (#17) advances the puck through the neutral zone and records the primary assist on a goal against the Tacoma Rockets on September 19, 2026.',
+    description: 'Felix Holtgrieve (#17) advances the puck through the neutral zone for the (unrecorded) primary assist on a goal against the Tacoma Rockets on September 19, 2026.',
     categories: ['puck-movement', 'offensive'],
     opponent: 'Tacoma Rockets',
     date: '2026-09-19',
