@@ -45,6 +45,7 @@ test('public Gear Exchange is discoverable while owner assets remain noindex', (
   assert.ok(read('404.html').includes('<html'));
   assert.equal(existsSync(new URL('../_redirects', import.meta.url)), false);
   const headers=read('_headers');
+  assert.match(headerBlock(headers,'/*.md'),/X-Robots-Tag: noindex, nofollow/);
   for(const path of new Set([...staticBrowserModules('gear/gear.mjs'),...staticBrowserModules('gear/owner.mjs')])){
     const direct=headerBlock(headers,'/'+path),wildcard=headerBlock(headers,'/'+dirname(path)+'/*');
     assert.match(direct,/\n  Content-Type: application\/javascript(?:\n|$)/);

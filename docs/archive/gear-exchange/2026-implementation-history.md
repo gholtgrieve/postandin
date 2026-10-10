@@ -1,5 +1,10 @@
 # Gear Exchange implementation plan
 
+> **Historical.** This completed implementation journal is retained for design
+> and review context. Use
+> [`docs/core/gear-exchange/README.md`](../../core/gear-exchange/README.md) for
+> current guidance and status.
+
 Status: production launch completed October 4, 2026. The reviewed Gear foundation
 and go-live change are merged to `main`; production Pages, D1, Images,
 maintenance, owner Access, public-write features, and the nightly backup schedule
@@ -153,7 +158,7 @@ The owner resumed work September 27 after the requested overnight stop.
 Claude's D1 review approved `2d33253`; optional coverage and documentation
 follow-ups now pass. The connected-preview increment connects posting, explicit
 local verification, recovery/login, reload, edits/status changes and browse to
-the loopback HTTPS API. See [gear-connected-preview.md](gear-connected-preview.md)
+the loopback HTTPS API. See [gear-connected-preview.md](local-increments/gear-connected-preview.md)
 for startup, exact scope, checks and review comparison. All 56 Node tests, eight
 D1 groups and the connected HTTPS Chrome flow pass. The initial detailed Claude review found no high-severity issues; fixes and
 expanded regression checks pass. Claude re-review found no blocker/high/medium
@@ -166,7 +171,7 @@ hash. No push, merge or deployment.
 ### Email-change UI — historical increment
 
 Connected local management now requests and confirms email transfers with the
-existing backend. See [gear-email-change.md](gear-email-change.md) for behavior,
+existing backend. See [gear-email-change.md](local-increments/gear-email-change.md) for behavior,
 error recovery and browser coverage. Review baseline is `afd29ba` plus this
 increment. Claude source review approved the local-only scope with no
 blocker/high/medium findings. Minor focus, stale-state, field-reset and spacing
@@ -178,7 +183,7 @@ use Git history for its hash. No push, merge or deployment.
 
 The reviewed persistent local-photo increment is included in the local commit
 `Add persistent photos to local Gear management` (baseline `7753fa2`); use Git
-history for its hash. See [gear-photos.md](gear-photos.md)
+history for its hash. See [gear-photos.md](local-increments/gear-photos.md)
 for exact scope, macOS dependency and verification. All 61 Node tests and the
 expanded desktop/mobile HTTPS browser harness pass. Claude review found no
 security/access/transaction defects; its image upscaling and orientation findings
@@ -194,7 +199,7 @@ Buyer contact now validates sharing consent and sample details, checks current
 listing visibility/recipient, and saves plain-text receipts in a bounded local
 inbox. Connected UI preserves input on failure and never claims real email
 was sent. Temporary rate limits and inboxes reset on restart. See
-[gear-contact.md](gear-contact.md) for routes, exact boundaries, tests and the
+[gear-contact.md](local-increments/gear-contact.md) for routes, exact boundaries, tests and the
 owner-mediated review disposition. Baseline: `c2baff3`. All 67 Node tests and
 the expanded HTTPS desktop/mobile Chrome harness pass. Owner-mediated Claude
 review approved the local-only increment with no blocker/high/medium findings.
@@ -211,7 +216,7 @@ project to be fully complete before any separately authorized deployment.
 The existing report form now submits shared reason choices to a bounded local
 inspection queue. Server checks current listing visibility, applies temporary
 listing/global limits, and never modifies listings. The UI retains the reason on
-failure and focuses confirmed local success. See [gear-reports.md](gear-reports.md)
+failure and focuses confirmed local success. See [gear-reports.md](local-increments/gear-reports.md)
 for routes, privacy boundaries, memory/eviction limits and verification.
 Baseline: `37e2738`. All 72 Node tests and the expanded HTTPS Chrome harness pass;
 desktop/mobile screenshots were inspected. Owner-mediated Claude review approved
@@ -228,7 +233,7 @@ revocable session. It persists the latest 20 reports, supports reasoned
 dismiss/remove/restore actions, and saves history atomically with changes.
 Restore preserves expiry and prior status, rechecking current verification,
 quota and duplicates. Public browse/contact/photos respect removal. See
-[gear-owner-moderation.md](gear-owner-moderation.md) for key setup, routes,
+[gear-owner-moderation.md](local-increments/gear-owner-moderation.md) for key setup, routes,
 local-only table changes, persistence, limitations and review commands.
 All 80 Node tests and both owner and existing preview Chrome harnesses pass;
 desktop/mobile screenshots were inspected. Claude approved the local-only package
@@ -243,7 +248,7 @@ No push, production setup or deployment.
 
 Moderation is committed locally as `9836ff7`. The next package implements seller
 deletion with the owner-approved 30-day recovery window, explicit offline cleanup
-and tested SQLite record/photo backup and restore. See [gear-lifecycle.md](gear-lifecycle.md)
+and tested SQLite record/photo backup and restore. See [gear-lifecycle.md](local-increments/gear-lifecycle.md)
 for commands, coverage and limitations. Included in the local commit titled
 `Add local Gear deletion recovery and snapshot lifecycle` (see Git for hash).
 Claude approved local-only scope with zero
@@ -1033,7 +1038,7 @@ attempts due at ten minutes and private delivery copies due at 24 hours.
 The production contact button remained disabled in this backend slice. Tests use temporary databases,
 synthetic addresses and injected mail responses. No D1 binding, Turnstile
 configuration, feature flag, edge rate rule, Resend key, real message or deployment is part of
-this increment. See [gear-production-contact.md](gear-production-contact.md).
+this increment. See [gear-production-contact.md](../../core/gear-exchange/reference/gear-production-contact.md).
 
 All 292 Gear tests and the 46 focused contact/foundation/maintenance tests pass.
 The temporary Miniflare/workerd harness applies all 15 migrations and exercises
@@ -1222,7 +1227,7 @@ key; if that cannot be proved, create a fresh production key, update the
 production secret, and confirm the redeployment succeeds first. Then replace the
 staging secret with an unrelated random placeholder, revoke the named provider
 key, and retire its password-manager record as described in the launch runbook's
-[password-manager record map](gear-launch-runbook.md#password-manager-record-map).
+[password-manager record map](../../operations/gear-exchange/gear-launch-runbook.md#password-manager-record-map).
 No image was uploaded, no public write or mail feature was enabled, no
 maintenance/backup schedule was activated and no production resource was
 changed.
@@ -1428,7 +1433,7 @@ Local storage API (Node 24; no package installation):
 node scripts/gear/local-server.mjs /tmp/postandin-gear-dev.sqlite
 ```
 
-See [gear-storage.md](gear-storage.md) for request shapes, routes, local-file
+See [gear-storage.md](local-increments/gear-storage.md) for request shapes, routes, local-file
 safeguards and migration limitations. Do not assume a prior server is running.
 Use a new sample database filename if it predates unreleased schema edits;
 never silently drop or rewrite an existing database.
@@ -1596,7 +1601,7 @@ a recursive source regression check. Actual Pages response headers for every
 module remain a deployment check; no production deployment is authorized by
 this edit.
 
-Local persistence increment: see [gear-storage.md](gear-storage.md) for the
+Local persistence increment: see [gear-storage.md](local-increments/gear-storage.md) for the
 schema, local-only API, validation, tests and local D1 evidence; remote D1 remains untested.
 
 September 26 review follow-up: upgrade tests now cover the original version-1

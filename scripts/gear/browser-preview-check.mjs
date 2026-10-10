@@ -41,7 +41,7 @@ try{
  const rulesBox=await page.locator('#pi-gear-rules').boundingBox();assert.ok(rulesBox.width>=1100,'rules disclosure shrank inside the flex shell');
  await page.setViewportSize({width:1040,height:900});
 
- for(const path of ['/scripts/gear/local-server.mjs','/instructions/gear-management.md','/.git/config','/sample.sqlite'])assert.equal((await context.request.get(base+path)).status(),404);
+ for(const path of ['/scripts/gear/local-server.mjs','/docs/core/gear-exchange/README.md','/.git/config','/sample.sqlite'])assert.equal((await context.request.get(base+path)).status(),404);
  assert.equal(await page.locator('link[href*="googleapis"]').count(),0);
  await page.locator('[data-screen="post"]').click();await page.locator('#pi-fill-demo').click();
  await page.locator('#pi-next-photos').click();assert.equal(await page.locator('#pi-photo-files').isDisabled(),true);

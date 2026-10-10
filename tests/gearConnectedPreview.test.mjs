@@ -30,7 +30,7 @@ test('opt-in HTTPS preview injects only HTML and serves an exact public asset li
   const html=await request('/gear/');assert.equal(html.status,200);assert.match(html.body,/id="pi-gear-preview" data-local-api="true"/);assert.doesNotMatch(html.body,/fonts.googleapis.com/);assert.equal(html.headers['cache-control'],'no-store');
   const css=await request('/gear/gear.css');assert.equal(css.status,200);assert.doesNotMatch(css.body,/data-local-api="true"/);
   for(const path of ['/gear/production-api.mjs','/gear/production-turnstile.mjs','/lib/gear-image-provider-id.mjs','/lib/gear-origins.mjs'])assert.equal((await request(path)).status,200);
-  for(const path of ['/lib/gear-storage.mjs','/scripts/gear/local-server.mjs','/instructions/gear-management.md','/gear/../../.git/config','/.env'])assert.equal((await request(path)).status,404);
+  for(const path of ['/lib/gear-storage.mjs','/scripts/gear/local-server.mjs','/docs/core/gear-exchange/README.md','/gear/../../.git/config','/.env'])assert.equal((await request(path)).status,404);
   assert.doesNotMatch(readFileSync(new URL('../gear/index.html',import.meta.url),'utf8'),/data-local-api/);
  }finally{if(server)await new Promise(r=>{server.close(r);server.closeAllConnections();});db.close();rmSync(temp,{recursive:true,force:true});}
 });

@@ -94,8 +94,9 @@ This is a single local workerd runtime and D1 instance per test database. Compet
 calls use that runtime; this is not distributed contention or remote D1 testing.
 The minimal Worker does not expose application routes. Cloud bindings, deployment,
 proxy/Origin behavior, remote migration commands, restore and real mail remain
-unverified/unimplemented. The separate HTTPS Chrome check is documented in
-`gear-management.md` and was not changed by this increment.
+unverified/unimplemented. The separate HTTPS Chrome check is documented in the
+historical [local management increment](../../../archive/gear-exchange/local-increments/gear-management.md)
+and was not changed by this increment.
 
 Fresh databases and a populated version-6 upgrade are covered. Earlier pre-key
 sample schemas (versions 1–2) require the duplicate-key backfill that currently

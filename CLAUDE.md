@@ -18,13 +18,14 @@ mismatch instead of reviewing or moving files.
 1. Verify the canonical checkout as described above, then read `AGENTS.md`.
 2. Inspect `git status`, `git diff`, and `git diff main...HEAD`.
 3. Read the actual changed files and their callers, not just the patch.
-4. Consult relevant sections of
-   `instructions/postandin-technical-spec.md`, while treating code as the source
-   of truth.
+4. Start with `docs/README.md`, then consult the current product,
+   platform, and operations documents relevant to the change while treating code
+   as the source of truth. Material under `docs/archive/` is historical.
 5. Check for regressions, security/privacy problems, broken edge cases,
    incorrect assumptions, missing verification, and documentation drift.
-6. Pay special attention to the two deployment paths: Pages deploys from
-   `main`, while `group-do/` and `scheduler/` need separate Worker deploys.
+6. Pay special attention to deployment boundaries: Pages deploys from `main`,
+   while `group-do/`, `scheduler/`, `gear-maintenance/`, and `gear-images/` need
+   separate Worker deployments when their code or imported runtime changes.
 
 ## Project-specific review checklist
 

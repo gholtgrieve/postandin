@@ -1,5 +1,8 @@
 # Gear Exchange connected local preview
 
+> **Historical local increment.** Use the current
+> [Gear local-development guide](../../../core/gear-exchange/local-development.md).
+
 September 27, 2026. Development-only browser integration, not a deployed API.
 The static `/gear/` design preview remains simulated unless served explicitly by
 the local HTTPS launcher below. Existing production homepage links are unchanged.

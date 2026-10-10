@@ -1,5 +1,8 @@
 # Gear Exchange local seller management
 
+> **Historical local increment.** This is retained for implementation context,
+> not current production guidance.
+
 Status: local development only, September 26, 2026. No UI wiring, deployed
 Pages routes, real mail or cloud resources. Read the Resume here section in
 `gear-exchange-plan.md` first. This builds on commit `c2acb18`.

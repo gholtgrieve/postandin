@@ -13,7 +13,7 @@ const input={title:'Club bag',description:'Worn zipper, repaired seam.',city:'Se
 const providerId=index=>`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`;
 
 test('migration 20 rollback runbook disables durable links before scoped sessions',()=>{
-  const runbook=readFileSync(new URL('../instructions/gear-launch-runbook.md',import.meta.url),'utf8'),remove='DELETE FROM gear_listing_management_links;',revoke='UPDATE gear_management_sessions SET revoked_at = <ROLLBACK_TIME_MS> WHERE listing_id IS NOT NULL AND revoked_at IS NULL;';
+  const runbook=readFileSync(new URL('../docs/operations/gear-exchange/gear-launch-runbook.md',import.meta.url),'utf8'),remove='DELETE FROM gear_listing_management_links;',revoke='UPDATE gear_management_sessions SET revoked_at = <ROLLBACK_TIME_MS> WHERE listing_id IS NOT NULL AND revoked_at IS NULL;';
   assert.ok(runbook.indexOf(remove)>=0);assert.ok(runbook.indexOf(revoke)>runbook.indexOf(remove));assert.match(runbook,/temporary edge block/);assert.match(runbook,/repeat the link deletion, scoped-session revocation, and zero-row checks/);assert.match(runbook,/zero unrevoked rows with a non-null `listing_id` and zero durable/);
 });
 

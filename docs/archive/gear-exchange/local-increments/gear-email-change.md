@@ -1,5 +1,8 @@
 # Gear Exchange local verified email change
 
+> **Historical local increment.** This is retained for implementation context,
+> not current production guidance.
+
 September 26, 2026. Local sample-data development only. Built after management
 commit `06be078`. No real mail, Pages routes or deployment. The opt-in HTTPS preview now has a
 connected management form (September 27).

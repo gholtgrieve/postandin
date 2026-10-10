@@ -163,7 +163,7 @@ test('Public Skate launch metadata, Groups row, limited filters, and crawl surfa
   const sitemap = fs.readFileSync('sitemap.xml', 'utf8');
   const robots = fs.readFileSync('robots.txt', 'utf8');
   const notFound = fs.readFileSync('404.html', 'utf8');
-  const technicalSpec = fs.readFileSync('instructions/postandin-technical-spec.md', 'utf8');
+  const iceTimeDocs = fs.readFileSync('docs/core/ice-time.md', 'utf8');
 
   assert.match(publicSkate, /<title>Public Skate Seattle \| Post &amp; In<\/title>/);
   assert.match(publicSkate, /<link rel="canonical" href="https:\/\/postandin\.com\/public-skate\/">/);
@@ -175,8 +175,8 @@ test('Public Skate launch metadata, Groups row, limited filters, and crawl surfa
   assert.match(sitemap, /<loc>https:\/\/postandin\.com\/public-skate\/<\/loc>/);
   assert.doesNotMatch(robots, /Disallow:\s*\/public-skate\//);
   assert.match(notFound, /href="\/public-skate\/"/);
-  assert.match(technicalSpec, /\| Groups feature \| Live on all three schedules \|/);
-  assert.doesNotMatch(technicalSpec, /Public Skate deliberately has no Groups|Live on Stick & Puck and Drop-in Hockey only/);
+  assert.match(iceTimeDocs, /Membership is shared across all three schedules/);
+  assert.doesNotMatch(iceTimeDocs, /Public Skate deliberately has no Groups|Live on Stick & Puck and Drop-in Hockey only/);
 });
 
 test('Public Skate renders duration while activity subtitles remain separately configurable', () => {

@@ -87,12 +87,13 @@ Authenticated seller recovery removes the active deletion marker
 before owner restoration can be considered independently.
 
 Permanent purge and remote retention cleanup are deployed through the scheduled
-implementation in `gear-production-maintenance.md`. The off-provider backup and
-restore process in `gear-lean-backup.md` reconciles fresh deletion evidence so an
-older snapshot cannot resurrect a seller purge. Production session issuance and
-mail integration are deployed behind the reviewed launch controls. The admin
-hostname, Access policy, and `GEAR_DB` binding are deployed; the owner workspace
-remains private, unlinked, and independently verifies Access on every request.
+implementation in [Gear scheduled maintenance](../../../operations/gear-exchange/gear-production-maintenance.md).
+The [off-provider backup and restore process](../../../operations/gear-exchange/gear-lean-backup.md)
+reconciles fresh deletion evidence so an older snapshot cannot resurrect a
+seller purge. Production session issuance and mail integration are deployed
+behind the reviewed launch controls. The admin hostname, Access policy, and
+`GEAR_DB` binding are deployed; the owner workspace remains private, unlinked,
+and independently verifies Access on every request.
 
 ## Verification
 

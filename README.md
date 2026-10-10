@@ -1,361 +1,108 @@
-# Seattle Ice Schedules — Post & In
+# Post & In
 
-Aggregates Stick & Puck, Drop-in Hockey, and Public Skate sessions across
-Seattle-area rinks into three live schedule pages backed by one shared client
-and activity-specific schedule caches.
+Post & In is a Seattle-area hockey resource centered on three public products:
 
-- **[Stick & Puck](https://postandin.com/stick-and-puck/)**
-- **[Drop-in Hockey](https://postandin.com/drop-in-hockey/)**
-- **[Public Skate](https://postandin.com/public-skate/)**
+- **[Ice Time](https://postandin.com/stick-and-puck/)** — aggregated Stick &
+  Puck, Drop-in Hockey, and Public Skate schedules.
+- **[Coach Profiles](https://postandin.com/coaches/)** — a searchable directory
+  of local coaches and server-rendered profile pages.
+- **[Gear Exchange](https://postandin.com/gear/)** — a local, adult-only
+  classifieds service for hockey gear.
 
-## Documentation map
+The repository also hosts Seattle Junior Mets 16U AA pages and a player profile
+for operational convenience. Those pages are **hosted asides**, not Post & In
+products, and are kept separate from the core product architecture and roadmap.
+See [Hosted asides](docs/asides/README.md).
 
-- `README.md` is the current developer overview and quick-start.
-- `AGENTS.md` and `CLAUDE.md` define implementation and review workflow.
-- `instructions/postandin-technical-spec.md` is the detailed architecture and
-  product handoff; code and configuration remain authoritative.
-- `scheduler/README.md` is the scheduler/backup operations runbook.
-Update the relevant document in the same change as behavior or configuration.
-Operational commands must be verified against the checked-in config and current
-CLI before use. Never place secrets or private identifiers in documentation.
+## Documentation
 
----
+Start with the [documentation index](docs/README.md). It identifies the
+canonical document for each subject and separates current guidance from
+historical evidence.
 
-## Rinks
+| Need | Start here |
+|---|---|
+| Understand the system | [Platform architecture](docs/platform/architecture.md) |
+| Work on Ice Time | [Ice Time](docs/core/ice-time.md) |
+| Work on Coach Profiles | [Coach Profiles](docs/core/coaches.md) |
+| Work on Gear Exchange | [Gear Exchange](docs/core/gear-exchange/README.md) |
+| Develop and test locally | [Development and testing](docs/platform/development-and-testing.md) |
+| Understand deployments | [Deployment topology](docs/platform/deployment.md) |
+| Operate schedules or Groups | [Ice Time and Groups operations](docs/operations/ice-time-and-groups.md) |
+| Review implementation rules | [AGENTS.md](AGENTS.md) |
+| Perform an independent review | [CLAUDE.md](CLAUDE.md) |
 
-| Rink | City | System | Notes |
-|------|------|--------|-------|
-| Kraken Community Iceplex | Seattle | DaySmart | Direct API, no proxy needed |
-| Sno-King Ice Arena | Renton | DaySmart | Resources 11, 12 (Large + Small Ice) |
-| Sno-King Ice Arena | Kirkland | DaySmart | Resource 1 |
-| Sno-King Ice Arena | Snoqualmie | DaySmart | Resources 13, 14 (Rink A + B) |
-| Olympic View Arena | Mountlake Terrace | RecTimes | Booking link still points to FareHarbor |
-| Lynnwood Ice Center | Lynnwood | RecTimes | Includes general and Female Stick & Puck sessions |
-| Angel Of The Winds Arena | Everett | Custom | One venue record covering the Community Rink and Main Rink sheets |
-| Kent Valley Ice Centre | Kent | Google Calendar iCal | Shared scraper pipeline |
+Code and checked-in configuration are authoritative. Documentation about
+externally managed services records the last verified state, not a guarantee of
+current provider configuration.
 
----
+## Architecture at a glance
 
-## Gear Exchange (live)
+The site deliberately uses vanilla HTML, CSS, and JavaScript. Cloudflare Pages
+serves the static site and Pages Functions. Four independently deployed Workers
+support Groups, schedule collection and backup, Gear maintenance, and Gear image
+processing.
 
-Local seller sessions, reload recovery, an HTTPS browser check and ownership-checked management are documented in
-[instructions/gear-management.md](instructions/gear-management.md).
+```text
+Cloudflare Pages
+├── static product pages
+├── Pages Functions
+└── shared modules in lib/
 
-Local verified mailbox transfers are described in [instructions/gear-email-change.md](instructions/gear-email-change.md).
-
-Local D1/workerd results and the repeatable harness are in
-[instructions/gear-d1-validation.md](instructions/gear-d1-validation.md).
-
-Local buyer contact and its temporary test inbox are documented in
-[instructions/gear-contact.md](instructions/gear-contact.md).
-
-Local owner review supports authenticated dismiss/remove/restore and persistent
-action history; see [instructions/gear-owner-moderation.md](instructions/gear-owner-moderation.md).
-
-Local listing reports use a bounded inspection queue; see
-[instructions/gear-reports.md](instructions/gear-reports.md).
-
-Persistent local management photos are documented in
-[instructions/gear-photos.md](instructions/gear-photos.md).
-
-The production foundation adds immutable adult-acknowledgement evidence and a
-D1 metadata adapter for private Cloudflare Images; see
-[instructions/gear-storage.md](instructions/gear-storage.md).
-
-The production owner boundary validates Cloudflare Access JWTs with native Web
-Crypto and an environment-provided exact allowlist. It is deployed behind the
-Access-protected owner hostname; see [instructions/gear-access.md](instructions/gear-access.md).
-
-The deployed production moderation foundation adds constrained D1 tables,
-an Access-authenticated private owner workspace for open reports and active
-removals, and same-origin dismiss/remove/restore actions with transactional
-history; see
-[instructions/gear-production-moderation.md](instructions/gear-production-moderation.md).
-
-The production public report route requires exact-origin JSON, an exact feature
-flag, server-validated Turnstile and a currently public listing before
-atomically inserting the bounded report fields. The production-origin UI is
-source-connected behind the same fail-closed config gate and a dedicated
-`gear-report` widget. Its site key, secret, feature flag, and the owner-approved
-combined Free-plan edge rate-limit rule are configured and active;
-see [instructions/gear-production-reports.md](instructions/gear-production-reports.md).
-
-The production seller-deletion path adds an active recovery marker,
-minimal purge ledger and authenticated delete/recover transaction, and blocks
-owner restore while the active marker exists; see
-[instructions/gear-production-deletions.md](instructions/gear-production-deletions.md).
-
-The production seller-access boundary adds same-origin Pages routes
-for generic recovery requests, explicit one-use link confirmation, reload
-recovery, logout, signed owner-listing reads, and CSRF-protected listing edits and
-status changes. The Resend adapter, production key, and combined edge rate limit
-are configured. The browser UI connects these routes only on the exact production
-origin; the reviewed go-live deploy and smoke checks passed. See
-[instructions/gear-production-management.md](instructions/gear-production-management.md).
-
-The production posting flow validates the full listing and a
-dedicated `gear-post` Turnstile response before creating an unverified D1 draft.
-A random draft ID permits at most five verification emails with a one-minute
-cooldown; the Resend adapter
-sends a 30-minute fragment credential only to the stored address, and a separate
-explicit POST publishes the listing. If Resend's outcome is ambiguous, the page
-asks the seller to check their inbox, including spam, before resending instead
-of reporting a definite failure. A newly committed publication automatically
-emails a durable, listing-scoped management link with brief instructions. The
-saved link remains reusable while that listing is available, pending, closed,
-expired, or within seller-deletion recovery. Opening it is inert until the
-seller chooses **Continue**, which creates a 30-day session limited to that
-listing. The
-exact-origin browser loads Turnstile only when a public site key is configured,
-erases verification fragments before network work, and keeps confirmation usable
-when new posting is disabled. Migration 0020 was applied and verified before the
-PR #24 Pages merge, and the durable management-link behavior is live. Production Pages and D1 are deployed. Turnstile,
-Resend, the feature switches, and the combined edge-limit rule are configured
-and active. See
-[instructions/gear-production-verification.md](instructions/gear-production-verification.md).
-
-The production maintenance package adds an idempotent D1 cleanup
-core, durable hosted-photo deletion outbox, daily scheduled Worker entry point,
-abandoned-quarantine and provider-orphan reconciliation, one-minute retry, and
-failure/recovery-only Resend alerts. The production D1, maintenance KV, Images
-binding, alert secret, Worker and 11:00 UTC Cron Trigger were owner-authorized
-and deployed on 2026-10-03; the checked-in config remains identifier-free. See
-[instructions/gear-production-maintenance.md](instructions/gear-production-maintenance.md).
-
-The production photo foundation includes authenticated Pages routes
-that reserve ten-minute private quarantine uploads through a dedicated Images
-service Worker, then claim, sanitize and atomically attach only the verified
-still WebP. Provider/D1 failures are compensated immediately or through the
-durable deletion outbox when D1 remains writable; unresolved provider commits
-are found by the bounded 24-hour-grace reconciliation sweep. Authenticated
-production routes also remove and reorder attached metadata with exact snapshot
-and ownership checks; removal queues remote deletion atomically. The
-public listing route now replaces private photo references with ten-minute
-Cloudflare Images signed URLs for one configured variant. Upload creation has an
-exact 60-per-current-seller UTC-day D1 budget; email transfer starts a fresh
-target-seller budget. On the Free Website plan, the owner approved and deployed
-one combined source-IP rule for all public Gear writes: 20 matching requests per
-10 seconds, followed by a 10-second block. The private Images service, Pages
-binding, dedicated signing secret, routes, and feature flag are configured and
-active. The exact-origin management UI performs direct upload,
-finalize, removal and reorder; see
-[instructions/gear-production-photos.md](instructions/gear-production-photos.md).
-
-An opt-in connected HTTPS preview is documented in
-[instructions/gear-connected-preview.md](instructions/gear-connected-preview.md).
-
-**Continuing this feature? Start with the [resume handoff](instructions/gear-exchange-plan.md#resume-here).**
-
-Local draft storage, validation, per-listing verification and duplicate checks
-are implemented separately from the preview;
-see [local storage instructions](instructions/gear-storage.md). The deployed
-`GET /api/gear/listings` Pages Function serves the public D1 projection,
-and the exact production-origin Gear browser source now uses that response for
-browse and detail instead of sample rows. Responses are size- and shape-checked,
-signed photos are restricted to Cloudflare Images delivery, and an initial
-failure leaves the public list empty with a generic notice and retry action.
-Later refresh failures retain the last validated listing snapshot. Expired image
-signatures refresh in the background without changing the selected photo. The
-production D1, Pages routes, Images service, and owner boundary are deployed;
-public writes are active behind Turnstile and the combined edge rule. The separate owner-only
-`GET /api/gear/admin/reports` route reads the proposed moderation queue only
-after Access verification; `POST /api/gear/admin/actions` applies reviewed owner
-actions through transactional D1 batches. Run the focused route and storage tests
-with `node --test tests/gearPagesListings.test.mjs tests/gearPagesModeration.test.mjs tests/gearPagesModerationActions.test.mjs tests/gearPagesReportSubmission.test.mjs tests/gearStorage.test.mjs tests/gearVerification.test.mjs`.
-
-The production buyer-contact boundary adds durable request
-idempotency, hashed ten-minute abuse accounting, 24-hour private delivery copies,
-the dedicated `gear-contact` Turnstile action and a bounded plain-text Resend
-adapter. The exact production-origin form is connected through a config-gated
-dedicated Turnstile widget and preserves the same request UUID across uncertain
-retries. The button remains disabled unless D1, a valid Resend key and exact
-`GEAR_CONTACT_ENABLED=true` are all present; production has those values and the
-route independently checks the same delivery configuration. See
-[production contact instructions](instructions/gear-production-contact.md).
-
-Shared field options and search logic are in `lib/gear-exchange.mjs`.
-The [implementation plan](instructions/gear-exchange-plan.md) records approved
-product decisions, review findings and remaining launch requirements.
-The production `/gear/` page is live with its reviewed read and public-write
-boundaries; local preview modes still exercise in-memory sample data. Run its focused checks with
-`node --test tests/gearExchange.test.mjs tests/gearPreviewVisibility.test.mjs`.
-
-Preview screens live in `gear/index.html`, `gear/gear.css`, and `gear/gear.mjs`.
-Under ordinary static hosting, listings, management access, verification and
-contact actions are simulated; inputs and photos reset on reload. The opt-in
-local server persists listings and management photos (see [photo documentation](instructions/gear-photos.md)).
-The static public sample dataset is separate from seller drafts. Production
-provider configuration, remote migrations, encrypted B2 read-back, launch
-deployment, and smoke checks are complete. The separate storage
-query already filters expiry on reads.
-
-
-## Groups feature
-
-Users can create a private group so members can see who's attending each
-session. Membership is shared across all three schedules; RSVPs remain
-activity-specific.
-
-### Joining mechanic
-
-- **Create**: enter your display name, a group name, and a shared password. Share
-  the group name + password out-of-band with teammates.
-- **Join**: enter your display name plus the group name and password a teammate shared with you.
-
-The combination of group name + password identifies the group — neither needs to be globally unique on its own. The group lookup key is a deterministic slug: `groupName.trim().lower() + "|" + password.trim().lower()`. No random code is generated or stored.
-
-After joining, the group chip in the filter bar shows the group name. Tapping
-the chip opens a bottom sheet with the shared password and upcoming sessions
-where group members have RSVP'd.
-
-### RSVP storage
-
-RSVP records live in each group's Durable Object, keyed by session. Stick & Puck keeps the legacy `{rinkKey}|{YYYY-MM-DD}|{HH:MM}` format; Drop-in Hockey appends `|drop-in-hockey`, and Public Skate appends `|public-skate`, preventing same-rink/same-time sessions from colliding. Entries more than 24 hours past their session start are pruned on writes.
-
-The former “Nudge your group” control was never wired to an action and has been
-removed from the schedule pages. Its unused API endpoint remains for
-compatibility but has no user-interface caller.
-
-### Cloudflare bindings
-
-Pages uses the `GROUPS` KV binding for browser-session records and schedule caches, plus the `GROUP_DO` Durable Object binding for group membership and RSVPs. The Durable Object class is hosted by the separately deployed `postandin-group-do` Worker.
-
----
-
-## Architecture
-
-All three static schedule pages use the modules under
-`stick-and-puck/modules/` and the shared `stick-and-puck/schedule.css`. Each
-declares `data-activity`; `activity-config.js` maps it to the appropriate API
-request and page capabilities. Public Skate enables Groups and duration while
-keeping hockey-specific detail badges disabled.
-
-```
-Browser (one of the three schedule pages)
-  └─ /api/schedule[?activity=drop-in-hockey|public-skate]
-       └─ activity-specific KV cache written by the scheduler Worker
+Independent Workers
+├── group-do/          Groups membership and RSVPs
+├── scheduler/         Ice Time scraping and Groups backups
+├── gear-maintenance/  Gear cleanup and reconciliation
+└── gear-images/       Private Gear image processing
 ```
 
-### Serverless functions
-
-Cloudflare Pages Functions in `functions/api/`:
-
-- **`schedule.js`** — reads the selected activity's pre-scraped KV cache and safely falls back to an activity-scoped live scrape on a cache miss
-- **`rectimes.js`** and **`everett.js`** — legacy per-rink endpoints retained alongside the shared schedule path
-
----
-
-## UI filters
-
-The controls bar exposes these filters (mutually exclusive; the rink legend chips are a separate independent multi-select):
-
-| Filter | Shows |
-|--------|-------|
-| All | Every upcoming session |
-| Today | Sessions starting today |
-| Tomorrow | Sessions starting tomorrow |
-| This Week | Sessions starting within 7 days |
-| Female/Non-Binary | Hockey sessions with normalized female/women/non-binary audience metadata; reviewed title/source-label matching supports older cached records |
-
-Public Skate exposes only All, Today, Tomorrow, and This Week; the hockey pages
-also expose Female/Non-Binary. Every schedule shows time, place, duration, RSVP
-attendance, and calendar actions. The site never presents source-provided price,
-reservation, remaining-spots, availability, or sold-out information; users
-follow the session row to the source booking page for those details. Public
-Skate also omits hockey program subtitles.
-
-## Rink legend and grouping
-
-The legend renders one chip per rink, using city name as the label. The client
-also supports an optional `legendKey` for grouping future rink entries, though
-the current `RINKS` configuration does not use it.
-
----
+Pushing `main` deploys Pages, but it does not deploy any of the four Workers.
+See the [deployment matrix](docs/platform/deployment.md) before releasing a
+change.
 
 ## Local development
 
-### Static pages
+Static pages:
+
 ```bash
 python3 -m http.server
 ```
-This serves the HTML shells and shared assets, but `/api/schedule` requires the
-Pages development server below.
 
-### With Cloudflare Pages (all rinks)
+Pages Functions and bindings:
+
 ```bash
 npx wrangler pages dev .
 ```
-The Pages compatibility date is managed outside this repository. If runtime
-parity matters for the change being tested, verify the production Pages date in
-Cloudflare and pass that value with `--compatibility-date`.
 
-### Verification
+The Pages compatibility date is managed outside this repository. Verify it in
+Cloudflare and pass it explicitly when runtime parity matters.
+
+## Verification
+
+Choose checks based on the files changed. The common repository checks are:
 
 ```bash
 node --test tests/*.test.mjs
-node scripts/audit-rinks.js       # live, read-only source classification audit
-node scripts/health-check.js      # live, read-only production smoke test
-node scripts/team-schedule-monitor.mjs # live three-way NWAHL/SportsEngine/travel-page check
+node scripts/audit-rinks.js
+node scripts/health-check.js
 git diff --check
 ```
 
-Run `node --check` on changed JavaScript files. Frontend work also requires
-desktop/mobile browser checks and console inspection; routing work requires
-checking metadata, `robots.txt`, `sitemap.xml`, `404.html`, and a real unknown
-path together.
+The two scripts contact live public sources and are read-only. JavaScript edits
+also require `node --check` where Node can parse the file. Frontend work requires
+mobile and desktop browser checks plus console inspection. Detailed expectations
+are in [Development and testing](docs/platform/development-and-testing.md).
 
-## Deployment boundaries
+## Contribution boundaries
 
-- Pushing `main` deploys the Cloudflare Pages site and Pages Functions.
-- `group-do/` is a separate Worker and requires `wrangler deploy` from that
-  directory when its code/config changes.
-- `scheduler/` is a separate Worker and requires `wrangler deploy` from that
-  directory when its code/config or imported `lib/` runtime changes.
-- `gear-maintenance/` is a separate scheduled Worker and requires its own
-  completed config, reviewed migration/bindings and explicit `wrangler deploy`.
-- `gear-images/` is a separate service-binding-only Worker and requires its own
-  reviewed Images binding, isolated staging check and explicit `wrangler deploy`.
-- Never infer a Worker deployment from a Git push; verify each release path.
+- Work on a short-lived `codex/<task>` branch.
+- Do not commit, push, merge, deploy, change production data, or use live secrets
+  without explicit owner approval.
+- Do not add a framework, build system, package manager, or dependency without
+  explicit approval.
+- Keep credentials, provider identifiers, and private personal information out
+  of this public repository.
+- Preserve the documented deployment boundary between Pages and the independent
+  Workers.
 
----
-
-## Maintenance
-
-Run `node scripts/audit-rinks.js` periodically to check all three activities
-for new source labels. Reviewed production classifications belong in
-`lib/activities.js`; reviewed audit-only exclusions belong in the audit's
-known patterns. Both require tests.
-
----
-
-## Kent Valley iCal notes
-
-Kent Valley uses separate iCal feeds for Stick & Puck and Public Skate. The
-scraper parses local/UTC timestamps, Pacific-local timestamps, RRULE weekly
-recurrence, EXDATEs, cancellations, overrides, and orphaned overrides within a
-30-day horizon. Feed failures are isolated by activity; the scheduler carries
-forward recent last-known-good rink/activity data for up to 24 hours.
-
-Local seller deletion now supports a 30-day recovery window, explicit offline
-cleanup and tested SQLite record/photo snapshot restoration. See
-[Gear lifecycle](instructions/gear-lifecycle.md) for retention, commands and limitations.
-Production maintenance and remote records disaster recovery are deployed, and
-their first controlled production checks passed. Photos remain deliberately
-outside the off-provider recovery scope.
-
-Local Gear cleanup now runs on server startup and daily while listening, with
-one-minute failure retries. The approved short retention schedule and optional
-snapshot-pruning directory are documented in `instructions/gear-lifecycle.md`.
-Production maintenance scheduling and failure/recovery alerts are deployed. The
-first production records backup, exact B2 read-back, and isolated restore
-rehearsal passed on 2026-10-03 PDT.
-The consolidated provisioning, staging, backup, deployment and
-rollback sequence is in
-[instructions/gear-launch-runbook.md](instructions/gear-launch-runbook.md).
-The owner selected a lean records-only off-Cloudflare backup: encrypted D1
-projections to B2, with photos deliberately excluded and re-upload required
-after a total media loss. The production workflow supports manual dispatch and a
-nightly 08:17 UTC schedule. Its private B2 target, restricted key, lifecycle,
-offline recovery identity, and owner-approved D1 Edit token are configured.
-Current environment and secret-migration status is maintained in
-[instructions/gear-lean-backup.md](instructions/gear-lean-backup.md).
+The complete working agreement is in [AGENTS.md](AGENTS.md).

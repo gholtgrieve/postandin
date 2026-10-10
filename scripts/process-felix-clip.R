@@ -1,7 +1,7 @@
 # Process one clip from one full-game video for /felix-holtgrieve/.
 #
 # This file uses base R only. Source it from R or RStudio, then call
-# process_felix_clip() as shown in scripts/felix-clip-workflow.md.
+# process_felix_clip() as shown in docs/asides/felix-profile/media-workflow.md.
 
 felix_timestamp_seconds <- function(value) {
   if (is.numeric(value) && length(value) == 1L && is.finite(value) && value >= 0) {

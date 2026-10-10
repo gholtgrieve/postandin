@@ -1,5 +1,8 @@
 # Gear Exchange local owner moderation
 
+> **Historical local increment.** This is retained for implementation context,
+> not current production guidance.
+
 Uncommitted local-only package, baseline `b2deab4`, on
 `codex/gear-exchange-foundation`. No push, deployment, real mail, production
 identity service or remote storage. The owner requires the project to be fully

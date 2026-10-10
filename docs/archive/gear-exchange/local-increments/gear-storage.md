@@ -1,5 +1,9 @@
 # Gear Exchange local draft storage
 
+> **Historical local increment.** Use the current
+> [Gear architecture guide](../../../core/gear-exchange/architecture.md) for
+> production boundaries.
+
 Status: this document began as the local storage increment and retains its design
 history. The production D1, Images service, Pages routes, and exact-origin UI are
 now deployed; current launch state and controls are maintained in
@@ -96,7 +100,7 @@ pagination/search integration comes with the real browse API.
 Verified email changes now exist locally; see [gear-email-change.md](gear-email-change.md).
 Production verification delivery now has source-level cooldown/cap controls and
 an exact draft-retention boundary; see
-[gear-production-verification.md](gear-production-verification.md).
+[gear-production-verification.md](../../../core/gear-exchange/reference/gear-production-verification.md).
 This local server is not a production security boundary or deployable API. The
 separate production validation, browser integration, and edge controls are
 documented in the production files and launch runbook.
@@ -294,7 +298,7 @@ in `gear-management.md`; the preview UI is still separate and local D1/workerd v
 Current D1 evidence: all twenty migrations, populated version-6 upgrade, persistence,
 transaction/error semantics, moderation read projection and core storage flows
 passed in local workerd. See
-[gear-d1-validation.md](gear-d1-validation.md) for the repeatable harness and
+[gear-d1-validation.md](../../../core/gear-exchange/reference/gear-d1-validation.md) for the repeatable harness and
 remaining limits. Earlier untested-D1 statements describe prior increments, not
 the current state.
 

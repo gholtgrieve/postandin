@@ -1,5 +1,9 @@
 # Post & In — Technical Specification & Handoff Document
 
+> **Historical.** This monolithic specification has been replaced by the
+> current documentation indexed at [`docs/README.md`](../../README.md). It is
+> retained only for background and migration traceability.
+
 > **This document is reference and background material, not a live source of
 > truth.** It describes the architecture and conventions as of the last
 > resync, but the codebase is the only authority on current behavior. Before
@@ -1175,16 +1179,16 @@ Post & In exists to elevate the profile of Seattle youth hockey. Three prioritie
 ## Gear Exchange — live
 
 Local-only management sessions, reload recovery, HTTPS browser validation and owner-checked writes are documented in
-[gear-management.md](gear-management.md). Ordinary static hosting remains simulated.
+[gear-management.md](../gear-exchange/local-increments/gear-management.md). Ordinary static hosting remains simulated.
 
 Local verified mailbox transfers, including the opt-in connected management
-form, are described in [gear-email-change.md](gear-email-change.md).
+form, are described in [gear-email-change.md](../gear-exchange/local-increments/gear-email-change.md).
 
-Local D1/workerd validation passed; see [gear-d1-validation.md](gear-d1-validation.md)
+Local D1/workerd validation passed; see [gear-d1-validation.md](../../core/gear-exchange/reference/gear-d1-validation.md)
 for the observed coverage and remaining remote/legacy-data limits.
 
 The opt-in connected local HTTPS flow is described in
-[gear-connected-preview.md](gear-connected-preview.md). Ordinary local static
+[gear-connected-preview.md](../gear-exchange/local-increments/gear-connected-preview.md). Ordinary local static
 hosting remains simulated. The deployed `GET /api/gear/listings` Pages Function
 reads the public projection through the production `GEAR_DB` D1 binding and fails
 closed until all signed-photo delivery settings are configured. On the exact
@@ -1208,14 +1212,14 @@ photo-upload feature flag and owner-approved combined Free-plan edge rule are
 configured and active.
 Persistent local management
 photos use a macOS trusted encoder and the sample database; see
-[gear-photos.md](gear-photos.md).
+[gear-photos.md](../gear-exchange/local-increments/gear-photos.md).
 
 Local buyer contact uses a bounded in-memory test inbox, server visibility checks,
-sharing acknowledgement and temporary local limits; see [gear-contact.md](gear-contact.md).
+sharing acknowledgement and temporary local limits; see [gear-contact.md](../gear-exchange/local-increments/gear-contact.md).
 No real contact email is delivered.
 
 The deployed production buyer-contact backend is described in
-[gear-production-contact.md](gear-production-contact.md). Migration 15 adds
+[gear-production-contact.md](../../core/gear-exchange/reference/gear-production-contact.md). Migration 15 adds
 hashed ten-minute attempt accounting and private 24-hour delivery copies. The
 same-origin Pages route requires the dedicated `gear-contact` Turnstile action,
 current public eligibility and a browser-generated idempotency UUID. Its bounded
@@ -1232,13 +1236,13 @@ binding, secret, feature flag, mail adapter, and owner-approved combined Free-pl
 edge rule are configured and active.
 
 Local reports now use a bounded in-memory inspection queue; see
-[gear-reports.md](gear-reports.md). Submitting a report takes no moderation action.
+[gear-reports.md](../gear-exchange/local-increments/gear-reports.md). Submitting a report takes no moderation action.
 Opt-in local owner authentication, report review, reversible removal and persistent
-history are described in [gear-owner-moderation.md](gear-owner-moderation.md).
+history are described in [gear-owner-moderation.md](../gear-exchange/local-increments/gear-owner-moderation.md).
 This adds local SQLite tables, not deployed identity or D1 operations.
 
 The deployed production owner boundary is described in
-[gear-access.md](gear-access.md). It validates the Access assertion signature,
+[gear-access.md](../../core/gear-exchange/reference/gear-access.md). It validates the Access assertion signature,
 issuer, audience, time claims, exact owner allowlist and admin host using native
 Web Crypto. The probe route returns only authentication state. The Access
 application, custom domain, and required environment values are deployed. The
@@ -1258,10 +1262,10 @@ removes its listing, or restores a removed listing while recording bounded owner
 history. Restore preserves the previous status and expiry and rechecks current
 verification, quota and duplicates. The implemented production seller-deletion
 marker blocks owner restore while seller recovery remains active. See
-[gear-production-moderation.md](gear-production-moderation.md).
+[gear-production-moderation.md](../../core/gear-exchange/reference/gear-production-moderation.md).
 
 The deployed public `POST /api/gear/reports` route is described in
-[gear-production-reports.md](gear-production-reports.md). It accepts only
+[gear-production-reports.md](../../core/gear-exchange/reference/gear-production-reports.md). It accepts only
 exact-origin JSON from `https://postandin.com`, bounds the body, validates a
 single-use Turnstile token server-side for hostname `postandin.com` and action
 `gear-report`, then uses one `INSERT ... SELECT` statement to recheck current
@@ -1289,7 +1293,7 @@ D1 invariants. The Resend key and combined edge rule are configured and active.
 After migration 0019, D1 enforces a 60-second per-seller cooldown and a
 five-per-24-hour recovery-mail cap. Scheduled cleanup and backup reconciliation
 are deployed. See `gear-production-management.md` and
-[gear-production-deletions.md](gear-production-deletions.md).
+[gear-production-deletions.md](../../core/gear-exchange/reference/gear-production-deletions.md).
 
 When the exact staging public origin is configured, all verification, management
 recovery and buyer-contact adapters additionally require a valid
@@ -1382,7 +1386,7 @@ Current environment and secret-migration state is maintained in
 isolated JSON/SQLite/data-only-SQL restore rehearsal passed on 2026-10-03 PDT.
 The first unattended scheduled run also passed, but GitHub enqueued it about
 8 hours 50 minutes after its nominal 08:17 UTC slot. See
-[gear-lean-backup.md](gear-lean-backup.md).
+[gear-lean-backup.md](../../operations/gear-exchange/gear-lean-backup.md).
 
 The deployed production photo adapter uses a ten-minute Direct Creator Upload
 as a private, unattached quarantine. Finalization downloads and bounds the actual
@@ -1405,7 +1409,7 @@ source-IP rule documented in the launch runbook—20 matching requests per 10
 seconds followed by a 10-second block—covers the upload and finalize paths.
 Revisit the preferred 12-per-minute photo rule if the zone is upgraded;
 see
-[gear-production-photos.md](gear-production-photos.md).
+[gear-production-photos.md](../../core/gear-exchange/reference/gear-production-photos.md).
 
 Migration 11 durably binds each private quarantine provider ID to
 the authenticated seller and listing without storing bearer credentials. A
@@ -1468,16 +1472,16 @@ burst-control layer whose counters are per data center, may briefly overshoot an
 can fail open; the D1 seller-account counter is the exact authenticated-traffic
 backstop.
 
-**Continuing this feature? Start with the [resume handoff](gear-exchange-plan.md#resume-here).**
+**Historical note:** the former [resume handoff](../gear-exchange/2026-implementation-history.md#resume-here) is archived.
 
 The local-only draft schema, validation, persistence, token verification,
 duplicate prevention and API harness are
-documented in [gear-storage.md](gear-storage.md). The deployed public list route
+documented in [gear-storage.md](../gear-exchange/local-increments/gear-storage.md). The deployed public list route
 reuses that projection; production write routes are active behind Turnstile and
 the combined edge rule, and ordinary local static hosting remains in-memory.
 
 The accepted product decisions, design-review disposition, implementation
-sequence and launch gates live in [gear-exchange-plan.md](gear-exchange-plan.md).
+sequence and launch gates live in the [archived implementation history](../gear-exchange/2026-implementation-history.md).
 Shared field options and public-listing search logic live in
 `lib/gear-exchange.mjs`, with focused tests. Production Pages, D1, Images,
 maintenance, and owner Access are deployed. Public-write credentials, feature
@@ -1651,7 +1655,7 @@ Fields: What's the issue (dropdown including "Groups feature"), Which rink, Deta
 
 Local seller deletion now supports a 30-day recovery window, explicit offline
 cleanup and tested SQLite record/photo snapshot restoration. See
-[Gear lifecycle](gear-lifecycle.md) for retention, commands and limitations.
+[Gear lifecycle](../gear-exchange/local-increments/gear-lifecycle.md) for retention, commands and limitations.
 Production maintenance and remote records disaster recovery are deployed and
 their first controlled production checks passed. Photos remain deliberately
 outside the off-provider recovery scope.

@@ -123,7 +123,7 @@ test('age encryption reports a fixed error when the binary cannot start',async()
 
 test('Gear backup workflow remains manual-capable, nightly, pinned and production-environment restricted',()=>{
   const workflow=readFileSync(new URL('../.github/workflows/gear-records-backup.yml',import.meta.url),'utf8');
-  const runbook=readFileSync(new URL('../instructions/gear-launch-runbook.md',import.meta.url),'utf8');
+  const runbook=readFileSync(new URL('../docs/operations/gear-exchange/gear-launch-runbook.md',import.meta.url),'utf8');
   const active=workflow.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
   assert.equal(active.match(/^on:\n([\s\S]*?)\n\npermissions:/m)?.[1].trim(),'workflow_dispatch:\n  schedule:\n    - cron: "17 8 * * *"');
   assert.match(runbook,/first\s+unattended scheduled backup, GitHub Actions run `37346066982`/);

@@ -16,27 +16,31 @@ separate second opinion.
    Codex task folder.
 2. Read this file.
 3. Inspect `git status` and the actual files relevant to the request.
-4. Read only the relevant sections of
-   `instructions/postandin-technical-spec.md`.
-5. Treat the codebase as the source of truth. If the technical spec disagrees
-   with the code, flag the mismatch and update the spec in the same change when
-   appropriate.
+4. Start with `docs/README.md`, then read only the current product,
+   platform, or operations documents relevant to the request.
+5. Treat the codebase as the source of truth. If current documentation disagrees
+   with the code, flag the mismatch and update the owning document in the same
+   change when appropriate. Material under `docs/archive/` is historical,
+   not current guidance.
 6. Restate the requested outcome and identify any product, UX, or copy decision
    that still belongs to the owner.
 
 Do not overwrite or discard pre-existing uncommitted work. Ask before touching
 files that contain unrelated changes.
 
-## Feature handoffs
+## Product boundaries and feature handoffs
 
-For Gear Exchange work, start with the **Resume here** section in
-[instructions/gear-exchange-plan.md](instructions/gear-exchange-plan.md).
-It records the completed commits, implemented versus simulated behavior,
-next bounded task, acceptance criteria, review history and deployment limits.
-Use [instructions/gear-storage.md](instructions/gear-storage.md) for local
-storage commands and data/privacy boundaries. Recheck Git and code, and update
-the handoff when an increment changes the state. These repo documents are the
-continuation source; prior chat history is not required.
+Post & In has three core products: Ice Time, Coach Profiles, and Gear Exchange.
+Seattle Junior Mets 16U AA pages and the Felix Holtgrieve profile are hosted
+asides, not core products or roadmap items. Keep aside documentation under
+`docs/asides/` unless a change also affects the shared platform.
+
+For Gear Exchange work, start with
+[docs/core/gear-exchange/README.md](docs/core/gear-exchange/README.md).
+It links the current product contract, architecture, development instructions,
+focused references, and operational runbooks. The completed implementation plan
+and local development increments are historical material under
+`docs/archive/gear-exchange/`; do not use them as current status.
 
 ## Implementation rules
 
@@ -103,12 +107,15 @@ Choose checks based on the files changed and report exactly what ran.
 
 ## Documentation maintenance
 
-- Treat `README.md` as the current developer overview,
-  `instructions/postandin-technical-spec.md` as detailed architecture/product
-  context, and `scheduler/README.md` as the scheduler/backup runbook. Dated
-  backlog or audit files are historical evidence, not live status.
+- Treat `README.md` as the concise developer overview,
+  `docs/README.md` as the documentation index, current material under
+  `docs/core/`, `docs/platform/`, and `docs/operations/`
+  as maintained guidance, and `scheduler/README.md` as the component scheduler
+  and backup runbook. Files under `docs/archive/` are historical.
 - Update affected documentation in the same change as routes, bindings, cache
   keys, activity behavior, deployment requirements, or operational commands.
+- Update one canonical owner for a fact and link to it elsewhere rather than
+  maintaining duplicate copies.
 - Verify volatile claims directly against code/configuration. Avoid duplicating
   IDs, exact source labels, and CLI syntax unless the document owns that detail.
 - For operational instructions, distinguish observed configuration from

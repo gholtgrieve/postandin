@@ -1,5 +1,10 @@
 # postandin-scheduler
 
+This is the component runbook for the independently deployed scheduler Worker.
+For the product overview, see [Ice Time](../docs/core/ice-time.md). For the
+cross-component operational index, see
+[Ice Time and Groups operations](../docs/operations/ice-time-and-groups.md).
+
 A standalone Cloudflare Worker with two independent cron jobs:
 
 1. **Schedule caches** (every 30 min) — scrapes all rink schedules once and

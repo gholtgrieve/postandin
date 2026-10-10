@@ -1,5 +1,8 @@
 # Gear Exchange persistent local photos
 
+> **Historical local increment.** This is retained for implementation context,
+> not current production guidance.
+
 September 27, 2026. Local sample-data implementation, based on `7753fa2`.
 No deployed image service, R2 bucket, Pages route or production migration.
 
