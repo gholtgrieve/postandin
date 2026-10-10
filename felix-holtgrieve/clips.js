@@ -12,7 +12,7 @@ export const clips = [
   {
     id: '2026-09-27-utah-d-zone-breakout-sog',
     title: 'D-zone breakout with shot on goal',
-    description: 'Felix Holtgrieve (#17) is highlighted during a defensive-zone breakout that develops into an offensive-zone shot on goal against the Utah Jr Grizzlies on September 27, 2026.',
+    description: 'Felix Holtgrieve (#17) is highlighted during a defensive-zone breakout that develops into an offensive-zone shot on goal against the Utah Jr Grizzlies.',
     categories: ['puck-movement', 'offensive'],
     opponent: 'Utah Jr Grizzlies',
     date: '2026-09-27',
@@ -27,7 +27,7 @@ export const clips = [
   {
     id: '2026-09-19-neutral-zone-primary-assist',
     title: 'Neutral zone pass with primary assist',
-    description: 'Felix Holtgrieve (#17) advances the puck through the neutral zone for the (unrecorded) primary assist on a goal against the Tacoma Rockets on September 19, 2026.',
+    description: 'Felix Holtgrieve (#17) advances the puck through the neutral zone for the (unrecorded) primary assist on a goal against the Tacoma Rockets.',
     categories: ['puck-movement', 'offensive'],
     opponent: 'Tacoma Rockets',
     date: '2026-09-19',
