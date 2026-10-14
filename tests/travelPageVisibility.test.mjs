@@ -43,6 +43,17 @@ test('every trip with published game times includes the warmup reminder', () => 
   }
 });
 
+test('Spokane shows Thursday or Friday as arrival options', () => {
+  const glance = travelPage.match(/<a class="glance-link" href="#spokane">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  const spokane = travelPage.match(/<article class="trip priority" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(glance, /Arrive Thu or Fri/);
+  assert.match(glance, /Hotel updates until Oct\. 29/);
+  assert.match(spokane, /<span class="fact-label">Arrive<\/span><span class="fact-value arrival-options">Thursday <span class="arrival-alternative">or Friday<\/span>/);
+  assert.match(spokane, /A Friday–Sunday stay is also available/);
+  assert.match(spokane, /You can update your hotel reservation until October 29\./);
+  assert.doesNotMatch(spokane, /group-rate booking deadline was September 29/);
+});
+
 test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
   const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
