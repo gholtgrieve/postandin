@@ -54,6 +54,24 @@ test('Spokane shows Thursday or Friday as arrival options', () => {
   assert.doesNotMatch(spokane, /group-rate booking deadline was September 29/);
 });
 
+test('Portland shows both Beaverton games and the Tigard room block', () => {
+  const glance = travelPage.match(/<a class="glance-link" href="#portland">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  const portland = travelPage.match(/<article class="trip" id="portland">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(glance, /Jan\. 9–10 · Arrive Saturday/);
+  assert.match(glance, /Book by Dec\. 26/);
+  assert.match(portland, /<span class="fact-label">Arrive<\/span><span class="fact-value">Saturday<\/span>/);
+  assert.match(portland, /<span class="fact-label">Depart<\/span><span class="fact-value">Sunday<\/span>/);
+  assert.doesNotMatch(portland, /Travel timing TBD/);
+  assert.match(portland, /Hampton Inn &amp; Suites Portland-Tigard/);
+  assert.match(portland, /\$119 per night/);
+  assert.match(portland, /Book by December 26 for the group rate/);
+  assert.match(portland, /hilton\.com\/en\/attend-my-event\/seattlejuniormets2027\//);
+  assert.match(portland, /<time datetime="2027-01-09T18:30">6:30–8:00 PM<\/time>/);
+  assert.match(portland, /<time datetime="2027-01-10T09:00">9:00–10:30 AM<\/time>/);
+  assert.equal((portland.match(/Winterhawks Skating Center · Beaverton/g) ?? []).length, 2);
+  assert.match(portland, /class="game-arrival-note"/);
+});
+
 test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
   const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
