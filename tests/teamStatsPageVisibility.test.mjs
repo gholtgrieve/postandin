@@ -90,13 +90,14 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Power-play goals against<\/span><strong>3/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>3/);
-  assert.match(statsPage, /26 opportunities · 7\.7%/);
-  assert.match(statsPage, /25 recorded times shorthanded through Sep 27/);
+  assert.match(statsPage, /35 opportunities · 5\.7%/);
+  assert.match(statsPage, /36 times shorthanded · 91\.7% PK/);
   assert.match(statsPage, /1 GWG · Sep 26 vs Boise/);
   assert.match(statsPage, /1 GWG · Sep 20 vs Tacoma/);
   assert.equal((statsPage.match(/0 GWG/g) ?? []).length, 2);
-  assert.match(statsPage, /Confirmed special-teams goal totals include October 4/);
-  assert.match(statsPage, /Opportunity totals cover eight games through September 27/);
+  assert.match(statsPage, /Special-teams totals cover all ten games/);
+  assert.match(statsPage, /delayed Seattle Junior penalty was cancelled/);
+  assert.match(statsPage, /ten-minute misconduct created no power play/);
   assert.match(statsPage, /GWG means game-winning goal/);
   assert.doesNotMatch(statsPage, /Goal type was not recorded/);
   assert.doesNotMatch(statsPage, /Goal strength classified|27 of 37 · 73%/);
