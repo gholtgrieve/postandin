@@ -121,8 +121,10 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Misconduct records are excluded/);
   assert.doesNotMatch(statsPage, /id="misconducts-title"/);
   assert.match(statsPage, /Goaltender workload/);
+  assert.equal((statsPage.match(/class="workload-row"/g) ?? []).length, 8);
+  assert.doesNotMatch(statsPage, /workload-game"><strong>Oct (3|4) · L/);
   assert.match(statsPage, /Period-level shot totals are available for four games/);
   assert.match(statsPage, /Shot location and high-danger chances are not currently tracked/);
-  assert.match(statsPage, /October 3 and 4 scorecards recorded goals against but did not record shots or saves/);
+  assert.match(statsPage, /October 3 and 4 games are excluded because shots and saves were not recorded/);
   assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
 });
