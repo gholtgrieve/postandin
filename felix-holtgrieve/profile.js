@@ -1,4 +1,4 @@
-import { categoryLabels, clips } from './clips.js?v=8';
+import { categoryLabels, clips } from './clips.js?v=9';
 
 const clipGrid = document.querySelector('#clipGrid');
 const emptyLibrary = document.querySelector('#emptyLibrary');

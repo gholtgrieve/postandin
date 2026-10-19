@@ -177,19 +177,25 @@ felix_read_ppm <- function(path) {
   )
 }
 
-choose_felix_position <- function(input, start) {
+felix_selection_frame <- function(input, start, pad = TRUE) {
   ffmpeg <- felix_find_ffmpeg()
   input <- normalizePath(path.expand(input), winslash = "/", mustWork = TRUE)
   start_seconds <- felix_timestamp_seconds(start)
   frame_path <- tempfile("felix-position-", fileext = ".ppm")
   on.exit(unlink(frame_path), add = TRUE)
 
+  frame_filter <- if (pad) {
+    "scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2"
+  } else {
+    "scale=960:540:force_original_aspect_ratio=decrease"
+  }
+
   felix_run_ffmpeg(ffmpeg, c(
     "-hide_banner", "-loglevel", "error", "-y",
     "-ss", sprintf("%.3f", start_seconds),
     "-i", input,
     "-frames:v", "1",
-    "-vf", "scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2",
+    "-vf", frame_filter,
     "-c:v", "ppm",
     "-update", "1",
     frame_path
@@ -207,21 +213,123 @@ choose_felix_position <- function(input, start) {
     stop(paste0("FFmpeg did not create the player-selection frame.", hint), call. = FALSE)
   }
 
-  frame <- felix_read_ppm(frame_path)
+  felix_read_ppm(frame_path)
+}
+
+felix_validate_crop <- function(crop) {
+  if (is.null(crop)) return(invisible(TRUE))
+  required <- c("x", "y", "width", "height")
+  if (!is.numeric(crop) || !all(required %in% names(crop)) ||
+      any(!is.finite(crop[required])) || any(crop[required] < 0) ||
+      crop[["width"]] <= 0 || crop[["height"]] <= 0 ||
+      crop[["x"]] + crop[["width"]] > 1 + 1e-9 ||
+      crop[["y"]] + crop[["height"]] > 1 + 1e-9) {
+    stop("crop must be the result returned by choose_felix_crop().", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+choose_felix_crop <- function(input, start) {
+  frame <- felix_selection_frame(input, start, pad = FALSE)
+  graphics::plot.new()
+  graphics::plot.window(xlim = c(0, frame$width), ylim = c(frame$height, 0), asp = 1)
+  graphics::rasterImage(frame$raster, 0, frame$height, frame$width, 0)
+  graphics::title(main = "Click two opposite corners around the useful game area")
+  points <- graphics::locator(2L)
+  if (is.null(points) || length(points$x) != 2L) {
+    stop("No crop area was selected.", call. = FALSE)
+  }
+
+  crop <- felix_crop_from_points(points$x, points$y, frame$width, frame$height)
+  left <- crop[["x"]] * frame$width
+  right <- (crop[["x"]] + crop[["width"]]) * frame$width
+  top <- crop[["y"]] * frame$height
+  bottom <- (crop[["y"]] + crop[["height"]]) * frame$height
+  graphics::rect(left, top, right, bottom, border = "#D6BC58", lwd = 4)
+
+  message(sprintf(
+    "Crop selected: x = %.4f, y = %.4f, width = %.4f, height = %.4f",
+    crop[["x"]], crop[["y"]], crop[["width"]], crop[["height"]]
+  ))
+  crop
+}
+
+felix_crop_from_points <- function(x, y, frame_width, frame_height) {
+  if (!is.numeric(x) || !is.numeric(y) || length(x) != 2L || length(y) != 2L ||
+      any(!is.finite(c(x, y))) || !is.numeric(frame_width) || !is.numeric(frame_height) ||
+      length(frame_width) != 1L || length(frame_height) != 1L ||
+      !is.finite(frame_width) || !is.finite(frame_height) ||
+      frame_width <= 0 || frame_height <= 0) {
+    stop("Crop points and frame dimensions must be finite numeric values.", call. = FALSE)
+  }
+
+  x <- pmax(0, pmin(frame_width, x))
+  y <- pmax(0, pmin(frame_height, y))
+  left <- min(x)
+  right <- max(x)
+  top <- min(y)
+  bottom <- max(y)
+  width <- right - left
+  height <- bottom - top
+  if (width < frame_width * 0.2 || height < frame_height * 0.2) {
+    stop("The selected crop is too small. Include the useful game area.", call. = FALSE)
+  }
+
+  target_aspect <- 16 / 9
+  center_x <- (left + right) / 2
+  center_y <- (top + bottom) / 2
+  if (width / height > target_aspect) {
+    width <- height * target_aspect
+  } else {
+    height <- width / target_aspect
+  }
+  left <- max(0, min(frame_width - width, center_x - width / 2))
+  top <- max(0, min(frame_height - height, center_y - height / 2))
+
+  crop <- round(c(
+    x = left / frame_width,
+    y = top / frame_height,
+    width = width / frame_width,
+    height = height / frame_height
+  ), 12)
+  felix_validate_crop(crop)
+  crop
+}
+
+choose_felix_position <- function(input, start, crop = NULL) {
+  felix_validate_crop(crop)
+  frame <- felix_selection_frame(input, start, pad = is.null(crop))
+  if (!is.null(crop)) {
+    left <- max(1L, floor(crop[["x"]] * frame$width) + 1L)
+    right <- min(frame$width, ceiling((crop[["x"]] + crop[["width"]]) * frame$width))
+    top <- max(1L, floor(crop[["y"]] * frame$height) + 1L)
+    bottom <- min(frame$height, ceiling((crop[["y"]] + crop[["height"]]) * frame$height))
+    frame$raster <- frame$raster[top:bottom, left:right]
+    frame$width <- ncol(frame$raster)
+    frame$height <- nrow(frame$raster)
+  }
   graphics::plot.new()
   graphics::plot.window(xlim = c(0, frame$width), ylim = c(frame$height, 0), asp = 1)
   graphics::rasterImage(frame$raster, 0, frame$height, frame$width, 0)
   graphics::title(main = "Click the center of Felix, once")
   point <- graphics::locator(1L)
   if (is.null(point)) stop("No player position was selected.", call. = FALSE)
-  graphics::symbols(point$x, point$y, circles = 55, inches = FALSE, add = TRUE, fg = "#D6BC58", lwd = 4)
+  graphics::symbols(
+    point$x,
+    point$y,
+    circles = 0.07 * frame$height,
+    inches = FALSE,
+    add = TRUE,
+    fg = "#D6BC58",
+    lwd = 4
+  )
 
   position <- c(x = point$x / frame$width, y = point$y / frame$height)
   message(sprintf("Felix position selected: x = %.4f, y = %.4f", position[["x"]], position[["y"]]))
   position
 }
 
-felix_write_marker <- function(path, position, width = 1280, height = 720, radius = 0.09) {
+felix_write_marker <- function(path, position, width = 1280, height = 720, radius = 0.07) {
   if (!is.numeric(position) || length(position) != 2L || any(!is.finite(position))) {
     stop("felix_position must be the result returned by choose_felix_position().", call. = FALSE)
   }
@@ -244,19 +352,37 @@ felix_write_marker <- function(path, position, width = 1280, height = 720, radiu
   writeLines(svg, path, useBytes = TRUE)
 }
 
+felix_crop_filter <- function(crop) {
+  if (is.null(crop)) return("")
+  felix_validate_crop(crop)
+  sprintf(
+    "crop=trunc(iw*%.8f/2)*2:trunc(ih*%.8f/2)*2:trunc(iw*%.8f/2)*2:trunc(ih*%.8f/2)*2,",
+    crop[["width"]], crop[["height"]], crop[["x"]], crop[["y"]]
+  )
+}
+
 felix_video_filter <- function(
   width,
   height,
   fps,
   highlight_seconds,
   secondary_highlight_time = NULL,
-  secondary_highlight_seconds = NULL
+  secondary_highlight_seconds = NULL,
+  crop = NULL
 ) {
-  scale_filter <- paste0(
-    sprintf("scale=%d:%d:force_original_aspect_ratio=decrease,", width, height),
-    sprintf("pad=%d:%d:(ow-iw)/2:(oh-ih)/2,", width, height),
-    sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
-  )
+  scale_filter <- if (is.null(crop)) {
+    paste0(
+      sprintf("scale=%d:%d:force_original_aspect_ratio=decrease,", width, height),
+      sprintf("pad=%d:%d:(ow-iw)/2:(oh-ih)/2,", width, height),
+      sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
+    )
+  } else {
+    paste0(
+      felix_crop_filter(crop),
+      sprintf("scale=%d:%d,setsar=1,", width, height),
+      sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
+    )
+  }
   opening_frames <- max(1, floor((highlight_seconds * fps) + 0.5))
   opening_duration <- opening_frames / fps
 
@@ -378,6 +504,7 @@ process_felix_clip <- function(
   date,
   output_dir,
   felix_position,
+  crop = NULL,
   highlight_seconds = 1.75,
   secondary_highlight_time = NULL,
   secondary_felix_position = NULL,
@@ -420,6 +547,7 @@ process_felix_clip <- function(
   if (!valid_label(title) || !valid_label(opponent)) {
     stop("Title and opponent are required.", call. = FALSE)
   }
+  felix_validate_crop(crop)
   if (!is.numeric(highlight_seconds) || length(highlight_seconds) != 1L ||
       !is.finite(highlight_seconds) || highlight_seconds <= 0 || highlight_seconds > 3) {
     stop("highlight_seconds must be greater than 0 and no more than 3.", call. = FALSE)
@@ -489,7 +617,8 @@ process_felix_clip <- function(
     30,
     highlight_seconds,
     secondary_highlight_time,
-    secondary_highlight_seconds
+    secondary_highlight_seconds,
+    crop
   )
   preview_filter <- felix_video_filter(
     640,
@@ -497,7 +626,8 @@ process_felix_clip <- function(
     24,
     highlight_seconds,
     secondary_highlight_time,
-    secondary_highlight_seconds
+    secondary_highlight_seconds,
+    crop
   )
   output_duration <- duration + highlight_seconds +
     if (has_secondary_time) secondary_highlight_seconds else 0
@@ -578,13 +708,21 @@ process_felix_clip <- function(
   felix_run_ffmpeg(ffmpeg, full_arguments)
 
   message("Creating poster image...")
+  poster_filter <- if (is.null(crop)) {
+    "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"
+  } else {
+    paste0(felix_crop_filter(crop), "scale=1280:720,setsar=1")
+  }
   felix_run_ffmpeg(ffmpeg, c(
     common,
     "-ss", seek,
     "-i", input,
     "-i", marker_path,
     "-filter_complex",
-    "[0:v:0]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2[base];[1:v:0]scale=1280:720,format=rgba[marker];[base][marker]overlay=0:0[v]",
+    paste0(
+      "[0:v:0]", poster_filter, "[base];",
+      "[1:v:0]scale=1280:720,format=rgba[marker];[base][marker]overlay=0:0[v]"
+    ),
     "-map", "[v]",
     "-frames:v", "1",
     "-update", "1",

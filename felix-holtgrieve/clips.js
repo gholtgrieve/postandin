@@ -10,6 +10,21 @@ export const categoryLabels = Object.freeze({
 
 export const clips = [
   {
+    id: '2026-10-18-goal-from-the-slot',
+    title: 'Scores from the slot',
+    description: 'Felix Holtgrieve (#17) scores from the slot against the Sno-King Jr Thunderbirds.',
+    categories: ['offensive'],
+    opponent: 'Sno-King Jr Thunderbirds',
+    date: '2026-10-18',
+    uploadDate: '2026-10-19T09:50:31-07:00',
+    durationSeconds: 10.767,
+    pageSrc: '/felix-holtgrieve/video/2026-10-18-goal-from-the-slot/',
+    posterSrc: 'https://media.postandin.com/felix/2026-27/2026-10-18-goal-from-the-slot/v1/2026-10-18-goal-from-the-slot.jpg',
+    previewSrc: 'https://media.postandin.com/felix/2026-27/2026-10-18-goal-from-the-slot/v1/2026-10-18-goal-from-the-slot-preview.mp4',
+    fullSrc: 'https://media.postandin.com/felix/2026-27/2026-10-18-goal-from-the-slot/v1/2026-10-18-goal-from-the-slot.mp4',
+    captionsSrc: '',
+  },
+  {
     id: '2026-09-27-utah-d-zone-breakout-sog',
     title: 'D-zone breakout with shot on goal',
     description: 'Felix Holtgrieve (#17) is highlighted during a defensive-zone breakout that develops into an offensive-zone shot on goal against the Utah Jr Grizzlies.',

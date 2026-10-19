@@ -32,14 +32,21 @@ means 47 hours and 39 minutes. Clips are limited to 60 seconds so the complete
 hover preview stays lightweight for visitors.
 
 ```r
-felix <- choose_felix_position(
+crop <- choose_felix_crop(
   input = "/Users/your-name/Movies/full-game.mp4",
   start = "01:12:34.5"
 )
 
+felix <- choose_felix_position(
+  input = "/Users/your-name/Movies/full-game.mp4",
+  start = "01:12:34.5",
+  crop = crop
+)
+
 offensive_zone <- choose_felix_position(
   input = "/Users/your-name/Movies/full-game.mp4",
-  start = "01:12:45"
+  start = "01:12:45",
+  crop = crop
 )
 
 process_felix_clip(
@@ -53,12 +60,18 @@ process_felix_clip(
   date = "2026-10-05",
   output_dir = "/Users/your-name/Movies/felix-clips",
   felix_position = felix,
+  crop = crop,
   secondary_highlight_time = "10.5",
   secondary_felix_position = offensive_zone
 )
 ```
 
-`choose_felix_position()` opens the first clip frame in the R plot pane. Click
+`choose_felix_crop()` opens the first clip frame in the R plot pane. Click two
+opposite corners around the useful game area. The function adjusts the selected
+area to a 16:9 frame so the video remains compatible with the existing cards
+and watch pages. Omit `crop` from the later calls when the full frame is useful.
+
+`choose_felix_position()` opens the cropped first clip frame in the R plot pane. Click
 the center of Felix once. The generated poster and both videos use that position
 for a mustard circle. The opening frame pauses for 1.75 seconds with the marker
 visible, then the marker disappears and the play begins normally.
@@ -129,7 +142,7 @@ after a partial upload failure.
 Before pasting the generated object into `felix-holtgrieve/clips.js`, add:
 
 - `description`: a plain-language account of the visible play that identifies
-  Felix, the opponent, and the game date;
+  Felix and the opponent; keep the game date in the separate date metadata;
 - `uploadDate`: the first publication time for the current versioned clip URL
   in ISO 8601 format, including its timezone;
 - `durationSeconds`: the published full clip's duration from `ffprobe`.
@@ -149,6 +162,7 @@ in both the `profile.js` script URL in `index.html` and the `clips.js` import in
 `profile.js`. Production JavaScript can otherwise remain cached for four hours.
 
 ```sh
+Rscript tests/felixClipProcessing.test.R
 node --test tests/felixProfileVisibility.test.mjs
 ```
 
