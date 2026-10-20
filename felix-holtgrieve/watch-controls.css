@@ -1,0 +1,89 @@
+.custom-video-shell { background: #111; }
+.custom-video-shell video[data-custom-controls] { cursor: pointer; }
+.video-control-bar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 1px;
+  padding: 1px;
+  border-top: 1px solid var(--mustard);
+  background: var(--mustard);
+}
+.video-timeline {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.video-seek {
+  min-width: 0;
+  flex: 1 1 auto;
+  accent-color: #D6BC58;
+  cursor: pointer;
+}
+.video-seek:focus-visible {
+  outline: 2px solid #D6BC58;
+  outline-offset: 3px;
+}
+.video-time {
+  flex: 0 0 auto;
+  font: 700 11px/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.video-control-button {
+  min-height: 42px;
+  flex: 1 1 130px;
+  padding: 10px 14px;
+  border: 0;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  font: 700 11px/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.video-control-button:hover { background: var(--ink2); }
+.video-control-button:focus-visible {
+  outline: 2px solid #D6BC58;
+  outline-offset: -4px;
+}
+.clip-dialog[open] {
+  display: flex;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  flex-direction: column;
+}
+.clip-dialog > .custom-video-shell {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+.clip-dialog > .custom-video-shell video[data-custom-controls] {
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 auto;
+  object-fit: contain;
+}
+.custom-video-shell:fullscreen {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  flex-direction: column;
+  background: #000;
+}
+.custom-video-shell:fullscreen video[data-custom-controls] {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+}

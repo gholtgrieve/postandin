@@ -152,7 +152,12 @@ Add a server-delivered fallback card to `felix-holtgrieve/index.html`, update
 the season clip count, and create a dedicated page at
 `felix-holtgrieve/video/<clip-id>/index.html`. The fallback card must link to
 that watch page. The watch page must embed the full clip as its primary content
-and include matching `VideoObject` metadata. Use the full clip for `contentUrl`,
+and include matching `VideoObject` metadata. Include the `data-custom-controls`
+and `controls` attributes on its video, load `watch-controls.css`, and load
+`watch-controls.js` as a module so custom controls replace the native overlay
+while native controls remain available if JavaScript fails. Increment the
+control assets' `?v=` value on the profile and every watch page whenever either
+control file changes. Use the full clip for `contentUrl`,
 the marked poster for `thumbnailUrl`, and the same title, description,
 publication time, and duration shown to users. Add the watch page URL to
 `sitemap.xml`, then preview the profile and watch page locally and run:

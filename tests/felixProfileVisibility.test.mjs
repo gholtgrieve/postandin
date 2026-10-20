@@ -7,6 +7,8 @@ import { categoryLabels, clips } from '../felix-holtgrieve/clips.js';
 const read = (path) => fs.readFileSync(path, 'utf8');
 const page = read('felix-holtgrieve/index.html');
 const profileScript = read('felix-holtgrieve/profile.js');
+const watchControlsScript = read('felix-holtgrieve/watch-controls.js');
+const watchControlsCss = read('felix-holtgrieve/watch-controls.css');
 const clipManifest = read('felix-holtgrieve/clips.js');
 const sitemap = read('sitemap.xml');
 const robots = read('robots.txt');
@@ -129,8 +131,9 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=9"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=9'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=10"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=10'/);
+  assert.match(profileScript, /import '\.\/watch-controls\.js\?v=1'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
   }
@@ -148,6 +151,27 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.doesNotMatch(profileScript, /setTimeout\(\(\) => stopPreview/);
   assert.match(profileScript, /prefers-reduced-motion: reduce/);
   assert.match(profileScript, /clipDialog\.showModal\(\)/);
+  assert.match(watchControlsScript, /video\.controls = false/);
+  assert.match(watchControlsScript, /controlButton\('Play'/);
+  assert.match(watchControlsScript, /controlButton\('Mute'/);
+  assert.match(watchControlsScript, /controlButton\('Replay'/);
+  assert.match(watchControlsScript, /controlButton\('Captions'/);
+  assert.match(watchControlsScript, /controlButton\('Fullscreen'/);
+  assert.match(watchControlsScript, /seek\.type = 'range'/);
+  assert.match(watchControlsScript, /seek\.step = 'any'/);
+  assert.match(watchControlsScript, /seek\.setAttribute\('aria-valuetext'/);
+  assert.match(watchControlsScript, /video\.currentTime = Number\(seek\.value\)/);
+  assert.match(watchControlsScript, /ArrowRight: currentTime \+ 1/);
+  assert.match(watchControlsScript, /PageUp: currentTime \+ 5/);
+  assert.match(watchControlsScript, /End: duration/);
+  assert.match(watchControlsScript, /controls\.setAttribute\('role', 'group'\)/);
+  assert.doesNotMatch(watchControlsScript, /video\.setAttribute\('role', 'button'\)/);
+  assert.doesNotMatch(watchControlsScript, /video\.tabIndex/);
+  assert.match(watchControlsCss, /\.video-control-bar/);
+  assert.match(watchControlsCss, /\.clip-dialog\[open\]/);
+  assert.match(watchControlsCss, /max-height: calc\(100dvh - 32px\)/);
+  assert.match(watchControlsCss, /\.custom-video-shell:fullscreen/);
+  assert.match(page, /id="dialogVideo" data-custom-controls controls playsinline/);
   assert.match(profileScript, /clipGrid\.replaceChildren/);
   assert.match(profileScript, /event\.button !== 0 \|\| event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey \|\| event\.altKey/);
   assert.match(profileScript, /clip\.categories\.includes\(activeCategory\)/);
@@ -192,6 +216,9 @@ test('every clip has search-readable profile HTML and a dedicated watch page', (
     assert.match(watchPage, new RegExp(`<meta property="og:image" content="${escapeRegExp(clip.posterSrc)}">`));
     assert.match(watchPage, new RegExp(`<meta property="og:video" content="${escapeRegExp(clip.fullSrc)}">`));
     assert.match(watchPage, new RegExp(`<video[^>]+poster="${escapeRegExp(clip.posterSrc)}"[^>]+src="${escapeRegExp(clip.fullSrc)}"`));
+    assert.match(watchPage, /<video data-custom-controls controls playsinline/);
+    assert.match(watchPage, /href="\/felix-holtgrieve\/watch-controls\.css\?v=1"/);
+    assert.match(watchPage, /src="\/felix-holtgrieve\/watch-controls\.js\?v=1"/);
     assert.match(watchPage, /\.logo:focus-visible, footer a:focus-visible \{ outline-color: #D6BC58; \}/);
     assert.equal(videoMetadata['@type'], 'VideoObject');
     assert.equal(videoMetadata.name, `Felix Holtgrieve — ${clip.title}`);
