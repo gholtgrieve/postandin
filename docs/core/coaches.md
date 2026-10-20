@@ -14,6 +14,11 @@ Seattle-area hockey coaches.
   directory and marked `noindex`.
 - The directory offers the Airtable intake form as an optional submission path.
 
+The Ian Doner and Max Doner profile templates include a hard-coded contextual
+link to the [Felix Holtgrieve hosted aside](../asides/felix-profile/README.md)
+because Felix has trained with both coaches. Keep that exception out of the
+directory, homepage, global navigation, and shared footer.
+
 The publication workflow is **Submitted → Draft → Live**. Intake submissions
 are configured in Airtable to start as Submitted and have no profile page. The
 owner moves a reviewed record to Draft for direct, `noindex` preview and then to

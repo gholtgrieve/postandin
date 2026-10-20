@@ -105,6 +105,31 @@ test('SSR: Draft coach slug returns the profile with the draft banner', async ()
   });
 });
 
+test('SSR: Ian and Max Doner profiles link contextually to Felix', async () => {
+  for (const [slug, name] of [['ian-doner', 'Ian Doner'], ['max-doner', 'Max Doner']]) {
+    const { fetchImpl } = mockAirtable([{ fields: fields({ name, slug, bio: `${name} bio.`, status: 'Live' }) }]);
+    await withMockedFetch(fetchImpl, async () => {
+      const res = await ssrOnRequest(makeContext(slug));
+      const body = await res.text();
+      assert.equal(res.status, 200);
+      assert.match(body, /<span class="student-connection-label">Student profile<\/span>/);
+      assert.match(body, /<a href="\/felix-holtgrieve\/">Felix Holtgrieve<\/a>/);
+      assert.match(body, new RegExp(`has trained with ${name}\\.`));
+    });
+  }
+});
+
+test('SSR: unrelated coach profiles do not link to Felix', async () => {
+  const { fetchImpl } = mockAirtable([{ fields: fields({ bio: 'Jane Doe bio.', status: 'Live' }) }]);
+  await withMockedFetch(fetchImpl, async () => {
+    const res = await ssrOnRequest(makeContext('jane-doe'));
+    const body = await res.text();
+    assert.equal(res.status, 200);
+    assert.doesNotMatch(body, /felix-holtgrieve/);
+    assert.doesNotMatch(body, /Student profile/);
+  });
+});
+
 test('SSR: non-Live/Draft status (excluded by Airtable formula) returns 404', async () => {
   // Airtable's OR({status}="Live",{status}="Draft") filter means an Archived/
   // rejected record simply never comes back in `records` — emulate that.

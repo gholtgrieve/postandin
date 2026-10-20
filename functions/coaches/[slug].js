@@ -85,6 +85,18 @@ function renderHtml(coach) {
   const metaDescription = coach.teaser ||
     `Learn about ${coach.name}, a Seattle-area youth hockey coach.`;
   const robots = coach.status === 'Live' ? 'index, follow' : 'noindex, nofollow';
+  const studentConnectionHtml = ['ian-doner', 'max-doner'].includes(coach.slug) ? `
+    <p class="student-connection">
+      <span class="student-connection-label">Student profile</span>
+      <a href="/felix-holtgrieve/">Felix Holtgrieve</a> has trained with ${esc(coach.name)}.
+    </p>` : '';
+
+  const aboutHtml = coach.bio || studentConnectionHtml ? `
+    <section class="profile-section">
+      <h2 class="section-heading">About</h2>
+      ${coach.bio ? `<div class="bio-text">${fmtBio(coach.bio)}</div>` : ''}
+      ${studentConnectionHtml}
+    </section>` : '';
 
   const avatarLg = coach.headshot_url
     ? `<img src="${esc(safeUrl(coach.headshot_url))}" alt="${esc(coach.name)}" class="profile-photo-img">`
@@ -272,6 +284,23 @@ body { font-family: 'IBM Plex Mono', monospace; background: var(--paper); color:
   margin-bottom: 14px;
 }
 .bio-text p:last-child { margin-bottom: 0; }
+.student-connection {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.student-connection-label {
+  margin-right: 8px;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.student-connection a { color: var(--mustard); font-weight: 700; }
+.student-connection a:hover { color: var(--mustard2); }
 
 /* ── Teams ── */
 .teams-list { display: flex; flex-direction: column; }
@@ -420,11 +449,7 @@ ${coach.status !== 'Live' ? '<div class="draft-banner">DRAFT — NOT YET PUBLISH
 
 <div class="profile-body">
   <main class="profile-main">
-    ${coach.bio ? `
-    <section class="profile-section">
-      <h2 class="section-heading">About</h2>
-      <div class="bio-text">${fmtBio(coach.bio)}</div>
-    </section>` : ''}
+    ${aboutHtml}
     ${teamsHtml}
     ${linksHtml}
     ${photosHtml}

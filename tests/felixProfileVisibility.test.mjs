@@ -74,7 +74,6 @@ test('Felix profile is absent from established public navigation surfaces', () =
     'drop-in-hockey/index.html',
     'public-skate/index.html',
     'coaches/index.html',
-    'functions/coaches/[slug].js',
     'gear/index.html',
   ];
 

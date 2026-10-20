@@ -10,6 +10,11 @@ Each clip can have an indexable watch page under
 `/felix-holtgrieve/video/<clip-id>/`. `felix-holtgrieve/clips.js` is the reviewed
 manifest, and the profile modules render filters, previews, and on-demand clips.
 
+The Live Ian Doner and Max Doner coach profiles include a small,
+server-rendered link to Felix's profile because he has trained with both
+coaches. These contextual links are not part of the Coaches directory,
+homepage, global navigation, or shared footer.
+
 ## Media workflow
 
 The source game and generated media stay outside the public repository. The
