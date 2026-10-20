@@ -1,4 +1,4 @@
-import { categoryLabels, clips } from './clips.js?v=11';
+import { categoryLabels, clips } from './clips.js?v=12';
 import './watch-controls.js?v=1';
 
 const clipGrid = document.querySelector('#clipGrid');
@@ -59,7 +59,7 @@ function stopPreview(video) {
 function openFullClip(clip) {
   dialogTitle.textContent = clip.title;
   dialogMeta.textContent = `${displayCategories(clip)} · ${clip.opponent} · ${displayDate(clip.date)}`;
-  dialogVideo.poster = clip.posterSrc || '';
+  dialogVideo.poster = clip.watchPosterSrc || clip.posterSrc || '';
   dialogVideo.src = clip.fullSrc;
 
   if (clip.captionsSrc) {

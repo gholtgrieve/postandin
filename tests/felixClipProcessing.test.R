@@ -58,6 +58,21 @@ stopifnot(grepl(
   fixed = TRUE
 ))
 
+stacked_poster_filter <- felix_stacked_poster_filter(
+  1280,
+  720,
+  30,
+  primary_crop = four_by_three,
+  secondary_crop = full_frame
+)
+stopifnot(grepl("[primary-base][marker]overlay", stacked_poster_filter, fixed = TRUE))
+stopifnot(!grepl("[secondary-base][marker]", stacked_poster_filter, fixed = TRUE))
+stopifnot(grepl(
+  "[primary-marked][secondary-base]vstack=inputs=2",
+  stacked_poster_filter,
+  fixed = TRUE
+))
+
 felix_validate_source_range(10, 5, 15, "secondary")
 expect_error(
   felix_validate_source_range(10, 5.2, 15, "secondary"),
@@ -103,6 +118,26 @@ expect_error(
   do.call(process_felix_stacked_clip, invalid_highlight),
   "highlight_seconds must be greater than 0 and no more than 3"
 )
+
+stale_watch_output <- tempfile("felix-stale-watch-")
+dir.create(stale_watch_output)
+stale_watch_poster <- file.path(stale_watch_output, "test-single-clip-watch.jpg")
+invisible(file.create(stale_watch_poster))
+expect_error(
+  felix_prepare_single_angle_outputs(
+    stale_watch_poster,
+    stale_watch_poster,
+    overwrite = FALSE
+  ),
+  "An output file already exists"
+)
+felix_prepare_single_angle_outputs(
+  stale_watch_poster,
+  stale_watch_poster,
+  overwrite = TRUE
+)
+stopifnot(!file.exists(stale_watch_poster))
+unlink(stale_watch_output, recursive = TRUE)
 
 inside_repository <- stacked_arguments
 inside_repository$primary_input <- "scripts/process-felix-clip.R"

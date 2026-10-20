@@ -130,8 +130,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=11"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=11'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=12"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=12'/);
   assert.match(profileScript, /import '\.\/watch-controls\.js\?v=1'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
@@ -150,6 +150,7 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.doesNotMatch(profileScript, /setTimeout\(\(\) => stopPreview/);
   assert.match(profileScript, /prefers-reduced-motion: reduce/);
   assert.match(profileScript, /clipDialog\.showModal\(\)/);
+  assert.match(profileScript, /clip\.watchPosterSrc \|\| clip\.posterSrc/);
   assert.match(watchControlsScript, /video\.controls = false/);
   assert.match(watchControlsScript, /controlButton\('Play'/);
   assert.match(watchControlsScript, /controlButton\('Mute'/);
@@ -214,7 +215,8 @@ test('every clip has search-readable profile HTML and a dedicated watch page', (
     assert.match(watchPage, new RegExp(escapeRegExp(displayDate(clip.date))));
     assert.match(watchPage, new RegExp(`<meta property="og:image" content="${escapeRegExp(clip.posterSrc)}">`));
     assert.match(watchPage, new RegExp(`<meta property="og:video" content="${escapeRegExp(clip.fullSrc)}">`));
-    assert.match(watchPage, new RegExp(`<video[^>]+poster="${escapeRegExp(clip.posterSrc)}"[^>]+src="${escapeRegExp(clip.fullSrc)}"`));
+    const watchPosterSrc = clip.watchPosterSrc || clip.posterSrc;
+    assert.match(watchPage, new RegExp(`<video[^>]+poster="${escapeRegExp(watchPosterSrc)}"[^>]+src="${escapeRegExp(clip.fullSrc)}"`));
     assert.match(watchPage, /<video data-custom-controls controls playsinline/);
     assert.match(watchPage, /href="\/felix-holtgrieve\/watch-controls\.css\?v=1"/);
     assert.match(watchPage, /src="\/felix-holtgrieve\/watch-controls\.js\?v=1"/);
@@ -258,11 +260,14 @@ test('clip manifest entries are valid and media remains externally hosted', () =
     assert.ok(Number.isFinite(clip.durationSeconds) && clip.durationSeconds > 0, `invalid duration for ${clip.id}`);
     assert.match(clip.pageSrc, /^\/felix-holtgrieve\/video\/[a-z0-9-]+\/$/, `invalid watch page for ${clip.id}`);
     assert.match(clip.posterSrc, /^https:\/\/media\.postandin\.com\//, `poster must use the Post & In media domain for ${clip.id}`);
+    if (clip.watchPosterSrc) {
+      assert.match(clip.watchPosterSrc, /^https:\/\/media\.postandin\.com\//, `watch poster must use the Post & In media domain for ${clip.id}`);
+    }
     assert.match(clip.previewSrc, /^https:\/\//, `preview must use external HTTPS hosting for ${clip.id}`);
     assert.match(clip.fullSrc, /^https:\/\//, `full clip must use external HTTPS hosting for ${clip.id}`);
     assert.match(clip.previewSrc, /^https:\/\/media\.postandin\.com\//, `preview must use the Post & In media domain for ${clip.id}`);
     assert.match(clip.fullSrc, /^https:\/\/media\.postandin\.com\//, `full clip must use the Post & In media domain for ${clip.id}`);
-    for (const source of [clip.posterSrc, clip.previewSrc, clip.fullSrc]) {
+    for (const source of [clip.posterSrc, clip.watchPosterSrc, clip.previewSrc, clip.fullSrc].filter(Boolean)) {
       assert.match(
         source,
         new RegExp(`^https://media\\.postandin\\.com/felix/\\d{4}-\\d{2}/${clip.id}/v[1-9]\\d*/`),

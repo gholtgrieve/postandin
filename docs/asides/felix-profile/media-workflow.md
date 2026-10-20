@@ -132,21 +132,25 @@ process_felix_stacked_clip(
 )
 ```
 
-The primary angle supplies the poster, muted hover preview, and full clip audio.
-The full clip places that angle on top of the synchronized secondary angle. Both
-full-clip panels freeze together during the opening identification pause, but
-the mustard circle marks Felix only in the primary panel. Both angles then play
-simultaneously for the same duration. The processor checks that both source
-files cover the requested range before encoding. Confirm synchronization with a
-shared visual or audio event before publishing.
+The primary angle supplies the card poster, muted hover preview, and full clip
+audio. A separate stacked poster shows both angles before the full clip starts.
+The full clip places the primary angle on top of the synchronized secondary
+angle. Both full-clip panels freeze together during the opening identification
+pause, but the mustard circle marks Felix only in the primary panel. Both angles
+then play simultaneously for the same duration. The processor checks that both
+source files cover the requested range before encoding. Confirm synchronization
+with a shared visual or audio event before publishing.
 
-The output directory receives four files:
+The output directory receives four files for a single-angle clip; synchronized
+clips add a fifth:
 
 - `<id>-preview.mp4`: silent 360p version of the complete play, looped by the
   page while the card is hovered or keyboard-focused;
 - `<id>.mp4`: marked pause followed by the full timestamp range, at up to 720p
   for one angle or 1280×1440 for synchronized top-and-bottom angles;
-- `<id>.jpg`: marked opening frame shown before playback; and
+- `<id>.jpg`: marked opening frame shown on the profile card;
+- `<id>-watch.jpg`: synchronized two-angle opening frame for full playback,
+  created only by the two-angle processor; and
 - `<id>-clip-entry.js`: starting metadata for `felix-holtgrieve/clips.js`.
 
 FFmpeg seeks to the clip start before decoding, so it does not reprocess the
@@ -163,8 +167,9 @@ is intentional because its free allowance applies to storage and requests, and
 R2 does not charge internet egress. Actual use and billing still need to be
 checked in the Cloudflare dashboard.
 
-After processing one clip, publish its three media files from R. Supply an
-explicit version every time:
+After processing one clip, publish its media files from R. A single-angle clip
+has three media files; a synchronized clip adds the separate full-player poster.
+Supply an explicit version every time:
 
 ```r
 publish_felix_clip(
@@ -216,6 +221,10 @@ control file changes. Use the full clip for `contentUrl`,
 the marked poster for `thumbnailUrl`, and the same title, description,
 publication time, and duration shown to users. Add the watch page URL to
 `sitemap.xml`, then preview the profile and watch page locally and run:
+
+Use `watchPosterSrc` for the watch page's `<video poster>` when it is present,
+falling back to `posterSrc` for single-angle clips. Keep `posterSrc` as the
+card image and as the `og:image` and `thumbnailUrl` value.
 
 Whenever `clips.js` or `profile.js` changes, increment the shared `?v=` value
 in both the `profile.js` script URL in `index.html` and the `clips.js` import in

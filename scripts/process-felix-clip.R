@@ -88,6 +88,15 @@ felix_is_inside <- function(path, directory) {
   identical(path, directory) || startsWith(path, paste0(directory, "/"))
 }
 
+felix_prepare_single_angle_outputs <- function(outputs, watch_poster_path, overwrite) {
+  if (!overwrite && any(file.exists(outputs))) {
+    stop("An output file already exists. Choose a new ID or set overwrite = TRUE.", call. = FALSE)
+  }
+  if (overwrite && file.exists(watch_poster_path)) {
+    unlink(watch_poster_path)
+  }
+}
+
 felix_run_ffmpeg <- function(ffmpeg, arguments) {
   quoted <- vapply(arguments, shQuote, character(1L))
   status <- system2(ffmpeg, quoted, stdout = "", stderr = "")
@@ -594,6 +603,27 @@ felix_stacked_video_filter <- function(
   )
 }
 
+felix_stacked_poster_filter <- function(
+  width,
+  panel_height,
+  fps,
+  primary_crop = NULL,
+  secondary_crop = NULL
+) {
+  felix_validate_crop(primary_crop)
+  felix_validate_crop(secondary_crop)
+  primary_scale <- felix_panel_scale_filter(width, panel_height, fps, primary_crop)
+  secondary_scale <- felix_panel_scale_filter(width, panel_height, fps, secondary_crop)
+
+  paste0(
+    "[0:v:0]", primary_scale, "[primary-base];",
+    "[1:v:0]", secondary_scale, "[secondary-base];",
+    sprintf("[2:v:0]scale=%d:%d,format=rgba[marker];", width, panel_height),
+    "[primary-base][marker]overlay=0:0[primary-marked];",
+    "[primary-marked][secondary-base]vstack=inputs=2,format=yuv420p[v]"
+  )
+}
+
 process_felix_clip <- function(
   input,
   start,
@@ -694,11 +724,10 @@ process_felix_clip <- function(
   preview_path <- file.path(output_dir, paste0(id, "-preview.mp4"))
   full_path <- file.path(output_dir, paste0(id, ".mp4"))
   poster_path <- file.path(output_dir, paste0(id, ".jpg"))
+  watch_poster_path <- file.path(output_dir, paste0(id, "-watch.jpg"))
   entry_path <- file.path(output_dir, paste0(id, "-clip-entry.js"))
-  outputs <- c(preview_path, full_path, poster_path, entry_path)
-  if (!overwrite && any(file.exists(outputs))) {
-    stop("An output file already exists. Choose a new ID or set overwrite = TRUE.", call. = FALSE)
-  }
+  outputs <- c(preview_path, full_path, poster_path, watch_poster_path, entry_path)
+  felix_prepare_single_angle_outputs(outputs, watch_poster_path, overwrite)
 
   common <- c("-hide_banner", "-loglevel", "warning", if (overwrite) "-y" else "-n")
   seek <- sprintf("%.3f", start_seconds)
@@ -948,8 +977,9 @@ process_felix_stacked_clip <- function(
   preview_path <- file.path(output_dir, paste0(id, "-preview.mp4"))
   full_path <- file.path(output_dir, paste0(id, ".mp4"))
   poster_path <- file.path(output_dir, paste0(id, ".jpg"))
+  watch_poster_path <- file.path(output_dir, paste0(id, "-watch.jpg"))
   entry_path <- file.path(output_dir, paste0(id, "-clip-entry.js"))
-  outputs <- c(preview_path, full_path, poster_path, entry_path)
+  outputs <- c(preview_path, full_path, poster_path, watch_poster_path, entry_path)
   if (!overwrite && any(file.exists(outputs))) {
     stop("An output file already exists. Choose a new output directory or set overwrite = TRUE.", call. = FALSE)
   }
@@ -1044,6 +1074,26 @@ process_felix_stacked_clip <- function(
     poster_path
   ))
 
+  message("Creating stacked watch-page poster image...")
+  felix_run_ffmpeg(ffmpeg, c(
+    common,
+    "-ss", primary_seek, "-i", primary_input,
+    "-ss", secondary_seek, "-i", secondary_input,
+    "-i", marker_path,
+    "-filter_complex", felix_stacked_poster_filter(
+      1280,
+      720,
+      30,
+      primary_crop,
+      secondary_crop
+    ),
+    "-map", "[v]",
+    "-frames:v", "1",
+    "-update", "1",
+    "-q:v", "3",
+    watch_poster_path
+  ))
+
   base_url <- "REPLACE_WITH_HTTPS_MEDIA_URL"
   entry <- c(
     "{",
@@ -1053,6 +1103,7 @@ process_felix_stacked_clip <- function(
     sprintf("  opponent: %s,", felix_js_string(opponent)),
     sprintf("  date: %s,", felix_js_string(date)),
     sprintf("  posterSrc: %s,", felix_js_string(paste0(base_url, "/", basename(poster_path)))),
+    sprintf("  watchPosterSrc: %s,", felix_js_string(paste0(base_url, "/", basename(watch_poster_path)))),
     sprintf("  previewSrc: %s,", felix_js_string(paste0(base_url, "/", basename(preview_path)))),
     sprintf("  fullSrc: %s,", felix_js_string(paste0(base_url, "/", basename(full_path)))),
     "  captionsSrc: \"\",",
@@ -1060,10 +1111,10 @@ process_felix_stacked_clip <- function(
   )
   writeLines(entry, entry_path, useBytes = TRUE)
 
-  sizes_mb <- file.info(c(preview_path, full_path, poster_path))$size / 1024^2
+  sizes_mb <- file.info(c(preview_path, full_path, poster_path, watch_poster_path))$size / 1024^2
   result <- data.frame(
-    type = c("preview", "full", "poster"),
-    path = c(preview_path, full_path, poster_path),
+    type = c("preview", "full", "poster", "watch_poster"),
+    path = c(preview_path, full_path, poster_path, watch_poster_path),
     size_mb = round(sizes_mb, 2),
     row.names = NULL
   )
@@ -1130,6 +1181,10 @@ publish_felix_clip <- function(
     preview = file.path(output_dir, paste0(id, "-preview.mp4")),
     full = file.path(output_dir, paste0(id, ".mp4"))
   )
+  watch_poster <- file.path(output_dir, paste0(id, "-watch.jpg"))
+  if (file.exists(watch_poster)) {
+    files <- append(files, c(watch_poster = watch_poster), after = 1L)
+  }
   missing <- files[!file.exists(files)]
   if (length(missing)) {
     stop(sprintf("Missing generated media: %s", paste(basename(missing), collapse = ", ")), call. = FALSE)
@@ -1147,6 +1202,13 @@ publish_felix_clip <- function(
     previewSrc = paste0(public_base_url, "/", basename(files[["preview"]])),
     fullSrc = paste0(public_base_url, "/", basename(files[["full"]]))
   )
+  if ("watch_poster" %in% names(files)) {
+    media_lines <- append(
+      media_lines,
+      c(watchPosterSrc = paste0(public_base_url, "/", basename(files[["watch_poster"]]))),
+      after = 1L
+    )
+  }
   media_line_indexes <- vapply(names(media_lines), function(field) {
     matches <- grep(sprintf("^\\s*%s:\\s*.*,$", field), entry)
     if (length(matches) != 1L) {
@@ -1163,7 +1225,10 @@ publish_felix_clip <- function(
     )
   }
 
-  content_types <- c(poster = "image/jpeg", preview = "video/mp4", full = "video/mp4")
+  content_types <- setNames(
+    ifelse(grepl("\\.jpg$", files), "image/jpeg", "video/mp4"),
+    names(files)
+  )
   for (type in names(files)) {
     key <- paste(key_prefix, basename(files[[type]]), sep = "/")
     message(sprintf("Uploading %s...", basename(files[[type]])))
