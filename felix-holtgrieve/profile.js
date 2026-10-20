@@ -1,4 +1,4 @@
-import { categoryLabels, clips } from './clips.js?v=10';
+import { categoryLabels, clips } from './clips.js?v=11';
 import './watch-controls.js?v=1';
 
 const clipGrid = document.querySelector('#clipGrid');

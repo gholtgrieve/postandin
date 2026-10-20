@@ -123,6 +123,40 @@ felix_find_ffmpeg <- function() {
   ffmpeg
 }
 
+felix_probe_duration <- function(ffprobe, input) {
+  if (!nzchar(ffprobe)) {
+    stop("FFprobe is required to validate synchronized source durations.", call. = FALSE)
+  }
+
+  arguments <- vapply(c(
+    "-v", "error", "-show_entries", "format=duration",
+    "-of", "default=noprint_wrappers=1:nokey=1", input
+  ), shQuote, character(1L))
+  output <- suppressWarnings(system2(ffprobe, arguments, stdout = TRUE, stderr = TRUE))
+  status <- attr(output, "status")
+  durations <- suppressWarnings(as.numeric(output))
+  durations <- durations[is.finite(durations)]
+  if (!is.null(status) || !length(durations) || durations[[1L]] <= 0) {
+    stop("FFprobe could not read a source video duration.", call. = FALSE)
+  }
+  durations[[1L]]
+}
+
+felix_validate_source_range <- function(start, duration, source_duration, label) {
+  values <- c(start, duration, source_duration)
+  if (!is.numeric(values) || any(!is.finite(values)) || start < 0 ||
+      duration <= 0 || source_duration <= 0) {
+    stop("Source range values must be finite and positive.", call. = FALSE)
+  }
+  if (start + duration > source_duration + 0.1) {
+    stop(
+      sprintf("The %s source ends before the requested clip range is complete.", label),
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 felix_read_ppm <- function(path) {
   bytes <- readBin(path, what = "raw", n = file.info(path)$size)
   position <- 1L
@@ -493,6 +527,73 @@ felix_audio_filter <- function(
   )
 }
 
+felix_panel_scale_filter <- function(width, height, fps, crop = NULL) {
+  if (is.null(crop)) {
+    return(paste0(
+      sprintf("scale=%d:%d:force_original_aspect_ratio=decrease:flags=lanczos,", width, height),
+      sprintf("pad=%d:%d:(ow-iw)/2:(oh-ih)/2,", width, height),
+      sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
+    ))
+  }
+
+  paste0(
+    felix_crop_filter(crop),
+    sprintf("scale=%d:%d:flags=lanczos,setsar=1,", width, height),
+    sprintf("fps=%d,format=yuv420p,setpts=PTS-STARTPTS", fps)
+  )
+}
+
+felix_stacked_video_filter <- function(
+  width,
+  panel_height,
+  fps,
+  highlight_seconds,
+  primary_crop = NULL,
+  secondary_crop = NULL
+) {
+  felix_validate_crop(primary_crop)
+  felix_validate_crop(secondary_crop)
+  opening_frames <- max(1, floor((highlight_seconds * fps) + 0.5))
+  opening_duration <- opening_frames / fps
+  primary_scale <- felix_panel_scale_filter(width, panel_height, fps, primary_crop)
+  secondary_scale <- felix_panel_scale_filter(width, panel_height, fps, secondary_crop)
+
+  paste0(
+    "[0:v:0]", primary_scale, ",split=2[primary-opening-source][primary-play-source];",
+    "[primary-opening-source]trim=start_frame=0:end_frame=1,setpts=PTS-STARTPTS,",
+    sprintf(
+      "loop=loop=%d:size=1:start=0,setpts=N/(%d*TB)[primary-opening];",
+      opening_frames - 1,
+      fps
+    ),
+    "[primary-play-source]setpts=PTS-STARTPTS[primary-play];",
+    sprintf(
+      "[primary-opening][primary-play]concat=n=2:v=1:a=0,fps=%d,settb=1/%d[primary-joined];",
+      fps,
+      fps
+    ),
+    "[1:v:0]", secondary_scale, ",split=2[secondary-opening-source][secondary-play-source];",
+    "[secondary-opening-source]trim=start_frame=0:end_frame=1,setpts=PTS-STARTPTS,",
+    sprintf(
+      "loop=loop=%d:size=1:start=0,setpts=N/(%d*TB)[secondary-opening];",
+      opening_frames - 1,
+      fps
+    ),
+    "[secondary-play-source]setpts=PTS-STARTPTS[secondary-play];",
+    sprintf(
+      "[secondary-opening][secondary-play]concat=n=2:v=1:a=0,fps=%d,settb=1/%d[secondary-joined];",
+      fps,
+      fps
+    ),
+    sprintf("[2:v:0]scale=%d:%d,format=rgba[marker];", width, panel_height),
+    sprintf(
+      "[primary-joined][marker]overlay=0:0:enable='lt(t,%.6f)'[primary-marked];",
+      opening_duration
+    ),
+    "[primary-marked][secondary-joined]vstack=inputs=2,format=yuv420p[v]"
+  )
+}
+
 process_felix_clip <- function(
   input,
   start,
@@ -580,7 +681,6 @@ process_felix_clip <- function(
   if (duration > 60) {
     stop("Clip duration must be 60 seconds or less for an efficient hover preview.", call. = FALSE)
   }
-
   if (has_secondary_time) {
     secondary_highlight_time <- felix_timestamp_seconds(secondary_highlight_time)
     if (secondary_highlight_time <= 0 || secondary_highlight_time >= duration) {
@@ -732,6 +832,219 @@ process_felix_clip <- function(
 
   base_url <- "REPLACE_WITH_HTTPS_MEDIA_URL"
 
+  entry <- c(
+    "{",
+    sprintf("  id: %s,", felix_js_string(id)),
+    sprintf("  title: %s,", felix_js_string(title)),
+    sprintf("  categories: [%s],", paste(vapply(categories, felix_js_string, character(1L)), collapse = ", ")),
+    sprintf("  opponent: %s,", felix_js_string(opponent)),
+    sprintf("  date: %s,", felix_js_string(date)),
+    sprintf("  posterSrc: %s,", felix_js_string(paste0(base_url, "/", basename(poster_path)))),
+    sprintf("  previewSrc: %s,", felix_js_string(paste0(base_url, "/", basename(preview_path)))),
+    sprintf("  fullSrc: %s,", felix_js_string(paste0(base_url, "/", basename(full_path)))),
+    "  captionsSrc: \"\",",
+    "},"
+  )
+  writeLines(entry, entry_path, useBytes = TRUE)
+
+  sizes_mb <- file.info(c(preview_path, full_path, poster_path))$size / 1024^2
+  result <- data.frame(
+    type = c("preview", "full", "poster"),
+    path = c(preview_path, full_path, poster_path),
+    size_mb = round(sizes_mb, 2),
+    row.names = NULL
+  )
+  message(sprintf("Done. Page entry: %s", entry_path))
+  result
+}
+
+process_felix_stacked_clip <- function(
+  primary_input,
+  secondary_input,
+  start,
+  end,
+  secondary_start,
+  id,
+  title,
+  categories,
+  opponent,
+  date,
+  output_dir,
+  felix_position,
+  primary_crop = NULL,
+  secondary_crop = NULL,
+  highlight_seconds = 2,
+  overwrite = FALSE
+) {
+  primary_input <- normalizePath(path.expand(primary_input), winslash = "/", mustWork = TRUE)
+  secondary_input <- normalizePath(path.expand(secondary_input), winslash = "/", mustWork = TRUE)
+  output_dir <- path.expand(output_dir)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  output_dir <- normalizePath(output_dir, winslash = "/", mustWork = TRUE)
+  media_paths <- c(primary_input, secondary_input, output_dir)
+  media_roots <- lapply(media_paths, felix_git_root_for_path)
+  paths_inside_repositories <- vapply(seq_along(media_paths), function(index) {
+    root <- media_roots[[index]]
+    !is.null(root) && felix_is_inside(media_paths[[index]], root)
+  }, logical(1L))
+  if (any(paths_inside_repositories)) {
+    stop("Keep source and generated video files outside the public repository.", call. = FALSE)
+  }
+
+  valid_categories <- c("defensive", "offensive", "puck-movement", "special-teams")
+  if (!is.character(categories) || !length(categories) || any(!categories %in% valid_categories)) {
+    stop(sprintf("Categories must use one or more of: %s.", paste(valid_categories, collapse = ", ")), call. = FALSE)
+  }
+  if (anyDuplicated(categories)) {
+    stop("Categories must not contain duplicates.", call. = FALSE)
+  }
+  if (!grepl("^[a-z0-9]+(?:-[a-z0-9]+)*$", id)) {
+    stop("ID must use lowercase letters, numbers, and single hyphens.", call. = FALSE)
+  }
+  if (!grepl("^20[0-9]{2}-[0-9]{2}-[0-9]{2}$", date)) {
+    stop("Date must use YYYY-MM-DD.", call. = FALSE)
+  }
+  valid_label <- function(value) {
+    is.character(value) && length(value) == 1L && !is.na(value) && nzchar(trimws(value))
+  }
+  if (!valid_label(title) || !valid_label(opponent)) {
+    stop("Title and opponent are required.", call. = FALSE)
+  }
+  felix_validate_crop(primary_crop)
+  felix_validate_crop(secondary_crop)
+  if (!is.numeric(highlight_seconds) || length(highlight_seconds) != 1L ||
+      !is.finite(highlight_seconds) || highlight_seconds <= 0 || highlight_seconds > 3) {
+    stop("highlight_seconds must be greater than 0 and no more than 3.", call. = FALSE)
+  }
+
+  start_seconds <- felix_timestamp_seconds(start)
+  end_seconds <- felix_timestamp_seconds(end)
+  secondary_start_seconds <- felix_timestamp_seconds(secondary_start)
+  if (end_seconds <= start_seconds) {
+    stop("End timestamp must be later than start timestamp.", call. = FALSE)
+  }
+  duration <- end_seconds - start_seconds
+  if (duration > 60) {
+    stop("Clip duration must be 60 seconds or less for an efficient hover preview.", call. = FALSE)
+  }
+  ffmpeg <- felix_find_ffmpeg()
+  ffprobe <- felix_find_command(
+    c("ffprobe", "ffprobe7"),
+    c("/opt/local/bin/ffprobe7", "/opt/local/bin/ffprobe", "/usr/local/bin/ffprobe")
+  )
+  felix_validate_source_range(
+    start_seconds,
+    duration,
+    felix_probe_duration(ffprobe, primary_input),
+    "primary"
+  )
+  felix_validate_source_range(
+    secondary_start_seconds,
+    duration,
+    felix_probe_duration(ffprobe, secondary_input),
+    "secondary"
+  )
+
+  preview_path <- file.path(output_dir, paste0(id, "-preview.mp4"))
+  full_path <- file.path(output_dir, paste0(id, ".mp4"))
+  poster_path <- file.path(output_dir, paste0(id, ".jpg"))
+  entry_path <- file.path(output_dir, paste0(id, "-clip-entry.js"))
+  outputs <- c(preview_path, full_path, poster_path, entry_path)
+  if (!overwrite && any(file.exists(outputs))) {
+    stop("An output file already exists. Choose a new output directory or set overwrite = TRUE.", call. = FALSE)
+  }
+
+  common <- c("-hide_banner", "-loglevel", "warning", if (overwrite) "-y" else "-n")
+  primary_seek <- sprintf("%.3f", start_seconds)
+  secondary_seek <- sprintf("%.3f", secondary_start_seconds)
+  marker_path <- tempfile("felix-stacked-marker-", fileext = ".svg")
+  on.exit(unlink(marker_path), add = TRUE)
+  felix_write_marker(marker_path, felix_position)
+  output_duration <- duration + highlight_seconds
+
+  preview_filter <- felix_video_filter(
+    640,
+    360,
+    24,
+    highlight_seconds,
+    crop = primary_crop
+  )
+  full_filter <- felix_stacked_video_filter(
+    1280,
+    720,
+    30,
+    highlight_seconds,
+    primary_crop,
+    secondary_crop
+  )
+
+  message("Creating primary-angle hover preview...")
+  felix_run_ffmpeg(ffmpeg, c(
+    common,
+    "-ss", primary_seek, "-t", sprintf("%.3f", duration), "-i", primary_input,
+    "-loop", "1", "-framerate", "24", "-i", marker_path,
+    "-filter_complex", preview_filter,
+    "-map", "[v]",
+    "-an",
+    "-t", sprintf("%.3f", output_duration),
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-crf", "27",
+    "-movflags", "+faststart",
+    preview_path
+  ))
+
+  has_audio <- FALSE
+  if (nzchar(ffprobe)) {
+    probe_args <- vapply(c(
+      "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=index",
+      "-of", "csv=p=0", primary_input
+    ), shQuote, character(1L))
+    audio_probe <- suppressWarnings(system2(ffprobe, probe_args, stdout = TRUE, stderr = FALSE))
+    has_audio <- length(audio_probe) > 0L && any(nzchar(audio_probe))
+  }
+
+  message("Creating stacked full web clip...")
+  if (has_audio) {
+    full_filter <- paste0(full_filter, ";", felix_audio_filter(highlight_seconds))
+  }
+  felix_run_ffmpeg(ffmpeg, c(
+    common,
+    "-ss", primary_seek, "-t", sprintf("%.3f", duration), "-i", primary_input,
+    "-ss", secondary_seek, "-t", sprintf("%.3f", duration), "-i", secondary_input,
+    "-loop", "1", "-framerate", "30", "-i", marker_path,
+    "-filter_complex", full_filter,
+    "-map", "[v]",
+    if (has_audio) c("-map", "[a]") else "-an",
+    "-t", sprintf("%.3f", output_duration),
+    "-c:v", "libx264",
+    "-preset", "medium",
+    "-crf", "23",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-movflags", "+faststart",
+    full_path
+  ))
+
+  message("Creating primary-angle poster image...")
+  primary_poster <- felix_panel_scale_filter(1280, 720, 30, primary_crop)
+  felix_run_ffmpeg(ffmpeg, c(
+    common,
+    "-ss", primary_seek, "-i", primary_input,
+    "-i", marker_path,
+    "-filter_complex", paste0(
+      "[0:v:0]", primary_poster, "[primary-base];",
+      "[1:v:0]scale=1280:720,format=rgba[marker];",
+      "[primary-base][marker]overlay=0:0[v]"
+    ),
+    "-map", "[v]",
+    "-frames:v", "1",
+    "-update", "1",
+    "-q:v", "3",
+    poster_path
+  ))
+
+  base_url <- "REPLACE_WITH_HTTPS_MEDIA_URL"
   entry <- c(
     "{",
     sprintf("  id: %s,", felix_js_string(id)),

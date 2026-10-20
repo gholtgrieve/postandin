@@ -88,16 +88,71 @@ Allowed categories are `defensive`, `offensive`, `puck-movement`, and
 `special-teams`. Use a character vector when the same clip belongs in more than
 one filter.
 
+### Process one synchronized two-angle clip
+
+When the same play was recorded from two cameras, use
+`process_felix_stacked_clip()` to create one top-and-bottom video with one audio
+track and one set of browser controls. This remains a single-clip workflow; it
+does not process a directory or batch of games. Select each crop independently,
+and measure `secondary_start` from the second source file:
+
+```r
+primary_crop <- choose_felix_crop(
+  input = "/Users/your-name/Movies/mid-ice.mp4",
+  start = "01:12:29"
+)
+
+felix <- choose_felix_position(
+  input = "/Users/your-name/Movies/mid-ice.mp4",
+  start = "01:12:29",
+  crop = primary_crop
+)
+
+secondary_crop <- choose_felix_crop(
+  input = "/Users/your-name/Movies/behind-net.mp4",
+  start = "02:09.638"
+)
+
+process_felix_stacked_clip(
+  primary_input = "/Users/your-name/Movies/mid-ice.mp4",
+  secondary_input = "/Users/your-name/Movies/behind-net.mp4",
+  start = "01:12:29",
+  end = "01:12:38",
+  secondary_start = "02:09.638",
+  id = "2026-10-18-goal-from-the-slot",
+  title = "Scores from the slot",
+  categories = c("offensive"),
+  opponent = "Opponent name",
+  date = "2026-10-18",
+  output_dir = "/Users/your-name/Movies/felix-clips",
+  felix_position = felix,
+  primary_crop = primary_crop,
+  secondary_crop = secondary_crop,
+  highlight_seconds = 2
+)
+```
+
+The primary angle supplies the poster, muted hover preview, and full clip audio.
+The full clip places that angle on top of the synchronized secondary angle. Both
+full-clip panels freeze together during the opening identification pause, but
+the mustard circle marks Felix only in the primary panel. Both angles then play
+simultaneously for the same duration. The processor checks that both source
+files cover the requested range before encoding. Confirm synchronization with a
+shared visual or audio event before publishing.
+
 The output directory receives four files:
 
 - `<id>-preview.mp4`: silent 360p version of the complete play, looped by the
   page while the card is hovered or keyboard-focused;
-- `<id>.mp4`: marked pause followed by the full timestamp range at up to 720p;
+- `<id>.mp4`: marked pause followed by the full timestamp range, at up to 720p
+  for one angle or 1280×1440 for synchronized top-and-bottom angles;
 - `<id>.jpg`: marked opening frame shown before playback; and
 - `<id>-clip-entry.js`: starting metadata for `felix-holtgrieve/clips.js`.
 
 FFmpeg seeks to the clip start before decoding, so it does not reprocess the
-whole game. The `veryfast` H.264 preset is intentional for an older Intel Mac.
+whole game. The single-angle outputs use the `veryfast` H.264 preset for an
+older Intel Mac. The larger two-angle full clip uses the `medium` preset at CRF
+23 to keep its published file size practical.
 
 ## Publish it with Cloudflare R2
 
