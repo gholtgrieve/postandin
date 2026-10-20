@@ -12,7 +12,7 @@ export const clips = [
   {
     id: '2026-10-18-goal-from-the-slot',
     title: 'Scores from the slot',
-    description: 'Felix Holtgrieve (#17) scores from the slot against the Sno-King Jr Thunderbirds, shown simultaneously from mid-ice and behind the net.',
+    description: 'Felix Holtgrieve (#17) scores from the slot against the Sno-King Jr Thunderbirds.',
     categories: ['offensive'],
     opponent: 'Sno-King Jr Thunderbirds',
     date: '2026-10-18',

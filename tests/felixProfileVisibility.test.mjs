@@ -130,8 +130,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=12"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=12'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=13"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=13'/);
   assert.match(profileScript, /import '\.\/watch-controls\.js\?v=1'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
@@ -214,7 +214,14 @@ test('every clip has search-readable profile HTML and a dedicated watch page', (
     assert.match(watchPage, new RegExp(escapeRegExp(clip.opponent)));
     assert.match(watchPage, new RegExp(escapeRegExp(displayDate(clip.date))));
     assert.match(watchPage, new RegExp(`<meta property="og:image" content="${escapeRegExp(clip.posterSrc)}">`));
-    assert.match(watchPage, new RegExp(`<meta property="og:video" content="${escapeRegExp(clip.fullSrc)}">`));
+    if (clip.id === '2026-10-18-goal-from-the-slot') {
+      assert.doesNotMatch(watchPage, /<meta property="og:video"/);
+      assert.match(watchPage, /<meta property="og:image:type" content="image\/jpeg">/);
+      assert.match(watchPage, /<meta property="og:image:width" content="1280">/);
+      assert.match(watchPage, /<meta property="og:image:height" content="720">/);
+    } else {
+      assert.match(watchPage, new RegExp(`<meta property="og:video" content="${escapeRegExp(clip.fullSrc)}">`));
+    }
     const watchPosterSrc = clip.watchPosterSrc || clip.posterSrc;
     assert.match(watchPage, new RegExp(`<video[^>]+poster="${escapeRegExp(watchPosterSrc)}"[^>]+src="${escapeRegExp(clip.fullSrc)}"`));
     assert.match(watchPage, /<video data-custom-controls controls playsinline/);
