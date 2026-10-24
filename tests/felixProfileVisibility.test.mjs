@@ -84,6 +84,7 @@ test('Felix profile is absent from established public navigation surfaces', () =
 
 test('Felix profile scaffold includes verified facts and a clip fallback state', () => {
   assert.match(page, /Seattle Junior Mets/);
+  assert.match(page, /<span class="season-badge">2026–27 Season<\/span>/);
   assert.match(
     page,
     /<img class="headshot" src="\/felix-holtgrieve\/images\/felix-headshot\.webp" alt="Felix Holtgrieve wearing a Seattle Junior Mets polo" width="700" height="875" decoding="async" fetchpriority="high">/,
