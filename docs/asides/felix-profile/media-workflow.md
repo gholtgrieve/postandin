@@ -61,6 +61,7 @@ process_felix_clip(
   output_dir = "/Users/your-name/Movies/felix-clips",
   felix_position = felix,
   crop = crop,
+  marker_radius = 0.07,
   secondary_highlight_time = "10.5",
   secondary_felix_position = offensive_zone
 )
@@ -75,6 +76,9 @@ and watch pages. Omit `crop` from the later calls when the full frame is useful.
 the center of Felix once. The generated poster and both videos use that position
 for a mustard circle. The opening frame pauses for 1.75 seconds with the marker
 visible, then the marker disappears and the play begins normally.
+The optional `marker_radius` is measured as a fraction of the output height and
+defaults to `0.07`. Increase it for a tightly cropped clip when the reviewed
+marker needs to encircle more of the player.
 
 The optional `secondary_highlight_time` is measured from the clip start, not
 from the full game's beginning. In the example, `01:12:45` is 10.5 seconds after

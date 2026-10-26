@@ -79,6 +79,12 @@ expect_error(
   "secondary source ends before the requested clip range is complete"
 )
 
+felix_validate_marker_radius(0.12)
+expect_error(
+  felix_validate_marker_radius(0.26),
+  "marker_radius must be greater than 0 and no more than 0.25"
+)
+
 invalid_crop_failed <- tryCatch({
   felix_validate_crop(c(x = 0.9, y = 0, width = 0.2, height = 1))
   FALSE

@@ -372,6 +372,14 @@ choose_felix_position <- function(input, start, crop = NULL) {
   position
 }
 
+felix_validate_marker_radius <- function(radius) {
+  if (!is.numeric(radius) || length(radius) != 1L || !is.finite(radius) ||
+      radius <= 0 || radius > 0.25) {
+    stop("marker_radius must be greater than 0 and no more than 0.25.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 felix_write_marker <- function(path, position, width = 1280, height = 720, radius = 0.07) {
   if (!is.numeric(position) || length(position) != 2L || any(!is.finite(position))) {
     stop("felix_position must be the result returned by choose_felix_position().", call. = FALSE)
@@ -382,6 +390,7 @@ felix_write_marker <- function(path, position, width = 1280, height = 720, radiu
   if (any(position[c("x", "y")] < 0) || any(position[c("x", "y")] > 1)) {
     stop("Felix position values must be between 0 and 1.", call. = FALSE)
   }
+  felix_validate_marker_radius(radius)
 
   center_x <- position[["x"]] * width
   center_y <- position[["y"]] * height
@@ -637,6 +646,7 @@ process_felix_clip <- function(
   felix_position,
   crop = NULL,
   highlight_seconds = 1.75,
+  marker_radius = 0.07,
   secondary_highlight_time = NULL,
   secondary_felix_position = NULL,
   secondary_highlight_seconds = 1.25,
@@ -683,6 +693,7 @@ process_felix_clip <- function(
       !is.finite(highlight_seconds) || highlight_seconds <= 0 || highlight_seconds > 3) {
     stop("highlight_seconds must be greater than 0 and no more than 3.", call. = FALSE)
   }
+  felix_validate_marker_radius(marker_radius)
 
   has_secondary_time <- !is.null(secondary_highlight_time)
   has_secondary_position <- !is.null(secondary_felix_position)
@@ -734,10 +745,10 @@ process_felix_clip <- function(
   marker_path <- tempfile("felix-marker-", fileext = ".svg")
   secondary_marker_path <- NULL
   on.exit(unlink(c(marker_path, secondary_marker_path)), add = TRUE)
-  felix_write_marker(marker_path, felix_position)
+  felix_write_marker(marker_path, felix_position, radius = marker_radius)
   if (has_secondary_time) {
     secondary_marker_path <- tempfile("felix-secondary-marker-", fileext = ".svg")
-    felix_write_marker(secondary_marker_path, secondary_felix_position)
+    felix_write_marker(secondary_marker_path, secondary_felix_position, radius = marker_radius)
   }
 
   full_filter <- felix_video_filter(
