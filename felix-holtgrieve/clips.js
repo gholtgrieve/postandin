@@ -27,7 +27,7 @@ export const clips = [
   {
     id: '2026-10-24-power-play-goal-from-the-point',
     title: 'Power-play goal from the point',
-    description: 'Felix Holtgrieve (#17) scores from the point on the power play against the Tacoma Rockets.',
+    description: 'Felix Holtgrieve (#17) scores from the point at the end of a power play against the Tacoma Rockets.',
     categories: ['offensive', 'special-teams'],
     opponent: 'Tacoma Rockets',
     date: '2026-10-24',
