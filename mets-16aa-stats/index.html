@@ -147,6 +147,85 @@ h1 .accent { color: var(--mustard); }
 .efficiency-chart .point.loss { fill: var(--opponent); }
 .efficiency-chart .point.tie { fill: var(--mustard); }
 .efficiency-chart .point.win { fill: var(--positive); }
+.efficiency-plot { position: relative; }
+.efficiency-point { cursor: help; }
+.efficiency-point .point { transform-box: fill-box; transform-origin: center; transition: transform 120ms ease, stroke-width 120ms ease; }
+.efficiency-point:hover .point,
+.efficiency-point:focus .point { transform: scale(1.35); stroke-width: 4; }
+.efficiency-point:focus { outline: none; }
+.efficiency-point:focus-visible .point { stroke: var(--ink); }
+.chart-tooltip {
+  position: absolute;
+  z-index: 4;
+  width: max-content;
+  max-width: min(280px, calc(100% - 24px));
+  padding: 10px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--mustard);
+  box-shadow: 0 6px 18px rgba(0,0,0,.24);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 14px));
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+.chart-tooltip.is-visible { opacity: 1; }
+.chart-tooltip.is-below { transform: translate(-50%, 14px); }
+.chart-tooltip strong,
+.chart-tooltip span,
+.chart-tooltip small { display: block; }
+.chart-tooltip strong { color: var(--mustard); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: .04em; }
+.chart-tooltip span { margin-top: 3px; font-size: 13px; font-weight: 700; }
+.chart-tooltip small { margin-top: 3px; color: var(--rule); font-size: 11px; }
+.results-timeline { overflow-x: auto; margin-top: 20px; padding: 8px 0 12px; scrollbar-color: var(--rule) transparent; }
+.timeline-track {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 126px;
+  gap: 8px;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  list-style: none;
+}
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  top: 42px;
+  left: 60px;
+  right: 60px;
+  height: 2px;
+  background: var(--rule);
+}
+.timeline-game { position: relative; min-width: 0; text-align: center; }
+.timeline-date { display: block; min-height: 22px; color: var(--ink3); font-size: 12px; font-weight: 700; }
+.timeline-dot {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 10px auto 12px;
+  border: 3px solid var(--panel);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px currentColor;
+  background: currentColor;
+}
+.timeline-game.win { color: var(--positive); }
+.timeline-game.tie { color: var(--mustard2); }
+.timeline-game.loss { color: var(--opponent); }
+.timeline-card {
+  min-height: 92px;
+  padding: 10px 8px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+.timeline-opponent { display: block; min-height: 36px; font-weight: 700; line-height: 1.25; }
+.timeline-score { display: block; margin-top: 5px; font-family: 'Bebas Neue', sans-serif; font-size: 25px; line-height: 1; letter-spacing: .04em; }
+.timeline-result { display: block; margin-top: 4px; color: var(--ink2); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .trend-chart { display: block; width: 100%; min-width: 720px; height: auto; font-family: 'IBM Plex Mono', monospace; }
 .trend-chart .grid-line { stroke: var(--rule); stroke-width: 1; }
 .trend-chart .reference-line { stroke: var(--ink2); stroke-width: 2; stroke-dasharray: 7 6; }
@@ -341,6 +420,29 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
         <div class="metric"><span class="stat-label">Penalty minutes</span><strong class="metric-value">12.2</strong><span class="metric-context">per game · 14 games</span></div>
       </div>
 
+      <section class="chart-card chart-wide" aria-labelledby="timeline-title">
+        <h3 class="chart-title" id="timeline-title">Season results</h3>
+        <p class="chart-subtitle">Games are shown chronologically. Seattle Junior's score is listed first.</p>
+        <div class="results-timeline" tabindex="0" role="region" aria-label="Scrollable chronological game results">
+          <ol class="timeline-track">
+            <li class="timeline-game loss" aria-label="September 12 at Sno-King, loss, 1 to 3"><span class="timeline-date">Sep 12</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Sno-King</span><strong class="timeline-score">1–3</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="September 13 at Sno-King, loss, 2 to 4"><span class="timeline-date">Sep 13</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Sno-King</span><strong class="timeline-score">2–4</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game tie" aria-label="September 19 versus Tacoma, tie, 2 to 2"><span class="timeline-date">Sep 19</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Tacoma</span><strong class="timeline-score">2–2</strong><span class="timeline-result">Tie</span></div></li>
+            <li class="timeline-game loss" aria-label="September 20 versus Tacoma, loss, 2 to 4"><span class="timeline-date">Sep 20</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Tacoma</span><strong class="timeline-score">2–4</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="September 25 versus Team Wyoming, loss, 2 to 3"><span class="timeline-date">Sep 25</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Wyoming</span><strong class="timeline-score">2–3</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="September 26 versus Boise, loss, 1 to 3"><span class="timeline-date">Sep 26</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Boise</span><strong class="timeline-score">1–3</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="September 26 at Montana, loss, 1 to 4"><span class="timeline-date">Sep 26</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Montana</span><strong class="timeline-score">1–4</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game win" aria-label="September 27 at Utah, win, 2 to 1"><span class="timeline-date">Sep 27</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Utah</span><strong class="timeline-score">2–1</strong><span class="timeline-result">Win</span></div></li>
+            <li class="timeline-game loss" aria-label="October 3 at Tri-Cities, loss, 1 to 5"><span class="timeline-date">Oct 3</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Tri-Cities</span><strong class="timeline-score">1–5</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="October 4 at Tri-Cities, loss, 1 to 4"><span class="timeline-date">Oct 4</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Tri-Cities</span><strong class="timeline-score">1–4</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="October 17 versus Sno-King, loss, 0 to 3"><span class="timeline-date">Oct 17</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Sno-King</span><strong class="timeline-score">0–3</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game loss" aria-label="October 18 versus Sno-King, loss, 2 to 4"><span class="timeline-date">Oct 18</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Sno-King</span><strong class="timeline-score">2–4</strong><span class="timeline-result">Loss</span></div></li>
+            <li class="timeline-game win" aria-label="October 24 at Tacoma, win, 9 to 1"><span class="timeline-date">Oct 24</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Tacoma</span><strong class="timeline-score">9–1</strong><span class="timeline-result">Win</span></div></li>
+            <li class="timeline-game tie" aria-label="October 25 at Tacoma, tie, 3 to 3"><span class="timeline-date">Oct 25</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">at Tacoma</span><strong class="timeline-score">3–3</strong><span class="timeline-result">Tie</span></div></li>
+          </ol>
+        </div>
+      </section>
+
       <section class="chart-card chart-wide" aria-labelledby="special-teams-title">
         <h3 class="chart-title" id="special-teams-title">Special teams goals</h3>
         <div class="special-teams-grid">
@@ -451,11 +553,12 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
       <figure class="chart-card chart-wide" aria-labelledby="efficiency-title">
         <figcaption>
           <h3 class="chart-title" id="efficiency-title">Game efficiency</h3>
-          <p class="chart-subtitle">Shot share is plotted left to right; final goal differential is plotted bottom to top. This compares game results with shot volume, but does not account for shot location or quality.</p>
+          <p class="chart-subtitle">Shot share is plotted left to right; final goal differential is plotted bottom to top. Hover over or focus a point for the matchup and final score. This compares game results with shot volume, but does not account for shot location or quality.</p>
           <div class="legend" aria-hidden="true"><span><i class="legend-mark" style="background:var(--positive)"></i>Win</span><span><i class="legend-mark"></i>Tie</span><span><i class="legend-mark opponent"></i>Loss</span></div>
         </figcaption>
-        <div class="efficiency-shell" role="region" aria-label="Scrollable game efficiency chart">
-          <svg class="efficiency-chart" viewBox="0 0 800 360" role="img" aria-labelledby="efficiency-svg-title efficiency-svg-desc">
+        <div class="efficiency-plot">
+          <div class="efficiency-shell" role="region" aria-label="Scrollable game efficiency chart">
+            <svg class="efficiency-chart" viewBox="0 0 800 360" role="group" aria-labelledby="efficiency-svg-title efficiency-svg-desc">
             <title id="efficiency-svg-title">Shot share versus goal differential for twelve Seattle Junior games</title>
             <desc id="efficiency-svg-desc">Seattle Junior wins are shown for Utah at plus one and Tacoma on October 24 at plus eight. Tacoma on September 19 and October 25 are ties. The other eight games are losses.</desc>
 
@@ -483,19 +586,21 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
             <text class="axis-title" x="375" y="332" text-anchor="middle">Seattle Junior share of shots</text>
             <text class="axis-title" x="18" y="155" text-anchor="middle" transform="rotate(-90 18 155)">Final goal differential</text>
 
-            <circle class="point loss" cx="240" cy="257" r="8"><title>September 12 at Sno-King: 33.9% shot share, −2 goal differential</title></circle>
-            <circle class="point loss" cx="208" cy="257" r="8"><title>September 13 at Sno-King: 31.3% shot share, −2 goal differential</title></circle>
-            <circle class="point tie" cx="286" cy="212" r="8"><title>September 19 versus Tacoma: 37.7% shot share, even goal differential</title></circle>
-            <circle class="point loss" cx="293" cy="257" r="8"><title>September 20 versus Tacoma: 38.3% shot share, −2 goal differential</title></circle>
-            <circle class="point loss" cx="154" cy="235" r="8"><title>September 25 versus Team Wyoming: 26.9% shot share, −1 goal differential</title></circle>
-            <circle class="point loss" cx="262" cy="257" r="8"><title>September 26 versus Boise: 35.7% shot share, −2 goal differential</title></circle>
-            <circle class="point loss" cx="136" cy="280" r="8"><title>September 26 at Montana: 25.4% shot share, −3 goal differential</title></circle>
-            <circle class="point win" cx="241" cy="189" r="8"><title>September 27 at Utah: 34.0% shot share, +1 goal differential</title></circle>
-            <circle class="point loss" cx="271" cy="280" r="8"><title>October 17 versus Sno-King: 36.5% shot share, −3 goal differential</title></circle>
-            <circle class="point loss" cx="337" cy="257" r="8"><title>October 18 versus Sno-King: 41.9% shot share, −2 goal differential</title></circle>
-            <circle class="point win" cx="567" cy="30" r="8"><title>October 24 at Tacoma: 60.7% shot share, +8 goal differential</title></circle>
-            <circle class="point tie" cx="462" cy="212" r="8"><title>October 25 at Tacoma: 52.1% shot share, even goal differential</title></circle>
-          </svg>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 12 at Sno-King. Seattle Junior 1, Sno-King 3. 33.9 percent shot share and minus 2 goal differential." data-game="Sep 12 · at Sno-King" data-score="Seattle Junior 1 · Sno-King 3" data-metrics="33.9% shot share · −2 goal differential"><circle class="point loss" cx="240" cy="257" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 13 at Sno-King. Seattle Junior 2, Sno-King 4. 31.3 percent shot share and minus 2 goal differential." data-game="Sep 13 · at Sno-King" data-score="Seattle Junior 2 · Sno-King 4" data-metrics="31.3% shot share · −2 goal differential"><circle class="point loss" cx="208" cy="257" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 19 versus Tacoma. Seattle Junior 2, Tacoma 2. 37.7 percent shot share and even goal differential." data-game="Sep 19 · vs Tacoma" data-score="Seattle Junior 2 · Tacoma 2" data-metrics="37.7% shot share · even goal differential"><circle class="point tie" cx="286" cy="212" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 20 versus Tacoma. Seattle Junior 2, Tacoma 4. 38.3 percent shot share and minus 2 goal differential." data-game="Sep 20 · vs Tacoma" data-score="Seattle Junior 2 · Tacoma 4" data-metrics="38.3% shot share · −2 goal differential"><circle class="point loss" cx="293" cy="257" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 25 versus Team Wyoming. Seattle Junior 2, Team Wyoming 3. 26.9 percent shot share and minus 1 goal differential." data-game="Sep 25 · vs Wyoming" data-score="Seattle Junior 2 · Team Wyoming 3" data-metrics="26.9% shot share · −1 goal differential"><circle class="point loss" cx="154" cy="235" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 26 versus Boise. Seattle Junior 1, Boise 3. 35.7 percent shot share and minus 2 goal differential." data-game="Sep 26 · vs Boise" data-score="Seattle Junior 1 · Boise 3" data-metrics="35.7% shot share · −2 goal differential"><circle class="point loss" cx="262" cy="257" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 26 at Montana. Seattle Junior 1, Montana 4. 25.4 percent shot share and minus 3 goal differential." data-game="Sep 26 · at Montana" data-score="Seattle Junior 1 · Montana 4" data-metrics="25.4% shot share · −3 goal differential"><circle class="point loss" cx="136" cy="280" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="September 27 at Utah. Seattle Junior 2, Utah 1. 34.0 percent shot share and plus 1 goal differential." data-game="Sep 27 · at Utah" data-score="Seattle Junior 2 · Utah 1" data-metrics="34.0% shot share · +1 goal differential"><circle class="point win" cx="241" cy="189" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="October 17 versus Sno-King. Seattle Junior 0, Sno-King 3. 36.5 percent shot share and minus 3 goal differential." data-game="Oct 17 · vs Sno-King" data-score="Seattle Junior 0 · Sno-King 3" data-metrics="36.5% shot share · −3 goal differential"><circle class="point loss" cx="271" cy="280" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="October 18 versus Sno-King. Seattle Junior 2, Sno-King 4. 41.9 percent shot share and minus 2 goal differential." data-game="Oct 18 · vs Sno-King" data-score="Seattle Junior 2 · Sno-King 4" data-metrics="41.9% shot share · −2 goal differential"><circle class="point loss" cx="337" cy="257" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="October 24 at Tacoma. Seattle Junior 9, Tacoma 1. 60.7 percent shot share and plus 8 goal differential." data-game="Oct 24 · at Tacoma" data-score="Seattle Junior 9 · Tacoma 1" data-metrics="60.7% shot share · +8 goal differential"><circle class="point win" cx="567" cy="30" r="8" /></g>
+              <g class="efficiency-point" tabindex="0" role="img" aria-label="October 25 at Tacoma. Seattle Junior 3, Tacoma 3. 52.1 percent shot share and even goal differential." data-game="Oct 25 · at Tacoma" data-score="Seattle Junior 3 · Tacoma 3" data-metrics="52.1% shot share · even goal differential"><circle class="point tie" cx="462" cy="212" r="8" /></g>
+            </svg>
+          </div>
+          <div class="chart-tooltip" aria-hidden="true" hidden><strong></strong><span></span><small></small></div>
         </div>
         <p class="data-note">The October 3 and 4 games are excluded because shots were not recorded.</p>
       </figure>
@@ -550,30 +655,30 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
       <h2 id="skaters-heading">Skaters</h2>
       <div class="table-shell" tabindex="0" role="region" aria-label="Skater statistics table">
         <table data-sortable>
-          <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Player</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Pos</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">G</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">A</button></th><th scope="col" aria-sort="descending"><button class="sort-button" type="button" data-type="number">PTS</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PIM</button></th></tr></thead>
+          <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Player</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Pos</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">G</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">A</button></th><th scope="col" aria-sort="descending"><button class="sort-button" type="button" data-type="number">PTS</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PEN</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PIM</button></th></tr></thead>
           <tbody>
-            <tr><td class="number">23</td><td data-sort-value="Clark, Jesper">Jesper Clark</td><td>F</td><td>14</td><td>5</td><td>3</td><td class="points">8</td><td>6</td></tr>
-            <tr><td class="number">40</td><td data-sort-value="Mendes, Mateus">Mateus Mendes</td><td>F</td><td>14</td><td>4</td><td>3</td><td class="points">7</td><td>4</td></tr>
-            <tr><td class="number">21</td><td data-sort-value="Hulse, Reed">Reed Hulse</td><td>F</td><td>13</td><td>2</td><td>3</td><td class="points">5</td><td>8</td></tr>
-            <tr><td class="number">14</td><td data-sort-value="Salmon, Sebastian">Sebastian Salmon</td><td>F</td><td>14</td><td>2</td><td>3</td><td class="points">5</td><td>16</td></tr>
-            <tr><td class="number">7</td><td data-sort-value="Haglof McCallum, Max">Max Haglof McCallum</td><td>F</td><td>14</td><td>3</td><td>2</td><td class="points">5</td><td>10</td></tr>
-            <tr><td class="number">17</td><td data-sort-value="Holtgrieve, Felix">Felix Holtgrieve</td><td>D</td><td>14</td><td>2</td><td>3</td><td class="points">5</td><td>6</td></tr>
-            <tr><td class="number">65</td><td data-sort-value="Osborn, Eliot">Eliot Osborn</td><td>F</td><td>14</td><td>2</td><td>2</td><td class="points">4</td><td>0</td></tr>
-            <tr><td class="number">87</td><td data-sort-value="Kim, Juone">Juone Kim</td><td>F</td><td>14</td><td>2</td><td>2</td><td class="points">4</td><td>0</td></tr>
-            <tr><td class="number">9</td><td data-sort-value="Lupton, Blake">Blake Lupton</td><td>F</td><td>12</td><td>2</td><td>2</td><td class="points">4</td><td>4</td></tr>
-            <tr><td class="number">3</td><td data-sort-value="Perrin, Broderick">Broderick Perrin</td><td>D</td><td>14</td><td>0</td><td>3</td><td class="points">3</td><td>8</td></tr>
-            <tr><td class="number">64</td><td data-sort-value="Longley, Zaedan">Zaedan Longley</td><td>F/D</td><td>14</td><td>0</td><td>3</td><td class="points">3</td><td>30</td></tr>
-            <tr><td class="number">10</td><td data-sort-value="Simpson, Austin">Austin Simpson</td><td>F</td><td>14</td><td>1</td><td>1</td><td class="points">2</td><td>2</td></tr>
-            <tr><td class="number">22</td><td data-sort-value="Bugeaud, Cruz">Cruz Bugeaud</td><td>F</td><td>14</td><td>1</td><td>0</td><td class="points">1</td><td>0</td></tr>
-            <tr><td class="number">13</td><td data-sort-value="Lagerholm, Christian">Christian Lagerholm</td><td>F</td><td>14</td><td>1</td><td>0</td><td class="points">1</td><td>6</td></tr>
-            <tr><td class="number">12</td><td data-sort-value="Pocholski, Chase">Chase Pocholski</td><td>D</td><td>13</td><td>1</td><td>0</td><td class="points">1</td><td>41</td></tr>
-            <tr><td class="number">6</td><td data-sort-value="Haglof McCallum, Joshua">Joshua Haglof McCallum</td><td>D</td><td>11</td><td>0</td><td>0</td><td class="points">0</td><td>6</td></tr>
-            <tr><td class="number">57</td><td data-sort-value="Hines, Ethan">Ethan Hines</td><td>D</td><td>14</td><td>0</td><td>0</td><td class="points">0</td><td>20</td></tr>
-            <tr><td class="number">11</td><td data-sort-value="Oakland, Thor">Thor Oakland</td><td>F</td><td>7</td><td>0</td><td>0</td><td class="points">0</td><td>2</td></tr>
+            <tr><td class="number">23</td><td data-sort-value="Clark, Jesper">Jesper Clark</td><td>F</td><td>14</td><td>5</td><td>3</td><td class="points">8</td><td>3</td><td>6</td></tr>
+            <tr><td class="number">40</td><td data-sort-value="Mendes, Mateus">Mateus Mendes</td><td>F</td><td>14</td><td>4</td><td>3</td><td class="points">7</td><td>2</td><td>4</td></tr>
+            <tr><td class="number">21</td><td data-sort-value="Hulse, Reed">Reed Hulse</td><td>F</td><td>13</td><td>2</td><td>3</td><td class="points">5</td><td>4</td><td>8</td></tr>
+            <tr><td class="number">14</td><td data-sort-value="Salmon, Sebastian">Sebastian Salmon</td><td>F</td><td>14</td><td>2</td><td>3</td><td class="points">5</td><td>4</td><td>16</td></tr>
+            <tr><td class="number">7</td><td data-sort-value="Haglof McCallum, Max">Max Haglof McCallum</td><td>F</td><td>14</td><td>3</td><td>2</td><td class="points">5</td><td>5</td><td>10</td></tr>
+            <tr><td class="number">17</td><td data-sort-value="Holtgrieve, Felix">Felix Holtgrieve</td><td>D</td><td>14</td><td>2</td><td>3</td><td class="points">5</td><td>3</td><td>6</td></tr>
+            <tr><td class="number">65</td><td data-sort-value="Osborn, Eliot">Eliot Osborn</td><td>F</td><td>14</td><td>2</td><td>2</td><td class="points">4</td><td>0</td><td>0</td></tr>
+            <tr><td class="number">87</td><td data-sort-value="Kim, Juone">Juone Kim</td><td>F</td><td>14</td><td>2</td><td>2</td><td class="points">4</td><td>0</td><td>0</td></tr>
+            <tr><td class="number">9</td><td data-sort-value="Lupton, Blake">Blake Lupton</td><td>F</td><td>12</td><td>2</td><td>2</td><td class="points">4</td><td>2</td><td>4</td></tr>
+            <tr><td class="number">3</td><td data-sort-value="Perrin, Broderick">Broderick Perrin</td><td>D</td><td>14</td><td>0</td><td>3</td><td class="points">3</td><td>4</td><td>8</td></tr>
+            <tr><td class="number">64</td><td data-sort-value="Longley, Zaedan">Zaedan Longley</td><td>F/D</td><td>14</td><td>0</td><td>3</td><td class="points">3</td><td>11</td><td>30</td></tr>
+            <tr><td class="number">10</td><td data-sort-value="Simpson, Austin">Austin Simpson</td><td>F</td><td>14</td><td>1</td><td>1</td><td class="points">2</td><td>1</td><td>2</td></tr>
+            <tr><td class="number">22</td><td data-sort-value="Bugeaud, Cruz">Cruz Bugeaud</td><td>F</td><td>14</td><td>1</td><td>0</td><td class="points">1</td><td>0</td><td>0</td></tr>
+            <tr><td class="number">13</td><td data-sort-value="Lagerholm, Christian">Christian Lagerholm</td><td>F</td><td>14</td><td>1</td><td>0</td><td class="points">1</td><td>3</td><td>6</td></tr>
+            <tr><td class="number">12</td><td data-sort-value="Pocholski, Chase">Chase Pocholski</td><td>D</td><td>13</td><td>1</td><td>0</td><td class="points">1</td><td>11</td><td>41</td></tr>
+            <tr><td class="number">6</td><td data-sort-value="Haglof McCallum, Joshua">Joshua Haglof McCallum</td><td>D</td><td>11</td><td>0</td><td>0</td><td class="points">0</td><td>3</td><td>6</td></tr>
+            <tr><td class="number">57</td><td data-sort-value="Hines, Ethan">Ethan Hines</td><td>D</td><td>14</td><td>0</td><td>0</td><td class="points">0</td><td>10</td><td>20</td></tr>
+            <tr><td class="number">11</td><td data-sort-value="Oakland, Thor">Thor Oakland</td><td>F</td><td>7</td><td>0</td><td>0</td><td class="points">0</td><td>1</td><td>2</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="note">Pos = position; GP = games played; G = goals; A = assists; PTS = points; PIM = penalty minutes.</p>
+      <p class="note">Pos = position; GP = games played; G = goals; A = assists; PTS = points; PEN = penalties; PIM = penalty minutes. Misconducts and game misconducts are each counted as separate penalties. The team's one bench minor is not assigned to a player.</p>
     </section>
 
     <section class="stats-section" aria-labelledby="goalies-heading">
@@ -635,6 +740,55 @@ document.querySelectorAll('table[data-sortable]').forEach((table) => {
       indicator.textContent = direction === 'ascending' ? ' ↑' : ' ↓';
       rows.forEach((row) => body.appendChild(row));
     });
+  });
+});
+
+document.querySelectorAll('.efficiency-plot').forEach((plot) => {
+  const tooltip = plot.querySelector('.chart-tooltip');
+  const gameLabel = tooltip.querySelector('strong');
+  const scoreLabel = tooltip.querySelector('span');
+  const metricsLabel = tooltip.querySelector('small');
+
+  const placeTooltip = (point, clientX, clientY) => {
+    const plotBox = plot.getBoundingClientRect();
+    const pointBox = point.getBoundingClientRect();
+    const x = clientX ?? pointBox.left + (pointBox.width / 2);
+    const y = clientY ?? pointBox.top + (pointBox.height / 2);
+    const halfWidth = Math.min(140, (plotBox.width - 24) / 2);
+    const left = Math.max(halfWidth + 12, Math.min(plotBox.width - halfWidth - 12, x - plotBox.left));
+    const top = y - plotBox.top;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    tooltip.classList.toggle('is-below', top < 82);
+  };
+
+  const showTooltip = (point, event) => {
+    gameLabel.textContent = point.dataset.game;
+    scoreLabel.textContent = point.dataset.score;
+    metricsLabel.textContent = point.dataset.metrics;
+    tooltip.hidden = false;
+    tooltip.classList.add('is-visible');
+    placeTooltip(point, event?.clientX, event?.clientY);
+  };
+
+  const hideTooltip = () => {
+    tooltip.classList.remove('is-visible');
+    tooltip.hidden = true;
+  };
+
+  plot.querySelectorAll('.efficiency-point').forEach((point) => {
+    point.addEventListener('pointerenter', (event) => showTooltip(point, event));
+    point.addEventListener('pointermove', (event) => placeTooltip(point, event.clientX, event.clientY));
+    point.addEventListener('pointerdown', (event) => showTooltip(point, event));
+    point.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'mouse' && document.activeElement !== point) hideTooltip();
+    });
+    point.addEventListener('focus', () => showTooltip(point));
+    point.addEventListener('blur', hideTooltip);
+  });
+
+  plot.addEventListener('pointerdown', (event) => {
+    if (!event.target.closest('.efficiency-point')) hideTooltip();
   });
 });
 </script>
