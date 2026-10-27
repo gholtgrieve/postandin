@@ -205,6 +205,8 @@ after a partial upload failure.
 
 Before pasting the generated object into `felix-holtgrieve/clips.js`, add:
 
+- `internalRank`: an integer from 1 to 10; higher-scored clips appear first,
+  and tied clips retain their order in the manifest;
 - `description`: a plain-language account of the visible play that identifies
   Felix and the opponent; keep the game date in the separate date metadata;
 - `uploadDate`: the first publication time for the current versioned clip URL
@@ -213,7 +215,8 @@ Before pasting the generated object into `felix-holtgrieve/clips.js`, add:
 - `pageSrc`: the root-relative URL for the clip's dedicated watch page.
 
 Add a server-delivered fallback card to `felix-holtgrieve/index.html`, update
-the season clip count, and create a dedicated page at
+the season clip count, and place the card in the same ranked position as the
+manifest-driven library. Create a dedicated page at
 `felix-holtgrieve/video/<clip-id>/index.html`. The fallback card must link to
 that watch page. The watch page must embed the full clip as its primary content
 and include matching `VideoObject` metadata. Include the `data-custom-controls`

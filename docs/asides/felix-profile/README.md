@@ -9,6 +9,9 @@ global navigation, footers outside the profile, and product directories.
 Each clip can have an indexable watch page under
 `/felix-holtgrieve/video/<clip-id>/`. `felix-holtgrieve/clips.js` is the reviewed
 manifest, and the profile modules render filters, previews, and on-demand clips.
+Each manifest entry has an internal score that controls its position in the
+profile library. Higher-scored clips appear first, tied clips retain their
+manifest order, and scores are not rendered on the profile or watch pages.
 
 The Live Ian Doner and Max Doner coach profiles include a small,
 server-rendered link to Felix's profile because he has trained with both

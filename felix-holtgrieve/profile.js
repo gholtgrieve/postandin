@@ -1,4 +1,4 @@
-import { categoryLabels, clips } from './clips.js?v=16';
+import { categoryLabels, rankedClips } from './clips.js?v=17';
 import './watch-controls.js?v=1';
 
 const clipGrid = document.querySelector('#clipGrid');
@@ -139,14 +139,14 @@ function createClipCard(clip) {
 
 function renderClips() {
   const visibleClips = activeCategory === 'all'
-    ? clips
-    : clips.filter((clip) => clip.categories.includes(activeCategory));
+    ? rankedClips
+    : rankedClips.filter((clip) => clip.categories.includes(activeCategory));
 
   clipGrid.querySelectorAll('.clip-preview').forEach((preview) => previewObserver?.unobserve(preview));
   clipGrid.replaceChildren(...visibleClips.map(createClipCard));
   emptyLibrary.hidden = visibleClips.length > 0;
-  seasonLabel.textContent = clips.length
-    ? `${clips.length} ${clips.length === 1 ? 'clip' : 'clips'}`
+  seasonLabel.textContent = rankedClips.length
+    ? `${rankedClips.length} ${rankedClips.length === 1 ? 'clip' : 'clips'}`
     : 'Clips coming soon';
 
   const categoryName = activeCategory === 'all' ? 'total' : categoryLabels[activeCategory].toLowerCase();
@@ -156,10 +156,10 @@ function renderClips() {
       ? 'No clips available yet.'
       : `No ${categoryName} clips available yet.`;
 
-  if (!visibleClips.length && clips.length) {
+  if (!visibleClips.length && rankedClips.length) {
     emptyTitle.textContent = `No ${categoryLabels[activeCategory]} clips yet.`;
     emptyCopy.textContent = 'Choose another play type or check back as the season develops.';
-  } else if (!clips.length) {
+  } else if (!rankedClips.length) {
     emptyTitle.textContent = 'The season starts here.';
     emptyCopy.textContent = 'Felix’s 2026–27 game clips will be added throughout the season, with each play labeled by date, opponent, and category.';
   }

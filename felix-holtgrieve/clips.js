@@ -11,6 +11,7 @@ export const categoryLabels = Object.freeze({
 export const clips = [
   {
     id: '2026-10-24-primary-assist-on-tipped-point-shot',
+    internalRank: 6,
     title: 'Primary assist on tipped point shot',
     description: 'Felix Holtgrieve (#17) earns the primary assist when Juone Kim (#87) tips his point shot into the goal against the Tacoma Rockets.',
     categories: ['offensive'],
@@ -26,6 +27,7 @@ export const clips = [
   },
   {
     id: '2026-10-24-power-play-goal-from-the-point',
+    internalRank: 7,
     title: 'Power-play goal from the point',
     description: 'Felix Holtgrieve (#17) scores from the point at the end of a power play against the Tacoma Rockets.',
     categories: ['offensive', 'special-teams'],
@@ -41,6 +43,7 @@ export const clips = [
   },
   {
     id: '2026-10-18-goal-from-the-slot',
+    internalRank: 8,
     title: 'Scores from the slot',
     description: 'Felix Holtgrieve (#17) scores from the slot against the Sno-King Jr Thunderbirds.',
     categories: ['offensive'],
@@ -57,6 +60,7 @@ export const clips = [
   },
   {
     id: '2026-09-27-utah-d-zone-breakout-sog',
+    internalRank: 5,
     title: 'D-zone breakout with shot on goal',
     description: 'Felix Holtgrieve (#17) is highlighted during a defensive-zone breakout that develops into an offensive-zone shot on goal against the Utah Jr Grizzlies.',
     categories: ['puck-movement', 'offensive'],
@@ -72,6 +76,7 @@ export const clips = [
   },
   {
     id: '2026-09-19-neutral-zone-primary-assist',
+    internalRank: 5,
     title: 'Neutral zone pass with primary assist',
     description: 'Felix Holtgrieve (#17) advances the puck through the neutral zone for the (unrecorded) primary assist on a goal against the Tacoma Rockets.',
     categories: ['puck-movement', 'offensive'],
@@ -86,3 +91,6 @@ export const clips = [
     captionsSrc: '',
   },
 ];
+
+// Stable sorting keeps clips with the same internal score in manifest order.
+export const rankedClips = [...clips].sort((a, b) => b.internalRank - a.internalRank);

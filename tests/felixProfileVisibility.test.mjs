@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import test from 'node:test';
-import { categoryLabels, clips } from '../felix-holtgrieve/clips.js';
+import { categoryLabels, clips, rankedClips } from '../felix-holtgrieve/clips.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const page = read('felix-holtgrieve/index.html');
@@ -132,8 +132,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=16"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=16'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=17"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=17'/);
   assert.match(profileScript, /import '\.\/watch-controls\.js\?v=1'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
@@ -188,6 +188,59 @@ test('clip library scaffolds categories, efficient previews, and full playback',
   assert.match(page, /<section class="empty-library" id="emptyLibrary" aria-labelledby="empty-title" hidden>/);
 });
 
+test('clip library renders by internal rank without displaying scores', () => {
+  const expectedRanks = new Map([
+    ['2026-10-18-goal-from-the-slot', 8],
+    ['2026-10-24-power-play-goal-from-the-point', 7],
+    ['2026-10-24-primary-assist-on-tipped-point-shot', 6],
+    ['2026-09-27-utah-d-zone-breakout-sog', 5],
+    ['2026-09-19-neutral-zone-primary-assist', 5],
+  ]);
+  const expectedIds = [
+    '2026-10-18-goal-from-the-slot',
+    '2026-10-24-power-play-goal-from-the-point',
+    '2026-10-24-primary-assist-on-tipped-point-shot',
+    '2026-09-27-utah-d-zone-breakout-sog',
+    '2026-09-19-neutral-zone-primary-assist',
+  ];
+  assert.deepEqual(new Map(clips.map((clip) => [clip.id, clip.internalRank])), expectedRanks);
+  assert.deepEqual(rankedClips.map((clip) => clip.id), expectedIds);
+
+  const manifestPositions = new Map(clips.map((clip, index) => [clip.id, index]));
+  rankedClips.slice(1).forEach((clip, index) => {
+    const previous = rankedClips[index];
+    assert.ok(previous.internalRank >= clip.internalRank, 'ranks must descend');
+    if (previous.internalRank === clip.internalRank) {
+      assert.ok(
+        manifestPositions.get(previous.id) < manifestPositions.get(clip.id),
+        'tied clips must retain manifest order',
+      );
+    }
+  });
+
+  for (const category of Object.keys(categoryLabels)) {
+    const expectedCategoryIds = [...clips]
+      .filter((clip) => clip.categories.includes(category))
+      .sort((a, b) => b.internalRank - a.internalRank)
+      .map((clip) => clip.id);
+    assert.deepEqual(
+      rankedClips.filter((clip) => clip.categories.includes(category)).map((clip) => clip.id),
+      expectedCategoryIds,
+      `${category} filter must retain ranked order`,
+    );
+  }
+
+  const fallbackPositions = expectedIds.map((id) => page.indexOf(`data-clip-id="${id}"`));
+  assert.ok(fallbackPositions.every((position) => position >= 0), 'every ranked clip must have fallback HTML');
+  assert.deepEqual(
+    fallbackPositions,
+    [...fallbackPositions].sort((a, b) => a - b),
+    'fallback cards must follow ranked order',
+  );
+  assert.doesNotMatch(page, /internalRank|data-rank|rank(?:ing)? score/i);
+  assert.doesNotMatch(profileScript, /internalRank/);
+});
+
 test('every clip has search-readable profile HTML and a dedicated watch page', () => {
   assert.doesNotMatch(page, /"@type": "VideoObject"/);
 
@@ -196,6 +249,7 @@ test('every clip has search-readable profile HTML and a dedicated watch page', (
     const videoMetadata = videoMetadataFrom(watchPage, clip.id);
     const categories = clip.categories.map((category) => categoryLabels[category]).join(' · ');
 
+    assert.doesNotMatch(watchPage, /internalRank|data-rank|rank(?:ing)? score/i);
     assert.match(page, new RegExp(`data-clip-id="${escapeRegExp(clip.id)}"`));
     assert.match(page, new RegExp(`<p class="clip-category">${escapeRegExp(categories)}<\\/p>`));
     assert.match(page, new RegExp(`<h3 class="clip-title">${escapeRegExp(clip.title)}<\\/h3>`));
@@ -247,6 +301,8 @@ test('clip manifest entries are valid and media remains externally hosted', () =
 
   for (const clip of clips) {
     assert.equal(typeof clip.id, 'string');
+    assert.ok(Number.isInteger(clip.internalRank), `rank must be an integer for ${clip.id}`);
+    assert.ok(clip.internalRank >= 1 && clip.internalRank <= 10, `rank must be from 1 to 10 for ${clip.id}`);
     assert.ok(clip.id.trim(), 'clip id must not be empty');
     assert.ok(!ids.has(clip.id), `duplicate clip id: ${clip.id}`);
     ids.add(clip.id);
