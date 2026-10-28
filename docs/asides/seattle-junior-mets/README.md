@@ -22,7 +22,9 @@ published times and reminders.
 ### Season statistics
 
 `/mets-16aa-stats/` is a direct-link, unlisted, `noindex` page using public team
-roster and season-total information. Updates are manual.
+roster and season-total information. Its skater table defaults to confirmed
+video-reviewed scoring attributions and can be switched to the official
+scoresheet/NWAHL totals. Updates are manual.
 
 Both URLs are public to anyone who receives the link. `noindex` is not access
 control.
