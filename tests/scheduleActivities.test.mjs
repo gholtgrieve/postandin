@@ -448,6 +448,103 @@ test('RecTimes normalizes the reviewed Female Stick & Puck label at either venue
   }
 });
 
+test('RecTimes identifies reserved Stick & Puck sessions from reviewed title signals', () => {
+  const bookings = [
+    {
+      id: 8076889,
+      groupName: 'SJHA STICK & PUCK',
+      startTimeLocal: '2026-10-28T15:00:00',
+      endTimeLocal: '2026-10-28T17:00:00',
+    },
+    {
+      id: 8076890,
+      groupName: 'RESERVED — SJHA STICK & PUCK',
+      startTimeLocal: '2026-11-04T15:00:00',
+      endTimeLocal: '2026-11-04T17:00:00',
+    },
+    {
+      id: 8076891,
+      groupName: 'Reserved Stick & Puck',
+      startTimeLocal: '2026-11-11T15:00:00',
+      endTimeLocal: '2026-11-11T17:00:00',
+    },
+    {
+      id: 8076892,
+      groupName: 'Stick & Puck',
+      startTimeLocal: '2026-11-18T15:00:00',
+      endTimeLocal: '2026-11-18T17:00:00',
+    },
+    {
+      id: 8076893,
+      groupName: 'SJHA_U12 STICK & PUCK',
+      startTimeLocal: '2026-11-25T15:00:00',
+      endTimeLocal: '2026-11-25T17:00:00',
+    },
+    {
+      id: 8076894,
+      groupName: 'NON‑RESERVED STICK & PUCK',
+      startTimeLocal: '2026-12-02T15:00:00',
+      endTimeLocal: '2026-12-02T17:00:00',
+    },
+    {
+      id: 8076895,
+      groupName: 'SJHA STICK & PUCK — OPEN-TO-ALL',
+      startTimeLocal: '2026-12-09T15:00:00',
+      endTimeLocal: '2026-12-09T17:00:00',
+    },
+    {
+      id: 8076896,
+      groupName: 'NOT RESERVED STICK & PUCK',
+      startTimeLocal: '2026-12-16T15:00:00',
+      endTimeLocal: '2026-12-16T17:00:00',
+    },
+    {
+      id: 8076897,
+      groupName: 'NO-LONGER-RESERVED STICK & PUCK',
+      startTimeLocal: '2026-12-23T15:00:00',
+      endTimeLocal: '2026-12-23T17:00:00',
+    },
+    {
+      id: 8076898,
+      groupName: 'UN–RESERVED STICK & PUCK',
+      startTimeLocal: '2026-12-30T15:00:00',
+      endTimeLocal: '2026-12-30T17:00:00',
+    },
+    {
+      id: 8076899,
+      groupName: 'S.J.H.A. STICK & PUCK',
+      startTimeLocal: '2027-01-06T15:00:00',
+      endTimeLocal: '2027-01-06T17:00:00',
+    },
+  ];
+
+  const expected = [
+    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: 'Reserved', notes: 'Reserved session' },
+    { subtitle: null, notes: null },
+    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: null, notes: null },
+    { subtitle: null, notes: null },
+    { subtitle: null, notes: null },
+    { subtitle: null, notes: null },
+    { subtitle: null, notes: null },
+    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+  ];
+
+  for (const venueId of [1145, 1146]) {
+    const sessions = normalizeRecTimesBookings(bookings, {
+      venueId,
+      pacificNow: '2026-01-01T00:00:00',
+    });
+
+    assert.deepEqual(sessions.map(session => ({
+      subtitle: session.subtitle,
+      notes: session.eligibility.notes,
+    })), expected);
+  }
+});
+
 test('Female/Non-Binary filtering supports structured and legacy cached sessions', () => {
   assert.equal(isFemaleOrNonBinarySession({
     eligibility: { audience: 'women' },

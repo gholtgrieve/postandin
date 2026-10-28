@@ -19,7 +19,10 @@ page to its API query and controls activity-specific capabilities.
 Public Skate enables Groups, RSVPs, duration, and calendar actions while
 omitting hockey program subtitles. Hockey pages also expose the
 Female/Non-Binary filter. The site deliberately does not present source-provided
-price, reservation, availability, remaining-spots, or sold-out claims.
+price, live availability, remaining-spots, or sold-out claims. Explicit
+title-based access restrictions in reviewed source formats are normalized into
+session subtitles. RecTimes Stick & Puck titles currently identify Female-only
+and reserved sessions, including SJHA reservations.
 
 ## Filters and session actions
 

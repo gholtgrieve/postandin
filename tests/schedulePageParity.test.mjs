@@ -116,7 +116,7 @@ test('Female/Non-Binary filtering uses normalized audience data with legacy cach
   assert.match(utils, /session\.subtitle, session\.title, session\.sourceLabel/);
 });
 
-test('no schedule displays price, reservations, availability, or sold-out cues', () => {
+test('no schedule displays price, live availability, or sold-out cues', () => {
   const schedule = modules['stick-and-puck/modules/schedule.js'];
   const css = fs.readFileSync('stick-and-puck/schedule.css', 'utf8');
   for (const html of Object.values(pages)) assert.doesNotMatch(html, /data-filter="available"/);
