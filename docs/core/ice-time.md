@@ -22,7 +22,7 @@ Female/Non-Binary filter. The site deliberately does not present source-provided
 price, live availability, remaining-spots, or sold-out claims. Explicit
 title-based access restrictions in reviewed source formats are normalized into
 session subtitles. RecTimes Stick & Puck titles currently identify Female-only
-and reserved sessions, including SJHA reservations.
+and reserved sessions, including SJHA-only sessions.
 
 ## Filters and session actions
 

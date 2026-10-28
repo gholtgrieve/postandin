@@ -442,7 +442,7 @@ test('RecTimes normalizes the reviewed Female Stick & Puck label at either venue
       venueId,
       pacificNow: '2026-01-01T00:00:00',
     });
-    assert.equal(session.subtitle, 'Female only');
+    assert.equal(session.subtitle, 'Female Only');
     assert.equal(session.eligibility.audience, 'female');
     assert.equal(isFemaleOrNonBinarySession(session), true);
   }
@@ -519,17 +519,17 @@ test('RecTimes identifies reserved Stick & Puck sessions from reviewed title sig
   ];
 
   const expected = [
-    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
-    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: 'SJHA Only', notes: 'Reserved for SJHA' },
+    { subtitle: 'SJHA Only', notes: 'Reserved for SJHA' },
     { subtitle: 'Reserved', notes: 'Reserved session' },
     { subtitle: null, notes: null },
-    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: 'SJHA Only', notes: 'Reserved for SJHA' },
     { subtitle: null, notes: null },
     { subtitle: null, notes: null },
     { subtitle: null, notes: null },
     { subtitle: null, notes: null },
     { subtitle: null, notes: null },
-    { subtitle: 'Reserved · SJHA', notes: 'Reserved for SJHA' },
+    { subtitle: 'SJHA Only', notes: 'Reserved for SJHA' },
   ];
 
   for (const venueId of [1145, 1146]) {
