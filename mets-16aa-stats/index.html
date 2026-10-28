@@ -679,7 +679,7 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
           <button class="stat-view-button" type="button" data-stat-view="official" aria-pressed="false">Official</button>
         </div>
       </div>
-      <p class="stat-view-description" id="stat-view-description" aria-live="polite">Seventeen of 29 goals have been reviewed by video with seven corrections. The official record is direct from the scoresheets or NWAHL webpage.</p>
+      <p class="stat-view-description" id="stat-view-description">Seventeen of 29 goals have been reviewed by video, with seven corrections. Video-reviewed totals use confirmed corrections; official totals come directly from scoresheets or the NWAHL webpage.</p>
       <div class="table-shell" tabindex="0" role="region" aria-label="Skater statistics table" aria-describedby="stat-view-description">
         <table data-sortable data-skater-table data-stat-view="reviewed">
           <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Player</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Pos</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">G</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">A</button></th><th scope="col" aria-sort="descending"><button class="sort-button" type="button" data-type="number">PTS</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PEN</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PIM</button></th></tr></thead>
@@ -701,7 +701,6 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
             <tr><td class="number">13</td><td data-sort-value="Lagerholm, Christian">Christian Lagerholm</td><td>F</td><td>14</td><td>1</td><td>0</td><td class="points">1</td><td>3</td><td>6</td></tr>
             <tr><td class="number">6</td><td data-sort-value="Haglof McCallum, Joshua">Joshua Haglof McCallum</td><td>D</td><td>11</td><td>0</td><td>0</td><td class="points">0</td><td>3</td><td>6</td></tr>
             <tr><td class="number">57</td><td data-sort-value="Hines, Ethan">Ethan Hines</td><td>D</td><td>14</td><td>0</td><td>0</td><td class="points">0</td><td>10</td><td>20</td></tr>
-            <tr><td class="number">11</td><td data-sort-value="Oakland, Thor">Thor Oakland</td><td>F</td><td>7</td><td>0</td><td>0</td><td class="points">0</td><td>1</td><td>2</td></tr>
           </tbody>
         </table>
       </div>
@@ -788,11 +787,6 @@ document.querySelectorAll('table[data-sortable]').forEach((table) => {
 });
 
 const skaterTable = document.querySelector('[data-skater-table]');
-const statViewDescription = document.querySelector('#stat-view-description');
-const statViewCopy = {
-  reviewed: 'Seventeen of 29 goals have been reviewed by video with seven corrections. The official record is direct from the scoresheets or NWAHL webpage.',
-  official: 'Official totals use the recorded scoresheet or NWAHL attribution.'
-};
 
 document.querySelectorAll('.stat-view-button').forEach((button) => {
   button.addEventListener('click', () => {
@@ -806,7 +800,6 @@ document.querySelectorAll('.stat-view-button').forEach((button) => {
     document.querySelectorAll('.stat-view-button').forEach((item) => {
       item.setAttribute('aria-pressed', String(item === button));
     });
-    statViewDescription.textContent = statViewCopy[view];
     skaterTable.applyCurrentSort();
   });
 });
