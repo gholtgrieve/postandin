@@ -59,6 +59,7 @@ test('Spokane trip notes include parking, mini golf, and the EWU Q&A', () => {
   assert.match(spokane, /EWU parking &amp; drop-off/);
   assert.match(spokane, /Cedar Street by the garage entrance/);
   assert.match(spokane, /Wonderland Family Fun Center/);
+  assert.match(spokane, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Wonderland\+Family\+Fun\+Center\+Spokane\+WA"[^>]*>Mini golf directions<\/a>/);
   assert.match(spokane, /October 30, 6:30 PM/);
   assert.match(spokane, /\$15\.62 per player, including tax/);
   assert.match(spokane, /Curfew: 10:30 PM/);
