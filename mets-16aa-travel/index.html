@@ -339,6 +339,16 @@ h1 .accent { color: var(--mustard); }
 .matchup { color: var(--ink2); }
 .venue { color: var(--ink3); font-size: 12px; }
 
+.trip-notes {
+  display: grid;
+  gap: 12px;
+  padding: 20px 16px 24px;
+  border-top: 1px solid var(--rule);
+}
+.trip-note { padding: 14px; border-left: 3px solid var(--mustard); background: var(--card); }
+.trip-note h3 { margin-bottom: 5px; font-size: 22px; }
+.trip-note p { color: var(--ink2); }
+
 .trip-footer {
   padding: 0 16px;
   border-top: 1px solid var(--rule);
@@ -391,7 +401,8 @@ body > footer {
   .content { padding-right: 28px; padding-left: 28px; }
   .glance-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trip-heading,
-  .trip-body { padding-right: 24px; padding-left: 24px; }
+  .trip-body,
+  .trip-notes { padding-right: 24px; padding-left: 24px; }
   .travel-fact { padding-right: 24px; padding-left: 24px; }
   .game { grid-template-columns: 88px minmax(0, 1fr) 190px; align-items: baseline; }
   .game time,
@@ -403,6 +414,7 @@ body > footer {
   .glance-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .trip-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr); gap: 36px; }
   .trip-block + .trip-block { margin-top: 0; padding-top: 0; border-top: 0; }
+  .trip-notes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -426,7 +438,7 @@ body > footer {
       <p class="eyebrow">Seattle Junior Mets 16U AA</p>
       <h1 id="page-title">Travel<br><span class="accent">Information</span></h1>
       <p class="season">2026–27 Season</p>
-      <p class="updated">Last updated: October 14, 2026</p>
+      <p class="updated">Last updated: October 29, 2026</p>
       <p class="update-note">Travel information will be updated as lodging and schedules are confirmed. All game times are local to the venue.</p>
     </div>
   </section>
@@ -522,6 +534,20 @@ body > footer {
               <div class="game-day"><p class="day-label">Sunday, November 1</p><div class="game"><time datetime="2026-11-01T11:30">11:30 AM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
             </div>
             <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Eastern+Washington+University+Ice+Rink+Cheney+WA" target="_blank" rel="noopener">EWU Rink directions</a></div>
+          </section>
+        </div>
+        <div class="trip-notes">
+          <section class="trip-note">
+            <h3>EWU parking &amp; drop-off</h3>
+            <p>Allow extra time: the small paid garage under the rink fills quickly. Street parking and a nearby lot are alternatives. For drop-off, use Cedar Street by the garage entrance; players can walk through to the rear door at locker-room level. The garage is tight, so street drop-off may be easiest.</p>
+          </section>
+          <section class="trip-note">
+            <h3>Friday · Mini golf</h3>
+            <p>October 30, 6:30 PM at Wonderland Family Fun Center, Spokane. $15.62 per player, including tax; pay individually. Go-karts, laser tag, and arcade games are optional afterward. <strong>Curfew: 10:30 PM.</strong></p>
+          </section>
+          <section class="trip-note">
+            <h3>Saturday · EWU hockey Q&amp;A</h3>
+            <p>October 31, about 10:30 AM, after the morning game. Meet Joey Porco and EWU hockey players in the former Roost space overlooking the arena. Players: bring a few questions about college and hockey.</p>
           </section>
         </div>
         <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>

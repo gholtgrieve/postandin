@@ -54,6 +54,22 @@ test('Spokane shows Thursday or Friday as arrival options', () => {
   assert.doesNotMatch(spokane, /group-rate booking deadline was September 29/);
 });
 
+test('Spokane trip notes include parking, mini golf, and the EWU Q&A', () => {
+  const spokane = travelPage.match(/<article class="trip priority" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(spokane, /EWU parking &amp; drop-off/);
+  assert.match(spokane, /Cedar Street by the garage entrance/);
+  assert.match(spokane, /Wonderland Family Fun Center/);
+  assert.match(spokane, /October 30, 6:30 PM/);
+  assert.match(spokane, /\$15\.62 per player, including tax/);
+  assert.match(spokane, /Curfew: 10:30 PM/);
+  assert.match(spokane, /October 31, about 10:30 AM/);
+  assert.match(spokane, /Joey Porco/);
+  assert.match(spokane, /former Roost space/);
+  const notes = spokane.match(/<div class="trip-notes">([\s\S]*?)<footer class="trip-footer">/);
+  assert.ok(notes, 'Spokane trip notes should appear before the trip footer');
+  assert.doesNotMatch(notes[1], /<(?:img|iframe)\b/);
+});
+
 test('Portland shows both Beaverton games and the Tigard room block', () => {
   const glance = travelPage.match(/<a class="glance-link" href="#portland">([\s\S]*?)<\/a>/)?.[1] ?? '';
   const portland = travelPage.match(/<article class="trip" id="portland">([\s\S]*?)<\/article>/)?.[1] ?? '';
