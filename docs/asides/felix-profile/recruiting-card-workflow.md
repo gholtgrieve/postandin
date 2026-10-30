@@ -6,12 +6,23 @@ head-coach contact information for recruiting use.
 
 ## Requirements
 
-Use Python 3 with `Pillow`, `pypdf`, `qrcode`, and `reportlab` installed. The
-generator also requires these font files:
+Use Python 3 and install the versions used to generate the committed proof:
 
 ```sh
-python3 -m pip install Pillow pypdf qrcode reportlab
+python3 -m pip install \
+  Pillow==12.3.0 \
+  pypdf==6.10.0 \
+  qrcode==8.2 \
+  reportlab==4.4.9
 ```
+
+Install Poppler for the visual-review command:
+
+```sh
+brew install poppler
+```
+
+The generator also requires these font files, available from Google Fonts:
 
 - `BebasNeue-Regular.ttf`;
 - `IBMPlexMono-Regular.ttf`;
@@ -32,8 +43,9 @@ python3 scripts/create-felix-recruiting-card.py
 
 The generator writes the two-page PDF to
 `output/pdf/felix-holtgrieve-recruiting-card-draft.pdf`. Page one is the front,
-and page two is the back. It also assigns the correct 3.5-by-2-inch trim box and
-the surrounding 1/8-inch print area.
+and page two is the back. It assigns a 3.5-by-2-inch trim box, extends edge
+artwork through the surrounding 1/8-inch bleed, and writes deterministic PDF
+metadata so an unchanged regeneration is byte-for-byte stable.
 
 Render and inspect both pages before committing a revised card:
 

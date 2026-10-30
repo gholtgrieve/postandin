@@ -25,7 +25,6 @@ CANVAS_H = PAGE_H + 2 * BLEED
 PROFILE_URL = "https://postandin.com/felix-holtgrieve/"
 
 PAPER = HexColor("#E8E3D8")
-WHITE = HexColor("#FFFFFF")
 PANEL = HexColor("#EFEBE2")
 RULE = HexColor("#B8B2A4")
 INK = HexColor("#2E2A26")
@@ -43,7 +42,6 @@ def find_font(filename):
         [
             Path.home() / "Library" / "Fonts" / filename,
             Path("/Library/Fonts") / filename,
-            Path("/private/tmp/felix-card-fonts") / filename,
         ]
     )
     for candidate in candidates:
@@ -108,21 +106,27 @@ def tracking_text(c, text, x, y, font, size, color, tracking=0.8):
 
 
 def draw_front(c):
-    # Keep the extra 1/8-inch print area white so the trim edge is visible.
-    c.setFillColor(WHITE)
+    # Extend edge artwork through the full 1/8-inch bleed area.
+    c.setFillColor(PAPER)
     c.rect(0, 0, CANVAS_W, CANVAS_H, fill=1, stroke=0)
 
     c.saveState()
     c.translate(BLEED, BLEED)
 
-    c.setFillColor(PAPER)
-    c.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
-
     photo_w = 104
-    draw_crop_fill(c, HEADSHOT, 0, 0, photo_w, PAGE_H, focus_x=0.5, focus_y=0.26)
+    draw_crop_fill(
+        c,
+        HEADSHOT,
+        -BLEED,
+        -BLEED,
+        photo_w + BLEED,
+        PAGE_H + 2 * BLEED,
+        focus_x=0.5,
+        focus_y=0.26,
+    )
 
     c.setFillColor(MUSTARD)
-    c.rect(photo_w, 0, 4, PAGE_H, fill=1, stroke=0)
+    c.rect(photo_w, -BLEED, 4, PAGE_H + 2 * BLEED, fill=1, stroke=0)
 
     x = 121
     tracking_text(c, "SEATTLE JUNIOR METS 16U AA", x, 119, "IBMPlexMono-Bold", 5.1, MUSTARD_2, tracking=0.35)
@@ -153,16 +157,13 @@ def draw_front(c):
 
 
 def draw_back(c):
-    c.setFillColor(WHITE)
+    c.setFillColor(INK)
     c.rect(0, 0, CANVAS_W, CANVAS_H, fill=1, stroke=0)
+    c.setFillColor(MUSTARD)
+    c.rect(0, BLEED + PAGE_H - 4, CANVAS_W, BLEED + 4, fill=1, stroke=0)
 
     c.saveState()
     c.translate(BLEED, BLEED)
-
-    c.setFillColor(INK)
-    c.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
-    c.setFillColor(MUSTARD)
-    c.rect(0, PAGE_H - 4, PAGE_W, 4, fill=1, stroke=0)
 
     x = 15
     c.setFillColor(PAPER)
@@ -239,7 +240,9 @@ def main():
     QR_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     make_qr()
-    c = canvas.Canvas(str(RAW_OUTPUT), pagesize=(CANVAS_W, CANVAS_H))
+    c = canvas.Canvas(
+        str(RAW_OUTPUT), pagesize=(CANVAS_W, CANVAS_H), invariant=1
+    )
     c.setTitle("Felix Holtgrieve Recruiting Card - Draft")
     c.setAuthor("Post & In")
     c.setSubject("Two-sided player recruiting card")
