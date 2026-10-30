@@ -89,6 +89,21 @@ test('Portland shows both Beaverton games and the Tigard room block', () => {
   assert.match(portland, /class="game-arrival-note"/);
 });
 
+test('Medford shows the verified Homewood Suites room block', () => {
+  const glance = travelPage.match(/<a class="glance-link" href="#medford">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  const medford = travelPage.match(/<article class="trip" id="medford">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(glance, /Jan\. 30–31 · Arrive Saturday/);
+  assert.match(glance, /Book by Dec\. 30/);
+  assert.match(medford, /Homewood Suites by Hilton Medford/);
+  assert.match(medford, /2010 Hospitality Way, Medford, OR 97504/);
+  assert.match(medford, /<p class="rate">One-bedroom two-queen suite: \$129 per night<\/p>\s*<p class="muted">One-bedroom king suite: \$119 per night<\/p>/);
+  assert.match(medford, /Room block: January 29–31/);
+  assert.match(medford, /One- or two-night stays are available/);
+  assert.match(medford, /Book by December 30 for the group rate/);
+  assert.match(medford, /hilton\.com\/en\/attend-my-event\/mfrhwhw-sea-4c346d92-390f-458d-9853-2284b4775685\//);
+  assert.doesNotMatch(medford, /Hotel TBD/);
+});
+
 test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
   const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
