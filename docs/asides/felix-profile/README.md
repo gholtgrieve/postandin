@@ -26,6 +26,11 @@ versioned outputs to the dedicated media host through authenticated Wrangler.
 
 See [Felix clip workflow](media-workflow.md).
 
+The public, two-sided recruiting-card proof and its generator are versioned so
+the card can be revised from another development computer. Generated previews
+and other intermediate files remain local. See
+[Felix recruiting-card workflow](recruiting-card-workflow.md).
+
 ## Privacy and publication
 
 - Do not commit source footage, official academic records, credentials, or

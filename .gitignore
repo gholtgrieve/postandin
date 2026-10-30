@@ -23,3 +23,7 @@ felix-holtgrieve/**/*.mp4
 felix-holtgrieve/**/*.mov
 felix-holtgrieve/**/*.webm
 .Rproj.user
+scripts/scripts.Rproj
+
+# Generated recruiting-card previews and Python bytecode are local intermediates.
+tmp/
