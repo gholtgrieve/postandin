@@ -26,6 +26,10 @@ roster and season-total information. Its skater table defaults to confirmed
 video-reviewed scoring attributions and can be switched to the official
 scoresheet/NWAHL totals. Updates are manual.
 
+Future agents must follow the canonical [data and statistics
+runbook](data-and-stats-runbook.md) when adding games, reconciling sources,
+recording video reviews, or refreshing the page.
+
 Both URLs are public to anyone who receives the link. `noindex` is not access
 control.
 
