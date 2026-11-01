@@ -759,12 +759,14 @@ WITH goalie_games AS (
     gp.game_id,
     gp.player_id,
     COALESCE(gs.decision,
-      CASE gm.outcome
-        WHEN 'win' THEN 'W'
-        WHEN 'loss' THEN 'L'
-        WHEN 'tie' THEN 'T'
-        WHEN 'overtime_win' THEN 'OTW'
-        WHEN 'overtime_loss' THEN 'OTL'
+      CASE WHEN COUNT(*) OVER (PARTITION BY gp.game_id) = 1 THEN
+        CASE gm.outcome
+          WHEN 'win' THEN 'W'
+          WHEN 'loss' THEN 'L'
+          WHEN 'tie' THEN 'T'
+          WHEN 'overtime_win' THEN 'OTW'
+          WHEN 'overtime_loss' THEN 'OTL'
+        END
       END
     ) AS decision,
     CASE
