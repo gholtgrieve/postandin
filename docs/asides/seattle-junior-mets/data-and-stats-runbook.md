@@ -917,33 +917,32 @@ After editing the page:
    `tests/teamStatsPageVisibility.test.mjs` so the test describes the current
    validated database rather than an older game count; derive the expected
    values from database queries, never by copying the rendered page;
-2. run the focused test;
-3. run JavaScript syntax checking on any extracted or changed script that Node
+2. if Felix Holtgrieve's (#17) games played or reviewed goals, assists, or
+   points changed, update the visible season-stat line and screen-reader copy in
+   `felix-holtgrieve/index.html`;
+3. run both focused page tests so the Felix profile remains synchronized with
+   the reviewed team totals;
+4. run JavaScript syntax checking on any extracted or changed script that Node
    can parse;
-4. serve the site locally;
-5. inspect the page at desktop and mobile widths;
-6. exercise sorting, the official/reviewed toggle, keyboard focus, and chart
+5. serve the site locally;
+6. inspect the page at desktop and mobile widths;
+7. exercise sorting, the official/reviewed toggle, keyboard focus, and chart
    tooltips;
-7. check the browser console; and
-8. verify `robots.txt`, `sitemap.xml`, `_headers`, page metadata, and unknown-path
+8. check the browser console; and
+9. verify `robots.txt`, `sitemap.xml`, `_headers`, page metadata, and unknown-path
    behavior together if routing or visibility changed.
 
 Typical commands:
 
 ```bash
 cd "/Users/gordonholtgrieve/Dropbox (Your team)/Documents/postandin"
-node --test tests/teamStatsPageVisibility.test.mjs
+node --test tests/teamStatsPageVisibility.test.mjs tests/felixProfileVisibility.test.mjs
 python3 -m http.server 8765
 git diff --check
 ```
 
 Do not claim a browser or test check passed if it could not run. Report the
 remaining manual check.
-
-At the time this runbook was written, the focused page test contained stale
-season expectations and failed three of seven assertions. Treat that as known
-test debt to repair during the next stats-page data refresh; do not describe
-the suite as passing until all current assertions pass.
 
 ## Review, commit, and deployment sequence
 

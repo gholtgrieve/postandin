@@ -13,6 +13,11 @@ Each manifest entry has an internal score that controls its position in the
 profile library. Higher-scored clips appear first, tied clips retain their
 manifest order, and scores are not rendered on the profile or watch pages.
 
+The profile's current-season scoring line mirrors Felix's video-reviewed values
+from the unlisted team statistics page at `mets-16aa-stats/index.html`. Keep the
+two pages synchronized when those reviewed totals change; the Felix profile test
+enforces the relationship.
+
 The Live Ian Doner and Max Doner coach profiles include a small,
 server-rendered link to Felix's profile because he has trained with both
 coaches. These contextual links are not part of the Coaches directory,

@@ -164,6 +164,22 @@ h1 {
   line-height: .9;
 }
 
+.season-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 16px;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.season-stats-label { color: var(--mustard2); }
+.season-stats-values { white-space: nowrap; }
+
 .facts {
   grid-area: facts;
   min-width: 0;
@@ -452,6 +468,7 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .headshot { align-self: end; }
   h1 { font-size: clamp(38px, 10vw, 44px); }
   .family-name { display: block; }
+  .season-stats { gap: 4px 8px; font-size: 11px; letter-spacing: .04em; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 6px; }
   .fact:last-child { grid-column: span 2; }
   .clip-grid { grid-template-columns: 1fr; }
@@ -499,6 +516,10 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .fact { padding: 12px 10px; }
   .fact dd { font-size: 22px; }
 }
+
+@media (max-width: 360px) {
+  .season-stats { font-size: 10px; letter-spacing: 0; }
+}
 </style>
 </head>
 <body>
@@ -518,6 +539,11 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
           <span class="season-badge">2026–27 Season</span>
         </div>
         <h1 id="profile-title"><span>Felix</span> <span class="family-name">Holtgrieve</span></h1>
+        <p class="season-stats">
+          <span class="sr-only">2026–27 season statistics: 16 games played, 2 goals, 5 assists, and 7 points.</span>
+          <span class="season-stats-label" aria-hidden="true">2026–27 Stats</span>
+          <span class="season-stats-values" aria-hidden="true">16 GP · 2 G · 5 A · 7 PTS</span>
+        </p>
       </div>
       <dl class="facts" aria-label="Player facts">
         <div class="fact">

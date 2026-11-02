@@ -10,6 +10,7 @@ const profileScript = read('felix-holtgrieve/profile.js');
 const watchControlsScript = read('felix-holtgrieve/watch-controls.js');
 const watchControlsCss = read('felix-holtgrieve/watch-controls.css');
 const clipManifest = read('felix-holtgrieve/clips.js');
+const teamStatsPage = read('mets-16aa-stats/index.html');
 const sitemap = read('sitemap.xml');
 const robots = read('robots.txt');
 const headers = read('_headers');
@@ -100,6 +101,34 @@ test('Felix profile scaffold includes verified facts and a clip fallback state',
   assert.doesNotMatch(page, /Defenseman profile and video highlights/);
   assert.match(page, /2026–27 Highlights/);
   assert.match(page, new RegExp(`<p class="season-label">${clips.length} clip${clips.length === 1 ? '' : 's'}<\\/p>`));
+});
+
+test('profile season stats match the team page video-reviewed totals', () => {
+  const felixRow = teamStatsPage.match(/<tr><td class="number">17<\/td><td data-sort-value="Holtgrieve, Felix">Felix Holtgrieve<\/td>[\s\S]*?<\/tr>/)?.[0];
+  assert.ok(felixRow, 'Felix must have a row in the team stats table');
+
+  const gamesPlayed = felixRow.match(/<td>D<\/td><td>(\d+)<\/td>/)?.[1];
+  const reviewedScoring = [...felixRow.matchAll(/data-reviewed="(\d+)"/g)].map((match) => match[1]);
+  assert.match(gamesPlayed ?? '', /^\d+$/, 'expected a games-played value');
+  assert.equal(reviewedScoring.length, 3, 'expected reviewed goals, assists, and points');
+  assert.ok(reviewedScoring.every((value) => /^\d+$/.test(value)), 'reviewed scoring values must be numeric');
+
+  const [goals, assists, points] = reviewedScoring;
+  const accessibleStats = `2026–27 season statistics: ${gamesPlayed} games played, ${goals} goals, ${assists} assists, and ${points} points.`;
+  assert.match(
+    page,
+    new RegExp(`<span class="season-stats-values" aria-hidden="true">${gamesPlayed} GP · ${goals} G · ${assists} A · ${points} PTS<\\/span>`),
+  );
+  assert.match(page, new RegExp(`<span class="sr-only">${escapeRegExp(accessibleStats)}<\\/span>`));
+  assert.doesNotMatch(page, />[^<]*Video reviewed[^<]*</i);
+
+  for (const [path, content] of [
+    ['felix-holtgrieve/index.html', page],
+    ['felix-holtgrieve/profile.js', profileScript],
+    ...clips.map((clip) => [clip.pageSrc, readClipWatchPage(clip)]),
+  ]) {
+    assert.doesNotMatch(content, /mets-16aa-stats/, path);
+  }
 });
 
 test('playing history lists Seattle Junior teams and invite-only development recognition', () => {
