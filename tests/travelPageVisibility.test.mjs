@@ -43,19 +43,15 @@ test('every trip with published game times includes the warmup reminder', () => 
   }
 });
 
-test('Spokane shows Thursday or Friday as arrival options', () => {
-  const glance = travelPage.match(/<a class="glance-link" href="#spokane">([\s\S]*?)<\/a>/)?.[1] ?? '';
-  const spokane = travelPage.match(/<article class="trip priority" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
-  assert.match(glance, /Arrive Thu or Fri/);
-  assert.match(glance, /Hotel updates until Oct\. 29/);
+test('archived Spokane retains arrival options without expired booking actions', () => {
+  const spokane = travelPage.match(/<article class="trip" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
   assert.match(spokane, /<span class="fact-label">Arrive<\/span><span class="fact-value arrival-options">Thursday <span class="arrival-alternative">or Friday<\/span>/);
-  assert.match(spokane, /A Friday–Sunday stay is also available/);
-  assert.match(spokane, /You can update your hotel reservation until October 29\./);
+  assert.doesNotMatch(spokane, /Room block: October 29–November 1|A Friday–Sunday stay is also available|You can update your hotel reservation until October 29\.|class="action-link primary"|mailto:|tel:|hotelCode=SKASH/);
   assert.doesNotMatch(spokane, /group-rate booking deadline was September 29/);
 });
 
 test('Spokane trip notes include parking, mini golf, and the EWU Q&A', () => {
-  const spokane = travelPage.match(/<article class="trip priority" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  const spokane = travelPage.match(/<article class="trip" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
   assert.match(spokane, /EWU parking &amp; drop-off/);
   assert.match(spokane, /Cedar Street by the garage entrance/);
   assert.match(spokane, /Wonderland Family Fun Center/);
@@ -107,13 +103,20 @@ test('Medford shows the verified Homewood Suites room block', () => {
 test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
   const glance = travelPage.match(/<nav id="trips"[\s\S]*?<\/nav>/)?.[0] ?? '';
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
+  assert.doesNotMatch(glance, /href="#spokane"/);
   assert.doesNotMatch(glance, /href="#tacoma"/);
   assert.doesNotMatch(glance, /href="#tri-cities-october"/);
-  assert.deepEqual([...travelPage.matchAll(/<article class="trip priority" id="([^"]+)">/g)].map(match => match[1]), ['spokane']);
-  assert.match(travelPage, /<article class="trip priority" id="spokane">\s*<header class="trip-heading"><p class="eyebrow">Next trip<\/p>/);
+  assert.deepEqual([...travelPage.matchAll(/<article class="trip priority" id="([^"]+)">/g)].map(match => match[1]), ['tri-cities']);
+  assert.match(travelPage, /<article class="trip priority" id="tri-cities">\s*<header class="trip-heading"><p class="eyebrow">Next trip<\/p>/);
+  const triCitiesGlance = glance.match(/<a class="glance-link" href="#tri-cities">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  assert.match(triCitiesGlance, /Group deadline passed/);
+  assert.match(travelPage, /The group-rate deadline was October 30\. Check the booking link or call the hotel for current availability and rates\./);
+  assert.doesNotMatch(travelPage, /Book by October 30 for the group rate/);
   assert.ok(archiveStart > travelPage.indexOf('<article class="trip" id="gopher-state">'));
+  assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Spokane · October 29–November 1, 2026<\/summary>\s*<article class="trip" id="spokane">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tri-Cities · October 3–4, 2026<\/summary>\s*<article class="trip" id="tri-cities-october">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tacoma · September 25–27, 2026<\/summary>\s*<article class="trip" id="tacoma">/);
+  assert.ok(travelPage.indexOf('<article class="trip" id="spokane">') < travelPage.indexOf('<article class="trip" id="tri-cities-october">'));
   assert.ok(travelPage.indexOf('<article class="trip" id="tri-cities-october">') < travelPage.indexOf('<article class="trip" id="tacoma">'));
   assert.doesNotMatch(travelPage, /groupCode=100326SEA|Book by September 30 for the group rate/);
   assert.doesNotMatch(travelPage.slice(archiveStart), /ctyhocn=SEADPHX/);
