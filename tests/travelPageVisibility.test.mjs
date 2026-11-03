@@ -43,6 +43,22 @@ test('every trip with published game times includes the warmup reminder', () => 
   }
 });
 
+test('trips with one rink show it once above the games, while multi-rink trips keep game labels', () => {
+  const trips = [...travelPage.matchAll(/<article class="trip(?: priority)?" id="([^"]+)">([\s\S]*?)<\/article>/g)];
+  assert.ok(trips.some(([, id]) => id === 'tacoma'), 'Tacoma should be checked as the multi-rink trip');
+
+  for (const [, id, trip] of trips) {
+    const venues = [...trip.matchAll(/<span class="venue">([^<]+)<\/span>/g)].map(match => match[1]);
+    if (!venues.length) continue;
+    const sharedVenue = /class="games games-shared-venue"/.test(trip);
+    assert.equal(sharedVenue, new Set(venues).size === 1, `${id}: only single-rink trips may hide game labels`);
+    if (sharedVenue) {
+      assert.match(trip, /<p class="muted"[^>]*>(?:All|Both|Two) games [^<]+<\/p>\s*<div class="games games-shared-venue">/, id);
+    }
+  }
+  assert.match(travelPage, /\.games-shared-venue \.venue \{ display: none; \}/);
+});
+
 test('archived Spokane retains arrival options without expired booking actions', () => {
   const spokane = travelPage.match(/<article class="trip" id="spokane">([\s\S]*?)<\/article>/)?.[1] ?? '';
   assert.match(spokane, /<span class="fact-label">Arrive<\/span><span class="fact-value arrival-options">Thursday <span class="arrival-alternative">or Friday<\/span>/);

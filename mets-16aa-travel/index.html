@@ -338,6 +338,10 @@ h1 .accent { color: var(--mustard); }
 .game-time-tbd { color: var(--ink3); }
 .matchup { color: var(--ink2); }
 .venue { color: var(--ink3); font-size: 12px; }
+.games-shared-venue .venue { display: none; }
+.games-shared-venue .game { grid-template-columns: 72px minmax(0, 1fr); }
+.games-shared-venue .game.game-range { grid-template-columns: 118px minmax(0, 1fr); }
+.games-shared-venue .game time { grid-row: auto; }
 
 .trip-notes {
   display: grid;
@@ -405,6 +409,7 @@ body > footer {
   .trip-notes { padding-right: 24px; padding-left: 24px; }
   .travel-fact { padding-right: 24px; padding-left: 24px; }
   .game { grid-template-columns: 88px minmax(0, 1fr) 190px; align-items: baseline; }
+  .games-shared-venue .game { grid-template-columns: 88px minmax(0, 1fr); }
   .game time,
   .game-time-tbd { grid-row: auto; }
   .venue { font-size: 13px; text-align: right; }
@@ -516,7 +521,7 @@ body > footer {
             <h3 id="tricities-games">Games</h3>
             <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
             <p class="muted" style="margin-bottom: 15px">All games at Toyota Arena Rink B in Kennewick.</p>
-            <div class="games">
+            <div class="games games-shared-venue">
               <div class="game-day"><p class="day-label">Friday, November 13</p><div class="game"><time datetime="2026-11-13T09:45">9:45 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">Toyota Arena · Rink B</span></div><div class="game"><time datetime="2026-11-13T16:45">4:45 PM</time><span class="matchup">Tri-Cities Jr. Americans 16U @ Seattle Jr. Mets 16AA</span><span class="venue">Toyota Arena · Rink B</span></div></div>
               <div class="game-day"><p class="day-label">Saturday, November 14</p><div class="game"><time datetime="2026-11-14T10:30">10:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">Toyota Arena · Rink B</span></div></div>
               <div class="game-day"><p class="day-label">Sunday, November 15</p><div class="game"><time datetime="2026-11-15T14:00">2:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">Toyota Arena · Rink B</span></div></div>
@@ -550,7 +555,7 @@ body > footer {
             <h3 id="newmexico-games">Games</h3>
             <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
             <p class="muted" style="margin-bottom: 15px">All games at Outpost Ice Arenas in Albuquerque.</p>
-            <div class="games">
+            <div class="games games-shared-venue">
               <div class="game-day"><p class="day-label">Friday, December 4</p><div class="game"><time datetime="2026-12-04T13:15">1:15 PM</time><span class="matchup">Utah Jr. Grizzlies @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div></div>
               <div class="game-day"><p class="day-label">Saturday, December 5</p><div class="game"><time datetime="2026-12-05T09:15">9:15 AM</time><span class="matchup">New Mexico Ice Wolves @ Seattle Jr. Mets 16AA</span><span class="venue">Outpost Ice Arenas</span></div><div class="game"><time datetime="2026-12-05T14:15">2:15 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Monument Hockey Club</span><span class="venue">Outpost Ice Arenas</span></div></div>
               <div class="game-day"><p class="day-label">Sunday, December 6</p><div class="game"><time datetime="2026-12-06T11:30">11:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Monument Hockey Club</span><span class="venue">Outpost Ice Arenas</span></div></div>
@@ -583,7 +588,7 @@ body > footer {
             <h3 id="portland-games">Games</h3>
             <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
             <p class="muted" style="margin-bottom: 15px">Both games at Winterhawks Skating Center in Beaverton.</p>
-            <div class="games">
+            <div class="games games-shared-venue">
               <div class="game-day"><p class="day-label">Saturday, January 9</p><div class="game game-range"><time datetime="2027-01-09T18:30">6:30–8:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Portland Jr. Winterhawks</span><span class="venue">Winterhawks Skating Center · Beaverton</span></div></div>
               <div class="game-day"><p class="day-label">Sunday, January 10</p><div class="game game-range"><time datetime="2027-01-10T09:00">9:00–10:30 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Portland Jr. Winterhawks</span><span class="venue">Winterhawks Skating Center · Beaverton</span></div></div>
             </div>
@@ -641,7 +646,7 @@ body > footer {
             <h3 id="medford-games">Games</h3>
             <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
             <p class="muted" style="margin-bottom: 15px">Two games against Cascade Selects at The RRRink in Medford.</p>
-            <div class="games">
+            <div class="games games-shared-venue">
               <div class="game-day"><p class="day-label">Saturday, January 30</p><div class="game"><time datetime="2027-01-30T17:00">5:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Cascade Selects</span><span class="venue">The RRRink</span></div></div>
               <div class="game-day"><p class="day-label">Sunday, January 31</p><div class="game"><time datetime="2027-01-31T09:00">9:00 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Cascade Selects</span><span class="venue">The RRRink</span></div></div>
             </div>
@@ -702,7 +707,7 @@ body > footer {
               <h3 id="spokane-games">Games</h3>
               <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
               <p class="muted" style="margin-bottom: 15px">All games at Eastern Washington University Rink in Cheney.</p>
-              <div class="games">
+              <div class="games games-shared-venue">
                 <div class="game-day"><p class="day-label">Friday, October 30</p><div class="game"><time datetime="2026-10-30T14:00">2:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Spokane Jr. Chiefs</span><span class="venue">EWU Rink</span></div></div>
                 <div class="game-day"><p class="day-label">Saturday, October 31</p><div class="game"><time datetime="2026-10-31T08:15">8:15 AM</time><span class="matchup">Seattle Jr. Mets 16AA @ Boise Jr. Steelheads</span><span class="venue">EWU Rink</span></div><div class="game"><time datetime="2026-10-31T19:15">7:15 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">EWU Rink</span></div></div>
                 <div class="game-day"><p class="day-label">Sunday, November 1</p><div class="game"><time datetime="2026-11-01T11:30">11:30 AM</time><span class="matchup">Spokane Jr. Chiefs @ Seattle Jr. Mets 16AA</span><span class="venue">EWU Rink</span></div></div>
@@ -749,7 +754,7 @@ body > footer {
               <h3 id="tricities-october-games">Games</h3>
               <p class="game-arrival-note"><strong>Warmup-ready 1 hour before</strong>Listed times are game times. Players should arrive about 1 hour 15 minutes early so their hockey gear is stored in the locker room and they are in warmup attire, ready to begin pre-game warmups one hour before game time.</p>
               <p class="muted" style="margin-bottom: 15px">Both games against Tri-Cities Jr. Americans at Toyota Arena Rink B in Kennewick.</p>
-              <div class="games">
+              <div class="games games-shared-venue">
                 <div class="game-day"><p class="day-label">Saturday, October 3</p><div class="game"><time datetime="2026-10-03T13:45">1:45 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
                 <div class="game-day"><p class="day-label">Sunday, October 4</p><div class="game"><time datetime="2026-10-04T12:30">12:30 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans</span><span class="venue">Toyota Arena · Rink B</span></div></div>
               </div>
