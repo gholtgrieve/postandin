@@ -10,6 +10,22 @@ export const categoryLabels = Object.freeze({
 
 export const clips = [
   {
+    id: '2026-11-01-high-slot-shot-block',
+    internalRank: 7,
+    title: 'High-slot shot block',
+    description: 'Felix Holtgrieve (#17) steps into the shooting lane to block a high-slot shot against the Spokane Jr. Chiefs.',
+    categories: ['defensive'],
+    opponent: 'Spokane Jr. Chiefs',
+    date: '2026-11-01',
+    uploadDate: '2026-11-03T15:05:43-08:00',
+    durationSeconds: 5.767,
+    pageSrc: '/felix-holtgrieve/video/2026-11-01-high-slot-shot-block/',
+    posterSrc: 'https://media.postandin.com/felix/2026-27/2026-11-01-high-slot-shot-block/v1/2026-11-01-high-slot-shot-block.jpg',
+    previewSrc: 'https://media.postandin.com/felix/2026-27/2026-11-01-high-slot-shot-block/v1/2026-11-01-high-slot-shot-block-preview.mp4',
+    fullSrc: 'https://media.postandin.com/felix/2026-27/2026-11-01-high-slot-shot-block/v1/2026-11-01-high-slot-shot-block.mp4',
+    captionsSrc: '',
+  },
+  {
     id: '2026-10-24-primary-assist-on-tipped-point-shot',
     internalRank: 6,
     title: 'Primary assist on tipped point shot',

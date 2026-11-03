@@ -161,8 +161,8 @@ test('playing history lists Seattle Junior teams and invite-only development rec
 });
 
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
-  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=18"/);
-  assert.match(profileScript, /from '\.\/clips\.js\?v=18'/);
+  assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=19"/);
+  assert.match(profileScript, /from '\.\/clips\.js\?v=19'/);
   assert.match(profileScript, /import '\.\/watch-controls\.js\?v=1'/);
   for (const category of ['defensive', 'offensive', 'puck-movement', 'special-teams']) {
     assert.match(page, new RegExp(`data-category="${category}"`));
@@ -220,6 +220,7 @@ test('clip library scaffolds categories, efficient previews, and full playback',
 test('clip library renders by internal rank without displaying scores', () => {
   const expectedRanks = new Map([
     ['2026-10-18-goal-from-the-slot', 8],
+    ['2026-11-01-high-slot-shot-block', 7],
     ['2026-10-24-power-play-goal-from-the-point', 7],
     ['2026-10-24-primary-assist-on-tipped-point-shot', 6],
     ['2026-10-31-stickhandling-to-centering-pass', 6],
@@ -228,6 +229,7 @@ test('clip library renders by internal rank without displaying scores', () => {
   ]);
   const expectedIds = [
     '2026-10-18-goal-from-the-slot',
+    '2026-11-01-high-slot-shot-block',
     '2026-10-24-power-play-goal-from-the-point',
     '2026-10-24-primary-assist-on-tipped-point-shot',
     '2026-10-31-stickhandling-to-centering-pass',
