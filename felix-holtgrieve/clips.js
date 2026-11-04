@@ -13,7 +13,7 @@ export const clips = [
     id: '2026-11-01-high-slot-shot-block',
     internalRank: 7,
     title: 'High-slot shot block',
-    description: 'Felix Holtgrieve (#17) steps into the shooting lane to block a high-slot shot against the Spokane Jr. Chiefs.',
+    description: 'Felix Holtgrieve (#17) steps into the shooting lane to block a Spokane Jr. Chiefs shot from the high slot.',
     categories: ['defensive'],
     opponent: 'Spokane Jr. Chiefs',
     date: '2026-11-01',
