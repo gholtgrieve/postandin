@@ -101,6 +101,16 @@ test('Portland shows both Beaverton games and the Tigard room block', () => {
   assert.match(portland, /class="game-arrival-note"/);
 });
 
+test('Albuquerque shows the expired group deadline without implying the rate is still available', () => {
+  const glance = travelPage.match(/<a class="glance-link" href="#new-mexico">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  const albuquerque = travelPage.match(/<article class="trip" id="new-mexico">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(travelPage, /Last updated: November 4, 2026/);
+  assert.match(glance, /<span class="status">Group deadline passed<\/span>/);
+  assert.doesNotMatch(glance, /Book by Nov\. 3/);
+  assert.match(albuquerque, /The group-rate deadline was November 3\. Check the booking link or call the hotel for current availability and rates\./);
+  assert.doesNotMatch(albuquerque, /Plan to book by November 3, 2026/);
+});
+
 test('Medford shows the verified Homewood Suites room block', () => {
   const glance = travelPage.match(/<a class="glance-link" href="#medford">([\s\S]*?)<\/a>/)?.[1] ?? '';
   const medford = travelPage.match(/<article class="trip" id="medford">([\s\S]*?)<\/article>/)?.[1] ?? '';
