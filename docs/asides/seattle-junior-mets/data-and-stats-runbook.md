@@ -64,7 +64,7 @@ instead of assuming that two paths represent two repositories.
    repository. Video files are local review evidence, not website assets.
 9. **Stop before external actions.** Commit, push, deploy, publish, cache purge,
    and production changes require the owner's explicit approval.
-10. **Ask about genuine judgment calls.** Manpower states, cancelled penalties,
+10. **Ask about genuine judgment calls.** Player-count states, cancelled penalties,
     coincident penalties, participation conflicts, ambiguous player numbers,
     and unclear goalie or shot totals require human review.
 
@@ -92,7 +92,7 @@ Do not collapse these layers into one corrected row.
 | `goals` | Official source event and goal context | For Seattle Junior goals, source scorer and assists become immutable after import. |
 | `penalties` | Assessed penalty records | Bench penalties have no `player_id`; `served_by_player_id` is separate. Misconducts are separate records. |
 | `game_team_stats` | Goals, shots, and special-team totals for each team | Add one row for Seattle Junior and one for the opponent. Missing values remain `NULL`. |
-| `game_short_handed_time` | Reviewed elapsed manpower-disadvantage time by game and team | Count clock time once when the team has fewer skaters because of a penalty; preserve the source, calculation note, and verification status. |
+| `game_short_handed_time` | Reviewed elapsed player-disadvantage time by game and team | Count clock time once when the team has fewer players because of a penalty; preserve the source, calculation note, and verification status. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
 | `source_discrepancies` | Score-sheet, NWAHL, and database differences | Record both competing values, the reviewed database value, and the resolution basis. |
 | `goal_attributions` | Immutable official and video-reviewed scoring credit | Corrections are new superseding records; never update or delete attribution content. |
@@ -104,7 +104,7 @@ Do not collapse these layers into one corrected row.
 |---|---|
 | `official_goal_attributions` | Current score-sheet attribution, falling back to NWAHL when no score-sheet record exists. |
 | `published_goal_attributions` | Confirmed video review when available, otherwise the official attribution. |
-| `official_player_summary` | Skater scoring totals from the official attribution view. |
+| `official_player_summary` | Player scoring totals from the official attribution view. |
 | `player_summary` | Public reviewed totals from the published attribution view. |
 | `goal_attribution_review_queue` | Official and reviewed credit side by side, including review state and video timestamp. |
 | `sj_goals_by_period` | Seattle Junior goal counts by game and period. |
@@ -168,19 +168,19 @@ When sources disagree:
   agreed team analysis uses period only. A video timestamp belongs in
   `goal_attributions.video_timestamp`.
 - Use normalized goal strengths `even_strength`, `power_play`,
-  `short_handed`, or `unknown`. Record exact manpower, such as 5-on-5 or 5-on-4,
+  `short_handed`, or `unknown`. Record exact player counts, such as 5-on-5 or 5-on-4,
   in notes when human review establishes it.
 - Do not calculate power-play opportunities from penalty count alone. A
-  cancelled penalty creates no opportunity; a misconduct creates no manpower
+  cancelled penalty creates no opportunity; a misconduct creates no player
   advantage; coincident penalties may remain 5-on-5; and an additional minor
   can create an advantage.
 - Calculate `game_short_handed_time.short_handed_seconds` from the reviewed
   penalty start/end clocks and power-play goal sequence. Count elapsed time
-  once whenever the team has fewer skaters because of a penalty. Exclude
+  once whenever the team has fewer players because of a penalty. Exclude
   misconducts, coincident and 4-on-4 intervals, and time after a power-play
   goal ends a minor. Do not double-count overlapping 5-on-3 time, and truncate
   a final-period penalty at the final horn. Use `NULL` with an `unavailable`
-  status when the clocks or manpower sequence cannot establish the duration.
+  status when the clocks or player-count sequence cannot establish the duration.
 - Treat goal-event strength and `game_team_stats` special-team totals as
   separate claims that must reconcile. If the reported power-play goal count
   does not match goals explicitly marked `power_play`, retain the reported
@@ -268,7 +268,7 @@ Prepare a human-readable summary containing:
   and backup-goalie status;
 - every goal for both teams by period, scorer, assists, and confirmed strength;
 - every penalty for both teams by period, player or bench, type, minutes,
-  related penalty, served-by player, and known manpower effect;
+  related penalty, served-by player, and known player-count effect;
 - shots or saves for each team, including whether values are totals or by
   period;
 - Seattle Junior goalie, decision, shots against, saves, goals against, and
@@ -437,7 +437,7 @@ Use:
 - the confirmed scorer and assists;
 - `review_status = 'confirmed'` only after human confirmation;
 - reviewer and review date; and
-- notes with game-clock or manpower detail when known.
+- notes with game-clock or player-count detail when known.
 
 `probable` and `unresolved` reviews remain visible in the audit queue but do not
 replace official credit in `published_goal_attributions`.
@@ -457,12 +457,12 @@ The triggers enforce this staged sequence. Never use `INSERT OR REPLACE`.
 ### Strength review
 
 Goal attribution and goal strength are different facts. A video review may
-confirm player credit, strength, or both. If exact manpower is confirmed,
+confirm player credit, strength, or both. If exact player counts are confirmed,
 first preserve the prior source value in `source_discrepancies` or an immutable
 source note, then normalize `goals.strength` for summaries and preserve the
 precise state in notes. Re-run the special-team event-versus-team-total checks
 afterward. Do not change an unspecified strength merely because the play looked
-ordinary without a full manpower review.
+ordinary without a full player-count review.
 
 ### Refresh the internal audit report
 
@@ -731,14 +731,14 @@ JOIN teams t ON t.team_id = gm.opponent_team_id
 WHERE gm.status = 'completed'
 ORDER BY gm.game_date, gm.scheduled_start_time, gm.game_id;
 
--- Reviewed/public skater scoring.
+-- Reviewed/public player scoring.
 SELECT ps.*
 FROM player_summary ps
 JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
 ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
 
--- Official skater scoring for the toggle.
+-- Official player scoring for the toggle.
 SELECT ps.*
 FROM official_player_summary ps
 JOIN players p ON p.player_id = ps.player_id
@@ -858,7 +858,7 @@ save percentage covers every appearance.
 
 ### Official and video-reviewed toggle
 
-The skater table must retain both totals:
+The player table must retain both totals:
 
 - default reviewed/public values come from `player_summary`; and
 - official values come from `official_player_summary`.
@@ -993,7 +993,7 @@ verify the live page at:
 
 `https://postandin.com/mets-16aa-stats/`
 
-Check that the published game count, record, skater toggle, shot-data exclusions,
+Check that the published game count, record, player toggle, shot-data exclusions,
 goalie coverage, special-team totals, and review note match the validated
 database.
 

@@ -101,7 +101,7 @@ h1 .accent { color: var(--mustard); }
 .signal { padding: 18px; background: var(--ink); color: var(--paper); }
 .signal-kicker { color: var(--mustard); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .signal strong { display: block; margin: 8px 0 7px; font-family: 'Bebas Neue', sans-serif; font-size: 30px; font-weight: 400; letter-spacing: .03em; line-height: 1; }
-.signal p { color: var(--rule); font-size: 13px; line-height: 1.5; }
+.signal .period-label { color: var(--mustard); }
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -112,7 +112,6 @@ h1 .accent { color: var(--mustard); }
 }
 .metric { min-width: 0; padding: 16px; background: var(--panel); }
 .metric-value { display: block; margin: 4px 0; font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: .03em; line-height: 1; }
-.metric-context { color: var(--ink3); font-size: 12px; }
 .special-teams-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -241,16 +240,6 @@ h1 .accent { color: var(--mustard); }
 .legend-mark { width: 25px; height: 9px; background: var(--mustard); }
 .legend-mark.opponent { background: var(--opponent); }
 .bar-chart { margin-top: 16px; }
-.game-row {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 9px 0;
-  border-top: 1px solid var(--rule);
-}
-.game-label strong { display: block; font-size: 13px; }
-.game-label span { color: var(--ink3); font-size: 11px; }
 .paired-bars { display: grid; gap: 5px; }
 .bar-line { display: grid; grid-template-columns: 30px 1fr 30px; gap: 7px; align-items: center; font-size: 11px; font-variant-numeric: tabular-nums; }
 .bar-code { color: var(--ink3); font-weight: 700; }
@@ -293,14 +282,6 @@ h1 .accent { color: var(--mustard); }
 .period-row:first-child { border-top: 0; }
 .period-name { font-weight: 700; }
 .period-axis { padding-top: 8px; padding-bottom: 0; border-top: 0; }
-.workload-row { display: grid; grid-template-columns: 88px 1fr 76px; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--rule); }
-.workload-row:first-child { border-top: 0; }
-.workload-game strong { display: block; font-size: 12px; }
-.workload-game span { color: var(--ink3); font-size: 11px; }
-.workload-result { text-align: right; }
-.workload-result strong { display: block; font-size: 13px; }
-.workload-result span { color: var(--ink3); font-size: 11px; }
-.data-note { margin-top: 14px; padding-left: 10px; border-left: 4px solid var(--mustard); color: var(--ink3); font-size: 12px; }
 
 .stats-section { margin-top: 38px; }
 .section-label { margin-bottom: 9px; color: var(--ink3); }
@@ -371,9 +352,6 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
   .penalty-grid { grid-template-columns: 1fr; }
   .metric { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 14px; }
   .metric .stat-label { margin-bottom: 0; }
-  .metric-context { grid-column: 1 / -1; }
-  .game-row { grid-template-columns: 112px 1fr; }
-  .workload-row { grid-template-columns: 72px 1fr 65px; }
   .stats-heading-row { align-items: flex-start; flex-direction: column; }
   th, td { padding: 9px 10px; }
 }
@@ -417,30 +395,26 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
         <article class="signal">
           <span class="signal-kicker">Shot volume</span>
           <strong>323 for · 553 against</strong>
-          <p>36.4% average shot share in fifteen games with data. October 31 vs. Tri-Cities is provisional.</p>
         </article>
         <article class="signal">
           <span class="signal-kicker">Scoring by period</span>
-          <strong>0.67 · 0.83 · 0.67</strong>
-          <p>Mets goals per game in periods one, two, and three.</p>
+          <strong><span class="period-label">P1</span> 0.67 · <span class="period-label">P2</span> 0.83 · <span class="period-label">P3</span> 0.67</strong>
         </article>
         <article class="signal">
           <span class="signal-kicker">Shorthanded time</span>
-          <strong>112 minutes shorthanded</strong>
-          <p>Elapsed time at a manpower disadvantage.</p>
+          <strong>112 minutes</strong>
         </article>
       </div>
 
       <div class="metric-grid" aria-label="Team performance metrics">
-        <div class="metric"><span class="stat-label">Avg. shot share</span><strong class="metric-value">36.4%</strong><span class="metric-context">15 games · 1 provisional</span></div>
-        <div class="metric"><span class="stat-label">Avg. shot differential</span><strong class="metric-value">−15.3</strong><span class="metric-context">15 games · 1 provisional</span></div>
-        <div class="metric"><span class="stat-label">Team save percentage</span><strong class="metric-value">91.9%</strong><span class="metric-context">444 saves on 483 shots · 13 games</span></div>
-        <div class="metric"><span class="stat-label">Penalty Minutes</span><strong class="metric-value">6:13</strong><span class="metric-context">average minutes playing shorthanded per game</span></div>
+        <div class="metric"><span class="stat-label">Avg. shot share</span><strong class="metric-value">36.4%</strong></div>
+        <div class="metric"><span class="stat-label">Avg. shot differential</span><strong class="metric-value">−15.3</strong></div>
+        <div class="metric"><span class="stat-label">Team save percentage</span><strong class="metric-value">91.9%</strong></div>
+        <div class="metric"><span class="stat-label">Avg. PK Time/Game</span><strong class="metric-value">6:13</strong></div>
       </div>
 
       <section class="chart-card chart-wide" aria-labelledby="timeline-title">
         <h3 class="chart-title" id="timeline-title">Season results</h3>
-        <p class="chart-subtitle">Most recent games are shown first. Seattle Junior's score is listed first.</p>
         <div class="results-timeline" tabindex="0" role="region" aria-label="Scrollable reverse-chronological game results">
           <ol class="timeline-track">
             <li class="timeline-game loss" aria-label="November 1 versus Spokane, loss, 3 to 4"><span class="timeline-date">Nov 1</span><span class="timeline-dot"></span><div class="timeline-card"><span class="timeline-opponent">vs Spokane</span><strong class="timeline-score">3–4</strong><span class="timeline-result">Loss</span></div></li>
@@ -468,40 +442,12 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
       <section class="chart-card chart-wide" aria-labelledby="special-teams-title">
         <h3 class="chart-title" id="special-teams-title">Special teams goals</h3>
         <div class="special-teams-grid">
-          <div class="special-team-stat"><span class="stat-label">Power-play goals for</span><strong>6</strong><span class="special-team-detail">50 confirmed opportunities through Oct 25 · 0 GWG</span></div>
-          <div class="special-team-stat"><span class="stat-label">Power-play goals against</span><strong>12</strong><span class="special-team-detail">51 confirmed times shorthanded through Oct 25</span><span class="special-team-detail">1 GWG · Sep 26 vs Boise</span></div>
-          <div class="special-team-stat"><span class="stat-label">Shorthanded goals for</span><strong>0</strong><span class="special-team-detail">0 GWG</span></div>
-          <div class="special-team-stat"><span class="stat-label">Shorthanded goals against</span><strong>5</strong><span class="special-team-detail">1 GWG · Sep 20 vs Tacoma</span></div>
+          <div class="special-team-stat"><span class="stat-label">Power-play goals for</span><strong>6</strong><span class="special-team-detail">50 power plays through Oct 25</span></div>
+          <div class="special-team-stat"><span class="stat-label">Power-play goals against</span><strong>12</strong><span class="special-team-detail">51 penalty kills through Oct 25</span></div>
+          <div class="special-team-stat"><span class="stat-label">Shorthanded goals for</span><strong>0</strong></div>
+          <div class="special-team-stat"><span class="stat-label">Shorthanded goals against</span><strong>5</strong></div>
         </div>
-        <p class="data-note">Goal-type totals cover all eighteen games. Opportunity totals and rate statistics cover the first fourteen games; the October 30–November 1 sources did not report opportunities. GWG means game-winning goal.</p>
       </section>
-
-      <figure class="chart-card chart-wide" aria-labelledby="shots-title">
-        <figcaption>
-          <h3 class="chart-title" id="shots-title">Shots by game</h3>
-          <p class="chart-subtitle">Shots on Seattle Junior's goal extend left as negative pressure. Shots on the opponent's goal extend right.</p>
-          <div class="legend" aria-hidden="true"><span><i class="legend-mark opponent"></i>On our goal (−)</span><span><i class="legend-mark"></i>On their goal (+)</span></div>
-        </figcaption>
-        <div class="bar-chart">
-          <div class="game-row axis-row" aria-hidden="true"><span></span><div class="diverging-axis"><span></span><span>−50</span><span>+50</span><span></span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 12</strong><span>at Sno-King · L 1–3</span></div><div class="diverging-chart game-shot-chart" aria-label="37 shots on Seattle Junior's goal; 19 shots on Sno-King's goal"><span class="diverging-value negative">37</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:74%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:38%"></span></span><span class="diverging-value positive">19</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 13</strong><span>at Sno-King · L 2–4</span></div><div class="diverging-chart game-shot-chart" aria-label="44 shots on Seattle Junior's goal; 20 shots on Sno-King's goal"><span class="diverging-value negative">44</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:88%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 19</strong><span>vs Tacoma · T 2–2</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 20 shots on Tacoma's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 20</strong><span>vs Tacoma · L 2–4</span></div><div class="diverging-chart game-shot-chart" aria-label="37 shots on Seattle Junior's goal; 23 shots on Tacoma's goal"><span class="diverging-value negative">37</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:74%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:46%"></span></span><span class="diverging-value positive">23</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 25</strong><span>vs Wyoming · L 2–3</span></div><div class="diverging-chart game-shot-chart" aria-label="49 shots on Seattle Junior's goal; 18 shots on Team Wyoming's goal"><span class="diverging-value negative">49</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:98%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:36%"></span></span><span class="diverging-value positive">18</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 26</strong><span>vs Boise · L 1–3</span></div><div class="diverging-chart game-shot-chart" aria-label="36 shots on Seattle Junior's goal; 20 shots on Boise's goal"><span class="diverging-value negative">36</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:72%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">20</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 26</strong><span>at Montana · L 1–4</span></div><div class="diverging-chart game-shot-chart" aria-label="47 shots on Seattle Junior's goal; 16 shots on Montana's goal"><span class="diverging-value negative">47</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:94%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:32%"></span></span><span class="diverging-value positive">16</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Sep 27</strong><span>at Utah · W 2–1</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 17 shots on Utah's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:34%"></span></span><span class="diverging-value positive">17</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 17</strong><span>vs Sno-King · L 0–3</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 19 shots on Sno-King's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:38%"></span></span><span class="diverging-value positive">19</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 18</strong><span>vs Sno-King · L 2–4</span></div><div class="diverging-chart game-shot-chart" aria-label="43 shots on Seattle Junior's goal; 31 shots on Sno-King's goal"><span class="diverging-value negative">43</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:86%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:62%"></span></span><span class="diverging-value positive">31</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 24</strong><span>at Tacoma · W 9–1</span></div><div class="diverging-chart game-shot-chart" aria-label="24 shots on Seattle Junior's goal; 37 shots on Tacoma's goal"><span class="diverging-value negative">24</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:48%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:74%"></span></span><span class="diverging-value positive">37</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 25</strong><span>at Tacoma · T 3–3</span></div><div class="diverging-chart game-shot-chart" aria-label="34 shots on Seattle Junior's goal; 37 shots on Tacoma's goal"><span class="diverging-value negative">34</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:68%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:74%"></span></span><span class="diverging-value positive">37</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 31</strong><span>at Boise · L 3–8</span></div><div class="diverging-chart game-shot-chart" aria-label="46 shots on Seattle Junior's goal; 18 shots on Boise's goal"><span class="diverging-value negative">46</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:92%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:36%"></span></span><span class="diverging-value positive">18</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Oct 31</strong><span>at Tri-Cities · L 2–12</span></div><div class="diverging-chart game-shot-chart" aria-label="24 shots on Seattle Junior's goal; 9 shots on Tri-Cities's goal"><span class="diverging-value negative">24</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:48%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:18%"></span></span><span class="diverging-value positive">9</span></div></div>
-          <div class="game-row"><div class="game-label"><strong>Nov 1</strong><span>vs Spokane · L 3–4</span></div><div class="diverging-chart game-shot-chart" aria-label="33 shots on Seattle Junior's goal; 19 shots on Spokane's goal"><span class="diverging-value negative">33</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:66%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:38%"></span></span><span class="diverging-value positive">19</span></div></div>
-        </div>
-        <p class="data-note">The October 3, 4, and 30 games are not shown because their scorecards did not record shots. Tri-Cities' October 31 total is provisional: the sheet prints 24 team shots but contains conflicting goalie details.</p>
-      </figure>
 
       <figure class="chart-card chart-wide" aria-labelledby="trend-title">
         <figcaption>
@@ -581,13 +527,12 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
             <text class="axis-title" x="510" y="330" text-anchor="middle">Game</text>
           </svg>
         </div>
-        <p class="data-note">Dark points show each game's shot share. The gold line shows the centered three-game average, using the game before and the game after each point. The October 3, 4, and 30 games are excluded because shots were not recorded. The October 31 Tri-Cities total is provisional.</p>
+        <p class="chart-subtitle">Dark points show each game's shot share. The gold line shows the centered three-game average, using the game before and the game after each point. The October 3, 4, and 30 games are excluded because shots were not recorded.</p>
       </figure>
 
       <figure class="chart-card chart-wide" aria-labelledby="efficiency-title">
         <figcaption>
           <h3 class="chart-title" id="efficiency-title">Game efficiency</h3>
-          <p class="chart-subtitle">Shot share is plotted left to right; final goal differential is plotted bottom to top. Hover over or focus a point for the matchup and final score. This compares game results with shot volume, but does not account for shot location or quality.</p>
           <div class="legend" aria-hidden="true"><span><i class="legend-mark" style="background:var(--positive)"></i>Win</span><span><i class="legend-mark"></i>Tie</span><span><i class="legend-mark opponent"></i>Loss</span></div>
         </figcaption>
         <div class="efficiency-plot">
@@ -647,11 +592,11 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
           </div>
           <div class="chart-tooltip" aria-hidden="true" hidden><strong></strong><span></span><small></small></div>
         </div>
-        <p class="data-note">The October 3, 4, and 30 games are excluded because shots were not recorded. The October 31 Tri-Cities total is provisional.</p>
+        <p class="chart-subtitle">Hover over or focus a point for the matchup and final score. This compares game results with shot volume, but does not account for shot location or quality. The October 3, 4, and 30 games are excluded because shots were not recorded.</p>
       </figure>
 
       <figure class="chart-card chart-wide" aria-labelledby="penalties-title">
-        <figcaption><h3 class="chart-title" id="penalties-title">Penalty profile</h3><p class="chart-subtitle">Playing penalties only: 85 calls and 176 PIM. Misconduct records are excluded.</p></figcaption>
+        <figcaption><h3 class="chart-title" id="penalties-title">Penalty profile</h3></figcaption>
         <div class="penalty-grid bar-chart">
           <div class="compact-row"><div class="compact-label"><strong>Roughing</strong><span>24 · 48 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:100%"></div></div></div>
           <div class="compact-row"><div class="compact-label"><strong>Tripping</strong><span>15 · 30 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:63%"></div></div></div>
@@ -666,51 +611,32 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
           <div class="compact-row"><div class="compact-label"><strong>Charging</strong><span>1 · 2 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:4%"></div></div></div>
           <div class="compact-row"><div class="compact-label"><strong>Too many players</strong><span>1 · 2 PIM</span></div><div class="bar-track"><div class="bar-fill" style="--width:4%"></div></div></div>
         </div>
+        <p class="chart-subtitle">85 penalties · 176 PIM · Excludes misconducts</p>
       </figure>
 
       <figure class="chart-card chart-wide" aria-labelledby="period-title">
-          <figcaption><h3 class="chart-title" id="period-title">Goals by period</h3><p class="chart-subtitle">Goals against extend left; goals for extend right. All eighteen games share a thirty-goal scale.</p><div class="legend" aria-hidden="true"><span><i class="legend-mark opponent"></i>Goals against (−)</span><span><i class="legend-mark"></i>Goals for (+)</span></div></figcaption>
+          <figcaption><h3 class="chart-title" id="period-title">Goals by period</h3><div class="legend" aria-hidden="true"><span><i class="legend-mark opponent"></i>Goals against (−)</span><span><i class="legend-mark"></i>Goals for (+)</span></div></figcaption>
           <div class="bar-chart">
             <div class="period-row period-axis" aria-hidden="true"><span></span><div class="diverging-axis"><span></span><span>−30</span><span>+30</span><span></span></div></div>
             <div class="period-row"><span class="period-name">P1</span><div class="diverging-chart period-goal-chart" aria-label="First period: 19 goals against and 12 goals for"><span class="diverging-value negative">19</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:63%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">12</span></div></div>
             <div class="period-row"><span class="period-name">P2</span><div class="diverging-chart period-goal-chart" aria-label="Second period: 22 goals against and 15 goals for"><span class="diverging-value negative">22</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:73%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:50%"></span></span><span class="diverging-value positive">15</span></div></div>
             <div class="period-row"><span class="period-name">P3</span><div class="diverging-chart period-goal-chart" aria-label="Third period: 28 goals against and 12 goals for"><span class="diverging-value negative">28</span><span class="diverging-half negative"><span class="diverging-fill opponent" style="--width:93%"></span></span><span class="diverging-half positive"><span class="diverging-fill" style="--width:40%"></span></span><span class="diverging-value positive">12</span></div></div>
           </div>
-          <p class="data-note">Period-level shot totals are available for eight games and are not yet shown as a season trend.</p>
       </figure>
 
-      <figure class="chart-card chart-wide" aria-labelledby="workload-title">
-        <figcaption><h3 class="chart-title" id="workload-title">Goaltender workload</h3><p class="chart-subtitle">Shots faced and game save percentage for games with a supported individual goalie workload.</p></figcaption>
-        <div class="bar-chart">
-          <div class="workload-row"><div class="workload-game"><strong>Sep 12 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="37 shots faced"><div class="bar-fill opponent" style="--width:74%"></div></div><div class="workload-result"><strong>37 SA</strong><span>91.9 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 13 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="44 shots faced"><div class="bar-fill opponent" style="--width:88%"></div></div><div class="workload-result"><strong>44 SA</strong><span>90.9 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 19 · T</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill opponent" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>93.9 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 20 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="37 shots faced"><div class="bar-fill opponent" style="--width:74%"></div></div><div class="workload-result"><strong>37 SA</strong><span>89.2 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 25 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="49 shots faced"><div class="bar-fill opponent" style="--width:98%"></div></div><div class="workload-result"><strong>49 SA</strong><span>93.9 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 26 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="36 shots faced"><div class="bar-fill opponent" style="--width:72%"></div></div><div class="workload-result"><strong>36 SA</strong><span>91.7 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 26 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="47 shots faced"><div class="bar-fill opponent" style="--width:94%"></div></div><div class="workload-result"><strong>47 SA</strong><span>91.5 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Sep 27 · W</strong><span>Martinez</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill positive" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>97.0 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Oct 17 · L</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill opponent" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>90.9 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Oct 18 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="43 shots faced"><div class="bar-fill opponent" style="--width:86%"></div></div><div class="workload-result"><strong>43 SA</strong><span>90.7 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Oct 24 · W</strong><span>O'Donnell</span></div><div class="bar-track" aria-label="24 shots faced"><div class="bar-fill positive" style="--width:48%"></div></div><div class="workload-result"><strong>24 SA</strong><span>95.8 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Oct 25 · T</strong><span>Martinez</span></div><div class="bar-track" aria-label="34 shots faced"><div class="bar-fill" style="--width:68%"></div></div><div class="workload-result"><strong>34 SA</strong><span>91.2 SV%</span></div></div>
-          <div class="workload-row"><div class="workload-game"><strong>Nov 1 · L</strong><span>Martinez</span></div><div class="bar-track" aria-label="33 shots faced"><div class="bar-fill opponent" style="--width:66%"></div></div><div class="workload-result"><strong>33 SA</strong><span>87.9 SV%</span></div></div>
-        </div>
-        <p class="data-note">Save percentage describes results, not shot difficulty. Shot location and high-danger chances are not currently tracked. October 3, 4, and 30 are excluded because shots and saves were not recorded. The October 31 Boise workload is excluded because it has not yet been split between its two goalie appearances. The October 31 Tri-Cities workload is excluded because the sheet prints conflicting save totals.</p>
-      </figure>
     </section>
 
-    <section class="stats-section" aria-labelledby="skaters-heading">
+    <section class="stats-section" aria-labelledby="players-heading">
       <div class="stats-heading-row">
-        <h2 id="skaters-heading">Skaters</h2>
-        <div class="stat-view-toggle" role="group" aria-label="Choose skater statistics source">
+        <h2 id="players-heading">Players</h2>
+        <div class="stat-view-toggle" role="group" aria-label="Choose player statistics source">
           <button class="stat-view-button" type="button" data-stat-view="reviewed" aria-pressed="true">Video reviewed</button>
           <button class="stat-view-button" type="button" data-stat-view="official" aria-pressed="false">Official</button>
         </div>
       </div>
       <p class="stat-view-description" id="stat-view-description">Seventeen of 39 goals have been reviewed by video, with seven corrections. Video-reviewed totals use confirmed corrections; official totals come directly from scoresheets or the NWAHL webpage.</p>
-      <div class="table-shell" tabindex="0" role="region" aria-label="Skater statistics table" aria-describedby="stat-view-description">
-        <table data-sortable data-skater-table data-stat-view="reviewed">
+      <div class="table-shell" tabindex="0" role="region" aria-label="Player statistics table" aria-describedby="stat-view-description">
+        <table data-sortable data-player-table data-stat-view="reviewed">
           <thead><tr><th scope="col"><button class="sort-button" type="button" data-type="number">#</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Player</button></th><th scope="col"><button class="sort-button" type="button" data-type="text">Pos</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">GP</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">G</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">A</button></th><th scope="col" aria-sort="descending"><button class="sort-button" type="button" data-type="number">PTS</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PEN</button></th><th scope="col"><button class="sort-button" type="button" data-type="number">PIM</button></th></tr></thead>
           <tbody>
             <tr><td class="number">23</td><td data-sort-value="Clark, Jesper">Jesper Clark</td><td>F</td><td>18</td><td class="stat-switch" data-reviewed="7" data-official="6">7</td><td class="stat-switch" data-reviewed="5" data-official="5">5</td><td class="points stat-switch" data-reviewed="12" data-official="11">12</td><td>3</td><td>6</td></tr>
@@ -733,7 +659,7 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
           </tbody>
         </table>
       </div>
-      <p class="note">Pos = position; GP = games played; G = goals; A = assists; PTS = points; PEN = penalties; PIM = penalty minutes. Misconducts and game misconducts are each counted as separate penalties.</p>
+      <p class="note">Pos = position; GP = games played; G = goals; A = assists; PTS = points; PEN = penalties; PIM = penalty minutes.</p>
     </section>
 
     <section class="stats-section" aria-labelledby="goalies-heading">
@@ -747,7 +673,7 @@ footer { padding: 22px 16px; background: var(--ink); color: var(--rule); font-si
           </tbody>
         </table>
       </div>
-      <p class="note">SA = shots against; GA = goals against; SV = saves; SV% = SV ÷ SA. Goals against count every goalie appearance, while shots against, saves, and save percentage include only appearances with a supported individual workload. O'Donnell's October 31 Boise relief appearance carried no decision. O'Donnell's SA, SV, and SV% cover six of ten appearances; Martinez's cover seven of nine. The October 3, 4, and 30 scorecards did not record shots. The October 31 Boise workload is excluded from both goalies' SA, SV, and SV% until video review confirms the split. O'Donnell's October 31 Tri-Cities workload is also excluded because the sheet prints conflicting save totals.</p>
+      <p class="note">SA = shots against; GA = goals against; SV = saves; SV% = save percentage.</p>
     </section>
   </div>
 </main>
@@ -815,21 +741,21 @@ document.querySelectorAll('table[data-sortable]').forEach((table) => {
   };
 });
 
-const skaterTable = document.querySelector('[data-skater-table]');
+const playerTable = document.querySelector('[data-player-table]');
 
 document.querySelectorAll('.stat-view-button').forEach((button) => {
   button.addEventListener('click', () => {
     const view = button.dataset.statView;
-    skaterTable.querySelectorAll('.stat-switch').forEach((cell) => {
+    playerTable.querySelectorAll('.stat-switch').forEach((cell) => {
       const value = cell.dataset[view];
       cell.textContent = value;
       cell.dataset.sortValue = value;
     });
-    skaterTable.dataset.statView = view;
+    playerTable.dataset.statView = view;
     document.querySelectorAll('.stat-view-button').forEach((item) => {
       item.setAttribute('aria-pressed', String(item === button));
     });
-    skaterTable.applyCurrentSort();
+    playerTable.applyCurrentSort();
   });
 });
 
