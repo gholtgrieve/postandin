@@ -91,7 +91,8 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.ok(seasonResults.indexOf('Oct 31') < seasonResults.indexOf('Sep 12'));
   assert.doesNotMatch(seasonResults, /Most recent games are shown first/);
   assert.doesNotMatch(seasonResults, /Seattle Junior's score is listed first/);
-  assert.match(statsPage, /period-label">P1<\/span> 0\.67 · <span class="period-label">P2<\/span> 0\.83 · <span class="period-label">P3<\/span> 0\.67/);
+  assert.match(statsPage, /period-label">P1<\/span> 12 · <span class="period-label">P2<\/span> 15 · <span class="period-label">P3<\/span> 12/);
+  assert.match(statsPage, /Goals by Period/);
   assert.doesNotMatch(statsPage, /Average goals per game in periods one, two, and three/);
   assert.match(statsPage, /<strong>112 minutes<\/strong>/);
   assert.doesNotMatch(statsPage, /Elapsed time at a player disadvantage/);
@@ -99,6 +100,13 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /skater/i);
   assert.doesNotMatch(statsPage, /manpower/i);
   assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">6:13/);
+  assert.match(statsPage, /Avg\. Goals\/Game<\/span><strong class="metric-value">2\.17/);
+  const teamMetrics = statsPage.slice(
+    statsPage.indexOf('<div class="metric-grid" aria-label="Team performance metrics">'),
+    statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="timeline-title">')
+  );
+  assert.ok(teamMetrics.indexOf('Avg. shot differential') < teamMetrics.indexOf('Avg. Goals/Game'));
+  assert.ok(teamMetrics.indexOf('Avg. Goals/Game') < teamMetrics.indexOf('Team save percentage'));
   assert.doesNotMatch(statsPage, /metric-context/);
   assert.doesNotMatch(statsPage, /Eighteen games provide an early summary/);
   assert.doesNotMatch(statsPage, /36\.4% average shot share in fifteen games with data/);
