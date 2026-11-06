@@ -86,6 +86,20 @@ test('player positions reflect the current Seattle Junior roster', () => {
 
 test('coach-review analytics preserve the basic tables and label data limitations', () => {
   assert.match(statsPage, /Season Snapshot/);
+  const seasonResults = statsPage.slice(
+    statsPage.indexOf('<h3 class="chart-title" id="timeline-title">Season results<\/h3>'),
+    statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="special-teams-title">')
+  );
+  assert.ok(seasonResults.indexOf('Nov 1') < seasonResults.indexOf('Oct 31'));
+  assert.ok(seasonResults.indexOf('Oct 31') < seasonResults.indexOf('Sep 12'));
+  assert.match(seasonResults, /Most recent games are shown first/);
+  assert.match(statsPage, /0\.67 · 0\.83 · 0\.67/);
+  assert.match(statsPage, /Mets goals per game in periods one, two, and three/);
+  assert.match(statsPage, /112 minutes shorthanded/);
+  assert.match(statsPage, /Penalty Minutes<\/span><strong class="metric-value">6:13/);
+  assert.match(statsPage, /average minutes playing shorthanded per game/);
+  assert.doesNotMatch(statsPage, /Eighteen games provide an early summary/);
+  assert.doesNotMatch(statsPage, /276 penalty minutes|Penalty minutes<\/span><strong class="metric-value">15\.3/);
   assert.doesNotMatch(statsPage, /Coach-review draft/);
   assert.doesNotMatch(statsPage, /These figures describe what has happened so far/);
   assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);

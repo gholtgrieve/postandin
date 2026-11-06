@@ -92,6 +92,7 @@ Do not collapse these layers into one corrected row.
 | `goals` | Official source event and goal context | For Seattle Junior goals, source scorer and assists become immutable after import. |
 | `penalties` | Assessed penalty records | Bench penalties have no `player_id`; `served_by_player_id` is separate. Misconducts are separate records. |
 | `game_team_stats` | Goals, shots, and special-team totals for each team | Add one row for Seattle Junior and one for the opponent. Missing values remain `NULL`. |
+| `game_short_handed_time` | Reviewed elapsed manpower-disadvantage time by game and team | Count clock time once when the team has fewer skaters because of a penalty; preserve the source, calculation note, and verification status. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
 | `source_discrepancies` | Score-sheet, NWAHL, and database differences | Record both competing values, the reviewed database value, and the resolution basis. |
 | `goal_attributions` | Immutable official and video-reviewed scoring credit | Corrections are new superseding records; never update or delete attribution content. |
@@ -173,6 +174,13 @@ When sources disagree:
   cancelled penalty creates no opportunity; a misconduct creates no manpower
   advantage; coincident penalties may remain 5-on-5; and an additional minor
   can create an advantage.
+- Calculate `game_short_handed_time.short_handed_seconds` from the reviewed
+  penalty start/end clocks and power-play goal sequence. Count elapsed time
+  once whenever the team has fewer skaters because of a penalty. Exclude
+  misconducts, coincident and 4-on-4 intervals, and time after a power-play
+  goal ends a minor. Do not double-count overlapping 5-on-3 time, and truncate
+  a final-period penalty at the final horn. Use `NULL` with an `unavailable`
+  status when the clocks or manpower sequence cannot establish the duration.
 - Treat goal-event strength and `game_team_stats` special-team totals as
   separate claims that must reconcile. If the reported power-play goal count
   does not match goals explicitly marked `power_play`, retain the reported
