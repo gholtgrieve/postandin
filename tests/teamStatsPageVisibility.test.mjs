@@ -123,7 +123,7 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>6/);
   assert.match(statsPage, /7 goals on 74 power plays/);
-  assert.match(statsPage, /68 successful penalty kills on 83 opportunities/);
+  assert.match(statsPage, /81\.9% · 68 successful penalty kills on 83 opportunities/);
   assert.doesNotMatch(statsPage, /GWG/);
   assert.doesNotMatch(statsPage, /Goal-type totals cover all eighteen games/);
   assert.doesNotMatch(statsPage, /Opportunity totals and rate statistics cover the first fourteen games/);
