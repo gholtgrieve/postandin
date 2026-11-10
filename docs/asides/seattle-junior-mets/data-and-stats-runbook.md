@@ -24,6 +24,7 @@ separate.
 | SQLite database | `seattle_junior_hockey.sqlite` in the data repository |
 | Reproducible database source | `seattle_junior_hockey.sql` in the data repository |
 | Incremental migrations | `migrations/` in the data repository |
+| Local game videos | `Videos/` in the data repository; filenames use `YYYY-MM-DD_vs-opponent.mp4` |
 | Archived score sheets | `scoresheets/` in the data repository |
 | Score-sheet inventory | `scoresheets/README.md` in the data repository |
 | Goal review source | `goal-attribution-audit.Rmd` in the data repository |
@@ -94,6 +95,7 @@ Do not collapse these layers into one corrected row.
 | `game_team_stats` | Goals, shots, and special-team totals for each team | Add one row for Seattle Junior and one for the opponent. Missing values remain `NULL`. |
 | `game_short_handed_time` | Reviewed elapsed player-disadvantage time by game and team | Count clock time once when the team has fewer players because of a penalty; preserve the source, calculation note, and verification status. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
+| `game_videos` | Canonical local video filename for each recorded game | Use one row per game. Preserve the pre-standardization filename in `legacy_filename`; when no earlier name exists, store the canonical filename in both fields. Do not use this table for public assets. |
 | `source_discrepancies` | Score-sheet, NWAHL, and database differences | Record both competing values, the reviewed database value, and the resolution basis. |
 | `goal_attributions` | Immutable official and video-reviewed scoring credit | Corrections are new superseding records; never update or delete attribution content. |
 | `schema_migrations` | Applied migration ledger | Every migration inserts one unique ledger row inside the transaction. |
@@ -106,7 +108,7 @@ Do not collapse these layers into one corrected row.
 | `published_goal_attributions` | Confirmed video review when available, otherwise the official attribution. |
 | `official_player_summary` | Player scoring totals from the official attribution view. |
 | `player_summary` | Public reviewed totals from the published attribution view. |
-| `goal_attribution_review_queue` | Official and reviewed credit side by side, including review state and video timestamp. |
+| `goal_attribution_review_queue` | Official and reviewed credit side by side, including review state, canonical game-video filename, and video timestamp. |
 | `sj_goals_by_period` | Seattle Junior goal counts by game and period. |
 | `sj_penalties_by_period` | Seattle Junior penalty records and minutes by game and period. |
 
@@ -424,6 +426,22 @@ Goal review is always human. An agent may locate a likely video timestamp or
 prepare a review queue, but it must not identify a scorer or assist as confirmed
 without the owner's visual confirmation.
 
+### Video filenames
+
+Store local game videos in `Videos/` using
+`YYYY-MM-DD_vs-opponent.mp4`, with a lowercase, hyphenated slug of the
+opponent's location or region that matches existing files. Examples include
+`2026-10-31_vs-boise.mp4` and `2026-10-31_vs-tri-cities.mp4`. Record the
+canonical filename in `game_videos`; preserve any earlier local filename in
+`legacy_filename`, or repeat the canonical filename there when the file was
+named correctly from the start. Insert the `game_videos` row in the same
+migration that first inventories or reviews the video. Historical
+`goal_attributions.source_reference` values are immutable provenance and do
+not need to be rewritten when a local file is renamed. The review queue's
+`video_source_reference` column uses the game's canonical filename when an
+inventory row exists and otherwise falls back to the review attribution's
+`source_reference`.
+
 ### New review
 
 For every reviewed Seattle Junior goal, insert a `video_review` attribution,
@@ -432,7 +450,7 @@ reviewed in `goal_attribution_review_queue`.
 
 Use:
 
-- the local video filename or stable reference;
+- the canonical local video filename from `game_videos` or another stable reference;
 - the video timestamp in `HH:MM:SS`;
 - the confirmed scorer and assists;
 - `review_status = 'confirmed'` only after human confirmation;

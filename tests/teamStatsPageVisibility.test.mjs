@@ -48,7 +48,8 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, /<span class="stat-value">3-15-2<\/span>/);
   assert.match(statsPage, /<span class="stat-value">42 \/ 76<\/span>/);
   assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>20<\/td>.*data-reviewed="8" data-official="8"/);
-  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>20<\/td>.*data-reviewed="7" data-official="6"/);
+  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>20<\/td>.*data-reviewed="6" data-official="6"/);
+  assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
   assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>17<\/td>.*<td>15<\/td><td>60<\/td>/);
   assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>13<\/td>/);
 });
@@ -118,11 +119,11 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);
   assert.doesNotMatch(statsPage, /Shots by game/);
   assert.match(statsPage, /Special teams goals/);
-  assert.match(statsPage, /Power-play conversion<\/span><strong>9\.5%/);
+  assert.match(statsPage, /Power-play conversion<\/span><strong>12\.2%/);
   assert.match(statsPage, /Power-play goals against<\/span><strong>15/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>6/);
-  assert.match(statsPage, /7 goals on 74 power plays/);
+  assert.match(statsPage, /9 goals on 74 power plays/);
   assert.match(statsPage, /81\.9% · 68 successful penalty kills on 83 opportunities/);
   assert.doesNotMatch(statsPage, /GWG/);
   assert.doesNotMatch(statsPage, /Goal-type totals cover all eighteen games/);
@@ -151,7 +152,7 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /id="misconducts-title"/);
   assert.doesNotMatch(statsPage, /Goaltender workload|class="workload-row"/);
   assert.doesNotMatch(statsPage, /All eighteen games share a thirty-goal scale|Period-level shot totals are available for eight games/);
-  assert.match(statsPage, /Seventeen of 42 goals have been reviewed by video, with seven corrections/);
+  assert.match(statsPage, /All 42 goals have been reviewed by video, with 24 corrections/);
   assert.match(statsPage, /Video-reviewed totals use confirmed corrections; official totals come directly from scoresheets or the NWAHL webpage/);
   assert.doesNotMatch(statsPage, /Misconducts and game misconducts are each counted as separate penalties/);
   assert.doesNotMatch(statsPage, /Shot location and high-danger chances are not currently tracked/);
