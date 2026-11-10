@@ -221,6 +221,22 @@ h2 { margin-top: 6px; font-size: clamp(38px, 6vw, 54px); line-height: 1; }
   white-space: nowrap;
 }
 
+.personal-statement {
+  margin-bottom: clamp(42px, 6vw, 64px);
+  padding-bottom: clamp(28px, 4vw, 36px);
+  border-bottom: 2px solid var(--mustard);
+}
+
+.personal-statement-copy {
+  max-width: 900px;
+  margin-top: 18px;
+  color: var(--ink2);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.personal-statement-copy p + p { margin-top: 18px; }
+
 .playing-history {
   margin-bottom: clamp(42px, 6vw, 64px);
   padding-bottom: clamp(28px, 4vw, 36px);
@@ -571,6 +587,18 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   </section>
 
   <div class="content-inner">
+    <section class="personal-statement" aria-labelledby="personal-statement-title">
+      <div>
+        <p class="section-kicker">Player profile</p>
+        <h2 id="personal-statement-title">Personal Statement</h2>
+      </div>
+      <div class="personal-statement-copy">
+        <p>I am a puck-moving, two-way defenseman with aspirations of playing junior hockey and eventually college hockey. I started playing hockey at age 10 after previously playing soccer and baseball. Through many hours of additional skating and shooting practice, I have progressed from house to B to AA hockey. My coaches recognize me for my strong skating, sound defense, and overall hockey IQ. My current focus is developing greater explosiveness in my first few strides and creating more scoring opportunities from high-danger areas.</p>
+        <p>Next season, I’m aiming to play for a AAA team in the western U.S. or southern British Columbia. I understand that AAA hockey is fast-paced and requires a significant commitment. Having twice participated in the invite-only Pacific Northwest Amateur Hockey Association development camp, I’m confident I can compete at this higher level.</p>
+        <p>Outside of hockey, I am a sophomore at West Seattle High School, earning mostly A's and B's. I particularly enjoy my French 2 and AP World History classes and hope to travel to Europe soon. I also love staying active outdoors through mountain biking, swimming, fishing, and cross-country skiing.</p>
+      </div>
+    </section>
+
     <section class="playing-history" aria-labelledby="playing-history-title">
       <p class="section-kicker">Playing history</p>
       <h2 id="playing-history-title">Rep Hockey Teams</h2>

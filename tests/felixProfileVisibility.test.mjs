@@ -160,6 +160,27 @@ test('playing history lists Seattle Junior teams and invite-only development rec
   assert.match(page, /Invite-only attendee for two consecutive years\./);
 });
 
+test('personal statement presents the reviewed player narrative near the top', () => {
+  const paragraphs = [
+    'I am a puck-moving, two-way defenseman with aspirations of playing junior hockey and eventually college hockey. I started playing hockey at age 10 after previously playing soccer and baseball. Through many hours of additional skating and shooting practice, I have progressed from house to B to AA hockey. My coaches recognize me for my strong skating, sound defense, and overall hockey IQ. My current focus is developing greater explosiveness in my first few strides and creating more scoring opportunities from high-danger areas.',
+    'Next season, I’m aiming to play for a AAA team in the western U.S. or southern British Columbia. I understand that AAA hockey is fast-paced and requires a significant commitment. Having twice participated in the invite-only Pacific Northwest Amateur Hockey Association development camp, I’m confident I can compete at this higher level.',
+    "Outside of hockey, I am a sophomore at West Seattle High School, earning mostly A's and B's. I particularly enjoy my French 2 and AP World History classes and hope to travel to Europe soon. I also love staying active outdoors through mountain biking, swimming, fishing, and cross-country skiing.",
+  ];
+
+  assert.match(page, /<section class="personal-statement" aria-labelledby="personal-statement-title">/);
+  assert.match(page, /<h2 id="personal-statement-title">Personal Statement<\/h2>/);
+  const statementCopy = page.match(/<div class="personal-statement-copy">\s*([\s\S]*?)\s*<\/div>\s*<\/section>/);
+  assert.ok(statementCopy, 'personal statement copy should be present');
+  assert.equal(
+    statementCopy[1].replace(/\s+/g, ' ').trim(),
+    paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(' '),
+    'personal statement paragraphs should remain exact and in order',
+  );
+  assert.match(page, /<div class="content-inner">\s*<section class="personal-statement"/);
+  assert.match(page, /\.personal-statement-copy \{[\s\S]*?margin-top: 18px;/);
+  assert.doesNotMatch(page, /\.personal-statement \{ grid-template-columns:/);
+});
+
 test('clip library scaffolds categories, efficient previews, and full playback', () => {
   assert.match(page, /src="\/felix-holtgrieve\/profile\.js\?v=20"/);
   assert.match(profileScript, /from '\.\/clips\.js\?v=20'/);
