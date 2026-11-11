@@ -545,6 +545,54 @@ test('RecTimes identifies reserved Stick & Puck sessions from reviewed title sig
   }
 });
 
+test('RecTimes applies only the approved OVA SJHA duration override', () => {
+  const target = {
+    id: 8076892,
+    groupName: 'SJHA STICK & PUCK',
+    startTimeLocal: '2026-11-18T15:00:00',
+    endTimeLocal: '2026-11-18T17:00:00',
+  };
+  const bookings = [
+    target,
+    { ...target, id: 8076893, groupName: 'Stick & Puck' },
+    { ...target, id: 8076894, startTimeLocal: '2026-11-18T13:00:00', endTimeLocal: '2026-11-18T15:00:00' },
+    { ...target, id: 8076895, startTimeLocal: '2026-11-25T15:00:00', endTimeLocal: '2026-11-25T17:00:00' },
+    { ...target, id: 8076896, endTimeLocal: '2026-11-18T16:30:00' },
+  ];
+
+  const ova = normalizeRecTimesBookings(bookings, {
+    venueId: 1145,
+    pacificNow: '2026-01-01T00:00:00',
+  });
+  assert.deepEqual(ova.map(session => session.end), [
+    '2026-11-18T16:00:00',
+    '2026-11-18T17:00:00',
+    '2026-11-18T15:00:00',
+    '2026-11-25T17:00:00',
+    '2026-11-18T16:30:00',
+  ]);
+  assert.deepEqual({
+    id: ova[0].id,
+    title: ova[0].title,
+    subtitle: ova[0].subtitle,
+  }, {
+    id: String(target.id),
+    title: target.groupName,
+    subtitle: 'SJHA Only',
+  });
+
+  const [lynnwood] = normalizeRecTimesBookings([target], {
+    venueId: 1146,
+    pacificNow: '2026-01-01T00:00:00',
+  });
+  assert.equal(lynnwood.end, '2026-11-18T17:00:00');
+
+  assert.deepEqual(normalizeRecTimesBookings([target], {
+    venueId: 1145,
+    pacificNow: '2026-11-18T16:30:00',
+  }), []);
+});
+
 test('Female/Non-Binary filtering supports structured and legacy cached sessions', () => {
   assert.equal(isFemaleOrNonBinarySession({
     eligibility: { audience: 'women' },
