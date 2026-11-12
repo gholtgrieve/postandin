@@ -26,7 +26,10 @@ roster and season-total information. Its player table defaults to confirmed
 video-reviewed scoring attributions and can be switched to the official
 scoresheet/NWAHL totals. It also reports equal-share scoring credit, player and
 team expected penalty cost from the reviewed private database, and the net
-difference between player scoring credit and penalty cost. Updates are manual.
+difference between player scoring credit and realized PK goals against. Realized goals
+allowed while shorthanded are assigned to the responsible penalized player,
+with 5-on-3 goals split equally between the two responsible players. Updates
+are manual.
 
 Future agents must follow the canonical [data and statistics
 runbook](data-and-stats-runbook.md) when adding games, reconciling sources,

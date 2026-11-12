@@ -71,7 +71,7 @@ instead of assuming that two paths represent two repositories.
 
 ## How the data model separates facts
 
-The database has three related but distinct layers:
+The database has four related but distinct layers:
 
 1. **Game events and totals** record the imported game: score, participation,
    goals, penalties, shots, special teams, and goalie results.
@@ -79,6 +79,9 @@ The database has three related but distinct layers:
    conflict among the score sheet, NWAHL, and the reviewed database value.
 3. **Goal attribution history** keeps official scoring credit and confirmed
    video-reviewed scoring credit in parallel.
+4. **Penalty-impact review** preserves the official penalty record while
+   separately recording reviewed responsibility, verified shorthanded
+   intervals, realized PK goals, and expected event cost.
 
 Do not collapse these layers into one corrected row.
 
@@ -92,6 +95,9 @@ Do not collapse these layers into one corrected row.
 | `game_players` | Seattle Junior participation and goalie use | Add one row for every player on that game's Seattle Junior roster, including absences, scratches, and suspensions. Do not carry a currently inactive former player into future games unless the player is listed or otherwise confirmed for that game. |
 | `goals` | Official source event and goal context | For Seattle Junior goals, source scorer and assists become immutable after import. |
 | `penalties` | Assessed penalty records | Bench penalties have no `player_id`; `served_by_player_id` is separate. Misconducts are separate records. |
+| `penalty_responsibility` | Reviewed responsibility for each Seattle Junior penalty | Preserve the official player on `penalties`; use this table for corrected player, bench, phantom, or unknown responsibility and metric eligibility. |
+| `penalty_shorthanded_stints` | Penalty-specific shares of verified shorthanded intervals and realized goals | Use one row at 4-on-5. At 5-on-3, use two matching rows with `responsibility_share = 0.5`; split a goal against as `0.5` on each row. |
+| `penalty_event_cost_overrides` | Context for nonstandard expected-cost paths | Add durable rows for overlapping, simultaneous, major, phantom, or otherwise non-ordinary penalty transitions. |
 | `game_team_stats` | Goals, shots, and special-team totals for each team | Add one row for Seattle Junior and one for the opponent. Missing values remain `NULL`. |
 | `game_short_handed_time` | Reviewed elapsed player-disadvantage time by game and team | Count clock time once when the team has fewer players because of a penalty; preserve the source, calculation note, and verification status. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
@@ -111,17 +117,22 @@ Do not collapse these layers into one corrected row.
 | `goal_attribution_review_queue` | Official and reviewed credit side by side, including review state, canonical game-video filename, and video timestamp. |
 | `sj_goals_by_period` | Seattle Junior goal counts by game and period. |
 | `sj_penalties_by_period` | Seattle Junior penalty records and minutes by game and period. |
+| `penalty_expected_event_cost` | Expected goal-differential cost and cost units for each reviewed Seattle Junior penalty. |
+| `game_player_penalty_impact` | One player's expected cost, realized shorthanded time, and realized PK goals for one game. |
+| `player_penalty_impact` | Season-to-date player penalty impact, including expected cost and assigned PK goals against. |
+| `team_penalty_impact` | Team reconciliation of player, bench, unknown, expected, and realized penalty outcomes. |
 
 `player_summary` is the reviewed/public view even when only some goals have
 been reviewed: unreviewed goals fall back to official credit.
 
 ### Current provenance limitation
 
-Parallel immutable source/review records exist for **goal attribution only**.
-Penalties do not yet have an equivalent reviewed-attribution table. Until that
-future schema work is approved, preserve penalty conflicts in the source row's
-notes and `source_discrepancies`; do not claim that the current schema can show
-official and reviewed penalty versions side by side.
+Parallel immutable source/review history exists for **goal attribution only**.
+For penalties, preserve the official assessment on `penalties` and store the
+current reviewed responsibility in `penalty_responsibility`. This supports a
+reviewed correction without rewriting the official record, but it is not a
+versioned penalty-attribution history. Preserve conflicts in notes and
+`source_discrepancies`.
 
 ## Source policy
 
@@ -313,7 +324,39 @@ A complete new-game migration normally includes, in dependency order:
 5. every assessed penalty for both teams;
 6. one `game_team_stats` row for each team;
 7. the Seattle Junior `goalie_game_stats` row or rows; and
-8. the migration-ledger insert.
+8. `game_time_context` and `game_short_handed_time` when the game clock and
+   disadvantage sequence can be reviewed;
+9. one `penalty_responsibility` row for every Seattle Junior penalty;
+10. `penalty_shorthanded_stints` for every verified disadvantage interval;
+11. any required `penalty_event_cost_overrides` for nonstandard penalty paths;
+    and
+12. the migration-ledger insert.
+
+For each opponent goal scored during a verified Seattle Junior shorthanded
+interval, assign the realized PK goal to the responsible penalty even if a
+source strength label conflicts with the verified clock interval. At 4-on-5,
+store `goals_against_credit = 1` on the responsible stint. At 5-on-3, create
+two matching stint rows and store `0.5` on each. Preserve any source-label
+conflict in `source_discrepancies`; assigning interval-based responsibility
+does not erase the conflicting source claim. If the clocks cannot establish
+whether the goal occurred while shorthanded, keep the credit unavailable and
+open a discrepancy instead of guessing. Treat the resulting penalty-impact
+verification failure as a publication blocker until the interval is reviewed;
+do not change an expected total merely to make the verifier pass.
+
+Use these exact `source_discrepancies.category` values when the verified
+interval and official goal-strength label disagree:
+
+- `goal strength add interval PK GA` when an official non-power-play goal
+  occurred during a verified shorthanded interval and must add one to the
+  interval-based total; and
+- `goal strength remove official PP GA` when an official power-play goal
+  occurred outside a verified shorthanded interval and must subtract one from
+  the interval-based total.
+
+Keep either discrepancy open while the official label and verified interval
+remain in conflict. The penalty-impact verifier uses these structured
+categories to reconcile every game; do not encode the direction only in prose.
 
 Use explicit IDs, derived after querying current maxima. Do not use
 `INSERT OR REPLACE`. Seattle Junior source goal attribution is immutable after
@@ -370,9 +413,35 @@ binary database or only the migration directory.
 
 ### 6. Run database validation
 
-Run the validation suite later in this guide, inspect the affected game row by
-row, and render the internal goal-audit report when Seattle Junior goals were
-added. Stop before commit and publication for human review.
+Run the validation suite later in this guide, including
+`node scripts/verify-penalty-impact.mjs`, inspect the affected game row by row,
+and render the internal goal-audit report when Seattle Junior goals were added.
+Stop before commit and publication for human review.
+
+### 7. Refresh every season-to-date product
+
+A new score sheet is not complete when only the game rows have been imported.
+After validation, refresh all affected season-to-date products from the
+database in one pass:
+
+1. official and reviewed goals, assists, points, and equal-share scoring credit;
+2. penalty counts and minutes from the official assessments;
+3. reviewed penalty responsibility, shorthanded stint time, expected penalty
+   cost, and realized PK goals against;
+4. 5-on-3 responsibility, with matching 0.5 shares for both responsible
+   penalties and any goal against split 0.5/0.5;
+5. scoring net, calculated as exact scoring credit minus exact realized PK
+   goals against before display rounding;
+6. the team expected-cost total and per-completed-game average, including bench
+   and inactive-player historical penalties;
+7. record, score, shots, period goals, special teams, goalie totals, and every
+   chart or summary whose source game set changed;
+8. the internal goal-attribution audit when Seattle Junior goals changed; and
+9. the static public page and its tests, using Workflow D.
+
+Run `node scripts/verify-penalty-impact.mjs` after every new game, even when the
+score sheet reports no Seattle Junior penalties or no power-play goals against.
+The zero-result case is part of the dataset and must still reconcile.
 
 ## Workflow B: reconcile a game with NWAHL
 
@@ -763,6 +832,23 @@ JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
 ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
 
+-- Reviewed penalty impact and realized PK goals for active players.
+SELECT p.jersey_number, p.first_name, p.last_name,
+       COALESCE(ppi.expected_event_cost_goals, 0) AS penalty_cost,
+       COALESCE(ppi.confirmed_shorthanded_goals_against, 0) AS pk_goals_against
+FROM players p
+LEFT JOIN player_penalty_impact ppi ON ppi.player_id = p.player_id
+WHERE p.team_id = 1 AND p.active = 1 AND p.position <> 'G'
+ORDER BY p.jersey_number;
+
+-- Team penalty card and realized-goal reconciliation.
+SELECT expected_event_cost_goals,
+       expected_event_cost_goals /
+         (SELECT COUNT(*) FROM games WHERE status = 'completed') AS cost_per_game,
+       player_cost_goals, bench_cost_goals, unknown_cost_goals,
+       confirmed_shorthanded_goals_against, disputed_goal_credit_stints
+FROM team_penalty_impact;
+
 -- Games with shots for both teams.
 SELECT gm.game_id, gm.game_date, t.name AS opponent, gm.home_or_away,
        sj.shots_total AS sj_shots, opp.shots_total AS opponent_shots,
@@ -876,14 +962,22 @@ save percentage covers every appearance.
   total to three decimals for display. A source goal with no identified scorer
   or assists contributes no player credit; document any resulting difference
   between team goals and the public-table credit total.
-- **Player `PEN COST`:** use `player_penalty_impact.expected_event_cost_goals`
+- **Player `EXPECTED PENALTY COST`:** use
+  `player_penalty_impact.expected_event_cost_goals`
   from the reviewed private database and round the season total to three
   decimals for display. Responsibility follows the reviewed penalty
   attribution, which can differ from the player named in the official `PEN`
   and `PIM` record. A penalty without a shorthanded or lost-power-play
   consequence has zero cost. Misconducts do not add cost merely because they
   add penalty minutes.
-- **Scoring net:** subtract exact expected penalty cost from exact scoring
+- **Player `PK GA`:** use
+  `player_penalty_impact.confirmed_shorthanded_goals_against`. This is the
+  realized season-total number of opponent goals assigned to the player's
+  penalties. Assign one goal during a one-player disadvantage and split a
+  5-on-3 goal as `0.5` for each responsible player. Keep this separate from
+  `EXPECTED PENALTY COST`; a short penalty that ends on a goal records one realized
+  PK goal against but retains its scheduled expected event cost.
+- **Scoring net:** subtract exact realized PK goals against from exact scoring
   credit, then round to three decimals. Treat this as a narrow
   scoring-minus-penalty balance, not overall player value; it excludes defense,
   goaltending, and offense without a recorded point.
@@ -906,8 +1000,8 @@ The player table must retain both totals:
 - official values come from `official_player_summary`.
 
 Goals, assists, points, scoring credit, and scoring net change with this toggle.
-Participation, official penalty counts and minutes, and reviewed penalty cost
-remain the same.
+Participation, official penalty counts and minutes, reviewed penalty cost, and
+realized PK goals against remain the same.
 
 Keep the explanatory text static when the toggle changes. Derive the reviewed
 goal count from current, confirmed `video_review` attributions. Derive the
@@ -968,19 +1062,22 @@ After editing the page:
    `tests/teamStatsPageVisibility.test.mjs` so the test describes the current
    validated database rather than an older game count; derive the expected
    values from database queries, never by copying the rendered page;
-2. if Felix Holtgrieve's (#17) games played or reviewed goals, assists, or
+2. verify every displayed `PK GA` value against `player_penalty_impact`, verify
+   that 5-on-3 shares sum to one goal, and reconcile the player, inactive,
+   bench, and team totals;
+3. if Felix Holtgrieve's (#17) games played or reviewed goals, assists, or
    points changed, update the visible season-stat line and screen-reader copy in
    `felix-holtgrieve/index.html`;
-3. run both focused page tests so the Felix profile remains synchronized with
+4. run both focused page tests so the Felix profile remains synchronized with
    the reviewed team totals;
-4. run JavaScript syntax checking on any extracted or changed script that Node
+5. run JavaScript syntax checking on any extracted or changed script that Node
    can parse;
-5. serve the site locally;
-6. inspect the page at desktop and mobile widths;
-7. exercise sorting, the official/reviewed toggle, keyboard focus, and chart
+6. serve the site locally;
+7. inspect the page at desktop and mobile widths;
+8. exercise sorting, the official/reviewed toggle, keyboard focus, and chart
    tooltips;
-8. check the browser console; and
-9. verify `robots.txt`, `sitemap.xml`, `_headers`, page metadata, and unknown-path
+9. check the browser console; and
+10. verify `robots.txt`, `sitemap.xml`, `_headers`, page metadata, and unknown-path
    behavior together if routing or visibility changed.
 
 Typical commands:
@@ -1049,6 +1146,8 @@ A game or review update is complete only when:
 - the change exists in a numbered migration;
 - the working SQLite database and reproducible SQL agree;
 - structural, score, totals, attribution, and rebuild checks pass;
+- expected penalty cost, shorthanded time, realized PK goals, 5-on-3 shares,
+  scoring credit, and scoring net are refreshed and reconcile;
 - source discrepancies are preserved;
 - the score-sheet inventory and goal-audit report are current when affected;
 - the public page is refreshed from database queries, not memory;
