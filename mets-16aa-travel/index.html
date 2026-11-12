@@ -420,6 +420,7 @@ body > footer {
   .trip-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr); gap: 36px; }
   .trip-block + .trip-block { margin-top: 0; padding-top: 0; border-top: 0; }
   .trip-notes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trip-notes.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -443,7 +444,7 @@ body > footer {
       <p class="eyebrow">Seattle Junior Mets 16U AA</p>
       <h1 id="page-title">Travel<br><span class="accent">Information</span></h1>
       <p class="season">2026–27 Season</p>
-      <p class="updated">Last updated: November 4, 2026</p>
+      <p class="updated">Last updated: November 11, 2026</p>
       <p class="update-note">Travel information will be updated as lodging and schedules are confirmed. All game times are local to the venue.</p>
     </div>
   </section>
@@ -456,7 +457,7 @@ body > footer {
           <a class="glance-link" href="#tri-cities">
             <span class="glance-place">Tri-Cities</span>
             <span class="glance-dates">Nov. 12–15 · Arrive Thursday</span>
-            <span class="status">Group deadline passed</span>
+            <span class="status">Schedule &amp; activities</span>
           </a>
         </li>
         <li>
@@ -510,9 +511,7 @@ body > footer {
             <p class="muted">Two queen beds or one king bed.</p>
             <p class="muted">Rates are before tax and fees.</p>
             <p class="muted">Room block: November 12–15</p>
-            <p class="muted">The group-rate deadline was October 30. Check the booking link or call the hotel for current availability and rates.</p>
             <div class="actions">
-              <a class="action-link primary" href="https://www.wyndhamhotels.com/hotels/30498?checkInDate=11%2F12%2F26&amp;checkOutDate=11%2F15%2F26&amp;groupCode=111226SEA" target="_blank" rel="noopener">Book</a>
               <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=La+Quinta+Inn+%26+Suites+by+Wyndham+Kennewick+2600+South+Quillan+Place+Kennewick+WA+99338" target="_blank" rel="noopener">Hotel directions</a>
               <a class="action-link contact" href="tel:+15097363656">Call (509) 736-3656</a>
             </div>
@@ -527,6 +526,24 @@ body > footer {
               <div class="game-day"><p class="day-label">Sunday, November 15</p><div class="game"><time datetime="2026-11-15T14:00">2:00 PM</time><span class="matchup">Seattle Jr. Mets 16AA @ Tri-Cities Jr. Americans 16U</span><span class="venue">Toyota Arena · Rink B</span></div></div>
             </div>
             <div class="actions"><a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Arena+Kennewick+WA" target="_blank" rel="noopener">Toyota Arena directions</a></div>
+          </section>
+        </div>
+        <div class="trip-notes two-up">
+          <section class="trip-note">
+            <h3>Friday · Team lunch</h3>
+            <p>November 13, 12:30–1:30 PM at Summer’s HUB Food Trucks, 6481 W Skagit Avenue, Kennewick.</p>
+            <div class="actions">
+              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Summer%27s+HUB+Food+Trucks+6481+W+Skagit+Avenue+Kennewick+WA+99336" target="_blank" rel="noopener">Lunch directions</a>
+              <a class="action-link" href="https://thehubkennewick.com/" target="_blank" rel="noopener">Venue website</a>
+            </div>
+          </section>
+          <section class="trip-note">
+            <h3>Saturday · WHL hockey</h3>
+            <p>November 14, 6:05 PM at the Toyota Center. Attend the Tri-City Americans vs. Everett Silvertips game.</p>
+            <div class="actions">
+              <a class="action-link" href="https://chl.ca/whl-americans/gamecentre/1023303/" target="_blank" rel="noopener">Game details</a>
+              <a class="action-link" href="https://www.google.com/maps/search/?api=1&amp;query=Toyota+Center+Kennewick+WA" target="_blank" rel="noopener">Toyota Center directions</a>
+            </div>
           </section>
         </div>
         <footer class="trip-footer"><a class="back-link" href="#trips">Back to trips ↑</a></footer>
