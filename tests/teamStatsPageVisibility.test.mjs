@@ -38,15 +38,15 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, />G<\/button>/);
   assert.match(statsPage, />A<\/button>/);
   assert.match(statsPage, />PTS<\/button>/);
-  assert.match(statsPage, />SCORING CREDIT<\/button>/);
+  assert.match(statsPage, />GOAL CREDIT<\/button>/);
   assert.match(statsPage, />PIM<\/button>/);
   assert.match(statsPage, />EXPECTED PENALTY COST<\/button>/);
   assert.match(statsPage, />PK GA<\/button>/);
   assert.match(statsPage, />SCORING NET<\/button>/);
-  assert.ok(statsPage.indexOf('>PTS<\/button>') < statsPage.indexOf('>SCORING CREDIT<\/button>'));
+  assert.ok(statsPage.indexOf('>PTS<\/button>') < statsPage.indexOf('>GOAL CREDIT<\/button>'));
   assert.match(statsPage, /EXPECTED PENALTY COST = season-total expected goals of team goal-differential cost assigned through reviewed penalty responsibility/);
   assert.match(statsPage, /PK GA = realized goals allowed while shorthanded and assigned to the responsible penalty/);
-  assert.match(statsPage, /SCORING NET = SCORING CREDIT minus PK GA/);
+  assert.match(statsPage, /SCORING NET = GOAL CREDIT minus PK GA/);
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
@@ -71,12 +71,12 @@ test('both player tables provide sortable column controls', () => {
   assert.match(statsPage, /aria-sort="descending"/);
 });
 
-test('scoring credit, penalty cost, and PK goals stay aligned for every player and source', () => {
+test('goal credit, penalty cost, and PK goals stay aligned for every player and source', () => {
   const playerTable = statsPage.match(/<table data-sortable data-player-table[\s\S]*?<\/table>/)?.[0] ?? '';
   const headers = [...playerTable.matchAll(/<th[^>]*>[\s\S]*?<button[^>]*>([^<]+)<\/button>[\s\S]*?<\/th>/g)]
     .map((match) => match[1]);
   assert.deepEqual(headers, [
-    '#', 'Player', 'Pos', 'GP', 'G', 'A', 'PTS', 'SCORING CREDIT',
+    '#', 'Player', 'Pos', 'GP', 'G', 'A', 'PTS', 'GOAL CREDIT',
     'PEN', 'PIM', 'EXPECTED PENALTY COST', 'PK GA', 'SCORING NET',
   ]);
 
@@ -119,7 +119,7 @@ test('scoring credit, penalty cost, and PK goals stay aligned for every player a
   assert.ok(Math.abs(creditTotals.official - 41) < 0.01);
   assert.equal(activePkGoalsAgainst, 15);
   assert.match(statsPage, /All 42 goals have been reviewed by video/);
-  assert.match(statsPage, /One official goal has no identified scorer or assists, so official scoring credit totals 41/);
+  assert.match(statsPage, /One official goal has no identified scorer or assists, so official goal credit totals 41/);
 });
 
 test('goalie totals include derived saves and save percentage', () => {
@@ -170,7 +170,7 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Expected penalty cost/);
   assert.match(statsPage, /0\.91 goals\/game/);
   assert.match(statsPage, /Future penalties are expected to reduce team goal differential by about 18 goals per 20 games/);
-  assert.match(statsPage, /SCORING CREDIT divides each team goal equally among its credited scorer and assist providers/);
+  assert.match(statsPage, /GOAL CREDIT divides each team goal equally among its credited scorer and assist providers/);
   const teamMetrics = statsPage.slice(
     statsPage.indexOf('<div class="metric-grid" aria-label="Team performance metrics">'),
     statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="timeline-title">')

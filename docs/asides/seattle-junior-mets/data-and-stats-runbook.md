@@ -77,8 +77,8 @@ The database has four related but distinct layers:
    goals, penalties, shots, special teams, and goalie results.
 2. **Source provenance** records where the information came from and any known
    conflict among the score sheet, NWAHL, and the reviewed database value.
-3. **Goal attribution history** keeps official scoring credit and confirmed
-   video-reviewed scoring credit in parallel.
+3. **Goal attribution history** keeps official goal credit and confirmed
+   video-reviewed goal credit in parallel.
 4. **Penalty-impact review** preserves the official penalty record while
    separately recording reviewed responsibility, verified shorthanded
    intervals, realized PK goals, and expected event cost.
@@ -103,7 +103,7 @@ Do not collapse these layers into one corrected row.
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
 | `game_videos` | Canonical local video filename for each recorded game | Use one row per game. Preserve the pre-standardization filename in `legacy_filename`; when no earlier name exists, store the canonical filename in both fields. Do not use this table for public assets. |
 | `source_discrepancies` | Score-sheet, NWAHL, and database differences | Record both competing values, the reviewed database value, and the resolution basis. |
-| `goal_attributions` | Immutable official and video-reviewed scoring credit | Corrections are new superseding records; never update or delete attribution content. |
+| `goal_attributions` | Immutable official and video-reviewed goal credit | Corrections are new superseding records; never update or delete attribution content. |
 | `schema_migrations` | Applied migration ledger | Every migration inserts one unique ledger row inside the transaction. |
 
 ### Important views
@@ -424,13 +424,13 @@ A new score sheet is not complete when only the game rows have been imported.
 After validation, refresh all affected season-to-date products from the
 database in one pass:
 
-1. official and reviewed goals, assists, points, and equal-share scoring credit;
+1. official and reviewed goals, assists, points, and equal-share goal credit;
 2. penalty counts and minutes from the official assessments;
 3. reviewed penalty responsibility, shorthanded stint time, expected penalty
    cost, and realized PK goals against;
 4. 5-on-3 responsibility, with matching 0.5 shares for both responsible
    penalties and any goal against split 0.5/0.5;
-5. scoring net, calculated as exact scoring credit minus exact realized PK
+5. scoring net, calculated as exact goal credit minus exact realized PK
    goals against before display rounding;
 6. the team expected-cost total and per-completed-game average, including bench
    and inactive-player historical penalties;
@@ -954,13 +954,13 @@ save percentage covers every appearance.
 - **Player `PEN`:** count separate player penalty records, including each
   misconduct or game misconduct as one record. Do not assign a bench penalty
   to the player who served it.
-- **Scoring credit:** for each Seattle Junior goal in the selected attribution
+- **Goal credit:** for each Seattle Junior goal in the selected attribution
   view, divide one goal equally among the identified scorer and identified
   assist providers. An unassisted scorer receives `1.0`; a scorer and one
   assist provider receive `0.5` each; and a scorer and two assist providers
   receive one-third each. Sum exact shares by player, then round the season
   total to three decimals for display. A source goal with no identified scorer
-  or assists contributes no player credit; document any resulting difference
+  or assists contributes no goal credit; document any resulting difference
   between team goals and the public-table credit total.
 - **Player `EXPECTED PENALTY COST`:** use
   `player_penalty_impact.expected_event_cost_goals`
@@ -977,7 +977,7 @@ save percentage covers every appearance.
   5-on-3 goal as `0.5` for each responsible player. Keep this separate from
   `EXPECTED PENALTY COST`; a short penalty that ends on a goal records one realized
   PK goal against but retains its scheduled expected event cost.
-- **Scoring net:** subtract exact realized PK goals against from exact scoring
+- **Scoring net:** subtract exact realized PK goals against from exact goal
   credit, then round to three decimals. Treat this as a narrow
   scoring-minus-penalty balance, not overall player value; it excludes defense,
   goaltending, and offense without a recorded point.
@@ -999,7 +999,7 @@ The player table must retain both totals:
 - default reviewed/public values come from `player_summary`; and
 - official values come from `official_player_summary`.
 
-Goals, assists, points, scoring credit, and scoring net change with this toggle.
+Goals, assists, points, goal credit, and scoring net change with this toggle.
 Participation, official penalty counts and minutes, reviewed penalty cost, and
 realized PK goals against remain the same.
 
@@ -1147,7 +1147,7 @@ A game or review update is complete only when:
 - the working SQLite database and reproducible SQL agree;
 - structural, score, totals, attribution, and rebuild checks pass;
 - expected penalty cost, shorthanded time, realized PK goals, 5-on-3 shares,
-  scoring credit, and scoring net are refreshed and reconcile;
+  goal credit, and scoring net are refreshed and reconcile;
 - source discrepancies are preserved;
 - the score-sheet inventory and goal-audit report are current when affected;
 - the public page is refreshed from database queries, not memory;
