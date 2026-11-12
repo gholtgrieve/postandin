@@ -85,8 +85,9 @@ test('Spokane trip notes include parking, mini golf, and the EWU Q&A', () => {
 
 test('Tri-Cities trip notes include the team lunch and WHL game', () => {
   const triCities = travelPage.match(/<article class="trip priority" id="tri-cities">([\s\S]*?)<\/article>/)?.[1] ?? '';
-  assert.match(triCities, /Friday · Team lunch/);
-  assert.match(triCities, /November 13, 12:30–1:30 PM/);
+  assert.match(triCities, /Saturday · Team lunch/);
+  assert.match(triCities, /November 14, 12:30–1:30 PM/);
+  assert.doesNotMatch(triCities, /Friday · Team lunch|November 13, 12:30–1:30 PM/);
   assert.match(triCities, /Summer’s HUB Food Trucks/);
   assert.match(triCities, /6481 W Skagit Avenue/);
   assert.match(triCities, /thehubkennewick\.com/);
