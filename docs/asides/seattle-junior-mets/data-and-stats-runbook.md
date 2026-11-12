@@ -868,6 +868,30 @@ save percentage covers every appearance.
 - **Player `PEN`:** count separate player penalty records, including each
   misconduct or game misconduct as one record. Do not assign a bench penalty
   to the player who served it.
+- **Scoring credit:** for each Seattle Junior goal in the selected attribution
+  view, divide one goal equally among the identified scorer and identified
+  assist providers. An unassisted scorer receives `1.0`; a scorer and one
+  assist provider receive `0.5` each; and a scorer and two assist providers
+  receive one-third each. Sum exact shares by player, then round the season
+  total to three decimals for display. A source goal with no identified scorer
+  or assists contributes no player credit; document any resulting difference
+  between team goals and the public-table credit total.
+- **Player `PEN COST`:** use `player_penalty_impact.expected_event_cost_goals`
+  from the reviewed private database and round the season total to three
+  decimals for display. Responsibility follows the reviewed penalty
+  attribution, which can differ from the player named in the official `PEN`
+  and `PIM` record. A penalty without a shorthanded or lost-power-play
+  consequence has zero cost. Misconducts do not add cost merely because they
+  add penalty minutes.
+- **Scoring net:** subtract exact expected penalty cost from exact scoring
+  credit, then round to three decimals. Treat this as a narrow
+  scoring-minus-penalty balance, not overall player value; it excludes defense,
+  goaltending, and offense without a recorded point.
+- **Team expected penalty cost:** use `team_penalty_impact` so the team value
+  includes player-attributed, inactive-player historical, and bench penalties.
+  Divide the team season total by completed games for the per-game card. The
+  active-player public table will not sum to that team total when excluded
+  historical or bench costs exist.
 - **Games played:** use `game_players.status = 'played'`, not roster presence.
 - **Inactive players:** retain them in the database and historical events, but
   filter `players.active = 1` from the public player tables. Never delete an
@@ -881,8 +905,9 @@ The player table must retain both totals:
 - default reviewed/public values come from `player_summary`; and
 - official values come from `official_player_summary`.
 
-Only goals, assists, and points change with this toggle. Participation and
-penalties remain the same until a future reviewed-penalty model is built.
+Goals, assists, points, scoring credit, and scoring net change with this toggle.
+Participation, official penalty counts and minutes, and reviewed penalty cost
+remain the same.
 
 Keep the explanatory text static when the toggle changes. Derive the reviewed
 goal count from current, confirmed `video_review` attributions. Derive the

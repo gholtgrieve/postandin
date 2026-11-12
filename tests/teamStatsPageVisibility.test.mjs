@@ -38,8 +38,13 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, />G<\/button>/);
   assert.match(statsPage, />A<\/button>/);
   assert.match(statsPage, />PTS<\/button>/);
+  assert.match(statsPage, />SCORING CREDIT<\/button>/);
   assert.match(statsPage, />PIM<\/button>/);
-  assert.match(statsPage, /Pos = position; GP = games played; G = goals; A = assists; PTS = points; PEN = penalties; PIM = penalty minutes\./);
+  assert.match(statsPage, />PEN COST<\/button>/);
+  assert.match(statsPage, />SCORING NET<\/button>/);
+  assert.ok(statsPage.indexOf('>PTS<\/button>') < statsPage.indexOf('>SCORING CREDIT<\/button>'));
+  assert.match(statsPage, /PEN COST = season-total expected goals of team goal-differential cost assigned through reviewed penalty responsibility/);
+  assert.match(statsPage, /SCORING NET = SCORING CREDIT minus PEN COST/);
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
@@ -52,12 +57,59 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
   assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>17<\/td>.*<td>15<\/td><td>60<\/td>/);
   assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>13<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td>.*data-reviewed="0\.833" data-official="0\.333".*<td>2\.876<\/td>.*data-reviewed="-2\.043" data-official="-2\.543"/);
+  assert.match(statsPage, /Ethan Hines<\/td>.*data-reviewed="0\.500" data-official="0\.000".*<td>2\.684<\/td>.*data-reviewed="-2\.184" data-official="-2\.684"/);
+  assert.match(statsPage, /Juone Kim<\/td>.*data-reviewed="2\.667" data-official="2\.167".*<td>0\.000<\/td>.*data-reviewed="\+2\.667" data-official="\+2\.167"/);
 });
 
 test('both player tables provide sortable column controls', () => {
   assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
   assert.match(statsPage, /button\.addEventListener\('click'/);
   assert.match(statsPage, /aria-sort="descending"/);
+});
+
+test('scoring credit and penalty cost stay aligned for every player and source', () => {
+  const playerTable = statsPage.match(/<table data-sortable data-player-table[\s\S]*?<\/table>/)?.[0] ?? '';
+  const headers = [...playerTable.matchAll(/<th[^>]*>[\s\S]*?<button[^>]*>([^<]+)<\/button>[\s\S]*?<\/th>/g)]
+    .map((match) => match[1]);
+  assert.deepEqual(headers, [
+    '#', 'Player', 'Pos', 'GP', 'G', 'A', 'PTS', 'SCORING CREDIT',
+    'PEN', 'PIM', 'PEN COST', 'SCORING NET',
+  ]);
+
+  const body = playerTable.match(/<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? '';
+  const rows = [...body.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((rowMatch) => (
+    [...rowMatch[1].matchAll(/<td([^>]*)>([\s\S]*?)<\/td>/g)].map((cellMatch) => ({
+      attributes: cellMatch[1],
+      text: cellMatch[2].replace(/<[^>]+>/g, '').trim(),
+    }))
+  ));
+  assert.equal(rows.length, 17);
+
+  const creditTotals = { reviewed: 0, official: 0 };
+  for (const cells of rows) {
+    assert.equal(cells.length, 12);
+    const credit = cells[7];
+    const penaltyCost = Number(cells[10].text);
+    const scoringNet = cells[11];
+    assert.doesNotMatch(cells[10].attributes, /stat-switch|data-reviewed|data-official/);
+
+    for (const view of ['reviewed', 'official']) {
+      const creditValue = Number(credit.attributes.match(new RegExp(`data-${view}="([^"]+)"`))?.[1]);
+      const netValue = Number(scoringNet.attributes.match(new RegExp(`data-${view}="([^"]+)"`))?.[1]);
+      assert.ok(Number.isFinite(creditValue));
+      assert.ok(Number.isFinite(netValue));
+      assert.ok(Math.abs((creditValue - penaltyCost) - netValue) <= 0.0011);
+      creditTotals[view] += creditValue;
+    }
+    assert.equal(credit.text, credit.attributes.match(/data-reviewed="([^"]+)"/)?.[1]);
+    assert.equal(scoringNet.text, scoringNet.attributes.match(/data-reviewed="([^"]+)"/)?.[1]);
+  }
+
+  assert.ok(Math.abs(creditTotals.reviewed - 42) < 0.01);
+  assert.ok(Math.abs(creditTotals.official - 41) < 0.01);
+  assert.match(statsPage, /All 42 goals have been reviewed by video/);
+  assert.match(statsPage, /One official goal has no identified scorer or assists, so official scoring credit totals 41/);
 });
 
 test('goalie totals include derived saves and save percentage', () => {
@@ -80,6 +132,7 @@ test('display names retain natural order while sorting by surname', () => {
 test('player positions reflect the current Seattle Junior roster', () => {
   assert.match(statsPage, /Max Haglof McCallum<\/td><td>F<\/td>/);
   assert.match(statsPage, /Zaedan Longley<\/td><td>F\/D<\/td>/);
+  assert.match(statsPage, /Eliot Osborn<\/td><td>F\/D<\/td>/);
 });
 
 test('coach-review analytics preserve the basic tables and label data limitations', () => {
@@ -97,13 +150,18 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /period-label">P1<\/span> 13 · <span class="period-label">P2<\/span> 16 · <span class="period-label">P3<\/span> 13/);
   assert.match(statsPage, /Goals by Period/);
   assert.doesNotMatch(statsPage, /Average goals per game in periods one, two, and three/);
-  assert.match(statsPage, /<strong>121 minutes<\/strong>/);
+  assert.match(statsPage, /<strong>123 minutes<\/strong>/);
   assert.doesNotMatch(statsPage, /Elapsed time at a player disadvantage/);
   assert.match(statsPage, /<h2 id="players-heading">Players<\/h2>/);
   assert.doesNotMatch(statsPage, /skater/i);
   assert.doesNotMatch(statsPage, /manpower/i);
-  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">6:04/);
+  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">6:08/);
   assert.match(statsPage, /Avg\. Goals\/Game<\/span><strong class="metric-value">2\.10/);
+  assert.match(statsPage, /Expected penalty cost/);
+  assert.match(statsPage, /0\.91 goals\/game/);
+  assert.match(statsPage, /Future penalties are expected to reduce team goal differential by about 18 goals per 20 games/);
+  assert.match(statsPage, /SCORING CREDIT divides each team goal equally among its credited scorer and assist providers/);
+  assert.match(statsPage, /SCORING NET is a narrow scoring-minus-penalty balance, not overall player value/);
   const teamMetrics = statsPage.slice(
     statsPage.indexOf('<div class="metric-grid" aria-label="Team performance metrics">'),
     statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="timeline-title">')
