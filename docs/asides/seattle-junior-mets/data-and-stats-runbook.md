@@ -962,7 +962,7 @@ save percentage covers every appearance.
   total to three decimals for display. A source goal with no identified scorer
   or assists contributes no goal credit; document any resulting difference
   between team goals and the public-table credit total.
-- **Player `EXPECTED PENALTY COST`:** use
+- **Internal player `EXPECTED PENALTY COST`:** use
   `player_penalty_impact.expected_event_cost_goals`
   from the reviewed private database and round the season total to three
   decimals for display. Responsibility follows the reviewed penalty
@@ -970,7 +970,7 @@ save percentage covers every appearance.
   and `PIM` record. A penalty without a shorthanded or lost-power-play
   consequence has zero cost. Misconducts do not add cost merely because they
   add penalty minutes.
-- **Player `PK GA`:** use
+- **Internal player `PK GA`:** use
   `player_penalty_impact.confirmed_shorthanded_goals_against`. This is the
   realized season-total number of opponent goals assigned to the player's
   penalties. Assign one goal during a one-player disadvantage and split a
@@ -981,10 +981,18 @@ save percentage covers every appearance.
   credit, then round to three decimals. Treat this as a narrow
   scoring-minus-penalty balance, not overall player value; it excludes defense,
   goaltending, and offense without a recorded point.
+- **Public player table:** show position, games played, goals, assists, points,
+  official penalties, and official penalty minutes. Keep goal credit, expected
+  penalty cost, PK goals against, and scoring net current in the database for
+  retrieval, but do not display those four metrics in the public table.
 - **Team expected penalty cost:** use `team_penalty_impact` so the team value
   includes player-attributed, inactive-player historical, and bench penalties.
   Divide the team season total by completed games for the per-game card. The
-  active-player public table will not sum to that team total when excluded
+  10-game projection is the per-game value multiplied by 10 and rounded to the
+  nearest whole goal. Reviewed reconciliation can reduce the season total when
+  a previously counted penalty is confirmed as coincident or otherwise without
+  a player disadvantage. The active-player public table will not sum to that
+  team total when excluded
   historical or bench costs exist.
 - **Games played:** use `game_players.status = 'played'`, not roster presence.
 - **Inactive players:** retain them in the database and historical events, but
@@ -999,9 +1007,10 @@ The player table must retain both totals:
 - default reviewed/public values come from `player_summary`; and
 - official values come from `official_player_summary`.
 
-Goals, assists, points, goal credit, and scoring net change with this toggle.
-Participation, official penalty counts and minutes, reviewed penalty cost, and
-realized PK goals against remain the same.
+Goals, assists, and points change with this toggle. Participation, official
+penalty counts, and penalty minutes remain the same. Goal credit, scoring net,
+reviewed penalty cost, and realized PK goals against remain available in the
+database but are not displayed in the public player table.
 
 Keep the explanatory text static when the toggle changes. Derive the reviewed
 goal count from current, confirmed `video_review` attributions. Derive the
@@ -1062,9 +1071,10 @@ After editing the page:
    `tests/teamStatsPageVisibility.test.mjs` so the test describes the current
    validated database rather than an older game count; derive the expected
    values from database queries, never by copying the rendered page;
-2. verify every displayed `PK GA` value against `player_penalty_impact`, verify
-   that 5-on-3 shares sum to one goal, and reconcile the player, inactive,
-   bench, and team totals;
+2. verify the retained goal credit, expected penalty cost, `PK GA`, and scoring
+   net calculations against the database, verify that 5-on-3 shares sum to one
+   goal, and reconcile the player, inactive, bench, and team totals even though
+   those player metrics are not displayed publicly;
 3. if Felix Holtgrieve's (#17) games played or reviewed goals, assists, or
    points changed, update the visible season-stat line and screen-reader copy in
    `felix-holtgrieve/index.html`;
