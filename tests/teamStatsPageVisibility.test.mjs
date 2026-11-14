@@ -43,13 +43,17 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through the November 14 game at Boise/);
+  assert.match(statsPage, /Through the November 14 game vs Boise/);
+  assert.doesNotMatch(statsPage, /November 14 at Boise|Nov 14 · at Boise/);
+  assert.match(statsPage, /aria-label="November 14 versus Boise, win, 5 to 1"/);
+  assert.match(statsPage, /<title>November 14 versus Boise: 51\.9%<\/title>/);
+  assert.match(statsPage, /October 31 at Boise/);
   assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">23<\/span>/);
   assert.match(statsPage, /<span class="stat-value">6-15-2<\/span>/);
   assert.match(statsPage, /<span class="stat-value">54 \/ 80<\/span>/);
   assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>23<\/td><td>11<\/td>/);
   assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>23<\/td><td>9<\/td>/);
-  assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
+  assert.ok(statsPage.indexOf('Cruz Bugeaud') < statsPage.indexOf('Joshua Haglof McCallum'));
   assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>18<\/td>.*<td>14<\/td><td>60<\/td>/);
   assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>16<\/td>/);
 });
@@ -58,6 +62,9 @@ test('both player tables provide sortable column controls', () => {
   assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
   assert.match(statsPage, /button\.addEventListener\('click'/);
   assert.match(statsPage, /aria-sort="descending"/);
+  assert.match(statsPage, /table\.matches\('\[data-player-table\]'\).*columnIndex === 6.*direction === 'descending'/);
+  assert.match(statsPage, /rightGoals - leftGoals/);
+  assert.match(statsPage, /leftName\.localeCompare\(rightName/);
 });
 
 test('player table keeps the compact public columns for every active player', () => {
@@ -79,8 +86,20 @@ test('player table keeps the compact public columns for every active player', ()
 
   for (const cells of rows) {
     assert.equal(cells.length, 9);
+    for (const cell of cells) {
+      if (!/\bstat-switch\b/.test(cell.attributes)) continue;
+      const officialValue = cell.attributes.match(/data-official="([^"]+)"/)?.[1];
+      assert.equal(cell.text, officialValue);
+    }
   }
   assert.match(statsPage, /42 of 54 goals have been reviewed by video/);
+  assert.match(statsPage, /data-player-table data-stat-view="official"/);
+  assert.match(statsPage, /data-stat-view="official" aria-pressed="true">Official/);
+  assert.match(statsPage, /data-stat-view="reviewed" aria-pressed="false">Video reviewed/);
+  assert.match(statsPage, /Mateus Mendes[\s\S]*?data-official="7">7<\/td>[\s\S]*?data-official="18">18<\/td>/);
+  assert.ok(playerTable.indexOf('Reed Hulse') < playerTable.indexOf('Eliot Osborn'));
+  assert.ok(playerTable.indexOf('Cruz Bugeaud') < playerTable.indexOf('Joshua Haglof McCallum'));
+  assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Chase Pocholski'));
 });
 
 test('goalie totals include derived saves and save percentage', () => {
@@ -112,7 +131,7 @@ test('coach-review analytics preserve the basic tables and label data limitation
     statsPage.indexOf('<h3 class="chart-title" id="timeline-title">Season results<\/h3>'),
     statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="special-teams-title">')
   );
-  assert.ok(seasonResults.indexOf('at Boise') < seasonResults.indexOf('vs Tri-Cities'));
+  assert.ok(seasonResults.indexOf('vs Boise') < seasonResults.indexOf('vs Tri-Cities'));
   assert.ok(seasonResults.indexOf('vs Tri-Cities') < seasonResults.indexOf('at Spokane'));
   assert.ok(seasonResults.indexOf('at Spokane') < seasonResults.indexOf('>Nov 8<'));
   assert.ok(seasonResults.indexOf('>Nov 8<') < seasonResults.indexOf('>Nov 7<'));

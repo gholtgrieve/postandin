@@ -23,8 +23,8 @@ published times and reminders.
 
 `/mets-16aa-stats/` is a direct-link, unlisted, `noindex` page using public team
 roster and season-total information. Its player table defaults to confirmed
-video-reviewed scoring attributions and can be switched to the official
-scoresheet/NWAHL totals. The page reports team expected penalty cost from the
+official scoresheet/NWAHL totals and can be switched to confirmed
+video-reviewed scoring attributions. The page reports team expected penalty cost from the
 reviewed private database. Equal-share goal credit, player expected penalty
 cost, realized PK goals against, and scoring net remain calculated in the
 database for analysis and retrieval, but are not displayed in the public player
