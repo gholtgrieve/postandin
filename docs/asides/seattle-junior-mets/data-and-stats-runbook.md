@@ -818,16 +818,16 @@ JOIN teams t ON t.team_id = gm.opponent_team_id
 WHERE gm.status = 'completed'
 ORDER BY gm.game_date, gm.scheduled_start_time, gm.game_id;
 
--- Official/default player scoring.
+-- Video-reviewed/default player scoring.
 SELECT ps.*
-FROM official_player_summary ps
+FROM player_summary ps
 JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
 ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
 
--- Video-reviewed player scoring for the toggle.
+-- Official player scoring for the toggle.
 SELECT ps.*
-FROM player_summary ps
+FROM official_player_summary ps
 JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
 ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
@@ -1004,8 +1004,8 @@ save percentage covers every appearance.
 
 The player table must retain both totals:
 
-- default official values come from `official_player_summary`; and
-- video-reviewed values come from `player_summary`.
+- default video-reviewed values come from `player_summary`; and
+- official values come from `official_player_summary`.
 
 Goals, assists, and points change with this toggle. Participation, official
 penalty counts, and penalty minutes remain the same. Goal credit, scoring net,

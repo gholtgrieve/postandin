@@ -53,7 +53,7 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, /<span class="stat-value">54 \/ 80<\/span>/);
   assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>23<\/td><td>11<\/td>/);
   assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>23<\/td><td>9<\/td>/);
-  assert.ok(statsPage.indexOf('Cruz Bugeaud') < statsPage.indexOf('Joshua Haglof McCallum'));
+  assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
   assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>18<\/td>.*<td>14<\/td><td>60<\/td>/);
   assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>16<\/td>/);
 });
@@ -88,17 +88,17 @@ test('player table keeps the compact public columns for every active player', ()
     assert.equal(cells.length, 9);
     for (const cell of cells) {
       if (!/\bstat-switch\b/.test(cell.attributes)) continue;
-      const officialValue = cell.attributes.match(/data-official="([^"]+)"/)?.[1];
-      assert.equal(cell.text, officialValue);
+      const reviewedValue = cell.attributes.match(/data-reviewed="([^"]+)"/)?.[1];
+      assert.equal(cell.text, reviewedValue);
     }
   }
   assert.match(statsPage, /42 of 54 goals have been reviewed by video/);
-  assert.match(statsPage, /data-player-table data-stat-view="official"/);
-  assert.match(statsPage, /data-stat-view="official" aria-pressed="true">Official/);
-  assert.match(statsPage, /data-stat-view="reviewed" aria-pressed="false">Video reviewed/);
-  assert.match(statsPage, /Mateus Mendes[\s\S]*?data-official="7">7<\/td>[\s\S]*?data-official="18">18<\/td>/);
-  assert.ok(playerTable.indexOf('Reed Hulse') < playerTable.indexOf('Eliot Osborn'));
-  assert.ok(playerTable.indexOf('Cruz Bugeaud') < playerTable.indexOf('Joshua Haglof McCallum'));
+  assert.match(statsPage, /data-player-table data-stat-view="reviewed"/);
+  assert.match(statsPage, /data-stat-view="reviewed" aria-pressed="true">Video reviewed/);
+  assert.match(statsPage, /data-stat-view="official" aria-pressed="false">Official/);
+  assert.match(statsPage, /Mateus Mendes[\s\S]*?data-reviewed="8" data-official="7">8<\/td>[\s\S]*?data-reviewed="19" data-official="18">19<\/td>/);
+  assert.ok(playerTable.indexOf('Eliot Osborn') < playerTable.indexOf('Sebastian Salmon'));
+  assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Cruz Bugeaud'));
   assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Chase Pocholski'));
 });
 
