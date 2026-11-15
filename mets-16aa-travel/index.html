@@ -420,6 +420,7 @@ body > footer {
   .trip-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr); gap: 36px; }
   .trip-block + .trip-block { margin-top: 0; padding-top: 0; border-top: 0; }
   .trip-notes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trip-notes.one-up { grid-template-columns: 1fr; }
   .trip-notes.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -444,7 +445,7 @@ body > footer {
       <p class="eyebrow">Seattle Junior Mets 16U AA</p>
       <h1 id="page-title">Travel<br><span class="accent">Information</span></h1>
       <p class="season">2026–27 Season</p>
-      <p class="updated">Last updated: November 11, 2026</p>
+      <p class="updated">Last updated: November 15, 2026</p>
       <p class="update-note">Travel information will be updated as lodging and schedules are confirmed. All game times are local to the venue.</p>
     </div>
   </section>
@@ -478,7 +479,7 @@ body > footer {
           <a class="glance-link" href="#congressional-cup">
             <span class="glance-place">Washington, DC</span>
             <span class="glance-dates">Jan. 15–18 · Arrive Friday</span>
-            <span class="status">Details TBD</span>
+            <span class="status">Expected 2–3 weeks out</span>
           </a>
         </li>
         <li>
@@ -625,15 +626,10 @@ body > footer {
           <div class="travel-fact"><span class="fact-label">Arrive</span><span class="fact-value">Friday</span></div>
           <div class="travel-fact"><span class="fact-label">Depart</span><span class="fact-value">Monday</span></div>
         </div>
-        <div class="trip-body">
-          <section class="trip-block" aria-labelledby="congressional-logistics">
-            <h3 id="congressional-logistics">Travel &amp; lodging</h3>
-            <div class="tbd"><strong>Hotel TBD</strong>Team lodging and booking details will be added when confirmed.</div>
-            <div class="tbd" style="margin-top: 14px"><strong>Airport guidance TBD</strong>The tournament uses multiple rinks across the Washington, DC area. Airport guidance will be added after the team’s rink assignment is known.</div>
-          </section>
-          <section class="trip-block" aria-labelledby="congressional-games">
-            <h3 id="congressional-games">Games &amp; locations</h3>
-            <div class="tbd"><strong>Schedule and rink TBD</strong>Game times and the rink assignment will be added when confirmed.</div>
+        <div class="trip-notes one-up">
+          <section class="trip-note">
+            <h3>Details expected 2–3 weeks before the event</h3>
+            <p>Game schedule, rink, and team hotel information will be posted here when received.</p>
             <div class="actions"><a class="action-link" href="https://myhockeytournaments.com/locations/washington/congressional-cup-midwinter-classic" target="_blank" rel="noopener">Congressional Cup details</a></div>
           </section>
         </div>

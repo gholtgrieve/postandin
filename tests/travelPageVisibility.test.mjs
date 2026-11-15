@@ -123,7 +123,7 @@ test('Portland shows both Beaverton games and the Tigard room block', () => {
 test('Albuquerque shows the expired group deadline without implying the rate is still available', () => {
   const glance = travelPage.match(/<a class="glance-link" href="#new-mexico">([\s\S]*?)<\/a>/)?.[1] ?? '';
   const albuquerque = travelPage.match(/<article class="trip" id="new-mexico">([\s\S]*?)<\/article>/)?.[1] ?? '';
-  assert.match(travelPage, /Last updated: November 11, 2026/);
+  assert.match(travelPage, /Last updated: November 15, 2026/);
   assert.match(glance, /<span class="status">Group deadline passed<\/span>/);
   assert.doesNotMatch(glance, /Book by Nov\. 3/);
   assert.match(albuquerque, /The group-rate deadline was November 3\. Check the booking link or call the hotel for current availability and rates\./);
@@ -143,6 +143,17 @@ test('Medford shows the verified Homewood Suites room block', () => {
   assert.match(medford, /Book by December 30 for the group rate/);
   assert.match(medford, /hilton\.com\/en\/attend-my-event\/mfrhwhw-sea-4c346d92-390f-458d-9853-2284b4775685\//);
   assert.doesNotMatch(medford, /Hotel TBD/);
+});
+
+test('Washington, DC explains when schedule, rink, and hotel details are expected', () => {
+  const glance = travelPage.match(/<a class="glance-link" href="#congressional-cup">([\s\S]*?)<\/a>/)?.[1] ?? '';
+  const washington = travelPage.match(/<article class="trip" id="congressional-cup">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  assert.match(glance, /Expected 2–3 weeks out/);
+  assert.match(washington, /<div class="trip-notes one-up">/);
+  assert.match(washington, /Details expected 2–3 weeks before the event/);
+  assert.match(washington, /Game schedule, rink, and team hotel information will be posted here when received/);
+  assert.match(washington, /Congressional Cup details/);
+  assert.doesNotMatch(washington, /Hotel TBD|Airport guidance TBD|Schedule and rink TBD/);
 });
 
 test('completed trips are collapsed after upcoming trips without expired booking actions', () => {
