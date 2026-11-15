@@ -30,8 +30,12 @@ separate.
 | Goal review source | `goal-attribution-audit.Rmd` in the data repository |
 | Goal review output | `goal-attribution-audit.html` in the data repository |
 | Public stats page | `mets-16aa-stats/index.html` in the Post & In repository |
+| Public goal-video page | `mets-16aa-goals/index.html` in the Post & In repository |
+| Goal-clip processing script | `scripts/process-mets-goal-clips.R` in the Post & In repository |
 | Aside documentation | `docs/asides/seattle-junior-mets/` in the Post & In repository |
 | Focused visibility/content test | `tests/teamStatsPageVisibility.test.mjs` in the Post & In repository |
+| Goal-video visibility/content test | `tests/metsGoalVideosVisibility.test.mjs` in the Post & In repository |
+| Goal-clip processing test | `tests/metsGoalClipProcessing.test.R` in the Post & In repository |
 
 The owner-facing Post & In path may also be available through the symlink
 `/Users/gordonholtgrieve/Dropbox/Documents/postandin`. Resolve the Git top level
@@ -60,9 +64,11 @@ instead of assuming that two paths represent two repositories.
 7. **Human-reviewed decisions win for the reviewed presentation.** Preserve the
    official source record, log the conflict, and publish the confirmed reviewed
    value through the appropriate review structure.
-8. **Keep private assets private.** Do not copy videos, unpublished personal
-   information, credentials, or private identifiers into the public Post & In
-   repository. Video files are local review evidence, not website assets.
+8. **Keep private assets private.** Do not copy full game videos, unpublished
+   personal information, credentials, or private identifiers into the public
+   Post & In repository. Full recordings are local review evidence. Only
+   owner-approved, human-bounded goal excerpts may be published through the
+   documented clip workflow.
 9. **Stop before external actions.** Commit, push, deploy, publish, cache purge,
    and production changes require the owner's explicit approval.
 10. **Ask about genuine judgment calls.** Player-count states, cancelled penalties,
@@ -102,6 +108,7 @@ Do not collapse these layers into one corrected row.
 | `game_short_handed_time` | Reviewed elapsed player-disadvantage time by game and team | Count clock time once when the team has fewer players because of a penalty; preserve the source, calculation note, and verification status. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
 | `game_videos` | Canonical local video filename for each recorded game | Use one row per game. Preserve the pre-standardization filename in `legacy_filename`; when no earlier name exists, store the canonical filename in both fields. Do not use this table for public assets. |
+| `goal_video_clips` | Publication status and versioned media keys for reviewed Seattle Junior goal clips | Publish only rows with human-confirmed start and end timestamps. Keep midpoint-only reviews in `needs_bounds`. |
 | `source_discrepancies` | Score-sheet, NWAHL, and database differences | Record both competing values, the reviewed database value, and the resolution basis. |
 | `goal_attributions` | Immutable official and video-reviewed goal credit | Corrections are new superseding records; never update or delete attribution content. |
 | `schema_migrations` | Applied migration ledger | Every migration inserts one unique ledger row inside the transaction. |
@@ -115,6 +122,7 @@ Do not collapse these layers into one corrected row.
 | `official_player_summary` | Player scoring totals from the official attribution view. |
 | `player_summary` | Public reviewed totals from the published attribution view. |
 | `goal_attribution_review_queue` | Official and reviewed credit side by side, including review state, canonical game-video filename, and video timestamp. |
+| `goal_video_clip_catalog` | Reviewed goal credit, game information, clip bounds, publication status, and public media keys. |
 | `sj_goals_by_period` | Seattle Junior goal counts by game and period. |
 | `sj_penalties_by_period` | Seattle Junior penalty records and minutes by game and period. |
 | `penalty_expected_event_cost` | Expected goal-differential cost and cost units for each reviewed Seattle Junior penalty. |
@@ -562,6 +570,46 @@ Rscript -e "rmarkdown::render('goal-attribution-audit.Rmd', quiet = TRUE)"
 Review the generated HTML. If R or a required package is unavailable, report
 that limitation rather than claiming the report was refreshed.
 
+### Publish reviewed goal clips
+
+Clip publication is separate from attribution review. A confirmed attribution
+may carry only a midpoint timestamp; do not invent start or end boundaries.
+
+1. Record human-confirmed `clip_start_timestamp` and `clip_end_timestamp` in a
+   numbered database migration and leave midpoint-only rows in `needs_bounds`.
+2. Assign a versioned media key such as
+   `mets/2026-27/YYYY-MM-DD-opponent/goal-N/v1/goal-N.mp4` and the matching JPG
+   poster key. Never overwrite a published version.
+3. From the Post & In repository, source `scripts/process-mets-goal-clips.R`.
+   Run `process_mets_goal_clips()` with the private database, local `Videos/`
+   directory, and a temporary output directory, then run
+   `publish_mets_goal_clips()` with that output directory and the R2 bucket.
+   The script validates the source and bounds, produces a 720p H.264/AAC clip
+   and poster, refuses object overwrites, uploads both assets, and writes a TSV
+   manifest.
+4. Verify every public MP4 and JPG URL before marking the database row
+   `published`.
+5. Add published clips to `mets-16aa-goals/index.html` and link eligible games
+   from the Season Results timeline. Keep games and clips in reverse
+   chronological order.
+6. Keep the page out of `sitemap.xml`, out of global navigation, and protected
+   by both page-level `noindex` metadata and the matching `_headers` rule.
+
+Before processing or publishing clips, run the focused processing test:
+
+```bash
+Rscript tests/metsGoalClipProcessing.test.R
+```
+
+After updating the page or timeline links, run the focused visibility test:
+
+```bash
+node --test tests/metsGoalVideosVisibility.test.mjs
+```
+
+The published page contains excerpts only. Never copy full game recordings
+into the Post & In repository or public object storage.
+
 ## Database validation suite
 
 Run these checks after every migration. Empty output is expected unless a
@@ -573,6 +621,38 @@ silence a known exception by weakening a validation query.
 ```bash
 sqlite3 seattle_junior_hockey.sqlite \
   "PRAGMA integrity_check; PRAGMA foreign_key_check;"
+```
+
+### Published goal-clip integrity
+
+This query must return no rows. It verifies positive clip bounds, duration,
+anchor placement, and Seattle Junior ownership for every published clip.
+
+```sql
+WITH clip_seconds AS (
+  SELECT
+    c.goal_video_clip_id,
+    c.goal_id,
+    c.duration_seconds,
+    CAST(strftime('%s','1970-01-01 ' || c.clip_start_timestamp) AS INTEGER) AS start_seconds,
+    CAST(strftime('%s','1970-01-01 ' || c.clip_end_timestamp) AS INTEGER) AS end_seconds,
+    CAST(strftime('%s','1970-01-01 ' || c.anchor_timestamp) AS INTEGER) AS anchor_seconds,
+    g.scoring_team_id
+  FROM goal_video_clips c
+  JOIN goals g ON g.goal_id = c.goal_id
+  WHERE c.publication_status = 'published'
+)
+SELECT *
+FROM clip_seconds
+WHERE scoring_team_id <> 1
+   OR start_seconds IS NULL
+   OR end_seconds IS NULL
+   OR anchor_seconds IS NULL
+   OR end_seconds <= start_seconds
+   OR anchor_seconds < start_seconds
+   OR anchor_seconds > end_seconds
+   OR duration_seconds IS NULL
+   OR ABS(duration_seconds - (end_seconds - start_seconds)) > 0.001;
 ```
 
 ### Final score versus recorded goal events
@@ -1142,6 +1222,10 @@ deployment. No standalone Worker deployment is required. After deployment,
 verify the live page at:
 
 `https://postandin.com/mets-16aa-stats/`
+
+When goal clips change, also verify:
+
+`https://postandin.com/mets-16aa-goals/`
 
 Check that the published game count, record, player toggle, shot-data exclusions,
 goalie coverage, special-team totals, and review note match the validated

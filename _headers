@@ -30,6 +30,12 @@
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
 
+# Direct-link reviewed team goal clips. Keep the page crawlable so robots can
+# read noindex, and require revalidation as new clips are added.
+/mets-16aa-goals/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
+
 # Public Gear Exchange pages are indexable but change as listings are posted.
 /gear/*
   Cache-Control: no-cache

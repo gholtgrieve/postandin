@@ -34,8 +34,21 @@ Future agents must follow the canonical [data and statistics
 runbook](data-and-stats-runbook.md) when adding games, reconciling sources,
 recording video reviews, or refreshing the page.
 
-Both URLs are public to anyone who receives the link. `noindex` is not access
-control.
+### Reviewed goal videos
+
+`/mets-16aa-goals/` is a public, direct-link, unlisted, `noindex` video library.
+It groups human-reviewed Seattle Junior goal clips by game in reverse
+chronological order. Eligible games link to their section from the Season
+Results timeline on the statistics page. A goal appears only after a human has
+confirmed exact clip boundaries; an attribution timestamp alone is not enough
+to publish a clip.
+
+The raw game recordings remain private. Public excerpts and poster images use
+versioned paths under `https://media.postandin.com/mets/2026-27/`. The private
+database is the source of truth for clip status and object keys.
+
+All three URLs are public to anyone who receives the link. `noindex` is not
+access control.
 
 ## Schedule monitor
 
@@ -47,7 +60,9 @@ travel-page schedule. It never edits or deploys the page automatically. See the
 
 - `mets-16aa-travel/`
 - `mets-16aa-stats/`
+- `mets-16aa-goals/`
 - `data/*mets-16aa*` and the associated reviewed hashes/snapshots
+- `scripts/process-mets-goal-clips.R`
 - `scripts/check-nwahl-travel.mjs`
 - `scripts/team-schedule-monitor.mjs`
 - `.github/workflows/check-nwahl-travel.yml`

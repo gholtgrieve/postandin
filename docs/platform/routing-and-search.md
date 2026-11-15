@@ -17,8 +17,8 @@ directive only to the successful page can expose alternate responses to search.
 
 - The Felix profile and its watch pages are indexable but deliberately absent
   from global navigation and feature directories.
-- Seattle Junior Mets travel and statistics pages are direct-link, unlisted,
-  omitted from the sitemap, and `noindex`.
+- Seattle Junior Mets travel, statistics, and reviewed goal-video pages are
+  direct-link, unlisted, omitted from the sitemap, and `noindex`.
 
 These exceptions do not make the pages core Post & In products.
 
