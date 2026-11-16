@@ -84,7 +84,7 @@ test('Spokane trip notes include parking, mini golf, and the EWU Q&A', () => {
 });
 
 test('Tri-Cities trip notes include the team lunch and WHL game', () => {
-  const triCities = travelPage.match(/<article class="trip priority" id="tri-cities">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  const triCities = travelPage.match(/<article class="trip" id="tri-cities">([\s\S]*?)<\/article>/)?.[1] ?? '';
   assert.match(triCities, /Saturday · Team lunch/);
   assert.match(triCities, /November 14, 12:30–1:30 PM/);
   assert.doesNotMatch(triCities, /Friday · Team lunch|November 13, 12:30–1:30 PM/);
@@ -97,6 +97,7 @@ test('Tri-Cities trip notes include the team lunch and WHL game', () => {
   assert.match(triCities, /href="https:\/\/chl\.ca\/whl-americans\/gamecentre\/1023303\/" target="_blank" rel="noopener"/);
   assert.match(triCities, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Toyota\+Center\+Kennewick\+WA" target="_blank" rel="noopener">Toyota Center directions/);
   assert.doesNotMatch(triCities, /Book by Oct(?:ober|\.) 30|groupCode=111226SEA/);
+  assert.doesNotMatch(triCities, /Room block: November 12–15|tel:\+15097363656/);
   const notes = triCities.match(/<div class="trip-notes two-up">([\s\S]*?)<footer class="trip-footer">/);
   assert.ok(notes, 'Tri-Cities trip notes should appear before the trip footer');
   assert.doesNotMatch(notes[1], /<(?:img|iframe)\b/);
@@ -122,7 +123,7 @@ test('Portland shows both Beaverton games and the Tigard room block', () => {
 
 test('Albuquerque shows the expired group deadline without implying the rate is still available', () => {
   const glance = travelPage.match(/<a class="glance-link" href="#new-mexico">([\s\S]*?)<\/a>/)?.[1] ?? '';
-  const albuquerque = travelPage.match(/<article class="trip" id="new-mexico">([\s\S]*?)<\/article>/)?.[1] ?? '';
+  const albuquerque = travelPage.match(/<article class="trip(?: priority)?" id="new-mexico">([\s\S]*?)<\/article>/)?.[1] ?? '';
   assert.match(travelPage, /Last updated: November 15, 2026/);
   assert.match(glance, /<span class="status">Group deadline passed<\/span>/);
   assert.doesNotMatch(glance, /Book by Nov\. 3/);
@@ -161,16 +162,17 @@ test('completed trips are collapsed after upcoming trips without expired booking
   const archiveStart = travelPage.indexOf('<section class="past-trips"');
   assert.doesNotMatch(glance, /href="#spokane"/);
   assert.doesNotMatch(glance, /href="#tacoma"/);
+  assert.doesNotMatch(glance, /href="#tri-cities"/);
   assert.doesNotMatch(glance, /href="#tri-cities-october"/);
-  assert.deepEqual([...travelPage.matchAll(/<article class="trip priority" id="([^"]+)">/g)].map(match => match[1]), ['tri-cities']);
-  assert.match(travelPage, /<article class="trip priority" id="tri-cities">\s*<header class="trip-heading"><p class="eyebrow">Next trip<\/p>/);
-  const triCitiesGlance = glance.match(/<a class="glance-link" href="#tri-cities">([\s\S]*?)<\/a>/)?.[1] ?? '';
-  assert.match(triCitiesGlance, /Schedule &amp; activities/);
+  assert.deepEqual([...travelPage.matchAll(/<article class="trip priority" id="([^"]+)">/g)].map(match => match[1]), ['new-mexico']);
+  assert.match(travelPage, /<article class="trip priority" id="new-mexico">\s*<header class="trip-heading"><p class="eyebrow">Next trip<\/p>/);
   assert.doesNotMatch(travelPage, /Book by October 30 for the group rate|groupCode=111226SEA/);
   assert.ok(archiveStart > travelPage.indexOf('<article class="trip" id="gopher-state">'));
+  assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tri-Cities · November 12–15, 2026<\/summary>\s*<article class="trip" id="tri-cities">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Spokane · October 29–November 1, 2026<\/summary>\s*<article class="trip" id="spokane">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tri-Cities · October 3–4, 2026<\/summary>\s*<article class="trip" id="tri-cities-october">/);
   assert.match(travelPage.slice(archiveStart), /<details>\s*<summary>Tacoma · September 25–27, 2026<\/summary>\s*<article class="trip" id="tacoma">/);
+  assert.ok(travelPage.indexOf('<article class="trip" id="tri-cities">') < travelPage.indexOf('<article class="trip" id="spokane">'));
   assert.ok(travelPage.indexOf('<article class="trip" id="spokane">') < travelPage.indexOf('<article class="trip" id="tri-cities-october">'));
   assert.ok(travelPage.indexOf('<article class="trip" id="tri-cities-october">') < travelPage.indexOf('<article class="trip" id="tacoma">'));
   assert.doesNotMatch(travelPage, /groupCode=100326SEA|Book by September 30 for the group rate/);
