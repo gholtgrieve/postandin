@@ -97,8 +97,7 @@ body {
   grid-template-columns: 220px minmax(0, 1fr);
   grid-template-areas:
     'headshot copy'
-    'headshot facts'
-    'contact contact';
+    'headshot facts';
   column-gap: clamp(28px, 5vw, 60px);
   row-gap: 18px;
   align-items: start;
@@ -202,68 +201,40 @@ h1 {
 .fact dd { margin-top: 4px; font-size: 25px; line-height: 1.1; }
 
 .guardian-contact {
-  grid-area: contact;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-top: 10px;
-  padding: 22px 24px;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.guardian-contact a {
+  display: block;
+  width: 100%;
+  padding: 16px 18px;
   border-left: 5px solid var(--mustard);
   background: var(--ink);
   color: var(--paper);
-}
-
-.guardian-contact-kicker {
-  color: #D6BC58;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-
-.guardian-contact-title {
-  margin-top: 5px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 34px;
-  font-weight: 400;
-  letter-spacing: .04em;
-  line-height: 1;
-}
-
-.guardian-contact-copy {
-  max-width: 620px;
-  margin-top: 8px;
-  color: var(--rule);
-  font-size: 12px;
-}
-
-.guardian-contact-action {
-  flex: 0 0 auto;
-  min-width: 280px;
-  padding: 12px 14px;
-  border: 1px solid #D6BC58;
-  color: var(--paper);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-align: center;
+  letter-spacing: .14em;
   text-decoration: none;
   text-transform: uppercase;
 }
 
-.guardian-contact-action small {
+.guardian-contact a:hover,
+.guardian-contact a:focus-visible { color: #D6BC58; }
+
+.guardian-contact-address {
   display: block;
   margin-top: 4px;
   color: var(--rule);
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
   text-transform: none;
 }
 
-.guardian-contact-action:hover { background: #D6BC58; color: var(--ink); }
-.guardian-contact-action:hover small { color: var(--ink2); }
+.guardian-contact a:hover .guardian-contact-address,
+.guardian-contact a:focus-visible .guardian-contact-address { color: var(--paper); }
 
 main { flex: 1; }
 .content-inner { padding-top: clamp(36px, 6vw, 64px); padding-bottom: clamp(52px, 8vw, 88px); }
@@ -543,8 +514,7 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
     grid-template-columns: 96px minmax(0, 1fr);
     grid-template-areas:
       'headshot copy'
-      'facts facts'
-      'contact contact';
+      'facts facts';
     gap: 16px;
   }
   .headshot { align-self: end; }
@@ -553,8 +523,6 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .season-stats { gap: 4px 8px; font-size: 11px; letter-spacing: .04em; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 6px; }
   .fact:last-child { grid-column: span 2; }
-  .guardian-contact { display: block; padding: 20px; }
-  .guardian-contact-action { display: block; min-width: 0; margin-top: 18px; }
   .clip-grid { grid-template-columns: 1fr; }
   .history-layout { grid-template-columns: 1fr; }
   .team-history-table thead {
@@ -651,17 +619,6 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
           <dd>2011</dd>
         </div>
       </dl>
-      <section class="guardian-contact" aria-labelledby="guardian-contact-title">
-        <div>
-          <p class="guardian-contact-kicker">Guardian contact</p>
-          <h2 class="guardian-contact-title" id="guardian-contact-title">Contact Felix’s Parents</h2>
-          <p class="guardian-contact-copy">For hockey opportunities, team inquiries, or additional information, contact Felix’s parents.</p>
-        </div>
-        <a class="guardian-contact-action" href="mailto:felixhockeycontact@gmail.com?subject=Felix%20Holtgrieve%20Hockey%20Inquiry">
-          Email Felix’s parents
-          <small>felixhockeycontact@gmail.com</small>
-        </a>
-      </section>
     </div>
   </section>
 
@@ -856,6 +813,7 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
         </div>
       </section>
     </section>
+    <p class="guardian-contact"><a href="mailto:felixhockeycontact@gmail.com?subject=Felix%20Holtgrieve%20Hockey%20Inquiry">Email Felix's Guardians<span class="guardian-contact-address">felixhockeycontact@gmail.com</span></a></p>
   </div>
 </main>
 

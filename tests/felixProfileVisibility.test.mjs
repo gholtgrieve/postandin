@@ -131,19 +131,12 @@ test('profile season stats match the team page video-reviewed totals', () => {
   }
 });
 
-test('guardian contact is prominent, parent-directed, and uses the dedicated recruiting address', () => {
-  const contact = page.match(/<section class="guardian-contact"[\s\S]*?<\/section>/)?.[0];
-  assert.ok(contact, 'guardian contact section should be present near the top of the profile');
-  assert.match(contact, /id="guardian-contact-title">Contact Felix’s Parents<\/h2>/);
-  assert.match(contact, /For hockey opportunities, team inquiries, or additional information, contact Felix’s parents\./);
-  assert.match(
-    contact,
-    /href="mailto:felixhockeycontact@gmail\.com\?subject=Felix%20Holtgrieve%20Hockey%20Inquiry"/,
-  );
-  assert.match(contact, /<small>felixhockeycontact@gmail\.com<\/small>/);
+test('guardian contact is a simple link at the bottom of the profile', () => {
+  const contact = '<p class="guardian-contact"><a href="mailto:felixhockeycontact@gmail.com?subject=Felix%20Holtgrieve%20Hockey%20Inquiry">Email Felix\'s Guardians<span class="guardian-contact-address">felixhockeycontact@gmail.com</span></a></p>';
+  assert.match(page, new RegExp(escapeRegExp(contact)));
   assert.ok(
-    page.indexOf('class="guardian-contact"') < page.indexOf('class="personal-statement"'),
-    'guardian contact should appear before the personal statement',
+    page.indexOf('class="guardian-contact"') > page.indexOf('class="academics"'),
+    'guardian contact should appear after the academics section',
   );
 });
 
