@@ -97,7 +97,8 @@ body {
   grid-template-columns: 220px minmax(0, 1fr);
   grid-template-areas:
     'headshot copy'
-    'headshot facts';
+    'headshot facts'
+    'contact contact';
   column-gap: clamp(28px, 5vw, 60px);
   row-gap: 18px;
   align-items: start;
@@ -199,6 +200,70 @@ h1 {
 
 .fact dt { color: var(--ink3); }
 .fact dd { margin-top: 4px; font-size: 25px; line-height: 1.1; }
+
+.guardian-contact {
+  grid-area: contact;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 10px;
+  padding: 22px 24px;
+  border-left: 5px solid var(--mustard);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.guardian-contact-kicker {
+  color: #D6BC58;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.guardian-contact-title {
+  margin-top: 5px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: .04em;
+  line-height: 1;
+}
+
+.guardian-contact-copy {
+  max-width: 620px;
+  margin-top: 8px;
+  color: var(--rule);
+  font-size: 12px;
+}
+
+.guardian-contact-action {
+  flex: 0 0 auto;
+  min-width: 280px;
+  padding: 12px 14px;
+  border: 1px solid #D6BC58;
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.guardian-contact-action small {
+  display: block;
+  margin-top: 4px;
+  color: var(--rule);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.guardian-contact-action:hover { background: #D6BC58; color: var(--ink); }
+.guardian-contact-action:hover small { color: var(--ink2); }
 
 main { flex: 1; }
 .content-inner { padding-top: clamp(36px, 6vw, 64px); padding-bottom: clamp(52px, 8vw, 88px); }
@@ -478,7 +543,8 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
     grid-template-columns: 96px minmax(0, 1fr);
     grid-template-areas:
       'headshot copy'
-      'facts facts';
+      'facts facts'
+      'contact contact';
     gap: 16px;
   }
   .headshot { align-self: end; }
@@ -487,6 +553,8 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
   .season-stats { gap: 4px 8px; font-size: 11px; letter-spacing: .04em; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 6px; }
   .fact:last-child { grid-column: span 2; }
+  .guardian-contact { display: block; padding: 20px; }
+  .guardian-contact-action { display: block; min-width: 0; margin-top: 18px; }
   .clip-grid { grid-template-columns: 1fr; }
   .history-layout { grid-template-columns: 1fr; }
   .team-history-table thead {
@@ -556,9 +624,9 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
         </div>
         <h1 id="profile-title"><span>Felix</span> <span class="family-name">Holtgrieve</span></h1>
         <p class="season-stats">
-          <span class="sr-only">2026–27 season statistics: 23 games played, 3 goals, 6 assists, and 9 points.</span>
+          <span class="sr-only">2026–27 season statistics: 24 games played, 3 goals, 6 assists, and 9 points.</span>
           <span class="season-stats-label" aria-hidden="true">2026–27 Stats</span>
-          <span class="season-stats-values" aria-hidden="true">23 GP · 3 G · 6 A · 9 PTS</span>
+          <span class="season-stats-values" aria-hidden="true">24 GP · 3 G · 6 A · 9 PTS</span>
         </p>
       </div>
       <dl class="facts" aria-label="Player facts">
@@ -583,6 +651,17 @@ a:focus-visible { outline: 2px solid #D6BC58; outline-offset: 4px; }
           <dd>2011</dd>
         </div>
       </dl>
+      <section class="guardian-contact" aria-labelledby="guardian-contact-title">
+        <div>
+          <p class="guardian-contact-kicker">Guardian contact</p>
+          <h2 class="guardian-contact-title" id="guardian-contact-title">Contact Felix’s Parents</h2>
+          <p class="guardian-contact-copy">For hockey opportunities, team inquiries, or additional information, contact Felix’s parents.</p>
+        </div>
+        <a class="guardian-contact-action" href="mailto:felixhockeycontact@gmail.com?subject=Felix%20Holtgrieve%20Hockey%20Inquiry">
+          Email Felix’s parents
+          <small>felixhockeycontact@gmail.com</small>
+        </a>
+      </section>
     </div>
   </section>
 
