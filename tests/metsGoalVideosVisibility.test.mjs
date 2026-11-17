@@ -32,18 +32,17 @@ test('goal video library remains direct-link and non-indexed', () => {
   }
 });
 
-test('goal video library exposes only the 28 bounded reviewed clips', () => {
-  assert.match(goalPage, /28 reviewed Seattle goals across 10 games/);
-  assert.equal((goalPage.match(/<section class="game-section"/g) ?? []).length, 10);
-  assert.equal((goalPage.match(/<video controls playsinline preload="none"/g) ?? []).length, 28);
-  assert.equal((goalPage.match(/<source src="https:\/\/media\.postandin\.com\/mets\/2026-27\//g) ?? []).length, 28);
-  assert.equal((goalPage.match(/poster="https:\/\/media\.postandin\.com\/mets\/2026-27\//g) ?? []).length, 28);
+test('goal video library exposes only the 42 bounded reviewed clips', () => {
+  assert.match(goalPage, /42 reviewed Seattle goals across 19 games/);
+  assert.equal((goalPage.match(/<section class="game-section"/g) ?? []).length, 19);
+  assert.equal((goalPage.match(/<video controls playsinline preload="none"/g) ?? []).length, 42);
+  assert.equal((goalPage.match(/<source src="https:\/\/media\.postandin\.com\/mets\/2026-27\//g) ?? []).length, 42);
+  assert.equal((goalPage.match(/poster="https:\/\/media\.postandin\.com\/mets\/2026-27\//g) ?? []).length, 42);
 
   const videoUrls = [...goalPage.matchAll(/<source src="([^"]+\.mp4)" type="video\/mp4">/g)].map((match) => match[1]);
   const posterUrls = [...goalPage.matchAll(/poster="([^"]+\.jpg)"/g)].map((match) => match[1]);
-  assert.equal(new Set(videoUrls).size, 28);
-  assert.equal(new Set(posterUrls).size, 28);
-  assert.doesNotMatch(goalPage, /\/goal-11\//);
+  assert.equal(new Set(videoUrls).size, 42);
+  assert.equal(new Set(posterUrls).size, 42);
   for (const url of [...videoUrls, ...posterUrls]) {
     assert.match(url, /^https:\/\/media\.postandin\.com\/mets\/2026-27\/\d{4}-\d{2}-\d{2}-[a-z-]+\/goal-\d+\/v\d+\/goal-\d+\.(?:mp4|jpg)$/);
   }
@@ -60,23 +59,32 @@ test('games and timeline links are reverse chronological and mutually valid', ()
     'game-2026-10-30-spokane',
     'game-2026-10-25-tacoma',
     'game-2026-10-24-tacoma',
+    'game-2026-10-18-sno-king',
+    'game-2026-10-04-tri-cities',
+    'game-2026-10-03-tri-cities',
+    'game-2026-09-27-utah',
+    'game-2026-09-26-montana',
+    'game-2026-09-26-boise',
+    'game-2026-09-25-wyoming',
+    'game-2026-09-20-tacoma',
+    'game-2026-09-19-tacoma',
     'game-2026-09-13-sno-king',
     'game-2026-09-12-sno-king',
   ]);
 
-  const linkMatches = [...statsPage.matchAll(/class="timeline-video-link" href="\/mets-16aa-goals\/#([^"]+)" aria-label="([^"]+)">(Watch (?:goal|\d+ goals))<\/a>/g)];
+  const linkMatches = [...statsPage.matchAll(/class="timeline-video-link" href="\/mets-16aa-goals\/#([^"]+)" aria-label="([^"]+)"><svg class="timeline-video-icon"[^>]+><path[^>]+\/><\/svg>(Goal videos?)<\/a>/g)];
   const links = linkMatches.map((match) => match[1]);
-  assert.equal(links.length, 10);
+  assert.equal(links.length, 19);
   assert.deepEqual(new Set(links), new Set(sectionIds));
-  assert.doesNotMatch(statsPage, /October 18[^\n]+timeline-video-link/);
 
   for (const match of linkMatches) {
     const sectionStart = goalPage.indexOf(`id="${match[1]}"`);
     const nextSection = goalPage.indexOf('<section class="game-section"', sectionStart + 1);
     const section = goalPage.slice(sectionStart, nextSection < 0 ? undefined : nextSection);
     const clipCount = (section.match(/<video controls/g) ?? []).length;
-    const visibleCount = match[3] === 'Watch goal' ? 1 : Number(match[3].match(/\d+/)[0]);
-    assert.equal(visibleCount, clipCount, match[1]);
+    assert.equal(match[3], clipCount === 1 ? 'Goal video' : 'Goal videos', match[1]);
     assert.match(match[2], /from (?:September|October|November)/);
   }
+  assert.doesNotMatch(statsPage, /Goal videos \(\d+\)/);
+  assert.equal((statsPage.match(/class="timeline-video-icon"[^>]+aria-hidden="true" focusable="false"/g) ?? []).length, 19);
 });
