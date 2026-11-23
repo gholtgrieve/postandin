@@ -43,21 +43,26 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.doesNotMatch(statsPage, />\+\/-</);
   assert.match(statsPage, /Mateus Mendes/);
   assert.match(statsPage, /Anthony O'Donnell/);
-  assert.match(statsPage, /Through the November 15 game at Tri-Cities/);
+  assert.match(statsPage, /Through the November 22 game versus New Mexico/);
+  assert.match(statsPage, /aria-label="November 22 versus New Mexico, loss, 2 to 4"/);
+  assert.match(statsPage, /<title>November 22 versus New Mexico: 47\.1%<\/title>/);
+  assert.match(statsPage, /aria-label="November 21 versus New Mexico, loss, 1 to 4"/);
+  assert.match(statsPage, /<title>November 21 versus New Mexico: 20\.0%<\/title>/);
   assert.match(statsPage, /aria-label="November 15 at Tri-Cities, loss, 1 to 4"/);
   assert.match(statsPage, /<title>November 15 at Tri-Cities: 34\.5%<\/title>/);
   assert.doesNotMatch(statsPage, /November 14 at Boise|Nov 14 · at Boise/);
   assert.match(statsPage, /aria-label="November 14 versus Boise, win, 5 to 1"/);
   assert.match(statsPage, /<title>November 14 versus Boise: 51\.9%<\/title>/);
   assert.match(statsPage, /October 31 at Boise/);
-  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">24<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">6-16-2<\/span>/);
-  assert.match(statsPage, /<span class="stat-value">55 \/ 84<\/span>/);
-  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>24<\/td><td>11<\/td>/);
-  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>24<\/td><td>9<\/td>/);
+  assert.match(statsPage, /<span class="stat-label">Games<\/span><span class="stat-value">26<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">6-18-2<\/span>/);
+  assert.match(statsPage, /<span class="stat-value">58 \/ 92<\/span>/);
+  assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>26<\/td><td>11<\/td>/);
+  assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>26<\/td><td>10<\/td>/);
   assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
-  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>19<\/td>.*<td>15<\/td><td>60<\/td>/);
-  assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>17<\/td>/);
+  assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>21<\/td>.*<td>16<\/td><td>62<\/td>/);
+  assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>19<\/td>.*<td>5<\/td><td>10<\/td>/);
+  assert.match(statsPage, /Ethan Hines<\/td><td>D<\/td><td>22<\/td>.*<td>25<\/td><td>88<\/td>/);
 });
 
 test('both player tables provide sortable column controls', () => {
@@ -94,11 +99,11 @@ test('player table keeps the compact public columns for every active player', ()
       assert.equal(cell.text, reviewedValue);
     }
   }
-  assert.match(statsPage, /42 of 55 goals have been reviewed by video/);
+  assert.match(statsPage, /42 of 58 goals have been reviewed by video/);
   assert.match(statsPage, /data-player-table data-stat-view="reviewed"/);
   assert.match(statsPage, /data-stat-view="reviewed" aria-pressed="true">Video reviewed/);
   assert.match(statsPage, /data-stat-view="official" aria-pressed="false">Official/);
-  assert.match(statsPage, /Mateus Mendes[\s\S]*?data-reviewed="8" data-official="7">8<\/td>[\s\S]*?data-reviewed="19" data-official="18">19<\/td>/);
+  assert.match(statsPage, /Mateus Mendes[\s\S]*?data-reviewed="9" data-official="8">9<\/td>[\s\S]*?data-reviewed="20" data-official="19">20<\/td>/);
   assert.match(statsPage, /Joshua Haglof McCallum[\s\S]*?data-reviewed="2" data-official="0">2<\/td>[\s\S]*?data-reviewed="3" data-official="1">3<\/td>/);
   assert.ok(playerTable.indexOf('Sebastian Salmon') < playerTable.indexOf('Eliot Osborn'));
   assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Cruz Bugeaud'));
@@ -110,8 +115,8 @@ test('goalie totals include derived saves and save percentage', () => {
   assert.match(statsPage, />GA<\/button>/);
   assert.match(statsPage, />SV<\/button>/);
   assert.match(statsPage, />SV%<\/button>/);
-  assert.match(statsPage, /Anthony O'Donnell<\/td><td>13<\/td><td>4<\/td><td>7<\/td><td>1<\/td><td>294<\/td><td>37<\/td><td>264<\/td><td class="points" data-sort-value="89\.8">89\.8%/);
-  assert.match(statsPage, /Miguel Martinez<\/td><td>13<\/td><td>2<\/td><td>9<\/td><td>1<\/td><td>357<\/td><td>46<\/td><td>322<\/td><td class="points" data-sort-value="90\.2">90\.2%/);
+  assert.match(statsPage, /Anthony O'Donnell<\/td><td>14<\/td><td>4<\/td><td>8<\/td><td>1<\/td><td>298<\/td><td>41<\/td><td>264<\/td><td class="points" data-sort-value="88\.6">88\.6%/);
+  assert.match(statsPage, /Miguel Martinez<\/td><td>14<\/td><td>2<\/td><td>10<\/td><td>1<\/td><td>384<\/td><td>50<\/td><td>345<\/td><td class="points" data-sort-value="89\.8">89\.8%/);
   assert.match(statsPage, /SA = shots against; GA = goals against; SV = saves; SV% = save percentage/);
   assert.doesNotMatch(statsPage, /Goals against count every goalie appearance|October 31 Boise workload|October 31 Tri-Cities workload/);
 });
@@ -134,6 +139,8 @@ test('coach-review analytics preserve the basic tables and label data limitation
     statsPage.indexOf('<h3 class="chart-title" id="timeline-title">Season results<\/h3>'),
     statsPage.indexOf('<section class="chart-card chart-wide" aria-labelledby="special-teams-title">')
   );
+  assert.ok(seasonResults.indexOf('>Nov 22<') < seasonResults.indexOf('>Nov 21<'));
+  assert.ok(seasonResults.indexOf('>Nov 21<') < seasonResults.indexOf('at Tri-Cities'));
   assert.ok(seasonResults.indexOf('at Tri-Cities') < seasonResults.indexOf('vs Boise'));
   assert.ok(seasonResults.indexOf('vs Boise') < seasonResults.indexOf('vs Tri-Cities'));
   assert.ok(seasonResults.indexOf('vs Tri-Cities') < seasonResults.indexOf('at Spokane'));
@@ -144,16 +151,20 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.ok(seasonResults.indexOf('Oct 31') < seasonResults.indexOf('Sep 12'));
   assert.doesNotMatch(seasonResults, /Most recent games are shown first/);
   assert.doesNotMatch(seasonResults, /Seattle Junior's score is listed first/);
-  assert.match(statsPage, /period-label">P1<\/span> 18 · <span class="period-label">P2<\/span> 23 · <span class="period-label">P3<\/span> 14/);
+  assert.match(statsPage, /period-label">P1<\/span> 19 · <span class="period-label">P2<\/span> 23 · <span class="period-label">P3<\/span> 16/);
   assert.match(statsPage, /Goals by Period/);
   assert.doesNotMatch(statsPage, /Average goals per game in periods one, two, and three/);
-  assert.match(statsPage, /<strong>141 minutes<\/strong>/);
+  assert.match(statsPage, /<strong>152 minutes<\/strong>/);
   assert.doesNotMatch(statsPage, /Elapsed time at a player disadvantage/);
   assert.match(statsPage, /<h2 id="players-heading">Players<\/h2>/);
   assert.doesNotMatch(statsPage, /skater/i);
   assert.doesNotMatch(statsPage, /manpower/i);
-  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">5:53/);
-  assert.match(statsPage, /Avg\. Goals\/Game<\/span><strong class="metric-value">2\.29/);
+  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">5:50/);
+  assert.match(statsPage, /Avg\. Goals\/Game<\/span><strong class="metric-value">2\.23/);
+  assert.match(statsPage, /Shot volume<\/span>\s*<strong>473 for · 729 against/);
+  assert.match(statsPage, /Avg\. shot share<\/span><strong class="metric-value">38\.5%/);
+  assert.match(statsPage, /Avg\. shot differential<\/span><strong class="metric-value">−11\.6/);
+  assert.match(statsPage, /Team save percentage<\/span><strong class="metric-value">89\.3%/);
   assert.match(statsPage, /Expected penalty cost/);
   assert.match(statsPage, /0\.74 goals\/game/);
   assert.match(statsPage, /Future penalties are expected to reduce team goal differential by about 7 goals per 10 games/);
@@ -172,12 +183,12 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);
   assert.doesNotMatch(statsPage, /Shots by game/);
   assert.match(statsPage, /Special teams goals/);
-  assert.match(statsPage, /Power-play conversion<\/span><strong>12\.0%/);
-  assert.match(statsPage, /Power-play goals against<\/span><strong>17/);
+  assert.match(statsPage, /Power-play conversion<\/span><strong>11\.5%/);
+  assert.match(statsPage, /Power-play goals against<\/span><strong>20/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>6/);
-  assert.match(statsPage, /10 goals on 83 power plays/);
-  assert.match(statsPage, /81\.9% · 77 successful penalty kills on 94 opportunities/);
+  assert.match(statsPage, /10 goals on 87 power plays/);
+  assert.match(statsPage, /80\.2% · 81 successful penalty kills on 101 opportunities/);
   assert.doesNotMatch(statsPage, /GWG/);
   assert.doesNotMatch(statsPage, /Goal-type totals cover all eighteen games/);
   assert.doesNotMatch(statsPage, /Opportunity totals and rate statistics cover the first fourteen games/);
@@ -187,7 +198,7 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /Dark points show each game's shot share\. The gold line shows the centered three-game average, using the game before and the game after each point\. The October 3, 4, and 30 games and the November 13 Spokane game are excluded because shots were not recorded/);
   assert.match(statsPage, /centered three-game average/);
   assert.match(statsPage, /using the game before and the game after each point/);
-  assert.equal((statsPage.match(/class="game-point"/g) ?? []).length, 20);
+  assert.equal((statsPage.match(/class="game-point"/g) ?? []).length, 22);
   assert.equal((statsPage.match(/class="trend-line"/g) ?? []).length, 1);
   assert.doesNotMatch(statsPage, /class="trend-point"|class="trend-value"/);
   assert.match(statsPage, /Game efficiency/);
@@ -195,17 +206,23 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /Shot share is plotted left to right|Each point is a game|Select it for the matchup and score/);
   assert.match(statsPage, /Seattle Junior share of shots/);
   assert.match(statsPage, /Final goal differential/);
-  assert.equal((statsPage.match(/class="efficiency-point"/g) ?? []).length, 20);
+  assert.equal((statsPage.match(/class="efficiency-point"/g) ?? []).length, 22);
   assert.doesNotMatch(statsPage, /class="diverging-chart game-shot-chart"/);
   assert.equal((statsPage.match(/class="diverging-chart period-goal-chart"/g) ?? []).length, 3);
   assert.match(statsPage, /Goals by period/);
   assert.match(statsPage, /Penalty profile/);
-  assert.match(statsPage, /109 penalties · 230 PIM · Excludes misconducts/);
+  assert.match(statsPage, /116 penalties · 244 PIM · Excludes misconducts/);
+  const penaltyProfile = statsPage.slice(
+    statsPage.indexOf('<h3 class="chart-title" id="penalties-title">Penalty profile<\/h3>'),
+    statsPage.indexOf('<figure class="chart-card chart-wide" aria-labelledby="period-title">')
+  );
+  assert.ok(penaltyProfile.indexOf('<strong>Head contact<\/strong>') < penaltyProfile.indexOf('<strong>Holding<\/strong>'));
+  assert.ok(penaltyProfile.indexOf('<strong>Holding<\/strong>') < penaltyProfile.indexOf('<strong>Checking from behind<\/strong>'));
   assert.doesNotMatch(statsPage, /Misconduct records are excluded/);
   assert.doesNotMatch(statsPage, /id="misconducts-title"/);
   assert.doesNotMatch(statsPage, /Goaltender workload|class="workload-row"/);
   assert.doesNotMatch(statsPage, /All eighteen games share a thirty-goal scale|Period-level shot totals are available for eight games/);
-  assert.match(statsPage, /42 of 55 goals have been reviewed by video, with 24 corrections/);
+  assert.match(statsPage, /42 of 58 goals have been reviewed by video, with 24 corrections/);
   assert.match(statsPage, /Video-reviewed totals use confirmed corrections; official totals come directly from scoresheets or the NWAHL webpage/);
   assert.doesNotMatch(statsPage, /Misconducts and game misconducts are each counted as separate penalties/);
   assert.doesNotMatch(statsPage, /Shot location and high-danger chances are not currently tracked/);
