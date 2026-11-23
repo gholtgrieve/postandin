@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">Seattle Junior Mets 16U AA Season Stats</title>
+  <desc id="description">A Post &amp; In sharing card for Seattle Junior Mets 16U AA 2026–27 season statistics.</desc>
+  <rect width="1200" height="630" fill="#141210"/>
+  <rect y="76" width="1200" height="554" fill="#E8E3D8"/>
+  <rect y="72" width="1200" height="4" fill="#9A7B00"/>
+
+  <text x="66" y="47" fill="#E8E3D8" font-family="IBM Plex Mono, monospace" font-size="25" font-weight="700" letter-spacing="3">POST &amp; IN</text>
+  <text x="1134" y="47" fill="#B8B2A4" font-family="IBM Plex Mono, monospace" font-size="20" font-weight="700" letter-spacing="2" text-anchor="end">2026–27 SEASON</text>
+
+  <text x="68" y="160" fill="#7C6300" font-family="IBM Plex Mono, monospace" font-size="25" font-weight="700" letter-spacing="5">SEATTLE JUNIOR METS 16U AA</text>
+  <text x="64" y="325" fill="#141210" font-family="Bebas Neue, Arial Narrow, sans-serif" font-size="148" letter-spacing="5">SEASON</text>
+  <text x="64" y="468" fill="#9A7B00" font-family="Bebas Neue, Arial Narrow, sans-serif" font-size="148" letter-spacing="5">STATS</text>
+
+  <rect x="68" y="514" width="1064" height="3" fill="#B8B2A4"/>
+  <text x="68" y="572" fill="#3D3A34" font-family="IBM Plex Mono, monospace" font-size="25">Game results · Player stats · Special teams</text>
+  <rect y="598" width="1200" height="32" fill="#141210"/>
+</svg>

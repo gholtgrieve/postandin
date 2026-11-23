@@ -42,10 +42,10 @@ use the shared 1200×630 `/social-preview-v2.png`, with page-specific titles and
 descriptions. Server-rendered coach profiles use the coach headshot when one is
 available and otherwise emit no social image.
 
-Hosted asides own their preview policy. The Seattle Junior Mets travel page uses
-its dedicated preview image, and the Felix profile and watch pages use their
-approved profile media. Verify Open Graph and large Twitter Card metadata with
-the other routing surfaces whenever a page or its visibility changes.
+Hosted asides own their preview policy. The Seattle Junior Mets travel and stats
+pages use dedicated preview images, and the Felix profile and watch pages use
+their approved profile media. Verify Open Graph and large Twitter Card metadata
+with the other routing surfaces whenever a page or its visibility changes.
 
 ## Three-part model
 

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const statsPage = fs.readFileSync('mets-16aa-stats/index.html', 'utf8');
+const socialPreview = fs.readFileSync('mets-16aa-stats/social-preview.png');
 const sitemap = fs.readFileSync('sitemap.xml', 'utf8');
 const robots = fs.readFileSync('robots.txt', 'utf8');
 const headers = fs.readFileSync('_headers', 'utf8');
@@ -31,6 +32,17 @@ test('team stats page remains direct-link and non-indexed', () => {
     const publicPage = fs.readFileSync(path, 'utf8');
     assert.doesNotMatch(publicPage, /href="(?:https:\/\/postandin\.com)?\/mets-16aa-stats(?:["\/?#])/, path);
   }
+});
+
+test('team stats page provides a large social sharing preview', () => {
+  assert.match(statsPage, /<meta property="og:image" content="https:\/\/postandin\.com\/mets-16aa-stats\/social-preview\.png">/);
+  assert.match(statsPage, /<meta property="og:image:width" content="1200">/);
+  assert.match(statsPage, /<meta property="og:image:height" content="630">/);
+  assert.match(statsPage, /<meta property="og:image:alt" content="[^"]+">/);
+  assert.match(statsPage, /<meta name="twitter:card" content="summary_large_image">/);
+  assert.match(statsPage, /<meta name="twitter:image" content="https:\/\/postandin\.com\/mets-16aa-stats\/social-preview\.png">/);
+  assert.equal(socialPreview.readUInt32BE(16), 1200);
+  assert.equal(socialPreview.readUInt32BE(20), 630);
 });
 
 test('team stats page exposes the expected season table without plus-minus', () => {
@@ -65,10 +77,11 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, /Ethan Hines<\/td><td>D<\/td><td>22<\/td>.*<td>25<\/td><td>88<\/td>/);
 });
 
-test('both player tables provide sortable column controls', () => {
+test('both player tables provide sortable column controls and players default to number order', () => {
   assert.equal((statsPage.match(/<table[^>]+data-sortable/g) ?? []).length, 2);
   assert.match(statsPage, /button\.addEventListener\('click'/);
-  assert.match(statsPage, /aria-sort="descending"/);
+  assert.match(statsPage, /<table data-sortable data-player-table[\s\S]*?<th scope="col" aria-sort="ascending"><button class="sort-button" type="button" data-type="number">#<\/button><\/th>/);
+  assert.match(statsPage, /table\.applyCurrentSort\(\);/);
   assert.match(statsPage, /table\.matches\('\[data-player-table\]'\).*columnIndex === 6.*direction === 'descending'/);
   assert.match(statsPage, /rightGoals - leftGoals/);
   assert.match(statsPage, /leftName\.localeCompare\(rightName/);
@@ -90,6 +103,9 @@ test('player table keeps the compact public columns for every active player', ()
     }))
   ));
   assert.equal(rows.length, 17);
+  assert.deepEqual(rows.map((cells) => Number(cells[0].text)), [
+    3, 6, 7, 9, 10, 12, 13, 14, 17, 21, 22, 23, 40, 57, 64, 65, 87,
+  ]);
 
   for (const cells of rows) {
     assert.equal(cells.length, 9);

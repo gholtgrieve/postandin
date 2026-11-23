@@ -903,14 +903,14 @@ SELECT ps.*
 FROM player_summary ps
 JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
-ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
+ORDER BY p.jersey_number;
 
 -- Official player scoring for the toggle.
 SELECT ps.*
 FROM official_player_summary ps
 JOIN players p ON p.player_id = ps.player_id
 WHERE p.active = 1 AND p.position <> 'G'
-ORDER BY ps.points DESC, ps.goals DESC, p.last_name, p.first_name;
+ORDER BY p.jersey_number;
 
 -- Reviewed penalty impact and realized PK goals for active players.
 SELECT p.jersey_number, p.first_name, p.last_name,
