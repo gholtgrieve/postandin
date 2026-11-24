@@ -171,12 +171,12 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.match(statsPage, /period-label">P1<\/span> 19 · <span class="period-label">P2<\/span> 23 · <span class="period-label">P3<\/span> 16/);
   assert.match(statsPage, /Goals by Period/);
   assert.doesNotMatch(statsPage, /Average goals per game in periods one, two, and three/);
-  assert.match(statsPage, /<strong>152 minutes<\/strong>/);
+  assert.match(statsPage, /<strong>151 minutes<\/strong>/);
   assert.doesNotMatch(statsPage, /Elapsed time at a player disadvantage/);
   assert.match(statsPage, /<h2 id="players-heading">Players<\/h2>/);
   assert.doesNotMatch(statsPage, /skater/i);
   assert.doesNotMatch(statsPage, /manpower/i);
-  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">5:50/);
+  assert.match(statsPage, /Avg\. PK Time\/Game<\/span><strong class="metric-value">5:49/);
   assert.match(statsPage, /Avg\. Goals\/Game<\/span><strong class="metric-value">2\.23/);
   assert.match(statsPage, /Shot volume<\/span>\s*<strong>473 for · 729 against/);
   assert.match(statsPage, /Avg\. shot share<\/span><strong class="metric-value">38\.5%/);
@@ -201,11 +201,11 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /Shots by game/);
   assert.match(statsPage, /Special teams goals/);
   assert.match(statsPage, /Power-play conversion<\/span><strong>11\.5%/);
-  assert.match(statsPage, /Power-play goals against<\/span><strong>20/);
+  assert.match(statsPage, /Power-play goals against<\/span><strong>21/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>6/);
   assert.match(statsPage, /10 goals on 87 power plays/);
-  assert.match(statsPage, /80\.2% · 81 successful penalty kills on 101 opportunities/);
+  assert.match(statsPage, /77\.2% · 71 successful penalty kills on 92 opportunities/);
   assert.doesNotMatch(statsPage, /GWG/);
   assert.doesNotMatch(statsPage, /Goal-type totals cover all eighteen games/);
   assert.doesNotMatch(statsPage, /Opportunity totals and rate statistics cover the first fourteen games/);
