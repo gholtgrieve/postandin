@@ -71,9 +71,9 @@ test('team stats page exposes the expected season table without plus-minus', () 
   assert.match(statsPage, /<span class="stat-value">58 \/ 92<\/span>/);
   assert.match(statsPage, /Mateus Mendes<\/td><td>F<\/td><td>26<\/td><td>11<\/td>/);
   assert.match(statsPage, /Jesper Clark<\/td><td>F<\/td><td>26<\/td><td>10<\/td>/);
-  assert.ok(statsPage.indexOf('Joshua Haglof McCallum') < statsPage.indexOf('Cruz Bugeaud'));
+  assert.ok(statsPage.indexOf('Joshua Haglöf McCallum') < statsPage.indexOf('Cruz Bugeaud'));
   assert.match(statsPage, /Chase Pocholski<\/td><td>D<\/td><td>21<\/td>.*<td>16<\/td><td>62<\/td>/);
-  assert.match(statsPage, /Joshua Haglof McCallum<\/td><td>D<\/td><td>19<\/td>.*<td>5<\/td><td>10<\/td>/);
+  assert.match(statsPage, /Joshua Haglöf McCallum<\/td><td>D<\/td><td>19<\/td>.*<td>5<\/td><td>10<\/td>/);
   assert.match(statsPage, /Ethan Hines<\/td><td>D<\/td><td>22<\/td>.*<td>25<\/td><td>88<\/td>/);
 });
 
@@ -120,10 +120,10 @@ test('player table keeps the compact public columns for every active player', ()
   assert.match(statsPage, /data-stat-view="reviewed" aria-pressed="true">Video reviewed/);
   assert.match(statsPage, /data-stat-view="official" aria-pressed="false">Official/);
   assert.match(statsPage, /Mateus Mendes[\s\S]*?data-reviewed="9" data-official="8">9<\/td>[\s\S]*?data-reviewed="20" data-official="19">20<\/td>/);
-  assert.match(statsPage, /Joshua Haglof McCallum[\s\S]*?data-reviewed="2" data-official="0">2<\/td>[\s\S]*?data-reviewed="3" data-official="1">3<\/td>/);
+  assert.match(statsPage, /Joshua Haglöf McCallum[\s\S]*?data-reviewed="2" data-official="0">2<\/td>[\s\S]*?data-reviewed="3" data-official="1">3<\/td>/);
   assert.ok(playerTable.indexOf('Sebastian Salmon') < playerTable.indexOf('Eliot Osborn'));
-  assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Cruz Bugeaud'));
-  assert.ok(playerTable.indexOf('Joshua Haglof McCallum') < playerTable.indexOf('Chase Pocholski'));
+  assert.ok(playerTable.indexOf('Joshua Haglöf McCallum') < playerTable.indexOf('Cruz Bugeaud'));
+  assert.ok(playerTable.indexOf('Joshua Haglöf McCallum') < playerTable.indexOf('Chase Pocholski'));
 });
 
 test('goalie totals include derived saves and save percentage', () => {
@@ -138,13 +138,14 @@ test('goalie totals include derived saves and save percentage', () => {
 });
 
 test('display names retain natural order while sorting by surname', () => {
-  assert.match(statsPage, /data-sort-value="Haglof McCallum, Max">Max Haglof McCallum/);
+  assert.match(statsPage, /data-sort-value="Haglöf McCallum, Max">Max Haglöf McCallum/);
+  assert.doesNotMatch(statsPage, /Haglof McCallum/);
   assert.match(statsPage, /data-sort-value="O'Donnell, Anthony">Anthony O'Donnell/);
   assert.match(statsPage, /dataset\.sortValue \|\|/);
 });
 
 test('player positions reflect the current Seattle Junior roster', () => {
-  assert.match(statsPage, /Max Haglof McCallum<\/td><td>F<\/td>/);
+  assert.match(statsPage, /Max Haglöf McCallum<\/td><td>F<\/td>/);
   assert.match(statsPage, /Zaedan Longley<\/td><td>D\/F<\/td>/);
   assert.match(statsPage, /Eliot Osborn<\/td><td>F\/D<\/td>/);
 });

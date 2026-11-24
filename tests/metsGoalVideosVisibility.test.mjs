@@ -48,6 +48,12 @@ test('goal video library exposes only the 42 bounded reviewed clips', () => {
   }
 });
 
+test('goal video library uses the corrected Haglöf spelling', () => {
+  assert.match(goalPage, /Max Haglöf McCallum/);
+  assert.match(goalPage, /Joshua Haglöf McCallum/);
+  assert.doesNotMatch(goalPage, /Haglof McCallum/);
+});
+
 test('games and timeline links are reverse chronological and mutually valid', () => {
   const sectionIds = [...goalPage.matchAll(/<section class="game-section" id="([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(sectionIds, [
