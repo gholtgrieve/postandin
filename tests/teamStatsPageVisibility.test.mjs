@@ -200,11 +200,11 @@ test('coach-review analytics preserve the basic tables and label data limitation
   assert.doesNotMatch(statsPage, /Create more pressure|Protect periods two and three|Reduce avoidable minutes/);
   assert.doesNotMatch(statsPage, /Shots by game/);
   assert.match(statsPage, /Special teams goals/);
-  assert.match(statsPage, /Power-play conversion<\/span><strong>11\.5%/);
+  assert.match(statsPage, /Power-play conversion<\/span><strong>12\.2%/);
   assert.match(statsPage, /Power-play goals against<\/span><strong>21/);
   assert.match(statsPage, /Shorthanded goals for<\/span><strong>0/);
   assert.match(statsPage, /Shorthanded goals against<\/span><strong>6/);
-  assert.match(statsPage, /10 goals on 87 power plays/);
+  assert.match(statsPage, /10 goals on 82 power plays/);
   assert.match(statsPage, /77\.2% · 71 successful penalty kills on 92 opportunities/);
   assert.doesNotMatch(statsPage, /GWG/);
   assert.doesNotMatch(statsPage, /Goal-type totals cover all eighteen games/);

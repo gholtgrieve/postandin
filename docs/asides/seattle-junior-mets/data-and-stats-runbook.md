@@ -107,6 +107,7 @@ Do not collapse these layers into one corrected row.
 | `game_team_stats` | Goals, shots, and special-team totals for each team | Add one row for Seattle Junior and one for the opponent. Missing values remain `NULL`. |
 | `game_short_handed_time` | Reviewed elapsed player-disadvantage time by game and team | Count clock time once when the team has fewer players because of a penalty; preserve the source, calculation note, and verification status. |
 | `game_reviewed_penalty_kill_stats` | Reviewed PK opportunities and power-play goals against by game and team | Keep reviewed counts separate from the official aggregates in `game_team_stats`; mark unresolved games provisional. |
+| `game_reviewed_power_play_stats` | Reviewed Seattle power-play opportunities and goals by game | Keep reviewed counts separate from official aggregates; flag unresolved event order or player-count sequences as provisional. |
 | `goalie_game_stats` | Seattle Junior goalie decisions and workload | When all are known, `shots_against = saves + goals_against`. |
 | `game_videos` | Canonical local video filename for each recorded game | Use one row per game. Preserve the pre-standardization filename in `legacy_filename`; when no earlier name exists, store the canonical filename in both fields. Do not use this table for public assets. |
 | `goal_video_clips` | Publication status and versioned media keys for reviewed Seattle Junior goal clips | Publish only rows with human-confirmed start and end timestamps. Keep midpoint-only reviews in `needs_bounds`. |
@@ -131,6 +132,7 @@ Do not collapse these layers into one corrected row.
 | `player_penalty_impact` | Season-to-date player penalty impact, including expected cost and assigned PK goals against. |
 | `team_penalty_impact` | Team reconciliation of player, bench, unknown, expected, and realized penalty outcomes. |
 | `reviewed_penalty_kill_summary` | Season reviewed PK opportunities, goals against, successful kills, percentage, and unconfirmed-game count. |
+| `reviewed_power_play_summary` | Season reviewed Seattle power-play opportunities, goals, conversion percentage, and unconfirmed-game count. |
 
 `player_summary` is the reviewed/public view even when only some goals have
 been reviewed: unreviewed goals fall back to official credit.
@@ -446,9 +448,10 @@ database in one pass:
    and inactive-player historical penalties;
 7. record, score, shots, period goals, power-play conversion, shorthanded goals,
    goalie totals, and every chart or summary whose source game set changed;
-   publish PK opportunities, goals against, successful kills, and percentage
-   from `reviewed_penalty_kill_summary`, not the official aggregates in
-   `game_team_stats`;
+   publish power-play opportunities, goals, and conversion percentage from
+   `reviewed_power_play_summary`, and PK opportunities, goals against,
+   successful kills, and percentage from `reviewed_penalty_kill_summary`, not
+   the official aggregates in `game_team_stats`;
 8. the internal goal-attribution audit when Seattle Junior goals changed; and
 9. the static public page and its tests, using Workflow D.
 
